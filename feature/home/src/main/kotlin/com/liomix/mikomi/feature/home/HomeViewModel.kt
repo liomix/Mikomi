@@ -19,8 +19,13 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     val uiState: StateFlow<HomeUiState> = animeRepository.observeAnimeList()
-        .map<List<Anime>, HomeUiState> { HomeUiState.Success(it) }
-        .catch { emit(HomeUiState.Error(it.message ?: "加载失败")) }
+        .map<List<Anime>, HomeUiState> { anime ->
+            HomeUiState.Success(
+                banners = anime.take(BANNER_COUNT),
+                anime = anime,
+            )
+        }
+        .catch { emit(HomeUiState.Error(it.message.orEmpty())) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -35,5 +40,10 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { animeRepository.refreshAnimeList() }
         }
+    }
+
+    private companion object {
+        /** 轮播图数量上限；数据源接入后由服务端返回的 banner 列表替代。 */
+        const val BANNER_COUNT = 5
     }
 }

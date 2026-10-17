@@ -9,5 +9,5 @@ import retrofit2.http.POST
 internal interface AniListApi {
 
     @POST("/")
-    suspend fun fetchTrending(@Body request: AniListGraphqlRequest): AniListGraphqlResponse
+    suspend fun execute(@Body request: AniListGraphqlRequest): AniListGraphqlResponse
 }

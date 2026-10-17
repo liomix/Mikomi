@@ -2,18 +2,13 @@ package com.liomix.mikomi.data.anime.remote.anilist.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
-/** AniList GraphQL 请求体（标准 GraphQL over HTTP）。 */
+/** AniList GraphQL 请求体（标准 GraphQL over HTTP，variables 按查询动态组装）。 */
 @Serializable
 data class AniListGraphqlRequest(
     val query: String,
-    val variables: AniListPageVariables,
-)
-
-@Serializable
-data class AniListPageVariables(
-    val page: Int,
-    val perPage: Int,
+    val variables: JsonObject = JsonObject(emptyMap()),
 )
 
 /** GraphQL 响应外层。 */
@@ -25,6 +20,7 @@ data class AniListGraphqlResponse(
 @Serializable
 data class AniListData(
     @SerialName("Page") val page: AniListPage? = null,
+    @SerialName("Media") val media: AniListMediaDto? = null,
 )
 
 @Serializable

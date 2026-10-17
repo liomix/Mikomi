@@ -1,7 +1,9 @@
 package com.liomix.mikomi.data.anime.di
 
+import com.liomix.mikomi.data.anime.AnimeIdMapper
 import com.liomix.mikomi.data.anime.AnimeRepository
 import com.liomix.mikomi.data.anime.HomeRepository
+import com.liomix.mikomi.data.anime.internal.AnimeIdMapperImpl
 import com.liomix.mikomi.data.anime.internal.AnimeRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.HomeRepositoryImpl
 import com.liomix.mikomi.data.anime.remote.AnimeApi
@@ -29,4 +31,7 @@ internal abstract class AnimeDataModule {
 
     @Binds
     internal abstract fun bindHomeRepository(impl: HomeRepositoryImpl): HomeRepository
+
+    @Binds
+    internal abstract fun bindAnimeIdMapper(impl: AnimeIdMapperImpl): AnimeIdMapper
 }

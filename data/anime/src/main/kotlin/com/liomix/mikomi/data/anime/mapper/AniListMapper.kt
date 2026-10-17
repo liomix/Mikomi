@@ -7,7 +7,7 @@ import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListMediaDto
 private const val ANILIST_SCORE_DIVISOR = 10.0
 
 internal fun AniListMediaDto.toEntity(): AnimeEntity = AnimeEntity(
-    id = id.toString(),
+    id = "$ANILIST_ID_PREFIX$id",
     title = title?.romaji
         ?: title?.english
         ?: title?.nativeTitle
@@ -18,6 +18,9 @@ internal fun AniListMediaDto.toEntity(): AnimeEntity = AnimeEntity(
     status = status.toInternalStatus(),
     popularity = popularity ?: 0,
 )
+
+/** 主键前缀，与 Bangumi 等数据源的 id 空间隔离，避免落同一张表时碰撞。 */
+internal const val ANILIST_ID_PREFIX = "anilist:"
 
 /** AniList 枚举值 → 内部状态字符串（对应 [com.liomix.mikomi.core.model.AnimeStatus] 语义）。 */
 internal fun String?.toInternalStatus(): String = when (this) {

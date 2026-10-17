@@ -32,7 +32,7 @@ class AniListMapperTest {
 
         val entity = dto.toEntity()
 
-        assertEquals("15125", entity.id)
+        assertEquals("anilist:15125", entity.id)
         assertEquals("Romaji", entity.title)
         assertEquals("large.jpg", entity.coverUrl)
         assertEquals("desc", entity.synopsis)

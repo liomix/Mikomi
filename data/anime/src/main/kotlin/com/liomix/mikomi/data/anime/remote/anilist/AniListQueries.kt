@@ -30,4 +30,34 @@ internal object AniListQueries {
           }
         }
     """.trimIndent()
+
+    /** 按名字搜索（供 id 转换：名字 → AniList id）。 */
+    val SEARCH = """
+        query (${'$'}search: String) {
+          Page(page: 1, perPage: 10) {
+            media(type: ANIME, search: ${'$'}search) {
+              id
+              title {
+                romaji
+                english
+                native
+              }
+            }
+          }
+        }
+    """.trimIndent()
+
+    /** 按 id 查详情（供 id 转换：AniList id → title）。 */
+    val MEDIA_BY_ID = """
+        query (${'$'}id: Int) {
+          Media(id: ${'$'}id, type: ANIME) {
+            id
+            title {
+              romaji
+              english
+              native
+            }
+          }
+        }
+    """.trimIndent()
 }

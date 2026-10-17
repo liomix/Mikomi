@@ -6,6 +6,7 @@ import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.data.anime.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -18,11 +19,20 @@ class HomeViewModel @Inject constructor(
     private val homeRepository: HomeRepository,
 ) : ViewModel() {
 
-    val uiState: StateFlow<HomeUiState> = combine<List<Anime>, List<Anime>, HomeUiState>(
+    private val _paging = MutableStateFlow(PagingState())
+    private var currentOffset = 0
+
+    val uiState: StateFlow<HomeUiState> = combine<List<Anime>, List<Anime>, PagingState, HomeUiState>(
         homeRepository.observeBanners(),
         homeRepository.observeRecommended(),
-    ) { banners, recommended ->
-        HomeUiState.Success(banners = banners, anime = recommended)
+        _paging,
+    ) { banners, recommended, paging ->
+        HomeUiState.Success(
+            banners = banners,
+            anime = recommended,
+            isLoadingMore = paging.isLoadingMore,
+            hasMore = paging.hasMore,
+        )
     }
         .catch { emit(HomeUiState.Error(it.message.orEmpty())) }
         .stateIn(
@@ -38,6 +48,32 @@ class HomeViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             runCatching { homeRepository.refreshHome() }
+                .onSuccess { result ->
+                    currentOffset = result.loadedCount
+                    _paging.value = PagingState(isLoadingMore = false, hasMore = result.hasMore)
+                }
+        }
+    }
+
+    fun loadMore() {
+        val paging = _paging.value
+        if (paging.isLoadingMore || !paging.hasMore) return
+
+        viewModelScope.launch {
+            _paging.value = paging.copy(isLoadingMore = true)
+            runCatching { homeRepository.loadMore(currentOffset) }
+                .onSuccess { result ->
+                    currentOffset += result.loadedCount
+                    _paging.value = PagingState(isLoadingMore = false, hasMore = result.hasMore)
+                }
+                .onFailure {
+                    _paging.value = _paging.value.copy(isLoadingMore = false)
+                }
         }
     }
 }
+
+private data class PagingState(
+    val isLoadingMore: Boolean = false,
+    val hasMore: Boolean = true,
+)

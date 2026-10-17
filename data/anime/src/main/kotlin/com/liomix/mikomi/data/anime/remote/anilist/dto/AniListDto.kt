@@ -26,6 +26,12 @@ data class AniListData(
 @Serializable
 data class AniListPage(
     val media: List<AniListMediaDto> = emptyList(),
+    val pageInfo: AniListPageInfo? = null,
+)
+
+@Serializable
+data class AniListPageInfo(
+    val hasNextPage: Boolean = false,
 )
 
 @Serializable

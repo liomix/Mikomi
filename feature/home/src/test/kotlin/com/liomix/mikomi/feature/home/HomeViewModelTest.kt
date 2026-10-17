@@ -3,6 +3,7 @@ package com.liomix.mikomi.feature.home
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.testing.MainDispatcherRule
 import com.liomix.mikomi.data.anime.HomeRepository
+import com.liomix.mikomi.data.anime.LoadMoreResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -52,12 +53,27 @@ class HomeViewModelTest {
         assertEquals(0, success.anime.size)
     }
 
+    @Test
+    fun `loadMore updates hasMore state`() = runTest {
+        val viewModel = HomeViewModel(FakeHomeRepository(emptyList(), emptyList()))
+
+        viewModel.loadMore()
+
+        val success = viewModel.uiState
+            .first { it is HomeUiState.Success } as HomeUiState.Success
+        assertEquals(false, success.hasMore)
+        assertEquals(false, success.isLoadingMore)
+    }
+
     private class FakeHomeRepository(
         private val banners: List<Anime>,
         private val recommended: List<Anime>,
     ) : HomeRepository {
         override fun observeBanners(): Flow<List<Anime>> = flowOf(banners)
         override fun observeRecommended(): Flow<List<Anime>> = flowOf(recommended)
-        override suspend fun refreshHome() = Unit
+        override suspend fun refreshHome(): LoadMoreResult =
+            LoadMoreResult(hasMore = true, loadedCount = recommended.size)
+        override suspend fun loadMore(offset: Int): LoadMoreResult =
+            LoadMoreResult(hasMore = false, loadedCount = 0)
     }
 }

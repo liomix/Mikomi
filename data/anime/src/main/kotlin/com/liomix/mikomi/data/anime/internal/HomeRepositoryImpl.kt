@@ -6,6 +6,7 @@ import com.liomix.mikomi.core.database.dao.AnimeDao
 import com.liomix.mikomi.core.database.entity.AnimeEntity
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.data.anime.HomeRepository
+import com.liomix.mikomi.data.anime.LoadMoreResult
 import com.liomix.mikomi.data.anime.mapper.ANILIST_ID_PREFIX
 import com.liomix.mikomi.data.anime.mapper.BANGUMI_ID_PREFIX
 import com.liomix.mikomi.data.anime.mapper.toDomain
@@ -31,48 +32,70 @@ internal class HomeRepositoryImpl @Inject constructor(
 ) : HomeRepository {
 
     override fun observeBanners(): Flow<List<Anime>> =
-        animeDao.observeTopAnime(BANNER_COUNT).map { list -> list.map { it.toDomain() } }
+        animeDao.observeTopRated(BANNER_COUNT).map { list -> list.map { it.toDomain() } }
 
     override fun observeRecommended(): Flow<List<Anime>> =
-        animeDao.observeTopAnime(HOME_PAGE_SIZE).map { list -> list.map { it.toDomain() } }
+        animeDao.observeAnimeByPopularity().map { list -> list.map { it.toDomain() } }
 
-    override suspend fun refreshHome() = withContext(ioDispatcher) {
-        // 主数据源 Bangumi；失败（网络/解析）降级到 AniList。此处为数据源容错边界，
-        // 捕获 Exception 后记录诊断日志再降级；协程取消不吞掉，直接向上传播。
-        val entities = try {
-            fetchBangumiTrending()
+    override suspend fun refreshHome(): LoadMoreResult = withContext(ioDispatcher) {
+        val page = fetchPage(offset = 0)
+        // 先清空首页数据源旧数据再写入，避免多源/多版本数据混杂。
+        animeDao.deleteByPrefixes(BANGUMI_ID_PREFIX, ANILIST_ID_PREFIX)
+        animeDao.upsertAll(page.entities)
+        LoadMoreResult(hasMore = page.hasMore, loadedCount = page.entities.size)
+    }
+
+    override suspend fun loadMore(offset: Int): LoadMoreResult = withContext(ioDispatcher) {
+        val page = fetchPage(offset)
+        animeDao.upsertAll(page.entities)
+        LoadMoreResult(hasMore = page.hasMore, loadedCount = page.entities.size)
+    }
+
+    private suspend fun fetchPage(offset: Int): HomePage =
+        try {
+            fetchBangumiPage(offset)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Log.w(TAG, "Bangumi trending failed, fallback to AniList", e)
-            fetchAniListTrending()
+            fetchAniListPage(offset)
         }
-        // 先清空首页数据源（bangumi:/anilist: 前缀）旧数据，再写入本次结果，
-        // 避免多源/多版本数据混杂，以及 popularity 量级不同导致的排序错乱。
-        animeDao.deleteByPrefixes(BANGUMI_ID_PREFIX, ANILIST_ID_PREFIX)
-        animeDao.upsertAll(entities)
+
+    private suspend fun fetchBangumiPage(offset: Int): HomePage {
+        val response = bangumiApi.fetchTrending(type = TYPE_ANIME, limit = PAGE_SIZE, offset = offset)
+        return HomePage(
+            entities = response.data.map { it.toEntity() },
+            hasMore = (offset + response.data.size) < response.total,
+        )
     }
 
-    private suspend fun fetchBangumiTrending(): List<AnimeEntity> =
-        bangumiApi.fetchTrending(type = TYPE_ANIME, limit = HOME_PAGE_SIZE, offset = 0)
-            .data
-            .map { it.toEntity() }
-
-    private suspend fun fetchAniListTrending(): List<AnimeEntity> =
-        anilistApi.execute(
+    private suspend fun fetchAniListPage(offset: Int): HomePage {
+        val page = offset / PAGE_SIZE + 1
+        val response = anilistApi.execute(
             AniListGraphqlRequest(
                 query = AniListQueries.TRENDING,
                 variables = buildJsonObject {
-                    put("page", 1)
-                    put("perPage", HOME_PAGE_SIZE)
+                    put("page", page)
+                    put("perPage", PAGE_SIZE)
                 },
             ),
-        ).data?.page?.media.orEmpty().map { it.toEntity() }
+        )
+        val pageData = response.data?.page
+        return HomePage(
+            entities = pageData?.media.orEmpty().map { it.toEntity() },
+            hasMore = pageData?.pageInfo?.hasNextPage ?: false,
+        )
+    }
+
+    private data class HomePage(
+        val entities: List<AnimeEntity>,
+        val hasMore: Boolean,
+    )
 
     private companion object {
         const val TYPE_ANIME = 2
         const val BANNER_COUNT = 5
-        const val HOME_PAGE_SIZE = 20
+        const val PAGE_SIZE = 20
         const val TAG = "HomeRepository"
     }
 }

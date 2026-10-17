@@ -14,10 +14,16 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -33,6 +39,8 @@ private val HomeGridColumns = GridCells.Adaptive(minSize = 100.dp)
 
 private val HomeContentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 112.dp)
 
+private const val LOAD_MORE_THRESHOLD = 3
+
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
@@ -41,6 +49,7 @@ fun HomeScreen(
     onProfileClick: () -> Unit,
     onActionClick: (HomeQuickAction) -> Unit,
     onRefresh: () -> Unit,
+    onLoadMore: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
@@ -60,10 +69,13 @@ fun HomeScreen(
         is HomeUiState.Success -> HomeContent(
             banners = uiState.banners,
             anime = uiState.anime,
+            isLoadingMore = uiState.isLoadingMore,
+            hasMore = uiState.hasMore,
             onAnimeClick = onAnimeClick,
             onSearchClick = onSearchClick,
             onProfileClick = onProfileClick,
             onActionClick = onActionClick,
+            onLoadMore = onLoadMore,
             modifier = modifier,
         )
     }
@@ -119,17 +131,34 @@ private fun HomeSkeleton(
 private fun HomeContent(
     banners: List<Anime>,
     anime: List<Anime>,
+    isLoadingMore: Boolean,
+    hasMore: Boolean,
     onAnimeClick: (String) -> Unit,
     onSearchClick: () -> Unit,
     onProfileClick: () -> Unit,
     onActionClick: (HomeQuickAction) -> Unit,
+    onLoadMore: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val searchHint = stringResource(R.string.home_search_hint)
     val profileContentDescription = stringResource(R.string.home_profile)
     val emptyMessage = stringResource(R.string.home_empty)
 
+    val gridState = rememberLazyGridState()
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            lastVisible >= gridState.layoutInfo.totalItemsCount - LOAD_MORE_THRESHOLD
+        }
+    }
+    LaunchedEffect(shouldLoadMore, isLoadingMore, hasMore) {
+        if (shouldLoadMore && hasMore && !isLoadingMore) {
+            onLoadMore()
+        }
+    }
+
     LazyVerticalGrid(
+        state = gridState,
         columns = HomeGridColumns,
         modifier = modifier.fillMaxSize(),
         contentPadding = HomeContentPadding,
@@ -178,6 +207,16 @@ private fun HomeContent(
                     anime = item,
                     onClick = { onAnimeClick(item.id) },
                 )
+            }
+
+            if (isLoadingMore) {
+                item(key = "loadingMore", span = { GridItemSpan(maxLineSpan) }) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                    )
+                }
             }
         }
     }

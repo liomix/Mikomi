@@ -15,8 +15,11 @@ interface AnimeDao {
     @Query("SELECT * FROM anime WHERE id = :id")
     fun observeAnime(id: String): Flow<AnimeEntity?>
 
-    @Query("SELECT * FROM anime ORDER BY popularity DESC LIMIT :limit")
-    fun observeTopAnime(limit: Int): Flow<List<AnimeEntity>>
+    @Query("SELECT * FROM anime WHERE rating IS NOT NULL ORDER BY rating DESC LIMIT :limit")
+    fun observeTopRated(limit: Int): Flow<List<AnimeEntity>>
+
+    @Query("SELECT * FROM anime ORDER BY popularity DESC")
+    fun observeAnimeByPopularity(): Flow<List<AnimeEntity>>
 
     /** 删除指定 id 前缀的数据（供首页数据源刷新前清理旧数据，避免多源混杂）。 */
     @Query("DELETE FROM anime WHERE id LIKE :prefix1 || '%' OR id LIKE :prefix2 || '%'")

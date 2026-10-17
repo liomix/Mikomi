@@ -23,6 +23,7 @@ fun HomeRoute(
         onProfileClick = onProfileClick,
         onActionClick = onActionClick,
         onRefresh = viewModel::refresh,
+        onLoadMore = viewModel::loadMore,
         modifier = modifier,
     )
 }

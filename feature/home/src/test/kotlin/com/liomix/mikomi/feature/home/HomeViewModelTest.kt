@@ -1,9 +1,8 @@
 package com.liomix.mikomi.feature.home
 
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.model.Episode
 import com.liomix.mikomi.core.testing.MainDispatcherRule
-import com.liomix.mikomi.data.anime.AnimeRepository
+import com.liomix.mikomi.data.anime.HomeRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -20,28 +19,31 @@ class HomeViewModelTest {
 
     @Test
     fun `home view model constructs with a fake repository`() = runTest {
-        val viewModel = HomeViewModel(FakeAnimeRepository(emptyList()))
+        val viewModel = HomeViewModel(FakeHomeRepository(emptyList(), emptyList()))
         assertNotNull(viewModel.uiState)
     }
 
     @Test
-    fun `success state exposes banners as first five anime`() = runTest {
-        val anime = (1..8).map { id ->
-            Anime(id = "id$id", title = "番剧$id")
+    fun `success state exposes banners and recommended separately`() = runTest {
+        val banners = (1..5).map { id ->
+            Anime(id = "banner$id", title = "轮播$id")
         }
-        val viewModel = HomeViewModel(FakeAnimeRepository(anime))
+        val recommended = (1..8).map { id ->
+            Anime(id = "rec$id", title = "推荐$id")
+        }
+        val viewModel = HomeViewModel(FakeHomeRepository(banners, recommended))
 
         val success = viewModel.uiState
             .first { it is HomeUiState.Success } as HomeUiState.Success
 
         assertEquals(5, success.banners.size)
         assertEquals(8, success.anime.size)
-        assertEquals("id1", success.banners.first().id)
+        assertEquals("banner1", success.banners.first().id)
     }
 
     @Test
-    fun `success state exposes empty banners when list is empty`() = runTest {
-        val viewModel = HomeViewModel(FakeAnimeRepository(emptyList()))
+    fun `success state exposes empty lists when repository is empty`() = runTest {
+        val viewModel = HomeViewModel(FakeHomeRepository(emptyList(), emptyList()))
 
         val success = viewModel.uiState
             .first { it is HomeUiState.Success } as HomeUiState.Success
@@ -50,12 +52,12 @@ class HomeViewModelTest {
         assertEquals(0, success.anime.size)
     }
 
-    private class FakeAnimeRepository(
-        private val anime: List<Anime>,
-    ) : AnimeRepository {
-        override fun observeAnimeList(): Flow<List<Anime>> = flowOf(anime)
-        override fun observeAnime(id: String): Flow<Anime?> = flowOf(null)
-        override fun observeEpisodes(animeId: String): Flow<List<Episode>> = flowOf(emptyList())
-        override suspend fun refreshAnimeList() = Unit
+    private class FakeHomeRepository(
+        private val banners: List<Anime>,
+        private val recommended: List<Anime>,
+    ) : HomeRepository {
+        override fun observeBanners(): Flow<List<Anime>> = flowOf(banners)
+        override fun observeRecommended(): Flow<List<Anime>> = flowOf(recommended)
+        override suspend fun refreshHome() = Unit
     }
 }

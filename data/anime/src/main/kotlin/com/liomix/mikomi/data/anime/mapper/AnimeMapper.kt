@@ -33,6 +33,7 @@ internal fun AnimeEntity.toDomain(): Anime = Anime(
     synopsis = synopsis,
     rating = rating,
     status = AnimeStatus.from(status),
+    popularity = popularity,
 )
 
 internal fun EpisodeEntity.toDomain(): Episode = Episode(

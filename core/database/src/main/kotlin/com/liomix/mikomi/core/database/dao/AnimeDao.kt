@@ -15,6 +15,9 @@ interface AnimeDao {
     @Query("SELECT * FROM anime WHERE id = :id")
     fun observeAnime(id: String): Flow<AnimeEntity?>
 
+    @Query("SELECT * FROM anime ORDER BY popularity DESC LIMIT :limit")
+    fun observeTopAnime(limit: Int): Flow<List<AnimeEntity>>
+
     @Upsert
     suspend fun upsertAll(anime: List<AnimeEntity>)
 }

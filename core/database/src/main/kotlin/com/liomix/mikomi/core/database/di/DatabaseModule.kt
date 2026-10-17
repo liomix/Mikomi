@@ -7,6 +7,7 @@ import com.liomix.mikomi.core.database.dao.AnimeDao
 import com.liomix.mikomi.core.database.dao.EpisodeDao
 import com.liomix.mikomi.core.database.dao.FavoriteDao
 import com.liomix.mikomi.core.database.dao.HistoryDao
+import com.liomix.mikomi.core.database.migration.Migrations
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -21,7 +22,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): MikomiDatabase =
-        Room.databaseBuilder(context, MikomiDatabase::class.java, "mikomi.db").build()
+        Room.databaseBuilder(context, MikomiDatabase::class.java, "mikomi.db")
+            .addMigrations(Migrations.MIGRATION_1_2)
+            .build()
 
     @Provides
     fun provideAnimeDao(db: MikomiDatabase): AnimeDao = db.animeDao()

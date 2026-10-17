@@ -23,4 +23,5 @@ data class Anime(
     val rating: Double? = null,
     val status: AnimeStatus = AnimeStatus.UNKNOWN,
     val genres: List<String> = emptyList(),
+    val popularity: Int = 0,
 )

@@ -1,5 +1,6 @@
 package com.liomix.mikomi.core.database.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -11,6 +12,7 @@ data class AnimeEntity(
     val synopsis: String? = null,
     val rating: Double? = null,
     val status: String = "unknown",
+    @ColumnInfo(defaultValue = "0") val popularity: Int = 0,
 )
 
 @Entity(tableName = "episode")

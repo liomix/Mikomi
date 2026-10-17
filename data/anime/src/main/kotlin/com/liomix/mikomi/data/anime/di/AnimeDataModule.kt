@@ -1,7 +1,9 @@
 package com.liomix.mikomi.data.anime.di
 
 import com.liomix.mikomi.data.anime.AnimeRepository
+import com.liomix.mikomi.data.anime.HomeRepository
 import com.liomix.mikomi.data.anime.internal.AnimeRepositoryImpl
+import com.liomix.mikomi.data.anime.internal.HomeRepositoryImpl
 import com.liomix.mikomi.data.anime.remote.AnimeApi
 import dagger.Binds
 import dagger.Module
@@ -24,4 +26,7 @@ internal abstract class AnimeDataModule {
 
     @Binds
     internal abstract fun bindAnimeRepository(impl: AnimeRepositoryImpl): AnimeRepository
+
+    @Binds
+    internal abstract fun bindHomeRepository(impl: HomeRepositoryImpl): HomeRepository
 }

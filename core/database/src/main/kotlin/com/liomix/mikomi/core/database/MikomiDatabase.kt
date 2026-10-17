@@ -18,7 +18,7 @@ import com.liomix.mikomi.core.database.entity.HistoryEntity
         FavoriteEntity::class,
         HistoryEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class MikomiDatabase : RoomDatabase() {

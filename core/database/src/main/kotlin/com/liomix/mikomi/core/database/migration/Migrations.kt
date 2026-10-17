@@ -1,5 +1,8 @@
 package com.liomix.mikomi.core.database.migration
 
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+
 /**
  * Room 迁移集合。
  *
@@ -7,5 +10,11 @@ package com.liomix.mikomi.core.database.migration
  * [androidx.room.migration.Migration]；禁止在生产环境使用 fallbackToDestructiveMigration。
  */
 object Migrations {
-    // 当前版本 = 1，暂无迁移；后续版本升级在此追加。
+
+    /** 1 → 2：anime 表新增 popularity 列（用于首页热度排序 / banner 前 N）。 */
+    val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE anime ADD COLUMN popularity INTEGER NOT NULL DEFAULT 0")
+        }
+    }
 }

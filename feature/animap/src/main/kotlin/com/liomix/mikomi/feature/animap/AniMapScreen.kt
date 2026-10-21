@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -93,9 +94,11 @@ fun AniMapScreen(
         // 加载指示须放在 AndroidView 之后声明：Box 子节点按声明顺序绘制，
         // TextureView 不支持 zIndex，后声明的 Compose 内容才会盖到 WebView 之上。
         AndroidView(
-            // 不加 statusBars 避让：地图本身要占满整个屏幕，
-            // 状态栏覆盖在地图上方。
-            modifier = Modifier.fillMaxSize(),
+            // 地图容器避开状态栏区域：地图位于状态栏之下（内容不被状态栏遮挡）。
+            // 仅状态栏避让，底部仍全屏（手势条/导航栏覆盖在地图之上，符合沉浸设计）。
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.statusBars),
             factory = { context ->
                 // 复用缓存的 WebView：切换回巡礼页不再重新加载地图。
                 AniMapWebCache.acquire(context, url).also { container ->

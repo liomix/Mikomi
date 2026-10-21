@@ -5,15 +5,17 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.PixelFormat
 import android.graphics.PorterDuff
+import android.graphics.SurfaceTexture
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
-import android.view.SurfaceHolder
-import android.view.SurfaceView
+import android.view.Gravity
+import android.view.MotionEvent
+import android.view.TextureView
 import android.view.View
 import android.view.WindowManager
-import android.view.Gravity
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -23,7 +25,7 @@ import android.widget.FrameLayout
 /**
  * 类似 flutter_inappwebview（useHybridComposition=false）的纯原生 WebView 容器。
  *
- * WebView 不直接放入窗口的 View 树，而是放进一个由 [SurfaceView] 提供的
+ * WebView 不直接放入窗口的 View 树，而是放进一个由 [TextureView] 提供的
  * [VirtualDisplay]（虚拟显示），渲染输出到 Surface，触摸坐标缩放后转发。
  * WebView 因此处于独立的窗口层级，宿主 View 树上的反射遍历/劫持
  * （如 vivo「无障碍增强」模块）碰不到 WebView 本体，Canvas/WebGL 正常渲染。
@@ -34,7 +36,7 @@ import android.widget.FrameLayout
 class SurfaceWebViewContainer(
     context: Context,
     private val initialUrl: String,
-) : FrameLayout(context), SurfaceHolder.Callback {
+) : FrameLayout(context), TextureView.SurfaceTextureListener {
 
     /** 容器内的 WebView，创建后可调用 goBack 等。 */
     var webView: WebView? = null
@@ -49,7 +51,7 @@ class SurfaceWebViewContainer(
     /** WebView 创建完成时回调。 */
     var onWebViewCreated: (WebView) -> Unit = {}
 
-    private val surfaceView = SurfaceView(context)
+    private val textureView = TextureView(context)
 
     private var virtualDisplay: VirtualDisplay? = null
     private var hostContainer: FrameLayout? = null
@@ -60,23 +62,47 @@ class SurfaceWebViewContainer(
 
     init {
         addView(
-            surfaceView,
+            textureView,
             LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT),
         )
-        surfaceView.holder.addCallback(this)
+        textureView.surfaceTextureListener = this
+        // WebView 挂在 Presentation 里，没有自己的输入焦点，触摸事件须手动转发。
+        // 否则点按/滑动无响应，地图收不到任何手势。
+        setOnTouchListener { _, event ->
+            val web = webView ?: return@setOnTouchListener false
+            web.onTouchEvent(event)
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                web.requestFocus()
+            }
+            true
+        }
     }
 
-    override fun surfaceCreated(holder: SurfaceHolder) {
+    override fun onSurfaceTextureAvailable(
+        surfaceTexture: SurfaceTexture,
+        width: Int,
+        height: Int,
+    ) {
+        // SurfaceTexture 通常为设备像素，TextureView 显示区域可能更大，
+        // 用单位矩阵不做缩放，虚拟显示分辨率跟物理像素一致。
+        textureView.setTransform(Matrix())
         createWebViewIfReady()
     }
 
-    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        ensureVirtualDisplay(holder, width, height)
+    override fun onSurfaceTextureSizeChanged(
+        surfaceTexture: SurfaceTexture,
+        width: Int,
+        height: Int,
+    ) {
+        ensureVirtualDisplay(surfaceTexture, width, height)
     }
 
-    override fun surfaceDestroyed(holder: SurfaceHolder) {
+    override fun onSurfaceTextureDestroyed(surfaceTexture: SurfaceTexture): Boolean {
         releaseVirtualDisplay()
+        return true
     }
+
+    override fun onSurfaceTextureUpdated(surfaceTexture: SurfaceTexture) = Unit
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -86,7 +112,7 @@ class SurfaceWebViewContainer(
     }
 
     override fun dispatchDraw(canvas: Canvas) {
-        // SurfaceView 默认在其后挖洞，Compose 层需要透明时先清屏。
+        // TextureView 不挖洞，但 Compose 层需要透明时先清屏。
         canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
         super.dispatchDraw(canvas)
     }
@@ -108,12 +134,12 @@ class SurfaceWebViewContainer(
     @SuppressLint("SetJavaScriptEnabled")
     private fun createWebViewIfReady() {
         if (webView != null) return
-        if (!surfaceView.holder.surface.isValid) return
+        val st = textureView.surfaceTexture ?: return
         val w = width
         val h = height
         if (w <= 0 || h <= 0) return
 
-        ensureVirtualDisplay(surfaceView.holder, w, h)
+        ensureVirtualDisplay(st, w, h)
 
         val host = FrameLayout(context)
         val web = WebView(context).apply {
@@ -155,6 +181,11 @@ class SurfaceWebViewContainer(
         hostContainer = host
         attachHost(host, w, h)
         webView = web
+        // Presentation 窗口创建在自己的显示上，不随 Activity 焦点走；
+        // 显式请求焦点，保证键盘/输入事件能进 WebView。
+        web.isFocusable = true
+        web.isFocusableInTouchMode = true
+        web.requestFocus()
         onLoadingChanged(true)
         onWebViewCreated(web)
         web.loadUrl(initialUrl)
@@ -179,7 +210,7 @@ class SurfaceWebViewContainer(
                 presentation = shown
                 hostContainer = host
             }.onFailure {
-                // 虚拟显示不可用时退回窗口挂载（仍低于 SurfaceView，触摸转发仍工作）。
+                // 虚拟显示不可用时退回窗口挂载（仍低于 TextureView，触摸转发仍工作）。
                 attachHostWindow(host, w, h)
             }
         } else {
@@ -210,16 +241,18 @@ class SurfaceWebViewContainer(
         runCatching { wm.removeViewImmediate(host) }
     }
 
-    private fun ensureVirtualDisplay(holder: SurfaceHolder, w: Int, h: Int) {
+    private fun ensureVirtualDisplay(st: SurfaceTexture, w: Int, h: Int) {
         if (w <= 0 || h <= 0) return
         if (virtualDisplay != null) return
         val density = context.resources.displayMetrics.densityDpi
+        // OWN_CONTENT_ONLY：只渲染 WebView，跳过虚拟显示上无关内容；
+        // AUTO_MIRROR 需要源显示镜像，这里不需要，避免额外一帧拷贝。
         virtualDisplay = displayManager.createVirtualDisplay(
             "mikomi-animap-webview",
             w,
             h,
             density,
-            holder.surface,
+            android.view.Surface(st),
             DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY,
         )
     }

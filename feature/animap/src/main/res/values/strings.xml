@@ -1,4 +1,5 @@
 <resources>
     <string name="animap_title">巡礼地图</string>
     <string name="animap_subtitle">AniMap · 动漫取景地巡礼</string>
+    <string name="animap_loading">地图加载中…</string>
 </resources>

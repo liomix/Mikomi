@@ -10,6 +10,7 @@ android {
 dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:navigation"))
+    implementation(libs.androidx.activity.compose)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 }

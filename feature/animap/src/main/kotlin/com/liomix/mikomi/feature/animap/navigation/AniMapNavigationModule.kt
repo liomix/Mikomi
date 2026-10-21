@@ -2,6 +2,7 @@ package com.liomix.mikomi.feature.animap.navigation
 
 import com.liomix.mikomi.core.navigation.AniMapDestination
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
+import com.liomix.mikomi.core.navigation.ImmersionBridge
 import com.liomix.mikomi.feature.animap.AniMapScreen
 import dagger.Module
 import dagger.Provides
@@ -15,12 +16,10 @@ object AniMapNavigationModule {
 
     @Provides
     @IntoSet
-    fun provideEntryProviderInstaller(): EntryProviderInstaller = { updateImmersive ->
-        entry<AniMapDestination> {
-            AniMapScreen(
-                onImmersiveChange = { immersive -> updateImmersive.onImmersiveChange(immersive) },
-                onNavBarTempChange = { temp -> updateImmersive.onNavBarTempChange(temp) },
-            )
+    fun provideEntryProviderInstaller(immersionBridge: ImmersionBridge): EntryProviderInstaller =
+        { _ ->
+            entry<AniMapDestination> {
+                AniMapScreen(immersionBridge = immersionBridge)
+            }
         }
-    }
 }

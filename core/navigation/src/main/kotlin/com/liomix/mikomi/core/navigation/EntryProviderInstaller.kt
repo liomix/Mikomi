@@ -14,6 +14,16 @@ interface ImmersiveCallback {
 
     /** 沉浸中临时唤出/收起底部导航栏（手势条点按、边缘拖动、2.5s 自动收起）。 */
     fun onNavBarTempChange(value: Boolean)
+
+    /**
+     * 当前沉浸状态（宿主侧权威副本，跨 entry 重建存活）。
+     * 页面用它渲染手势条条件 `isImmersive && !showNavBar`，
+     * 避免依赖页面侧 rememberSaveable 在 Nav3 entry 重建时随 SaveableStateHolder 丢失。
+     */
+    fun isImmersive(): Boolean
+
+    /** 当前导航栏临时唤出状态（宿主侧权威副本）。 */
+    fun isNavBarTemp(): Boolean
 }
 
 typealias EntryProviderInstaller = EntryProviderScope<NavKey>.(updateImmersive: ImmersiveCallback) -> Unit

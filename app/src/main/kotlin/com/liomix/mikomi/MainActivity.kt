@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
+import com.liomix.mikomi.core.navigation.ImmersionBridge
 import com.liomix.mikomi.core.navigation.Navigator
 import com.liomix.mikomi.navigation.MikomiNavHost
 import dagger.hilt.android.AndroidEntryPoint
@@ -20,6 +21,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var entryProviderInstallers: Set<@JvmSuppressWildcards EntryProviderInstaller>
+
+    @Inject
+    lateinit var immersionBridge: ImmersionBridge
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,6 +44,7 @@ class MainActivity : ComponentActivity() {
                 MikomiNavHost(
                     navigator = navigator,
                     entryProviderInstallers = entryProviderInstallers,
+                    immersionBridge = immersionBridge,
                 )
             }
         }

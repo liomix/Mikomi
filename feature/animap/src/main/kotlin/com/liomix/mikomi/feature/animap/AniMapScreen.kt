@@ -3,18 +3,22 @@ package com.liomix.mikomi.feature.animap
 import android.webkit.WebView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -65,6 +69,8 @@ fun AniMapScreen(
 ) {
     var canGoBack by remember { mutableStateOf(false) }
     var webView by remember { mutableStateOf<WebView?>(null) }
+    // 地图页面加载指示：true 时显示环形进度。
+    var loading by remember { mutableStateOf(true) }
     // 地图被滑动后进入沉浸：隐藏底部导航栏；状态栏常驻不动。
     var immersiveActive by remember { mutableStateOf(false) }
     // 沉浸中临时唤出的底部导航栏，超时自动收起。
@@ -84,27 +90,63 @@ fun AniMapScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
+        // 加载指示须放在 AndroidView 之后声明：Box 子节点按声明顺序绘制，
+        // TextureView 不支持 zIndex，后声明的 Compose 内容才会盖到 WebView 之上。
         AndroidView(
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.statusBars),
+            // 不加 statusBars 避让：地图本身要占满整个屏幕，
+            // 状态栏覆盖在地图上方。
+            modifier = Modifier.fillMaxSize(),
             factory = { context ->
-                SurfaceWebViewContainer(context, url).apply {
-                    onPageFinished = { view -> canGoBack = view.canGoBack() }
-                    onWebViewCreated = { webView = it }
-                    onMapScrolled = { immersiveActive = true }
-                    onEdgeDrag = {
+                // 复用缓存的 WebView：切换回巡礼页不再重新加载地图。
+                AniMapWebCache.acquire(context, url).also { container ->
+                    container.onLoadingChanged = { isLoading -> loading = isLoading }
+                    container.onWebViewCreated = { view -> webView = view }
+                    container.onPageFinished = { view, finishedUrl ->
+                        canGoBack = view.canGoBack()
+                        // 用页面最终 URL 记录缓存；anitabi 会重定向改写 URL，
+                        // 与初始 url 不等会导致缓存永不命中。
+                        AniMapWebCache.onLoaded(finishedUrl ?: view.url ?: url)
+                    }
+                    container.onMapScrolled = { immersiveActive = true }
+                    container.onEdgeDrag = {
                         immersiveActive = false
                         showNavBar = true
                     }
+                    // 缓存命中时容器已持有加载完成的 WebView，不再显示加载指示。
+                    loading = container.webView == null
                 }
             },
             onRelease = {
-                it.destroy()
+                // 仅释放容器外壳（虚拟显示/挂载），WebView 本体由缓存持有，不销毁。
+                AniMapWebCache.release(it)
                 immersiveActive = false
                 showNavBar = false
             },
         )
+
+        if (loading) {
+            // 地图加载指示：Material 风格环形进度 + 说明文字，居中显示。
+            val loadingText = stringResource(R.string.animap_loading)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .align(Alignment.Center)
+                    .semantics(mergeDescendants = true) { contentDescription = loadingText },
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(40.dp))
+                    Text(
+                        text = loadingText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
 
         // 沉浸中的常驻手势条：Material 地图模式式的底部 pill，
         // 点按切换导航栏显隐，拖动同样唤出，是"如何再显示导航栏"的可发现入口。

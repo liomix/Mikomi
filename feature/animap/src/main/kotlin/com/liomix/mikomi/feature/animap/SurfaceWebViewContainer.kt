@@ -36,6 +36,7 @@ import android.widget.FrameLayout
 class SurfaceWebViewContainer(
     context: Context,
     private val initialUrl: String,
+    private val cachedWebView: WebView? = null,
 ) : FrameLayout(context), TextureView.SurfaceTextureListener {
 
     /** 容器内的 WebView，创建后可调用 goBack 等。 */
@@ -45,8 +46,8 @@ class SurfaceWebViewContainer(
     /** 页面开始加载/加载完成时回调 true/false。 */
     var onLoadingChanged: (Boolean) -> Unit = {}
 
-    /** 页面加载完成（onPageFinished）时回调。 */
-    var onPageFinished: (WebView) -> Unit = {}
+    /** 页面加载完成（onPageFinished）时回调，携带页面当前 URL（可能被站点重定向改写）。 */
+    var onPageFinished: (WebView, String?) -> Unit = { _, _ -> }
 
     /** WebView 创建完成时回调。 */
     var onWebViewCreated: (WebView) -> Unit = {}
@@ -164,10 +165,20 @@ class SurfaceWebViewContainer(
 
     /** 停止加载并释放 WebView 与虚拟显示。 */
     fun destroy() {
-        webView?.let {
-            it.stopLoading()
-            it.destroy()
-        }
+        destroyWebView()
+        presentation?.dismiss()
+        presentation = null
+        hostContainer?.let { detachHost(it) }
+        hostContainer = null
+        releaseVirtualDisplay()
+    }
+
+    /**
+     * 仅释放容器外壳（虚拟显示、窗口挂载），保留 WebView 本体由 [AniMapWebCache] 持有，
+     * 供下次进入复用。调用后容器不可再用。
+     */
+    fun detachForCache() {
+        webView?.let { hostContainer?.removeView(it) }
         webView = null
         presentation?.dismiss()
         presentation = null
@@ -176,8 +187,32 @@ class SurfaceWebViewContainer(
         releaseVirtualDisplay()
     }
 
+    /** 销毁 WebView 本体并释放虚拟显示（彻底清理，不再复用）。 */
+    private fun destroyWebView() {
+        webView?.let {
+            it.stopLoading()
+            it.destroy()
+        }
+        webView = null
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     private fun createWebViewIfReady() {
+        val cached = cachedWebView
+        if (cached != null) {
+            // 缓存命中：跳过重建与 loadUrl，直接挂载到虚拟显示上。
+            hostContainer = FrameLayout(context).also { host ->
+                host.addView(cached, FrameLayout.LayoutParams(width, height))
+                attachHost(host, width, height)
+            }
+            webView = cached
+            cached.isFocusable = true
+            cached.isFocusableInTouchMode = true
+            cached.requestFocus()
+            onWebViewCreated(cached)
+            // 缓存 WebView 已加载完成，不再触发加载指示。
+            return
+        }
         if (webView != null) return
         val st = textureView.surfaceTexture ?: return
         val w = width
@@ -218,7 +253,9 @@ class SurfaceWebViewContainer(
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView, finishedUrl: String?) {
                     onLoadingChanged(false)
-                    onPageFinished(view)
+                    // 显式限定到类属性，避免与本匿名类重写的 onPageFinished 方法同名遮蔽，
+                    // 否则 Kotlin 会解析成递归调用自身导致 StackOverflow。
+                    this@SurfaceWebViewContainer.onPageFinished(view, finishedUrl)
                 }
             }
         }

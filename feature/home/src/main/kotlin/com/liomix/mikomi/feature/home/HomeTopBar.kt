@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -26,7 +25,7 @@ import androidx.compose.ui.unit.dp
 /**
  * 首页顶部栏：左侧头像、右侧搜索框。
  *
- * 自适应：整栏随页面滚动，[statusBarsPadding] 处理 edge-to-edge 顶部安全区；
+ * 自适应：整栏随页面滚动，顶部安全区由 HomeScreen 的 contentPadding 承担；
  * 头像与搜索框触控目标均 ≥48dp。
  */
 @Composable
@@ -40,7 +39,6 @@ fun HomeTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .statusBarsPadding()
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

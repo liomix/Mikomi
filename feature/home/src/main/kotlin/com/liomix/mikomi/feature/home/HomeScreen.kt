@@ -5,11 +5,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -37,7 +40,18 @@ import com.liomix.mikomi.core.ui.component.SkeletonBox
 /** 网格列宽：手机竖屏约 3 列，宽屏自动增加列数（Dart 版为固定 3 列）。 */
 private val HomeGridColumns = GridCells.Adaptive(minSize = 100.dp)
 
-private val HomeContentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 112.dp)
+/**
+ * 网格内容边距。
+ *
+ * 顶部安全区由 [homeContentPadding] 的 `top` 承担（edge-to-edge 下内容须避开状态栏）；
+ * HomeTopBar 不再自行加 `statusBarsPadding`——
+ * 滚动后 TopBar 离开顶部，该 padding 会把可见内容整体往下推，反而把内容错位。
+ */
+@Composable
+private fun homeContentPadding(): PaddingValues {
+    val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    return PaddingValues(start = 16.dp, end = 16.dp, top = statusBarInset, bottom = 112.dp)
+}
 
 private const val LOAD_MORE_THRESHOLD = 3
 
@@ -94,7 +108,7 @@ private fun HomeSkeleton(
     LazyVerticalGrid(
         columns = HomeGridColumns,
         modifier = modifier.fillMaxSize(),
-        contentPadding = HomeContentPadding,
+        contentPadding = homeContentPadding(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -161,7 +175,7 @@ private fun HomeContent(
         state = gridState,
         columns = HomeGridColumns,
         modifier = modifier.fillMaxSize(),
-        contentPadding = HomeContentPadding,
+        contentPadding = homeContentPadding(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {

@@ -17,7 +17,7 @@ object DetailNavigationModule {
 
     @Provides
     @IntoSet
-    fun provideEntryProviderInstaller(navigator: Navigator): EntryProviderInstaller = {
+    fun provideEntryProviderInstaller(navigator: Navigator): EntryProviderInstaller = { _ ->
         entry<DetailDestination> { key ->
             DetailScreen(
                 animeId = key.animeId,

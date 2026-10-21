@@ -19,7 +19,7 @@ object HomeNavigationModule {
 
     @Provides
     @IntoSet
-    fun provideEntryProviderInstaller(navigator: Navigator): EntryProviderInstaller = {
+    fun provideEntryProviderInstaller(navigator: Navigator): EntryProviderInstaller = { _ ->
         entry<HomeDestination> {
             HomeRoute(
                 onAnimeClick = { animeId -> navigator.goTo(DetailDestination(animeId)) },

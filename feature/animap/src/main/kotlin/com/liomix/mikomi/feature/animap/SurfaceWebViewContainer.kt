@@ -51,6 +51,12 @@ class SurfaceWebViewContainer(
     /** WebView 创建完成时回调。 */
     var onWebViewCreated: (WebView) -> Unit = {}
 
+    /** 单指拖动（非点按）时回调，用于进入沉浸模式。 */
+    var onMapScrolled: () -> Unit = {}
+
+    /** 底部边缘手势条区域被拖动时回调，用于临时唤出底部导航栏。 */
+    var onEdgeDrag: () -> Unit = {}
+
     private val textureView = TextureView(context)
 
     private var virtualDisplay: VirtualDisplay? = null
@@ -59,6 +65,11 @@ class SurfaceWebViewContainer(
 
     private val displayManager =
         context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+
+    private val touchSlop = android.view.ViewConfiguration.get(context).scaledTouchSlop
+    private var downX = 0f
+    private var downY = 0f
+    private var scrollDetected = false
 
     init {
         addView(
@@ -71,10 +82,44 @@ class SurfaceWebViewContainer(
         setOnTouchListener { _, event ->
             val web = webView ?: return@setOnTouchListener false
             web.onTouchEvent(event)
+            handleGesture(event)
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
                 web.requestFocus()
             }
             true
+        }
+    }
+
+    /**
+     * 从转发的触摸流中识别两类手势（不影响 WebView 收到的事件）：
+     * - 单指拖动超过 [touchSlop]：[onMapScrolled]（进入沉浸）；
+     * - 起点在屏幕底部约 20% 高度内的向上拖动：[onEdgeDrag]（唤出导航栏）。
+     * 不以"是否在底部区域"区分地图滑动/唤出——地图几乎总是被从下往上拖，
+     * 起点位置没有区分度；唯一可靠的唤出手势是**明显的向上拖动**。
+     */
+    private fun handleGesture(event: MotionEvent) {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                downX = event.x
+                downY = event.y
+                scrollDetected = false
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (scrollDetected || event.pointerCount > 1) return
+                val dx = event.x - downX
+                val dy = event.y - downY
+                if (dx * dx + dy * dy > touchSlop.toFloat() * touchSlop) {
+                    scrollDetected = true
+                    val isEdgeDrag = downY > height * EDGE_DRAG_FRACTION &&
+                        dy < -EDGE_DRAG_MIN_UPWARD_FRACTION * touchSlop
+                    if (isEdgeDrag) {
+                        onEdgeDrag()
+                    } else {
+                        onMapScrolled()
+                    }
+                }
+            }
         }
     }
 
@@ -264,4 +309,12 @@ class SurfaceWebViewContainer(
 
     private fun Context.isDebuggable(): Boolean =
         applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+
+    private companion object {
+        /** 底部边缘区域高度比例，仅此区域内的**向上拖动**视为唤出导航栏。 */
+        const val EDGE_DRAG_FRACTION = 0.20f
+
+        /** 唤出手势所需最小向上位移（以 touch slop 为单位），低于此视为地图平移。 */
+        const val EDGE_DRAG_MIN_UPWARD_FRACTION = 2.5f
+    }
 }

@@ -15,7 +15,7 @@ object PlayerNavigationModule {
 
     @Provides
     @IntoSet
-    fun provideEntryProviderInstaller(): EntryProviderInstaller = {
+    fun provideEntryProviderInstaller(): EntryProviderInstaller = { _ ->
         entry<PlayerDestination> { key ->
             PlayerScreen(animeId = key.animeId, episodeId = key.episodeId)
         }

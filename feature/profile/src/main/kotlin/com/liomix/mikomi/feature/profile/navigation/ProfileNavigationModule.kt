@@ -15,7 +15,7 @@ object ProfileNavigationModule {
 
     @Provides
     @IntoSet
-    fun provideEntryProviderInstaller(): EntryProviderInstaller = {
+    fun provideEntryProviderInstaller(): EntryProviderInstaller = { _ ->
         entry<ProfileDestination> {
             ProfileScreen()
         }

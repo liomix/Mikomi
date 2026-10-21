@@ -15,7 +15,7 @@ object LibraryNavigationModule {
 
     @Provides
     @IntoSet
-    fun provideEntryProviderInstaller(): EntryProviderInstaller = {
+    fun provideEntryProviderInstaller(): EntryProviderInstaller = { _ ->
         entry<LibraryDestination> {
             LibraryScreen()
         }

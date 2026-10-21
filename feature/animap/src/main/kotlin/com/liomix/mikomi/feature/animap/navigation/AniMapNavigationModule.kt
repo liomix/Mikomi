@@ -15,9 +15,12 @@ object AniMapNavigationModule {
 
     @Provides
     @IntoSet
-    fun provideEntryProviderInstaller(): EntryProviderInstaller = {
+    fun provideEntryProviderInstaller(): EntryProviderInstaller = { updateImmersive ->
         entry<AniMapDestination> {
-            AniMapScreen()
+            AniMapScreen(
+                onImmersiveChange = { immersive -> updateImmersive.onImmersiveChange(immersive) },
+                onNavBarTempChange = { temp -> updateImmersive.onNavBarTempChange(temp) },
+            )
         }
     }
 }

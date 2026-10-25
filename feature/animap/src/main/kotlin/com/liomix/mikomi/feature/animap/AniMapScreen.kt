@@ -58,7 +58,7 @@ private const val NAV_BAR_AUTO_HIDE_DELAY_MILLIS = 2_000L
  * - 状态栏常驻，页面内容避开状态栏区域（statusBars padding）；
  * - 进入巡礼页 [NAV_BAR_AUTO_HIDE_DELAY_MILLIS] 后自动进入沉浸（隐藏应用底部导航栏），
  *   不靠滑动/缩放判定，直接写 [ImmersionBridge.immersive]；
- * - 沉浸中底部显示常驻手势条：点按或拖动可临时唤出底部导航栏（2s 自动收起），
+ * - 沉浸中底部显示常驻手势条：仅点按可临时唤出底部导航栏（2s 自动收起），
  *   直接写 [ImmersionBridge.navBarTemp]；返回手势同样唤出（由宿主 NavDisplay.onBack 处理）。
  *
  * 沉浸状态权威副本直接放在 [ImmersionBridge]（进程级单例 MutableState），
@@ -126,14 +126,9 @@ fun AniMapScreen(
                         // 与初始 url 不等会导致缓存永不命中。
                         AniMapWebCache.onLoaded(finishedUrl ?: view.url ?: url)
                     }
-                    container.onEdgeDrag = {
-                        Log.d("AniMapScreen", "onEdgeDrag: exit immersive + show navBarTemp")
-                        // 底部边缘拖动：退出沉浸 + 临时唤出导航栏（地图滑动不再改变沉浸状态）。
-                        immersionBridge.onImmersiveChange(false)
-                        immersionBridge.onNavBarTempChange(true)
-                    }
-                    // 缓存命中时容器已持有加载完成的 WebView，不再显示加载指示。
-                    loading = container.webView == null
+                    // 缓存 WebView 已完成首屏加载；其挂载发生在 AndroidView 布局阶段，
+                    // 因此不能通过此刻的 container.webView 是否为空判断加载状态。
+                    loading = !container.hasCachedWebView
                 }
             },
             onRelease = {

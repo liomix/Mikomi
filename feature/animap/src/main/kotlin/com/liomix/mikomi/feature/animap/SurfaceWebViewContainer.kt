@@ -52,8 +52,9 @@ class SurfaceWebViewContainer(
     /** WebView 创建完成时回调。 */
     var onWebViewCreated: (WebView) -> Unit = {}
 
-    /** 底部边缘向上拖动时回调，用于临时唤出底部导航栏（进入沉浸由定时器触发，不靠手势）。 */
-    var onEdgeDrag: () -> Unit = {}
+    /** 是否复用了已加载完成的缓存 WebView。 */
+    internal val hasCachedWebView: Boolean
+        get() = cachedWebView != null
 
     private val textureView = TextureView(context)
 
@@ -63,14 +64,6 @@ class SurfaceWebViewContainer(
 
     private val displayManager =
         context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
-
-    private val touchSlop = android.view.ViewConfiguration.get(context).scaledTouchSlop
-    private var downX = 0f
-    private var downY = 0f
-    private var scrollDetected = false
-
-    /** 真实用户手指是否正按在容器上（ACTION_DOWN 置 true，ACTION_UP/CANCEL 置 false）。 */
-    private var userPointerDown = false
 
     init {
         addView(
@@ -83,52 +76,10 @@ class SurfaceWebViewContainer(
         setOnTouchListener { _, event ->
             val web = webView ?: return@setOnTouchListener false
             web.onTouchEvent(event)
-            handleGesture(event)
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
                 web.requestFocus()
             }
             true
-        }
-    }
-
-    /**
-     * 从转发的触摸流中识别唤出手势（不影响 WebView 收到的事件）：
-     * 起点在屏幕底部约 20% 高度内的明显向上拖动：[onEdgeDrag]（临时唤出底部导航栏）。
-     * 进入沉浸由 [AniMapScreen] 的定时器触发（进页面 1s 后自动隐藏导航栏），
-     * 不再靠滑动/缩放判定，故地图滑动不触发任何沉浸状态变化。
-     *
-     * 仅在真实用户手指按在容器上（[userPointerDown]）时才判定手势：
-     * WebView 在 VirtualDisplay/Presentation 独立窗口中自身渲染、惯性滚动、
-     * 手指落点抖动都会产生 MotionEvent，无条件转发判定会误触发唤出。
-     */
-    private fun handleGesture(event: MotionEvent) {
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                userPointerDown = true
-                downX = event.x
-                downY = event.y
-                scrollDetected = false
-            }
-
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                userPointerDown = false
-                scrollDetected = false
-            }
-
-            MotionEvent.ACTION_MOVE -> {
-                // 仅真实用户手指按住时才判定手势，屏蔽 WebView 自产事件/惯性滚动。
-                if (!userPointerDown) return
-                if (scrollDetected || event.pointerCount > 1) return
-                val dy = event.y - downY
-                val slop = touchSlop.toFloat()
-                // 起点在底部区域 + 明显向上拖动才唤出导航栏；其余滑动不触发任何手势。
-                val isEdgeDrag = downY > height * EDGE_DRAG_FRACTION &&
-                    dy < -EDGE_DRAG_MIN_UPWARD_FRACTION * touchSlop
-                if (isEdgeDrag) {
-                    scrollDetected = true
-                    onEdgeDrag()
-                }
-            }
         }
     }
 
@@ -363,12 +314,4 @@ class SurfaceWebViewContainer(
 
     private fun Context.isDebuggable(): Boolean =
         applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
-
-    private companion object {
-        /** 底部边缘区域高度比例，仅此区域内的**向上拖动**视为唤出导航栏。 */
-        const val EDGE_DRAG_FRACTION = 0.20f
-
-        /** 唤出手势所需最小向上位移（以 touch slop 为单位），低于此视为地图平移。 */
-        const val EDGE_DRAG_MIN_UPWARD_FRACTION = 2.5f
-    }
 }

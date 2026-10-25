@@ -5,8 +5,12 @@ import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.HomeDestination
 import com.liomix.mikomi.core.navigation.Navigator
 import com.liomix.mikomi.core.navigation.ProfileDestination
+import com.liomix.mikomi.core.navigation.ScheduleDestination
 import com.liomix.mikomi.core.navigation.SearchDestination
+import com.liomix.mikomi.feature.home.HomeQuickAction
 import com.liomix.mikomi.feature.home.HomeRoute
+import com.liomix.mikomi.feature.home.schedule.ScheduleScreen
+import com.liomix.mikomi.feature.home.schedule.ScheduleUiState
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,9 +29,23 @@ object HomeNavigationModule {
                 onAnimeClick = { animeId -> navigator.goTo(DetailDestination(animeId)) },
                 onSearchClick = { navigator.goTo(SearchDestination) },
                 onProfileClick = { navigator.selectTopLevel(ProfileDestination) },
-                onActionClick = {
-                    // 时间表 / 排行榜 / 分类目的地待接入。
+                onActionClick = { action ->
+                    when (action) {
+                        HomeQuickAction.SCHEDULE -> navigator.goTo(ScheduleDestination)
+                        // 排行榜 / 分类目的地待接入。
+                        HomeQuickAction.RANK,
+                        HomeQuickAction.CATEGORY,
+                        -> Unit
+                    }
                 },
+            )
+        }
+        entry<ScheduleDestination> {
+            ScheduleScreen(
+                // 时间表数据源待接入，先以骨架屏占位。
+                uiState = ScheduleUiState.Loading,
+                onBackClick = { navigator.goBack() },
+                onAnimeClick = { animeId -> navigator.goTo(DetailDestination(animeId)) },
             )
         }
     }

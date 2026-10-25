@@ -26,6 +26,10 @@ data object HistoryDestination : NavKey
 @Serializable
 data object SettingsDestination : NavKey
 
+/** 时间表二级页面（首页快捷入口跳转）。 */
+@Serializable
+data object ScheduleDestination : NavKey
+
 /** 详情页路由。 */
 @Serializable
 data class DetailDestination(val animeId: String) : NavKey

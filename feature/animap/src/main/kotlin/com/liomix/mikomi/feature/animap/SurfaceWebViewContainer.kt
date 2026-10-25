@@ -207,6 +207,15 @@ class SurfaceWebViewContainer(
     @SuppressLint("SetJavaScriptEnabled")
     private fun createWebViewIfReady() {
         if (hostContainer != null) return
+        val surfaceTexture = textureView.surfaceTexture ?: return
+        val w = width
+        val h = height
+        if (w <= 0 || h <= 0) return
+
+        // 每次容器重建都先恢复 VirtualDisplay。缓存命中路径若跳过这一步，会退化为
+        // TYPE_APPLICATION_PANEL 窗口；该窗口位于 Compose 浮层之上，进而遮住底部导航栏和手势条。
+        ensureVirtualDisplay(surfaceTexture, w, h)
+
         val cached = cachedWebView
         if (cached != null) {
             // 缓存命中：跳过重建与 loadUrl，直接挂载到虚拟显示上。
@@ -228,12 +237,6 @@ class SurfaceWebViewContainer(
             return
         }
         if (webView != null) return
-        val st = textureView.surfaceTexture ?: return
-        val w = width
-        val h = height
-        if (w <= 0 || h <= 0) return
-
-        ensureVirtualDisplay(st, w, h)
 
         val host = FrameLayout(context)
         val web = WebView(context).apply {

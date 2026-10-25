@@ -44,6 +44,16 @@ class ImmersionBridge @Inject constructor() : ImmersiveCallback {
         navBarTemp.value = value
     }
 
+    /**
+     * 在切换顶级目的地前同步恢复导航栏可见状态。
+     *
+     * 必须在更新导航回栈前调用，避免新目的地首次组合时读取到巡礼页残留的沉浸状态。
+     */
+    fun resetForTopLevelNavigation() {
+        immersive.value = false
+        navBarTemp.value = false
+    }
+
     override fun isImmersive(): Boolean = immersive.value
 
     override fun isNavBarTemp(): Boolean = navBarTemp.value

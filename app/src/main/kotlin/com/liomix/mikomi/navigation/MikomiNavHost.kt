@@ -99,8 +99,7 @@ fun MikomiNavHost(
     // 复位后切回 AniMap 默认显示导航栏，只有用户再次滑动地图才重新进入沉浸。
     LaunchedEffect(currentTopLevel) {
         Log.d("AniMapNavHost", "LaunchedEffect(currentTopLevel=$currentTopLevel) resetting immersive state")
-        immersionBridge.onImmersiveChange(false)
-        immersionBridge.onNavBarTempChange(false)
+        immersionBridge.resetForTopLevelNavigation()
     }
 
     // 进入巡礼页 2s 后自动进入沉浸（隐藏底部导航栏）。
@@ -195,7 +194,13 @@ fun MikomiNavHost(
             MikomiNavigationBar(
                 items = navItems,
                 selectedKey = currentTopLevel,
-                onSelect = { key -> (key as? NavKey)?.let(navigator::selectTopLevel) },
+                onSelect = { key ->
+                    (key as? NavKey)?.let { destination ->
+                        // 先同步复位，避免切回巡礼页的首帧沿用上一次的沉浸状态而隐藏底栏。
+                        immersionBridge.resetForTopLevelNavigation()
+                        navigator.selectTopLevel(destination)
+                    }
+                },
             )
         }
     }

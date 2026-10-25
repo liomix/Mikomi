@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -29,7 +28,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.AnimeCoverImage
@@ -121,12 +119,7 @@ private fun HomeSkeleton(
             )
         }
         item(key = "bannerSkeleton", span = { GridItemSpan(maxLineSpan) }) {
-            SkeletonBox(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp),
-                shape = RoundedCornerShape(12.dp),
-            )
+            HomeBannerSkeleton()
         }
         item(key = "actions", span = { GridItemSpan(maxLineSpan) }) {
             HomeActionTabs(onActionClick = onActionClick)
@@ -156,7 +149,6 @@ private fun HomeContent(
 ) {
     val searchHint = stringResource(R.string.home_search_hint)
     val profileContentDescription = stringResource(R.string.home_profile)
-    val emptyMessage = stringResource(R.string.home_empty)
 
     val gridState = rememberLazyGridState()
     val shouldLoadMore by remember {
@@ -188,11 +180,15 @@ private fun HomeContent(
             )
         }
 
-        item(key = "banner", span = { GridItemSpan(maxLineSpan) }) {
-            HomeBanner(
-                banners = banners,
-                onBannerClick = onAnimeClick,
-            )
+        item(key = if (banners.isEmpty()) "bannerSkeleton" else "banner", span = { GridItemSpan(maxLineSpan) }) {
+            if (banners.isEmpty()) {
+                HomeBannerSkeleton()
+            } else {
+                HomeBanner(
+                    banners = banners,
+                    onBannerClick = onAnimeClick,
+                )
+            }
         }
 
         item(key = "actions", span = { GridItemSpan(maxLineSpan) }) {
@@ -200,16 +196,14 @@ private fun HomeContent(
         }
 
         if (anime.isEmpty()) {
-            item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
-                Text(
-                    text = emptyMessage,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 48.dp),
-                )
+            // 首页无数据时用骨架屏代替空状态文案：轮播图/内容区保持占位，
+            // 由下拉刷新或后续数据到达后自然替换。
+            items(
+                count = 12,
+                key = { "skeleton_$it" },
+                contentType = { "skeleton" },
+            ) {
+                SkeletonGridCard()
             }
         } else {
             items(
@@ -251,6 +245,22 @@ private fun AnimeCard(
             modifier = Modifier.fillMaxWidth(),
         )
     }
+}
+
+/**
+ * 轮播图骨架屏：与 [HomeBanner] 尺寸（180.dp 高 + 12.dp 圆角）保持一致，
+ * 在 `banners` 为空时占位显示，避免主页面积布局跳动。
+ */
+@Composable
+private fun HomeBannerSkeleton(
+    modifier: Modifier = Modifier,
+) {
+    SkeletonBox(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(180.dp),
+        shape = RoundedCornerShape(12.dp),
+    )
 }
 
 @Composable

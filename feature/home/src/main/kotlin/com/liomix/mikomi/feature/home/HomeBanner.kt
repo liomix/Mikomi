@@ -5,6 +5,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -45,12 +46,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.ui.component.ScrollingText
 import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.delay
@@ -73,7 +74,15 @@ fun HomeBanner(
 ) {
     if (banners.isEmpty()) return
 
-    val pagerState = rememberPagerState(pageCount = { banners.size })
+    // 无限循环 pager：页数取 Int.MAX_VALUE，起始于中段，
+    // 实际页码用 floorMod 取模映射回 banners.size，
+    // 使手势滑动和自动翻页在最后一页后都自然回到第一页。
+    val infinitePageCount = Int.MAX_VALUE
+    val startPage = infinitePageCount / 2
+    val pagerState = rememberPagerState(
+        initialPage = startPage,
+        pageCount = { infinitePageCount },
+    )
 
     // 自动播放：每次 settledPage 变化（含手势结束）都会重启计时，
     // 用户操作后 4s 内不会再被自动翻页打断。
@@ -81,8 +90,7 @@ fun HomeBanner(
         if (banners.size <= 1) return@LaunchedEffect
         delay(AUTO_SCROLL_INTERVAL_MS)
         if (!pagerState.isScrollInProgress) {
-            val next = (pagerState.settledPage + 1) % banners.size
-            pagerState.animateScrollToPage(next)
+            pagerState.scrollToPage(pagerState.settledPage + 1)
         }
     }
 
@@ -91,18 +99,16 @@ fun HomeBanner(
         HorizontalPager(
             state = pagerState,
             pageSpacing = BANNER_PAGE_SPACING,
-            // spring 让翻页带轻微"过冲-回落"，比 tween 硬切更丝滑
+            // 硬切：snap 阶段瞬时落位，无动画无过冲
             flingBehavior = PagerDefaults.flingBehavior(
                 state = pagerState,
-                snapAnimationSpec = spring(
-                    dampingRatio = Spring.DampingRatioLowBouncy,
-                    stiffness = Spring.StiffnessMediumLow,
-                ),
+                snapAnimationSpec = snap(),
             ),
         ) { page ->
+            val realPage = Math.floorMod(page, banners.size)
             BannerItem(
-                anime = banners[page],
-                onClick = { onBannerClick(banners[page].id) },
+                anime = banners[realPage],
+                onClick = { onBannerClick(banners[realPage].id) },
                 // 相邻页轻微缩放+透明度渐变，模拟 3D 轮播层次感
                 modifier = Modifier
                     .fillMaxWidth()
@@ -129,11 +135,13 @@ fun HomeBanner(
 
         PagerIndicator(
             pageCount = banners.size,
-            currentPage = pagerState.settledPage,
+            currentPage = Math.floorMod(pagerState.settledPage, banners.size),
             onIndicatorClick = { index ->
-                // 指示器点击同样走 spring 动画，与手势翻页保持一致的视觉
+                // 点击指示器硬切到"当前循环窗口内"对应的真实页
                 coroutineScope.launch {
-                    pagerState.animateScrollToPage(index)
+                    val current = Math.floorMod(pagerState.settledPage, banners.size)
+                    val offset = index - current
+                    pagerState.scrollToPage(pagerState.settledPage + offset)
                 }
             },
             modifier = Modifier
@@ -206,15 +214,13 @@ private fun BannerItem(
                 .align(Alignment.BottomStart)
                 .padding(BANNER_CONTENT_PADDING),
         ) {
-            Text(
+            ScrollingText(
                 text = anime.title,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    letterSpacing = (-0.2).sp, // 标题字距微收，更精致
+                style = MaterialTheme.typography.titleMedium.copy(
+                    letterSpacing = 0.1.sp, // 标题字距微调，更精致
+                    color = Color.White,
                 ),
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
             )
 
             val rating = formatRating(anime.rating)

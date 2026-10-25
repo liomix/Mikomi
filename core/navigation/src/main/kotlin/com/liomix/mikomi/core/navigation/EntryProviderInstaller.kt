@@ -12,7 +12,7 @@ interface ImmersiveCallback {
     /** 地图被滑动/离开页面时上报：true 表示进入沉浸（隐藏底部导航栏）。 */
     fun onImmersiveChange(value: Boolean)
 
-    /** 沉浸中临时唤出/收起底部导航栏（手势条点按、边缘拖动、2.5s 自动收起）。 */
+    /** 沉浸中临时唤出/收起底部导航栏（手势条点按、返回键、2 秒自动收起）。 */
     fun onNavBarTempChange(value: Boolean)
 
     /**

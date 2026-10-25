@@ -16,12 +16,15 @@ import android.webkit.WebView
  */
 internal object AniMapWebCache {
 
+    private const val CACHE_TTL_MILLIS = 2 * 60 * 1_000L
+
     private val mainHandler = Handler(Looper.getMainLooper())
+    private var scheduledDestroy: Runnable? = null
 
     /** 缓存的 WebView（已加载完成的地图页面）。 */
     private var cached: WebView? = null
 
-    /** 缓存的 URL，与 [cached] 保持一致。 */
+    /** 最近完成加载的 URL。 */
     private var cachedUrl: String? = null
 
     /** 缓存是否已完成首屏加载（决定是否显示加载指示）。 */
@@ -34,8 +37,10 @@ internal object AniMapWebCache {
     // 命中判定同样不比对 cachedUrl 与 url 的字符串相等：anitabi 会重定向改写 URL，
     // cachedUrl 记录的是页面最终 URL。只要存在缓存 WebView 本体就命中复用。
     fun acquire(context: Context, url: String): SurfaceWebViewContainer {
+        cancelScheduledDestroy()
         val existing = cached
         return if (existing != null) {
+            cached = null
             SurfaceWebViewContainer(context, url, existing)
         } else {
             // 无缓存：销毁旧缓存，走全新加载路径（容器内部会创建 WebView）。
@@ -56,6 +61,7 @@ internal object AniMapWebCache {
         if (web != null && loaded && cachedUrl != null) {
             container.detachForCache()
             cached = web
+            scheduleDestroy()
         } else {
             container.destroy()
             cached = null
@@ -80,6 +86,7 @@ internal object AniMapWebCache {
     }
 
     private fun destroyNow() {
+        cancelScheduledDestroy()
         cached?.let {
             it.stopLoading()
             it.destroy()
@@ -87,5 +94,20 @@ internal object AniMapWebCache {
         cached = null
         cachedUrl = null
         loaded = false
+    }
+
+    private fun scheduleDestroy() {
+        cancelScheduledDestroy()
+        val destroyAction = Runnable {
+            scheduledDestroy = null
+            destroyNow()
+        }
+        scheduledDestroy = destroyAction
+        mainHandler.postDelayed(destroyAction, CACHE_TTL_MILLIS)
+    }
+
+    private fun cancelScheduledDestroy() {
+        scheduledDestroy?.let(mainHandler::removeCallbacks)
+        scheduledDestroy = null
     }
 }

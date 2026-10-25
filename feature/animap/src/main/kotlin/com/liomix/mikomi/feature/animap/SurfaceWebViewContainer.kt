@@ -49,9 +49,6 @@ class SurfaceWebViewContainer(
     /** 页面加载完成（onPageFinished）时回调，携带页面当前 URL（可能被站点重定向改写）。 */
     var onPageFinished: (WebView, String?) -> Unit = { _, _ -> }
 
-    /** WebView 创建完成时回调。 */
-    var onWebViewCreated: (WebView) -> Unit = {}
-
     /** 是否复用了已加载完成的缓存 WebView。 */
     internal val hasCachedWebView: Boolean
         get() = cachedWebView != null
@@ -183,7 +180,6 @@ class SurfaceWebViewContainer(
             cached.isFocusable = true
             cached.isFocusableInTouchMode = true
             cached.requestFocus()
-            onWebViewCreated(cached)
             // 缓存 WebView 已加载完成，不再触发加载指示。
             return
         }
@@ -237,7 +233,6 @@ class SurfaceWebViewContainer(
         web.isFocusableInTouchMode = true
         web.requestFocus()
         onLoadingChanged(true)
-        onWebViewCreated(web)
         web.loadUrl(initialUrl)
     }
 

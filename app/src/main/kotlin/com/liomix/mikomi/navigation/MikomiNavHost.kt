@@ -1,7 +1,6 @@
 package com.liomix.mikomi.navigation
 
 import android.app.Activity
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -88,41 +87,19 @@ fun MikomiNavHost(
     val currentTopLevel = navigator.backStack.lastOrNull { it in topLevelDestinations }
         ?: HomeDestination
 
-    // 沉浸状态权威副本直接在 ImmersionBridge（进程级单例 MutableState），
-    // 跨 entry 重建、跨 Activity 重建存活，且不依赖任何绑定时序。
+    // 沉浸状态权威副本直接在 Activity Retained 作用域的 ImmersionBridge，
+    // 跨 entry 重建和配置变更存活，且不依赖任何绑定时序。
     val immersiveRequested by immersionBridge.immersive
     val showNavBar by immersionBridge.navBarTemp
 
-    // 切换顶级 tab 时无条件复位沉浸状态（包括切回 AniMap 本身）：
-    // ImmersionBridge 是进程级单例，immersive/navBarTemp 跨页面存活，
-    // 若切回 AniMap 时残留 true，导航栏会被瞬间隐藏（用户没滑动就进了沉浸）。
-    // 复位后切回 AniMap 默认显示导航栏，只有用户再次滑动地图才重新进入沉浸。
+    // 顶级目的地切换、巡礼页自动沉浸计时由同一个 effect 协调，
+    // 避免多个 effect 竞争写入同一份沉浸状态。
     LaunchedEffect(currentTopLevel) {
-        Log.d("AniMapNavHost", "LaunchedEffect(currentTopLevel=$currentTopLevel) resetting immersive state")
         immersionBridge.resetForTopLevelNavigation()
-    }
-
-    // 进入巡礼页 2s 后自动进入沉浸（隐藏底部导航栏）。
-    // 计时器必须放在宿主层（MikomiNavHost 是进程级 scope，跨 entry 重建存活），
-    // 不能放在 AniMapScreen entry 的 LaunchedEffect 里：切回瞬间 AndroidView factory
-    // 重建 SurfaceWebViewContainer → 挂新 Presentation 窗口 → ViewRootImpl relayout /
-    // ImeFocusController 焦点抢占会让 entry effect scope 被销毁重建，delay 协程被取消后
-    // 键（immersive）未变不再重启，导致 "2s elapsed" 与 onImmersiveChange(true) 永不出现
-    // （真机日志已证实：LaunchedEffect(immersive=false) entered 后 2s 无任何后续日志）。
-    // 键用 currentTopLevel：只在真正切换顶级 tab 时重新起算 2s，进入沉浸后不会反复重启。
-    LaunchedEffect(currentTopLevel) {
         if (currentTopLevel != AniMapDestination) return@LaunchedEffect
-        Log.d("AniMapNavHost", "auto-hide timer: 2s countdown starting")
         kotlinx.coroutines.delay(NAV_BAR_AUTO_HIDE_DELAY_MILLIS)
-        Log.d("AniMapNavHost", "auto-hide timer: 2s elapsed, immersive=${immersionBridge.immersive.value} navBarTemp=${immersionBridge.navBarTemp.value}")
-        // 仅在用户未手动唤出导航栏时才自动进入沉浸：
-        // 若用户在 2s 内已通过返回手势/手势条唤出导航栏（showNavBar=true），
-        // 不应覆盖用户的显式操作。
         if (!immersionBridge.navBarTemp.value) {
-            Log.d("AniMapNavHost", "auto-hide timer: entering immersive")
             immersionBridge.onImmersiveChange(true)
-        } else {
-            Log.d("AniMapNavHost", "auto-hide timer: navBarTemp=true, skip auto-hide")
         }
     }
 
@@ -147,25 +124,18 @@ fun MikomiNavHost(
         }
     }
 
-    // Nav3 根屏（backStack.size == 1）返回事件兜底：
-    // navigation3 的 NavDisplay 内部用 NavigationBackHandler(isBackEnabled = previousEntries.isNotEmpty())
-    // 禁用了根屏的返回事件，导致 NavDisplay.onBack 在单 entry 时永不触发。
-    // 这里挂一个 BackHandler 接住返回，实现"返回手势唤出底部导航栏"。
-    // 仅当返回栈只剩根屏（无可弹栈 entry）时启用，避免与 NavDisplay.onBack 抢占返回栈弹出。
+    // 根屏仅在巡礼页处于沉浸状态时才拦截返回，用于临时显示导航栏。
+    // 其它目的地交还给系统返回，避免首页或“我的”页无法正常退出应用。
     val isRootScreen = navigator.backStack.size <= 1
-    BackHandler(enabled = isRootScreen) {
-        // 返回唤出导航栏：只写 navBarTemp=true，不写 onImmersiveChange(false)。
-        // 保持 immersive=true（沉浸态仍在），navBarTemp 收起后 AniMapScreen 会重新进入沉浸。
+    val shouldRevealNavBar =
+        currentTopLevel == AniMapDestination && immersiveRequested && !showNavBar
+    BackHandler(enabled = isRootScreen && shouldRevealNavBar) {
         immersionBridge.onNavBarTempChange(true)
     }
 
-    // 返回事件在宿主层统一处理：页面内的 BackHandler 会被 NavDisplay 抢先消费，
-    // 所以唤出导航栏的逻辑必须放这里。只要导航栏未唤出就退出沉浸并唤出，
-    // 已唤出且可回退时再回退 WebView，否则交由 navigator 弹栈。
+    // 非巡礼沉浸态的返回事件始终按导航栈处理。
     val navBackHandler: () -> Unit = {
-        if (!showNavBar) {
-            // 返回唤出导航栏：只写 navBarTemp=true，不写 onImmersiveChange(false)。
-            // 保持 immersive=true（沉浸态仍在），navBarTemp 收起后 AniMapScreen 会重新进入沉浸。
+        if (shouldRevealNavBar) {
             immersionBridge.onNavBarTempChange(true)
         } else {
             navigator.goBack()
@@ -180,7 +150,7 @@ fun MikomiNavHost(
         )
 
         // 沉浸式下隐藏底部导航栏，滑入/滑出动画；其余页面正常显示。
-        // 沉浸中可通过手势条临时唤出（showNavBar），2.5s 后自动收起。
+        // 沉浸中可通过手势条临时唤出（showNavBar），2 秒后自动收起。
         AnimatedVisibility(
             visible = !immersiveRequested || showNavBar,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),

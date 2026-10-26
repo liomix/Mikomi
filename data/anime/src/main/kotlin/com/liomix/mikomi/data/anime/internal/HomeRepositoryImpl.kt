@@ -1,7 +1,9 @@
 package com.liomix.mikomi.data.anime.internal
 
 import android.util.Log
+import androidx.room.withTransaction
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
+import com.liomix.mikomi.core.database.MikomiDatabase
 import com.liomix.mikomi.core.database.dao.AnimeDao
 import com.liomix.mikomi.core.database.entity.AnimeEntity
 import com.liomix.mikomi.core.model.Anime
@@ -28,6 +30,7 @@ internal class HomeRepositoryImpl @Inject constructor(
     private val bangumiApi: BangumiTrendApi,
     private val anilistApi: AniListApi,
     private val animeDao: AnimeDao,
+    private val database: MikomiDatabase,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : HomeRepository {
 
@@ -39,9 +42,12 @@ internal class HomeRepositoryImpl @Inject constructor(
 
     override suspend fun refreshHome(): LoadMoreResult = withContext(ioDispatcher) {
         val page = fetchPage(offset = 0)
-        // 先清空首页数据源旧数据再写入，避免多源/多版本数据混杂。
-        animeDao.deleteByPrefixes(BANGUMI_ID_PREFIX, ANILIST_ID_PREFIX)
-        animeDao.upsertAll(page.entities)
+        // 先拉到新页，再在同一事务里清理旧数据并写入，Room Flow 只发射一次：
+        // 下拉刷新过程中轮播图与列表不会闪一帧空数据（骨架屏）。
+        database.withTransaction {
+            animeDao.deleteByPrefixes(BANGUMI_ID_PREFIX, ANILIST_ID_PREFIX)
+            animeDao.upsertAll(page.entities)
+        }
         LoadMoreResult(hasMore = page.hasMore, loadedCount = page.entities.size)
     }
 

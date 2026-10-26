@@ -2,6 +2,7 @@ package com.liomix.mikomi.feature.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -20,12 +21,15 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -41,14 +45,19 @@ private val HomeGridColumns = GridCells.Adaptive(minSize = 100.dp)
 /**
  * 网格内容边距。
  *
- * 顶部安全区由 [homeContentPadding] 的 `top` 承担（edge-to-edge 下内容须避开状态栏）；
- * HomeTopBar 不再自行加 `statusBarsPadding`——
- * 滚动后 TopBar 离开顶部，该 padding 会把可见内容整体往下推，反而把内容错位。
+ * 垂直节奏统一由网格的 [Arrangement.spacedBy] 提供（12dp），
+ * 各区域组件不再自带区域间垂直 padding；此处仅为页面顶边
+ * 补状态栏安全区 + 少量呼吸空间。
  */
 @Composable
 private fun homeContentPadding(): PaddingValues {
     val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    return PaddingValues(start = 16.dp, end = 16.dp, top = statusBarInset, bottom = 112.dp)
+    return PaddingValues(
+        start = 16.dp,
+        end = 16.dp,
+        top = statusBarInset + 4.dp,
+        bottom = 112.dp,
+    )
 }
 
 private const val LOAD_MORE_THRESHOLD = 3
@@ -56,6 +65,7 @@ private const val LOAD_MORE_THRESHOLD = 3
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
+    isRefreshing: Boolean,
     onAnimeClick: (String) -> Unit,
     onSearchClick: () -> Unit,
     onProfileClick: () -> Unit,
@@ -65,12 +75,19 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
-        HomeUiState.Loading -> HomeSkeleton(
-            onSearchClick = onSearchClick,
-            onProfileClick = onProfileClick,
-            onActionClick = onActionClick,
-            modifier = modifier,
-        )
+        // 骨架屏也支持下拉刷新：首次加载慢/失败时用户可主动触发重试。
+        HomeUiState.Loading -> PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            modifier = modifier.fillMaxSize(),
+        ) {
+            HomeSkeleton(
+                onSearchClick = onSearchClick,
+                onProfileClick = onProfileClick,
+                onActionClick = onActionClick,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
 
         is HomeUiState.Error -> ErrorState(
             message = uiState.message.ifEmpty { stringResource(R.string.home_load_failed) },
@@ -81,12 +98,14 @@ fun HomeScreen(
         is HomeUiState.Success -> HomeContent(
             banners = uiState.banners,
             anime = uiState.anime,
+            isRefreshing = isRefreshing,
             isLoadingMore = uiState.isLoadingMore,
             hasMore = uiState.hasMore,
             onAnimeClick = onAnimeClick,
             onSearchClick = onSearchClick,
             onProfileClick = onProfileClick,
             onActionClick = onActionClick,
+            onRefresh = onRefresh,
             onLoadMore = onLoadMore,
             modifier = modifier,
         )
@@ -134,16 +153,19 @@ private fun HomeSkeleton(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeContent(
     banners: List<Anime>,
     anime: List<Anime>,
+    isRefreshing: Boolean,
     isLoadingMore: Boolean,
     hasMore: Boolean,
     onAnimeClick: (String) -> Unit,
     onSearchClick: () -> Unit,
     onProfileClick: () -> Unit,
     onActionClick: (HomeQuickAction) -> Unit,
+    onRefresh: () -> Unit,
     onLoadMore: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -163,14 +185,20 @@ private fun HomeContent(
         }
     }
 
-    LazyVerticalGrid(
-        state = gridState,
-        columns = HomeGridColumns,
+    // 下拉刷新：刷新轮播图与内容区（同一数据源，refreshHome 重拉第一页并回写本地）。
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
         modifier = modifier.fillMaxSize(),
-        contentPadding = homeContentPadding(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        LazyVerticalGrid(
+            state = gridState,
+            columns = HomeGridColumns,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = homeContentPadding(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
         item(key = "topBar", span = { GridItemSpan(maxLineSpan) }) {
             HomeTopBar(
                 onSearchClick = onSearchClick,
@@ -219,13 +247,19 @@ private fun HomeContent(
 
             if (isLoadingMore) {
                 item(key = "loadingMore", span = { GridItemSpan(maxLineSpan) }) {
-                    CircularProgressIndicator(
+                    // 指示器自带固定尺寸，直接 fillMaxWidth 会与其内部 size 约束冲突
+                    // 导致圆环被拉伸变形；用全宽容器居中包裹。
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 16.dp),
-                    )
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 }
             }
+        }
         }
     }
 }

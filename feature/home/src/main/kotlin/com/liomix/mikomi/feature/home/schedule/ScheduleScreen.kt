@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,7 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -34,24 +32,23 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
-import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.model.ScheduleEntry
+import com.liomix.mikomi.core.ui.component.AnimeCoverImage
 import com.liomix.mikomi.core.ui.component.EmptyState
+import com.liomix.mikomi.core.ui.component.ErrorState
+import com.liomix.mikomi.core.ui.component.ScrollingText
 import com.liomix.mikomi.core.ui.component.SkeletonBox
 import com.liomix.mikomi.feature.home.R
+import java.util.Calendar
+import java.util.Locale
 import kotlinx.coroutines.launch
 
 /** 一周七天（周一 ~ 周日）对应的标签索引。 */
@@ -65,22 +62,25 @@ private val WEEKDAYS = listOf(
     R.string.schedule_sunday,
 )
 
-/** 加载状态：骨架 / 数据 / 空。 */
+/** 加载状态：骨架 / 数据 / 空 / 错误。 */
 sealed interface ScheduleUiState {
     data object Loading : ScheduleUiState
 
-    data class Success(val days: List<List<Anime>>) : ScheduleUiState
+    data class Success(val days: List<List<ScheduleEntry>>) : ScheduleUiState
 
     data object Empty : ScheduleUiState
+
+    data object Error : ScheduleUiState
 }
 
 /**
- * 时间表：二级页面（周一~周日七天番剧列表）。
+ * 时间表：二级页面（周一~周日七天番剧列表），数据来自 AniList 每周放送计划。
  *
  * - 顶部 [CenterAlignedTopAppBar]，返回交给上层导航；
- * - 七天用 [ScrollableTabRow] 选中，[HorizontalPager] 左右滑动切换，二者双向联动；
- * - 数据源未接入时由 [onActionClick] 传入的 [ScheduleUiState] 驱动 UI，
- *   由调用方决定展示骨架 / 数据 / 空态。
+ * - 七天用 [ScrollableTabRow] 选中，[HorizontalPager] 左右滑动切换，二者联动，
+ *   默认定位到今天；
+ * - 加载 / 数据 / 空态 / 错误由 [ScheduleUiState] 驱动，错误态可通过
+ *   [onRetryClick] 重新拉取。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,6 +88,7 @@ fun ScheduleScreen(
     uiState: ScheduleUiState,
     onBackClick: () -> Unit,
     onAnimeClick: (String) -> Unit,
+    onRetryClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -122,6 +123,12 @@ fun ScheduleScreen(
                 modifier = Modifier.padding(innerPadding),
             )
 
+            ScheduleUiState.Error -> ErrorState(
+                message = stringResource(R.string.schedule_error),
+                onRetry = onRetryClick,
+                modifier = Modifier.padding(innerPadding),
+            )
+
             is ScheduleUiState.Success -> ScheduleContent(
                 days = uiState.days,
                 onAnimeClick = onAnimeClick,
@@ -133,14 +140,18 @@ fun ScheduleScreen(
 
 @Composable
 private fun ScheduleContent(
-    days: List<List<Anime>>,
+    days: List<List<ScheduleEntry>>,
     onAnimeClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 七天 Tab 与 Pager 双向联动：点击 Tab 跳页，滑动页同步 Tab。
-    val pagerState = rememberPagerState(pageCount = { days.size })
+    // 默认定位到今天；Tab 高亮直接取 Pager 当前页，双向联动无需额外状态。
+    val todayIndex = remember { todayWeekdayIndex() }
+    val pagerState = rememberPagerState(
+        initialPage = todayIndex,
+        pageCount = { days.size },
+    )
     val coroutineScope = rememberCoroutineScope()
-    var selectedDay by remember(pagerState.currentPage) { mutableStateOf(pagerState.currentPage) }
+    val selectedDay = pagerState.currentPage
 
     Column(modifier = modifier.fillMaxSize()) {
         ScrollableTabRow(
@@ -153,7 +164,6 @@ private fun ScheduleContent(
                 Tab(
                     selected = selectedDay == index,
                     onClick = {
-                        selectedDay = index
                         coroutineScope.launch { pagerState.animateScrollToPage(index) }
                     },
                     text = {
@@ -176,7 +186,8 @@ private fun ScheduleContent(
             modifier = Modifier.fillMaxSize(),
         ) { page ->
             DayList(
-                anime = days[page],
+                entries = days[page],
+                isToday = page == todayIndex,
                 onAnimeClick = onAnimeClick,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -184,16 +195,21 @@ private fun ScheduleContent(
     }
 }
 
-/** 单日番剧列表：左封面 + 右标题/简介占位。 */
+/** 单日番剧列表：左封面 + 右标题/放送信息/简介。 */
 @Composable
 private fun DayList(
-    anime: List<Anime>,
+    entries: List<ScheduleEntry>,
+    isToday: Boolean,
     onAnimeClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (anime.isEmpty()) {
+    if (entries.isEmpty()) {
         EmptyState(
-            message = stringResource(R.string.schedule_empty),
+            message = if (isToday) {
+                stringResource(R.string.schedule_empty)
+            } else {
+                stringResource(R.string.schedule_day_empty)
+            },
             modifier = modifier,
         )
         return
@@ -209,10 +225,14 @@ private fun DayList(
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        items(items = anime, key = { it.id }) { item ->
+        items(
+            items = entries,
+            key = { "${it.anime.id}:${it.episode}" },
+            contentType = { "schedule_entry" },
+        ) { entry ->
             ScheduleAnimeRow(
-                anime = item,
-                onClick = { onAnimeClick(item.id) },
+                entry = entry,
+                onClick = { onAnimeClick(entry.anime.id) },
             )
         }
     }
@@ -220,10 +240,11 @@ private fun DayList(
 
 @Composable
 private fun ScheduleAnimeRow(
-    anime: Anime,
+    entry: ScheduleEntry,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val anime = entry.anime
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
@@ -235,27 +256,36 @@ private fun ScheduleAnimeRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            AsyncImage(
-                model = anime.coverUrl,
+            AnimeCoverImage(
+                url = anime.coverUrl,
                 contentDescription = anime.title,
-                modifier = Modifier
-                    .size(width = 64.dp, height = 96.dp)
-                    .aspectRatio(2f / 3f)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(width = 64.dp, height = 96.dp),
             )
 
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text(
+                ScrollingText(
                     text = anime.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    modifier = Modifier.fillMaxWidth(),
                 )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.schedule_episode, entry.episode),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = formatAiringTime(entry.airingAtMillis),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Text(
                     text = anime.synopsis ?: stringResource(R.string.schedule_no_synopsis),
                     style = MaterialTheme.typography.bodySmall,
@@ -268,6 +298,24 @@ private fun ScheduleAnimeRow(
             RatingDot(rating = anime.rating)
         }
     }
+}
+
+/** 放送时刻（本地时区 HH:mm）。 */
+private fun formatAiringTime(millis: Long): String {
+    val calendar = Calendar.getInstance()
+    calendar.timeInMillis = millis
+    return String.format(
+        Locale.ROOT,
+        "%02d:%02d",
+        calendar.get(Calendar.HOUR_OF_DAY),
+        calendar.get(Calendar.MINUTE),
+    )
+}
+
+/** 今天是本周第几天（周一=0）。Calendar 的 DAY_OF_WEEK 周日=1。 */
+private fun todayWeekdayIndex(): Int {
+    val calendar = Calendar.getInstance()
+    return (calendar.get(Calendar.DAY_OF_WEEK) + 5) % 7
 }
 
 /** 右侧评分圆点：评分缺失时显示占位圆圈。 */
@@ -287,7 +335,7 @@ private fun RatingDot(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = rating?.let { String.format(java.util.Locale.ROOT, "%.1f", it) } ?: "—",
+                text = rating?.let { String.format(Locale.ROOT, "%.1f", it) } ?: "—",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,

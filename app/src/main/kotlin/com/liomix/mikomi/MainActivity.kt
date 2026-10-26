@@ -27,16 +27,17 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 状态栏底色显式白色 + 深色图标（light 样式）。TRANSPARENT 在部分 ROM
-        // 上会被系统栏 scrim 覆盖成黑色，显式白底可穿透黑底问题。
+        // 状态栏/导航栏透明，透出 App 自身背景（Compose 内容已 edge-to-edge 铺满窗口），
+        // 深浅色模式下都与背景无色差；图标明暗由 auto 跟随系统深色模式
+        // （App 主题同样跟随系统，二者始终一致）。
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(
-                android.graphics.Color.WHITE,
-                android.graphics.Color.WHITE,
+            statusBarStyle = SystemBarStyle.auto(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT,
             ),
-            navigationBarStyle = SystemBarStyle.light(
-                android.graphics.Color.WHITE,
-                android.graphics.Color.WHITE,
+            navigationBarStyle = SystemBarStyle.auto(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT,
             ),
         )
         setContent {

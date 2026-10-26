@@ -9,7 +9,10 @@
 
     <string name="schedule_back">返回</string>
     <string name="schedule_empty">今天暂无更新</string>
+    <string name="schedule_day_empty">当天暂无更新</string>
+    <string name="schedule_error">加载失败，请检查网络后重试</string>
     <string name="schedule_no_synopsis">暂无简介</string>
+    <string name="schedule_episode">第 %1$d 集</string>
     <string name="schedule_monday">周一</string>
     <string name="schedule_tuesday">周二</string>
     <string name="schedule_wednesday">周三</string>

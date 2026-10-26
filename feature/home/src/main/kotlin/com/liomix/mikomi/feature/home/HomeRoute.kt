@@ -16,8 +16,10 @@ fun HomeRoute(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     HomeScreen(
         uiState = uiState,
+        isRefreshing = isRefreshing,
         onAnimeClick = onAnimeClick,
         onSearchClick = onSearchClick,
         onProfileClick = onProfileClick,

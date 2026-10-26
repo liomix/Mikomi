@@ -5,6 +5,7 @@ import androidx.room.Query
 import androidx.room.Upsert
 import com.liomix.mikomi.core.database.entity.AnimeEntity
 import com.liomix.mikomi.core.database.entity.EpisodeEntity
+import com.liomix.mikomi.core.database.entity.ScheduleEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -36,4 +37,17 @@ interface EpisodeDao {
 
     @Upsert
     suspend fun upsertAll(episodes: List<EpisodeEntity>)
+}
+
+@Dao
+interface ScheduleDao {
+    @Query("SELECT * FROM schedule ORDER BY airingAtMillis")
+    fun observeSchedule(): Flow<List<ScheduleEntity>>
+
+    @Upsert
+    suspend fun upsertAll(entries: List<ScheduleEntity>)
+
+    /** 删除放送时间在窗口外的过期数据（时间表只保留当前周）。 */
+    @Query("DELETE FROM schedule WHERE airingAtMillis < :windowStartMs OR airingAtMillis >= :windowEndMs")
+    suspend fun deleteOutsideWindow(windowStartMs: Long, windowEndMs: Long)
 }

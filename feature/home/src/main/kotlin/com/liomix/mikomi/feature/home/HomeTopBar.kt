@@ -26,7 +26,8 @@ import androidx.compose.ui.unit.dp
  * 首页顶部栏：左侧头像、右侧搜索框。
  *
  * 自适应：整栏随页面滚动，顶部安全区由 HomeScreen 的 contentPadding 承担；
- * 头像与搜索框触控目标均 ≥48dp。
+ * 区域间垂直间距由主页网格的 spacedBy 统一提供，本组件不再自带垂直 padding；
+ * 视觉高度与触控高度同为 48dp（触控目标 ≥48dp），无双层结构留白。
  */
 @Composable
 fun HomeTopBar(
@@ -37,9 +38,7 @@ fun HomeTopBar(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(

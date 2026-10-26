@@ -17,4 +17,25 @@ object Migrations {
             db.execSQL("ALTER TABLE anime ADD COLUMN popularity INTEGER NOT NULL DEFAULT 0")
         }
     }
+
+    /** 2 → 3：新增 schedule 表（AniList 每周放送时间表）。 */
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `schedule` (
+                    `id` TEXT NOT NULL,
+                    `animeId` TEXT NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `coverUrl` TEXT,
+                    `synopsis` TEXT,
+                    `rating` REAL,
+                    `airingAtMillis` INTEGER NOT NULL,
+                    `episode` INTEGER NOT NULL,
+                    PRIMARY KEY(`id`)
+                )
+                """.trimIndent(),
+            )
+        }
+    }
 }

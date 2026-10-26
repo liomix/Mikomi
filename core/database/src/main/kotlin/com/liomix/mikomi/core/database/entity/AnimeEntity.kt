@@ -38,3 +38,20 @@ data class HistoryEntity(
     val durationMs: Long,
     val updatedAt: Long,
 )
+
+/**
+ * 时间表：AniList 每周放送计划。非规范化存储展示所需字段，
+ * 不与 anime 表关联（anime 表会被首页刷新按前缀清理）。
+ */
+@Entity(tableName = "schedule")
+data class ScheduleEntity(
+    /** 主键：anilist id + 集数，同一番剧每周多条放送记录共存。 */
+    @PrimaryKey val id: String,
+    val animeId: String,
+    val title: String,
+    val coverUrl: String? = null,
+    val synopsis: String? = null,
+    val rating: Double? = null,
+    val airingAtMillis: Long,
+    val episode: Int,
+)

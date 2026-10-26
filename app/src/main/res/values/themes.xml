@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Mikomi" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- 系统栏透明：与 App 背景无色差；冷启动首帧（enableEdgeToEdge 生效前）同样透明。 -->
+    <style name="Theme.Mikomi" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
 </resources>

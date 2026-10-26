@@ -9,8 +9,7 @@ import com.liomix.mikomi.core.navigation.ScheduleDestination
 import com.liomix.mikomi.core.navigation.SearchDestination
 import com.liomix.mikomi.feature.home.HomeQuickAction
 import com.liomix.mikomi.feature.home.HomeRoute
-import com.liomix.mikomi.feature.home.schedule.ScheduleScreen
-import com.liomix.mikomi.feature.home.schedule.ScheduleUiState
+import com.liomix.mikomi.feature.home.schedule.ScheduleRoute
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -41,9 +40,7 @@ object HomeNavigationModule {
             )
         }
         entry<ScheduleDestination> {
-            ScheduleScreen(
-                // 时间表数据源待接入，先以骨架屏占位。
-                uiState = ScheduleUiState.Loading,
+            ScheduleRoute(
                 onBackClick = { navigator.goBack() },
                 onAnimeClick = { animeId -> navigator.goTo(DetailDestination(animeId)) },
             )

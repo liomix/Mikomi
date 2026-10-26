@@ -37,6 +37,10 @@ internal fun AnimeEntity.toDomain(): Anime = Anime(
     rating = rating,
     status = AnimeStatus.from(status),
     popularity = popularity,
+    airDate = airDate.takeIf { it.isNotBlank() },
+    rank = rank,
+    ratingCount = ratingCount,
+    genres = genres.split(GENRES_SEPARATOR).filter { it.isNotBlank() },
 )
 
 internal fun RankEntity.toDomain(): Anime = Anime(
@@ -47,6 +51,7 @@ internal fun RankEntity.toDomain(): Anime = Anime(
     rating = rating,
     status = AnimeStatus.from(status),
     popularity = popularity,
+    genres = genres.split(GENRES_SEPARATOR).filter { it.isNotBlank() },
 )
 
 internal fun ScheduleEntity.toScheduleEntry(): ScheduleEntry = ScheduleEntry(

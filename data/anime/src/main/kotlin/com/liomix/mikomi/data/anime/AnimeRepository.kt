@@ -12,4 +12,13 @@ interface AnimeRepository {
 
     /** 从网络拉取并回写本地（Room SSOT）。 */
     suspend fun refreshAnimeList()
+
+    /**
+     * 拉取单个番剧的完整详情并回写本地（Bangumi 详情接口）。
+     *
+     * [animeId] 为带前缀的领域 id（`bangumi:` / `anilist:`）；
+     * `anilist:` 前缀先经 id 映射转到 Bangumi，再拉详情。
+     * 失败向上抛出，由上层决定降级展示本地已有数据。
+     */
+    suspend fun refreshAnimeDetail(animeId: String)
 }

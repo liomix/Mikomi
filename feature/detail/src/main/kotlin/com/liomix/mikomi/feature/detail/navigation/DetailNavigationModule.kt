@@ -4,7 +4,7 @@ import com.liomix.mikomi.core.navigation.DetailDestination
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.Navigator
 import com.liomix.mikomi.core.navigation.PlayerDestination
-import com.liomix.mikomi.feature.detail.DetailScreen
+import com.liomix.mikomi.feature.detail.DetailRoute
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,10 +19,14 @@ object DetailNavigationModule {
     @IntoSet
     fun provideEntryProviderInstaller(navigator: Navigator): EntryProviderInstaller = { _ ->
         entry<DetailDestination> { key ->
-            DetailScreen(
+            DetailRoute(
                 animeId = key.animeId,
-                onPlayClick = { episodeId ->
+                onBackClick = { navigator.goBack() },
+                onEpisodeClick = { episodeId ->
                     navigator.goTo(PlayerDestination(key.animeId, episodeId))
+                },
+                onPlayClick = {
+                    navigator.goTo(PlayerDestination(key.animeId, ""))
                 },
             )
         }

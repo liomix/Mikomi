@@ -13,6 +13,14 @@ data class AnimeEntity(
     val rating: Double? = null,
     val status: String = "unknown",
     @ColumnInfo(defaultValue = "0") val popularity: Int = 0,
+    /** 上映日期（yyyy-MM-dd）。 */
+    @ColumnInfo(defaultValue = "") val airDate: String = "",
+    /** 站内排行名次（0 表示无排名）。 */
+    @ColumnInfo(defaultValue = "0") val rank: Int = 0,
+    /** 评分人数（0 表示未知）。 */
+    @ColumnInfo(defaultValue = "0") val ratingCount: Int = 0,
+    /** 展示用类型标签，多值以 `·` 连接存储。 */
+    @ColumnInfo(defaultValue = "") val genres: String = "",
 )
 
 @Entity(tableName = "episode")

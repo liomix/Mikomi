@@ -24,4 +24,10 @@ data class Anime(
     val status: AnimeStatus = AnimeStatus.UNKNOWN,
     val genres: List<String> = emptyList(),
     val popularity: Int = 0,
+    /** 上映日期（yyyy-MM-dd，可为空）。 */
+    val airDate: String? = null,
+    /** 站内排行名次（0 表示无排名）。 */
+    val rank: Int = 0,
+    /** 评分人数（0 表示未知）。 */
+    val ratingCount: Int = 0,
 )

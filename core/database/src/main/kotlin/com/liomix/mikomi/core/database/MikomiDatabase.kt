@@ -24,7 +24,7 @@ import com.liomix.mikomi.core.database.entity.ScheduleEntity
         ScheduleEntity::class,
         RankEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class MikomiDatabase : RoomDatabase() {

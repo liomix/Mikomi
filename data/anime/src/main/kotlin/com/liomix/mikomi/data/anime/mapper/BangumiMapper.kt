@@ -19,6 +19,26 @@ internal fun BangumiSubjectDto.toEntity(popularity: Int? = null): AnimeEntity = 
     popularity = popularity ?: (rating?.total ?: 0),
 )
 
+/**
+ * 详情条目：带完整详情字段（上映日期 / 排行 / 评分人数 / 类型标签）。
+ * 供详情页经 Bangumi `/v0/subjects/{id}` 拉取后回写。
+ */
+internal fun BangumiSubjectDto.toDetailEntity(): AnimeEntity = AnimeEntity(
+    id = "$BANGUMI_ID_PREFIX$id",
+    title = displayName,
+    coverUrl = images?.large ?: images?.common ?: images?.medium,
+    synopsis = summary,
+    rating = rating?.score,
+    status = "unknown",
+    popularity = rating?.total ?: 0,
+    airDate = date.orEmpty(),
+    rank = rating?.rank ?: 0,
+    ratingCount = rating?.total ?: 0,
+    genres = metaTags
+        .filterNot { it in GENRE_NOISE }
+        .joinToString(GENRES_SEPARATOR),
+)
+
 /** 榜单实体：[region] 为产地标签（cn / jp），类型标签取 meta_tags 去噪后展示。 */
 internal fun BangumiSubjectDto.toRankEntity(region: String): RankEntity = RankEntity(
     id = "$BANGUMI_ID_PREFIX$id",

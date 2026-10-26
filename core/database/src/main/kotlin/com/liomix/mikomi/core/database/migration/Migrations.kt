@@ -60,4 +60,14 @@ object Migrations {
             )
         }
     }
+
+    /** 4 → 5：anime 表新增详情字段（上映日期 / 排行 / 评分人数 / 类型标签）。 */
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE anime ADD COLUMN airDate TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE anime ADD COLUMN rank INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE anime ADD COLUMN ratingCount INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE anime ADD COLUMN genres TEXT NOT NULL DEFAULT ''")
+        }
+    }
 }

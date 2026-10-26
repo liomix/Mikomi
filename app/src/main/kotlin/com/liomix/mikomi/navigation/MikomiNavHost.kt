@@ -87,6 +87,10 @@ fun MikomiNavHost(
     val currentTopLevel = navigator.backStack.lastOrNull { it in topLevelDestinations }
         ?: HomeDestination
 
+    // 栈顶是否落在顶级目的地：进入详情/播放器/时间表等二级页面时栈顶为二级目的地，
+    // 底部导航栏随之隐藏；返回顶级目的地后恢复显示。
+    val isTopLevel = navigator.backStack.lastOrNull() in topLevelDestinations
+
     // 沉浸状态权威副本直接在 Activity Retained 作用域的 ImmersionBridge，
     // 跨 entry 重建和配置变更存活，且不依赖任何绑定时序。
     val immersiveRequested by immersionBridge.immersive
@@ -149,10 +153,11 @@ fun MikomiNavHost(
             entryProvider = navEntryProvider,
         )
 
-        // 沉浸式下隐藏底部导航栏，滑入/滑出动画；其余页面正常显示。
-        // 沉浸中可通过手势条临时唤出（showNavBar），2 秒后自动收起。
+        // 沉浸式或非顶级页面（详情/播放器等二级页面）下隐藏底部导航栏，
+        // 滑入/滑出动画；其余页面正常显示。沉浸中可通过手势条临时唤出（showNavBar），
+        // 2 秒后自动收起。
         AnimatedVisibility(
-            visible = !immersiveRequested || showNavBar,
+            visible = isTopLevel && (!immersiveRequested || showNavBar),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             modifier = Modifier

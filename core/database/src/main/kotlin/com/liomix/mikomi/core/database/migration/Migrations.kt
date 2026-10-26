@@ -38,4 +38,26 @@ object Migrations {
             )
         }
     }
+
+    /** 3 → 4：新增 rank_entry 表（国漫 / 日漫综合评分榜）。 */
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `rank_entry` (
+                    `id` TEXT NOT NULL,
+                    `region` TEXT NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `coverUrl` TEXT,
+                    `synopsis` TEXT,
+                    `rating` REAL,
+                    `status` TEXT NOT NULL,
+                    `popularity` INTEGER NOT NULL,
+                    `genres` TEXT NOT NULL,
+                    PRIMARY KEY(`id`)
+                )
+                """.trimIndent(),
+            )
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package com.liomix.mikomi.data.anime.mapper
 
 import com.liomix.mikomi.core.database.entity.AnimeEntity
+import com.liomix.mikomi.core.database.entity.RankEntity
 import com.liomix.mikomi.core.database.entity.ScheduleEntity
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListAiringScheduleDto
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListMediaDto
@@ -33,9 +34,25 @@ internal fun AniListMediaDto.toEntity(): AnimeEntity = AnimeEntity(
     popularity = popularity ?: 0,
 )
 
-/** 标题回退顺序：romaji → english → native。 */
+/** 榜单实体：[region] 为产地标签（cn / jp），类型标签以 `·` 连接存储。 */
+internal fun AniListMediaDto.toRankEntity(region: String): RankEntity = RankEntity(
+    id = "$ANILIST_ID_PREFIX$id",
+    region = region,
+    title = title.displayTitle(),
+    coverUrl = coverImage?.large ?: coverImage?.medium,
+    synopsis = description?.let(::stripHtml),
+    rating = averageScore?.toDouble()?.div(ANILIST_SCORE_DIVISOR),
+    status = status.toInternalStatus(),
+    popularity = popularity ?: 0,
+    genres = genres.joinToString(GENRES_SEPARATOR),
+)
+
+/** [RankEntity.genres] 的多值分隔符。 */
+internal const val GENRES_SEPARATOR = "·"
+
+/** 标题回退顺序：native（中文/原名）→ english → romaji，避免降级数据出现罗马音标题。 */
 internal fun AniListTitleDto?.displayTitle(): String =
-    this?.romaji ?: this?.english ?: this?.nativeTitle ?: ""
+    this?.nativeTitle ?: this?.english ?: this?.romaji ?: ""
 
 /** 放送计划 → 时间表实体；media 缺失的残留条目返回 null，由调用方丢弃。 */
 internal fun AniListAiringScheduleDto.toScheduleEntity(): ScheduleEntity? {

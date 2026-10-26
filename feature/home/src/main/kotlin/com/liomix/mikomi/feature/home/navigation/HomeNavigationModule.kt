@@ -5,10 +5,12 @@ import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.HomeDestination
 import com.liomix.mikomi.core.navigation.Navigator
 import com.liomix.mikomi.core.navigation.ProfileDestination
+import com.liomix.mikomi.core.navigation.RankDestination
 import com.liomix.mikomi.core.navigation.ScheduleDestination
 import com.liomix.mikomi.core.navigation.SearchDestination
 import com.liomix.mikomi.feature.home.HomeQuickAction
 import com.liomix.mikomi.feature.home.HomeRoute
+import com.liomix.mikomi.feature.home.rank.RankRoute
 import com.liomix.mikomi.feature.home.schedule.ScheduleRoute
 import dagger.Module
 import dagger.Provides
@@ -31,16 +33,21 @@ object HomeNavigationModule {
                 onActionClick = { action ->
                     when (action) {
                         HomeQuickAction.SCHEDULE -> navigator.goTo(ScheduleDestination)
-                        // 排行榜 / 分类目的地待接入。
-                        HomeQuickAction.RANK,
-                        HomeQuickAction.CATEGORY,
-                        -> Unit
+                        HomeQuickAction.RANK -> navigator.goTo(RankDestination)
+                        // 分类目的地待接入。
+                        HomeQuickAction.CATEGORY -> Unit
                     }
                 },
             )
         }
         entry<ScheduleDestination> {
             ScheduleRoute(
+                onBackClick = { navigator.goBack() },
+                onAnimeClick = { animeId -> navigator.goTo(DetailDestination(animeId)) },
+            )
+        }
+        entry<RankDestination> {
+            RankRoute(
                 onBackClick = { navigator.goBack() },
                 onAnimeClick = { animeId -> navigator.goTo(DetailDestination(animeId)) },
             )

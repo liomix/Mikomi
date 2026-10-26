@@ -34,6 +34,37 @@ internal object AniListQueries {
         }
     """.trimIndent()
 
+    /**
+     * 综合评分榜：指定产地（国漫 CN / 日漫 JP）按评分（SCORE_DESC）降序的番剧列表。
+     * `countryOfOrigin` 为 AniList 的 CountryCode 枚举值。
+     */
+    val RANK_BY_SCORE = """
+        query (${'$'}page: Int, ${'$'}perPage: Int, ${'$'}country: CountryCode) {
+          Page(page: ${'$'}page, perPage: ${'$'}perPage) {
+            pageInfo {
+              hasNextPage
+            }
+            media(type: ANIME, sort: SCORE_DESC, countryOfOrigin: ${'$'}country) {
+              id
+              title {
+                romaji
+                english
+                native
+              }
+              coverImage {
+                large
+                medium
+              }
+              averageScore
+              popularity
+              description
+              status
+              genres
+            }
+          }
+        }
+    """.trimIndent()
+
     /** 按名字搜索（供 id 转换：名字 → AniList id）。 */
     val SEARCH = """
         query (${'$'}search: String) {

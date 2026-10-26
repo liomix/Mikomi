@@ -7,6 +7,7 @@ import com.liomix.mikomi.core.database.dao.AnimeDao
 import com.liomix.mikomi.core.database.dao.EpisodeDao
 import com.liomix.mikomi.core.database.dao.FavoriteDao
 import com.liomix.mikomi.core.database.dao.HistoryDao
+import com.liomix.mikomi.core.database.dao.RankDao
 import com.liomix.mikomi.core.database.dao.ScheduleDao
 import com.liomix.mikomi.core.database.migration.Migrations
 import dagger.Module
@@ -24,7 +25,11 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): MikomiDatabase =
         Room.databaseBuilder(context, MikomiDatabase::class.java, "mikomi.db")
-            .addMigrations(Migrations.MIGRATION_1_2, Migrations.MIGRATION_2_3)
+            .addMigrations(
+                Migrations.MIGRATION_1_2,
+                Migrations.MIGRATION_2_3,
+                Migrations.MIGRATION_3_4,
+            )
             .build()
 
     @Provides
@@ -41,4 +46,7 @@ object DatabaseModule {
 
     @Provides
     fun provideScheduleDao(db: MikomiDatabase): ScheduleDao = db.scheduleDao()
+
+    @Provides
+    fun provideRankDao(db: MikomiDatabase): RankDao = db.rankDao()
 }

@@ -5,6 +5,7 @@ import androidx.room.Query
 import androidx.room.Upsert
 import com.liomix.mikomi.core.database.entity.AnimeEntity
 import com.liomix.mikomi.core.database.entity.EpisodeEntity
+import com.liomix.mikomi.core.database.entity.RankEntity
 import com.liomix.mikomi.core.database.entity.ScheduleEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -50,4 +51,17 @@ interface ScheduleDao {
     /** 删除放送时间在窗口外的过期数据（时间表只保留当前周）。 */
     @Query("DELETE FROM schedule WHERE airingAtMillis < :windowStartMs OR airingAtMillis >= :windowEndMs")
     suspend fun deleteOutsideWindow(windowStartMs: Long, windowEndMs: Long)
+}
+
+@Dao
+interface RankDao {
+    /** 指定产地的榜单（评分降序；无评分条目排最后）。 */
+    @Query("SELECT * FROM rank_entry WHERE region = :region ORDER BY rating DESC")
+    fun observeByRegion(region: String): Flow<List<RankEntity>>
+
+    @Query("DELETE FROM rank_entry")
+    suspend fun clearAll()
+
+    @Upsert
+    suspend fun upsertAll(entries: List<RankEntity>)
 }

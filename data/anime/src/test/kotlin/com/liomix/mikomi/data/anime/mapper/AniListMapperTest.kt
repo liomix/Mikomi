@@ -33,7 +33,7 @@ class AniListMapperTest {
         val entity = dto.toEntity()
 
         assertEquals("anilist:15125", entity.id)
-        assertEquals("Romaji", entity.title)
+        assertEquals("Native", entity.title)
         assertEquals("large.jpg", entity.coverUrl)
         assertEquals("desc", entity.synopsis)
         assertEquals(8.5, entity.rating!!, 0.0001)
@@ -42,18 +42,18 @@ class AniListMapperTest {
     }
 
     @Test
-    fun `toEntity falls back to english then native title`() {
+    fun `toEntity falls back to english then romaji title`() {
         val englishOnly = AniListMediaDto(
             id = 1,
-            title = AniListTitleDto(romaji = null, english = "English", nativeTitle = "Native"),
+            title = AniListTitleDto(romaji = "Romaji", english = "English", nativeTitle = null),
         )
         assertEquals("English", englishOnly.toEntity().title)
 
-        val nativeOnly = AniListMediaDto(
+        val romajiOnly = AniListMediaDto(
             id = 2,
-            title = AniListTitleDto(romaji = null, english = null, nativeTitle = "Native"),
+            title = AniListTitleDto(romaji = "Romaji", english = null, nativeTitle = null),
         )
-        assertEquals("Native", nativeOnly.toEntity().title)
+        assertEquals("Romaji", romajiOnly.toEntity().title)
     }
 
     @Test

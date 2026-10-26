@@ -55,3 +55,23 @@ data class ScheduleEntity(
     val airingAtMillis: Long,
     val episode: Int,
 )
+
+/**
+ * 综合评分榜：国漫 / 日漫两榜。非规范化存储展示所需字段，
+ * 不与 anime 表关联（anime 表会被首页刷新按前缀清理）。
+ */
+@Entity(tableName = "rank_entry")
+data class RankEntity(
+    /** 主键：anilist id（带前缀），与 anime 表 id 空间一致。 */
+    @PrimaryKey val id: String,
+    /** 产地：cn（国漫）/ jp（日漫），见 data 层 RankRepository 常量。 */
+    val region: String,
+    val title: String,
+    val coverUrl: String? = null,
+    val synopsis: String? = null,
+    val rating: Double? = null,
+    val status: String = "unknown",
+    val popularity: Int = 0,
+    /** 展示用类型标签，多值以 `·` 连接存储。 */
+    val genres: String = "",
+)

@@ -1,8 +1,11 @@
 package com.liomix.mikomi.core.designsystem.component
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +23,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,7 +71,7 @@ fun MikomiNavigationBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 6.dp),
+                .padding(horizontal = 6.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -90,19 +94,23 @@ private fun MikomiNavBarItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    // 悬停反馈：鼠标/触控板停留在 tab 上时内容（图标 + 标签文字）提亮一档，
+    // 触屏设备无 hover 事件，行为不变。
+    val hovered by interactionSource.collectIsHoveredAsState()
     val containerColor by animateColorAsState(
-        targetValue = if (selected) {
-            MaterialTheme.colorScheme.secondaryContainer
-        } else {
-            Color.Transparent
+        targetValue = when {
+            selected -> MaterialTheme.colorScheme.secondaryContainer
+            hovered -> MaterialTheme.colorScheme.surfaceContainerHighest
+            else -> Color.Transparent
         },
         label = "navItemContainerColor",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) {
-            MaterialTheme.colorScheme.onSecondaryContainer
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
+        targetValue = when {
+            selected -> MaterialTheme.colorScheme.onSecondaryContainer
+            hovered -> MaterialTheme.colorScheme.onSurface
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
         },
         label = "navItemContentColor",
     )
@@ -111,8 +119,12 @@ private fun MikomiNavBarItem(
         modifier = modifier
             .clip(CircleShape)
             .background(containerColor)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick,
+            )
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -131,7 +143,7 @@ private fun MikomiNavBarItem(
                 modifier = Modifier.size(24.dp),
             )
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = item.label,
             style = MaterialTheme.typography.labelMedium,

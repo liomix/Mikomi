@@ -12,7 +12,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun DetailRoute(
     animeId: String,
-    onBackClick: () -> Unit,
     onEpisodeClick: (String) -> Unit,
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -23,7 +22,6 @@ fun DetailRoute(
 
     DetailScreen(
         uiState = uiState,
-        onBackClick = onBackClick,
         onEpisodeClick = onEpisodeClick,
         onPlayClick = onPlayClick,
         modifier = modifier,

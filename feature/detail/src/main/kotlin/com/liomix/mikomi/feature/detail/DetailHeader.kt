@@ -5,11 +5,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
@@ -21,57 +24,60 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.background
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.ui.component.SkeletonBox
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
- * 详情页头部：模糊封面背景 + 渐变遮罩 + 标题 + 左封面 / 右信息（上映时间、排行、评分）。
+ * 详情页头部：模糊封面背景 + 标题 + 左封面 / 右信息（上映时间、排行、评分）。
  *
- * 对齐 Dart 版 `AnimeHeader`：背景图高斯模糊铺满，上深下浅渐变遮罩，
- * 标题单行省略，左侧封面圆角，右侧竖排信息。
+ * 对齐 Dart 版 `AnimeHeader`：背景图高斯模糊铺满，标题单行省略，
+ * 左侧封面圆角，右侧竖排信息（label 14sp / value 20sp bold，与 Dart 版一致）。
+ *
+ * [parallax] 为背景/封面的视差偏移（px），由外层滚动驱动，产生景深。
+ * [alpha] 为整体透明度，滚动时头部淡出，避免与顶栏透叠。
  */
 @Composable
 internal fun DetailHeader(
     anime: Anime,
     modifier: Modifier = Modifier,
+    parallax: Float = 0f,
+    alpha: Float = 1f,
 ) {
-    Box(modifier = modifier.fillMaxWidth()) {
-        // 模糊背景封面。
+    val parallaxOffset = parallax.roundToInt()
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer { this.alpha = alpha },
+    ) {
+        // 模糊背景封面（视差：更慢上移）。
         AsyncImage(
             model = anime.coverUrl,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .blur(20.dp),
-        )
-        // 上深下浅渐变遮罩。
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.3f),
-                            Color.Black.copy(alpha = 0.7f),
-                        ),
-                    ),
-                ),
+                .offset { IntOffset(0, parallaxOffset) }
+                .blur(24.dp),
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 16.dp, end = 16.dp, top = 60.dp, bottom = 16.dp),
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp),
         ) {
             // 标题单行省略。
             Text(
@@ -84,11 +90,11 @@ internal fun DetailHeader(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 // 左侧封面。
                 AsyncImage(
@@ -97,32 +103,63 @@ internal fun DetailHeader(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(12.dp)),
+                        .clip(RoundedCornerShape(14.dp)),
                 )
-                // 右侧信息。
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    anime.airDate?.let { airDate ->
-                        HeaderInfoBlock(
-                            label = stringResource(R.string.detail_air_date),
-                            value = airDate,
-                        )
+                // 右侧信息（详情未加载时骨架屏）。
+                val detailLoaded = anime.airDate != null || anime.ratingCount > 0
+                if (detailLoaded) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(18.dp),
+                    ) {
+                        anime.airDate?.let { airDate ->
+                            HeaderInfoBlock(
+                                label = stringResource(R.string.detail_air_date),
+                                value = airDate,
+                            )
+                        }
+                        if (anime.rank > 0) {
+                            HeaderInfoBlock(
+                                label = stringResource(R.string.detail_rank),
+                                value = "#${anime.rank}",
+                            )
+                        }
+                        if (anime.rating != null) {
+                            RatingBlock(
+                                rating = anime.rating!!,
+                                ratingCount = anime.ratingCount,
+                            )
+                        }
                     }
-                    if (anime.rank > 0) {
-                        HeaderInfoBlock(
-                            label = stringResource(R.string.detail_rank),
-                            value = "#${anime.rank}",
-                        )
-                    }
-                    if (anime.rating != null) {
-                        RatingBlock(
-                            rating = anime.rating!!,
-                            ratingCount = anime.ratingCount,
-                        )
-                    }
+                } else {
+                    HeaderInfoSkeleton(
+                        modifier = Modifier.weight(1f),
+                    )
                 }
+            }
+        }
+    }
+}
+
+/** 右侧信息骨架屏：与信息块同构，详情加载前占位。 */
+@Composable
+private fun HeaderInfoSkeleton(
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        repeat(3) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                SkeletonBox(
+                    modifier = Modifier.size(width = 56.dp, height = 14.dp),
+                    shape = RoundedCornerShape(7.dp),
+                )
+                SkeletonBox(
+                    modifier = Modifier.size(width = 72.dp, height = 20.dp),
+                    shape = RoundedCornerShape(10.dp),
+                )
             }
         }
     }
@@ -137,14 +174,17 @@ private fun HeaderInfoBlock(
         if (label != null) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontSize = 14.sp,
+                    color = Color.White.copy(alpha = 0.7f),
+                ),
             )
             Spacer(modifier = Modifier.height(4.dp))
         }
         Text(
             text = value,
-            style = MaterialTheme.typography.titleMedium.copy(
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
             ),
@@ -162,8 +202,10 @@ private fun RatingBlock(
     Column {
         Text(
             text = stringResource(R.string.detail_rating_count, ratingCount),
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.7f),
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 14.sp,
+                color = Color.White.copy(alpha = 0.7f),
+            ),
         )
         Spacer(modifier = Modifier.height(4.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -176,7 +218,8 @@ private fun RatingBlock(
             Spacer(modifier = Modifier.size(4.dp))
             Text(
                 text = String.format(Locale.ROOT, "%.1f", rating),
-                style = MaterialTheme.typography.titleMedium.copy(
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                 ),

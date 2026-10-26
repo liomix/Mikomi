@@ -21,7 +21,6 @@ object DetailNavigationModule {
         entry<DetailDestination> { key ->
             DetailRoute(
                 animeId = key.animeId,
-                onBackClick = { navigator.goBack() },
                 onEpisodeClick = { episodeId ->
                     navigator.goTo(PlayerDestination(key.animeId, episodeId))
                 },

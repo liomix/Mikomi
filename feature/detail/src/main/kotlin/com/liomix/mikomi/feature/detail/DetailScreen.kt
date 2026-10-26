@@ -1,8 +1,14 @@
 package com.liomix.mikomi.feature.detail
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,19 +16,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -36,27 +43,30 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.Episode
 import com.liomix.mikomi.core.ui.component.ErrorState
 import com.liomix.mikomi.core.ui.component.LoadingState
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 
-/** 头部折叠高度（与 Dart 版 expandedHeight 400 对齐）。 */
-private val HEADER_HEIGHT = 400.dp
+/** 头部折叠高度。 */
+private val HEADER_HEIGHT = 420.dp
 
-/** 滚动超过该偏移后顶部显示标题。 */
-private const val SHOW_TITLE_OFFSET_PX = 200f
+/** 头部滚动到该比例时顶栏背景渐入完成（0~1）。 */
+private const val TOP_BAR_FADE_START = 0.4f
+private const val TOP_BAR_FADE_END = 0.8f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScreen(
     uiState: DetailUiState,
-    onBackClick: () -> Unit,
     onEpisodeClick: (String) -> Unit,
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -78,7 +88,6 @@ fun DetailScreen(
             is DetailUiState.Success -> DetailContent(
                 anime = uiState.anime,
                 episodes = uiState.episodes,
-                onBackClick = onBackClick,
                 onEpisodeClick = onEpisodeClick,
                 onPlayClick = onPlayClick,
                 modifier = Modifier.padding(innerPadding),
@@ -91,144 +100,242 @@ fun DetailScreen(
 private fun DetailContent(
     anime: Anime,
     episodes: List<Episode>,
-    onBackClick: () -> Unit,
     onEpisodeClick: (String) -> Unit,
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
-    val showTitle by remember {
+    val pagerState = rememberPagerState(pageCount = { DetailTabType.entries.size })
+    val coroutineScope = rememberCoroutineScope()
+    // 毛玻璃：内容作 source，顶栏作 child，顶栏背景永远高斯模糊。
+    val hazeState = remember { HazeState() }
+
+    // 头部滚出进度（0~1）：驱动头部淡出，避免与顶栏透叠。
+    val headerProgress by remember {
         derivedStateOf {
-            listState.firstVisibleItemScrollOffset > SHOW_TITLE_OFFSET_PX ||
-                listState.firstVisibleItemIndex > 0
+            val scrollFraction = listState.firstVisibleItemScrollOffset /
+                HEADER_HEIGHT.value.coerceAtLeast(1f)
+            ((scrollFraction - TOP_BAR_FADE_START) /
+                (TOP_BAR_FADE_END - TOP_BAR_FADE_START)).coerceIn(0f, 1f)
         }
+    }
+    val headerAlpha by animateFloatAsState(
+        targetValue = 1f - headerProgress,
+        animationSpec = tween(durationMillis = 120),
+        label = "headerAlpha",
+    )
+    val showTitle by remember {
+        derivedStateOf { headerProgress >= 1f }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 96.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(state = hazeState),
         ) {
+            // 头部（随滚动淡出 + 视差）。
             item(key = "header") {
-                DetailHeader(
+                ParallaxHeader(
                     anime = anime,
+                    listState = listState,
+                    alpha = headerAlpha,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(HEADER_HEIGHT),
                 )
             }
-            item(key = "tabs") {
-                DetailTabs(
-                    anime = anime,
-                    episodes = episodes,
-                    onEpisodeClick = onEpisodeClick,
+            // 吸顶 TabBar。
+            stickyHeader(key = "tabBar") {
+                DetailTabBar(
+                    pagerState = pagerState,
+                    coroutineScope = coroutineScope,
                 )
             }
-        }
-
-        // 顶部返回按钮 + 标题（滚动后显示）。
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onBackClick) {
-                Surface(
-                    shape = CircleShape,
-                    color = Color.Black.copy(alpha = 0.3f),
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                        contentDescription = stringResource(R.string.detail_back),
-                        tint = Color.White,
-                        modifier = Modifier.padding(6.dp),
+            // 各 Tab 内容（各自独立滚动）。
+            item(key = "pager") {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { page ->
+                    val tab = DetailTabType.entries[page]
+                    DetailTabContent(
+                        tab = tab,
+                        anime = anime,
+                        episodes = episodes,
+                        onEpisodeClick = onEpisodeClick,
                     )
                 }
             }
-            if (showTitle) {
-                Text(
-                    text = anime.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f),
-                )
-            } else {
-                Box(modifier = Modifier.weight(1f))
-            }
         }
 
+        // 顶部栏：永远高斯模糊（hazeChild），滚动后浮现标题。
+        TopBar(
+            title = anime.title,
+            showTitle = showTitle,
+            hazeState = hazeState,
+        )
+
         // 底部播放按钮。
-        Button(
+        PlayButton(
             onClick = onPlayClick,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            Text(text = stringResource(R.string.detail_play))
-        }
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
     }
 }
 
+/** 头部：封面视差 + 整体淡出。 */
 @Composable
-private fun DetailTabs(
+private fun ParallaxHeader(
     anime: Anime,
-    episodes: List<Episode>,
-    onEpisodeClick: (String) -> Unit,
+    listState: LazyListState,
+    alpha: Float,
     modifier: Modifier = Modifier,
 ) {
-    val tabs = remember { DetailTabType.entries }
-    val pagerState = rememberPagerState(pageCount = { tabs.size })
-    val coroutineScope = rememberCoroutineScope()
+    val scrollOffset by remember {
+        derivedStateOf { listState.firstVisibleItemScrollOffset.toFloat() }
+    }
+    // 背景视差：背景图以更慢速度上移，产生景深。
+    val parallax by animateFloatAsState(
+        targetValue = scrollOffset * 0.5f,
+        animationSpec = tween(durationMillis = 16),
+        label = "headerParallax",
+    )
+    DetailHeader(
+        anime = anime,
+        parallax = parallax,
+        alpha = alpha,
+        modifier = modifier,
+    )
+}
 
-    Column(modifier = modifier.fillMaxWidth()) {
+@Composable
+private fun DetailTabBar(
+    pagerState: androidx.compose.foundation.pager.PagerState,
+    coroutineScope: kotlinx.coroutines.CoroutineScope,
+) {
+    Surface(color = MaterialTheme.colorScheme.surface) {
         TabRow(
             selectedTabIndex = pagerState.currentPage,
             containerColor = MaterialTheme.colorScheme.surface,
             divider = {},
         ) {
-            tabs.forEachIndexed { index, tab ->
+            DetailTabType.entries.forEachIndexed { index, tab ->
+                val selected = pagerState.currentPage == index
+                val textColor by animateColorAsState(
+                    targetValue = if (selected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    animationSpec = tween(durationMillis = 200),
+                    label = "tabTextColor",
+                )
                 Tab(
-                    selected = pagerState.currentPage == index,
-                    onClick = { coroutineScope.launch { pagerState.animateScrollToPage(index) } },
+                    selected = selected,
+                    onClick = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(
+                                page = index,
+                                animationSpec = tween(
+                                    durationMillis = 250,
+                                    easing = FastOutSlowInEasing,
+                                ),
+                            )
+                        }
+                    },
                     text = {
                         Text(
                             text = stringResource(tab.labelRes),
                             style = MaterialTheme.typography.labelLarge,
-                            fontWeight = if (pagerState.currentPage == index) {
+                            fontWeight = if (selected) {
                                 FontWeight.SemiBold
                             } else {
                                 FontWeight.Normal
                             },
+                            color = textColor,
                         )
                     },
                 )
             }
         }
+    }
+}
 
-        HorizontalPager(
-            state = pagerState,
+@Composable
+private fun DetailTabContent(
+    tab: DetailTabType,
+    anime: Anime,
+    episodes: List<Episode>,
+    onEpisodeClick: (String) -> Unit,
+) {
+    when (tab) {
+        DetailTabType.OVERVIEW -> OverviewTab(anime = anime)
+        DetailTabType.DETAIL -> DetailTab(
+            episodes = episodes,
+            onEpisodeClick = onEpisodeClick,
+        )
+
+        DetailTabType.TEASING -> TeasingTab()
+        DetailTabType.COMMENT -> CommentTab()
+    }
+}
+
+@Composable
+private fun TopBar(
+    title: String,
+    showTitle: Boolean,
+    hazeState: HazeState,
+) {
+    // 仅在标题浮现（头部滚出）后才渲染整个顶栏：未滚动时顶栏完全消失，
+    // 避免其毛玻璃区在头部标题下方残留一条多余横带。
+    AnimatedVisibility(
+        visible = showTitle,
+        enter = fadeIn(tween(200)),
+        exit = fadeOut(tween(150)),
+    ) {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(600.dp),
-        ) { page ->
-            when (tabs[page]) {
-                DetailTabType.OVERVIEW -> OverviewTab(anime = anime)
-                DetailTabType.DETAIL -> DetailTab(
-                    episodes = episodes,
-                    onEpisodeClick = onEpisodeClick,
-                )
-
-                DetailTabType.TEASING -> TeasingTab()
-                DetailTabType.COMMENT -> CommentTab()
-            }
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .hazeChild(state = hazeState)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
         }
+    }
+}
+
+@Composable
+private fun BoxScope.PlayButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FloatingActionButton(
+        onClick = onClick,
+        shape = CircleShape,
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        modifier = modifier
+            .align(Alignment.BottomEnd)
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(end = 20.dp, bottom = 24.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.PlayArrow,
+            contentDescription = stringResource(R.string.detail_play),
+            modifier = Modifier.size(32.dp),
+        )
     }
 }
 

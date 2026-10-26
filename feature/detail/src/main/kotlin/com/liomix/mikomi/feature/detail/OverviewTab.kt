@@ -1,5 +1,8 @@
 package com.liomix.mikomi.feature.detail
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +12,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.ui.component.SkeletonBox
 
 /** 简介最多展示行数。 */
 private const val MAX_SYNOPSIS_LINES = 4
@@ -43,6 +48,8 @@ private const val MAX_VISIBLE_TAGS = 9
  *
  * 对齐 Dart 版 `OverviewTabContent`：简介默认 4 行，超出显示「展开」；
  * 标签默认展示前 9 个，超出显示「更多」。
+ *
+ * 详情未加载（[Anime.synopsis] 为空）时展示骨架屏，加载完成后替换为真实内容。
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -50,6 +57,12 @@ internal fun OverviewTab(
     anime: Anime,
     modifier: Modifier = Modifier,
 ) {
+    // 详情尚未拉取（synopsis 为 null）时显示骨架屏。
+    if (anime.synopsis == null) {
+        OverviewSkeleton(modifier = modifier)
+        return
+    }
+
     var synopsisExpanded by remember { mutableStateOf(false) }
     var tagsExpanded by remember { mutableStateOf(false) }
 
@@ -60,7 +73,15 @@ internal fun OverviewTab(
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         // 简介。
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            modifier = Modifier.animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow,
+                ),
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             Text(
                 text = stringResource(R.string.detail_synopsis),
                 style = MaterialTheme.typography.titleMedium,
@@ -183,6 +204,66 @@ private fun ExpandChip(
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+/** 概述骨架屏：简介段落 + 标签 chip 占位，与真实布局同构，避免加载后跳动。 */
+@Composable
+private fun OverviewSkeleton(
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+        // 简介标题 + 段落骨架。
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SkeletonBox(
+                modifier = Modifier.size(width = 48.dp, height = 18.dp),
+                shape = RoundedCornerShape(9.dp),
+            )
+            SkeletonBox(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(14.dp),
+                shape = RoundedCornerShape(7.dp),
+            )
+            SkeletonBox(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(14.dp),
+                shape = RoundedCornerShape(7.dp),
+            )
+            SkeletonBox(
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .height(14.dp),
+                shape = RoundedCornerShape(7.dp),
+            )
+        }
+        // 标签标题 + chip 骨架。
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SkeletonBox(
+                modifier = Modifier.size(width = 48.dp, height = 18.dp),
+                shape = RoundedCornerShape(9.dp),
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                repeat(6) { index ->
+                    SkeletonBox(
+                        modifier = Modifier.size(
+                            width = (56 + (index % 3) * 20).dp,
+                            height = 32.dp,
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                    )
+                }
+            }
         }
     }
 }

@@ -22,12 +22,15 @@ internal fun BangumiSubjectDto.toEntity(popularity: Int? = null): AnimeEntity = 
 /**
  * 详情条目：带完整详情字段（上映日期 / 排行 / 评分人数 / 类型标签）。
  * 供详情页经 Bangumi `/v0/subjects/{id}` 拉取后回写。
+ *
+ * 简介仅保留中文译文：[summary] 字段常为「原文（多段）+ 空行 + 译文」的混合，
+ * 用 [extractChineseSummary] 提取中文部分，避免原文译文一起显示。
  */
 internal fun BangumiSubjectDto.toDetailEntity(): AnimeEntity = AnimeEntity(
     id = "$BANGUMI_ID_PREFIX$id",
     title = displayName,
     coverUrl = images?.large ?: images?.common ?: images?.medium,
-    synopsis = summary,
+    synopsis = summary?.let(::extractChineseSummary),
     rating = rating?.score,
     status = "unknown",
     popularity = rating?.total ?: 0,
@@ -38,6 +41,46 @@ internal fun BangumiSubjectDto.toDetailEntity(): AnimeEntity = AnimeEntity(
         .filterNot { it in GENRE_NOISE }
         .joinToString(GENRES_SEPARATOR),
 )
+
+/**
+ * 从 Bangumi 简介中提取中文译文。
+ *
+ * Bangumi 的 summary 可能为「日文原文 + 空行 + [简体中文]译文」格式：
+ * 1. 先按空行 / `[简体中文]` / `中文:` 等标记切块；
+ * 2. 优先取显式带「中文/简体/chinese/zh-cn」标记的块；
+ * 3. 否则在所有块中挑中文字符占比最高者；
+ * 4. 去掉 `[简体中文]` / `中文:` 前缀。
+ *
+ * 全中文（无原文）的简介原样返回；无中文时返回 null。
+ */
+internal fun extractChineseSummary(text: String): String? {
+    val normalized = text.replace("\r\n", "\n").trim()
+    if (normalized.isEmpty()) return null
+
+    val blocks = normalized
+        .split(CHINESE_BLOCK_SPLIT_REGEX)
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+
+    val explicitChinese = blocks.filter { block ->
+        val lower = block.lowercase()
+        block.contains("中文") ||
+            block.contains("简体") ||
+            lower.contains("chinese") ||
+            lower.contains("zh-cn")
+    }
+
+    val candidates = explicitChinese.ifEmpty { blocks }
+    val best = candidates.maxByOrNull { chineseRatio(it) } ?: return null
+
+    // 含任意汉字即返回（日语与中文共享汉字，无法严格区分；纯假名/拉丁才判无中文）。
+    if (!best.any { it in '\u4e00'..'\u9fff' }) return null
+    return best
+        .replace(CHINESE_PREFIX_TAG_REGEX, "")
+        .replace(CHINESE_PREFIX_COLON_REGEX, "")
+        .trim()
+        .takeIf { it.isNotEmpty() }
+}
 
 /** 榜单实体：[region] 为产地标签（cn / jp），类型标签取 meta_tags 去噪后展示。 */
 internal fun BangumiSubjectDto.toRankEntity(region: String): RankEntity = RankEntity(
@@ -62,6 +105,29 @@ private val GENRE_NOISE = setOf(
 )
 
 private const val GENRE_DISPLAY_LIMIT = 2
+
+/** 中文字符占比（0~1）：去掉空白后的可见字符中，汉字所占比例。 */
+private fun chineseRatio(text: String): Float {
+    val visible = text.replace(WHITESPACE_REGEX, "")
+    if (visible.isEmpty()) return 0f
+    val chineseCount = CJK_CHAR_REGEX.findAll(visible).count()
+    return chineseCount.toFloat() / visible.length
+}
+
+/** 简介切块分隔：空行，或中文标记起始。 */
+private val CHINESE_BLOCK_SPLIT_REGEX = Regex("""\n{2,}|(?=\[简体中文\])|(?=\[中文\])|(?=简体中文[:：])|(?=中文[:：])""")
+
+/** 块首的 `[简体中文]` / `[中文]` / `[zh-cn]` / `[chinese]` 标记。 */
+private val CHINESE_PREFIX_TAG_REGEX = Regex("""^\[(简体中文|中文|zh-cn|chinese)]\s*""", RegexOption.IGNORE_CASE)
+
+/** 块首的 `简体中文:` / `中文:` / `zh-cn:` / `chinese:` 标记。 */
+private val CHINESE_PREFIX_COLON_REGEX = Regex("""^(简体中文|中文|zh-cn|chinese)[:：]\s*""", RegexOption.IGNORE_CASE)
+
+/** 中文字符（CJK 统一表意文字）。 */
+private val CJK_CHAR_REGEX = Regex("""[\u4e00-\u9fff]""")
+
+/** 空白字符。 */
+private val WHITESPACE_REGEX = Regex("""\s+""")
 
 /** 主键前缀，与 AniList 等数据源的 id 空间隔离，避免落同一张表时碰撞。 */
 internal const val BANGUMI_ID_PREFIX = "bangumi:"

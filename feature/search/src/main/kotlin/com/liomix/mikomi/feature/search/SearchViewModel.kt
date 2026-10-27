@@ -129,26 +129,32 @@ class SearchViewModel @Inject constructor(
     }
 
     /**
-     * 提交搜索：记录历史并收起联想。
+     * 提交搜索：记录历史并把关键词写回输入框。
      *
-     * 只做状态与持久化，导航由 Route 层决定（跳转结果页）。
-     * 返回搜索页时关键词仍保留在输入框，方便继续修改。
+     * 特意**不切换** phase：点击联想后若立刻从联想态切回浏览态，
+     * Crossfade 动画会和页面跳转动画叠在一起，表现为闪一下。
+     * 浏览态复位统一放到页面离开时（[onPageHidden]）。
      */
     fun onSearchSubmitted(keyword: String) {
         val trimmed = keyword.trim()
         if (trimmed.isEmpty()) return
         queryFlow.value = trimmed
+        _uiState.update { it.copy(query = trimmed) }
+        viewModelScope.launch {
+            runCatching { userDataRepository.addSearchHistory(trimmed) }
+                .onFailure { Log.w(TAG, "Save search history failed", it) }
+        }
+    }
+
+    /** 搜索页离开（去结果页或返回上一页）时复位为浏览态，返回时直接看到历史列表。 */
+    fun onPageHidden() {
+        queryFlow.value = ""
         _uiState.update {
             it.copy(
-                query = trimmed,
                 phase = SearchPhase.BROWSE,
                 suggestions = emptyList(),
                 suggestionsState = LoadState.Idle,
             )
-        }
-        viewModelScope.launch {
-            runCatching { userDataRepository.addSearchHistory(trimmed) }
-                .onFailure { Log.w(TAG, "Save search history failed", it) }
         }
     }
 

@@ -1,6 +1,7 @@
 package com.liomix.mikomi.feature.search
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -21,6 +22,12 @@ fun SearchRoute(
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // 搜索页离开（去结果页 / 返回上一页）时才把内容复位为浏览态，
+    // 避免点击联想的瞬间先闪一下「联想 → 历史」的切换。
+    DisposableEffect(Unit) {
+        onDispose { viewModel.onPageHidden() }
+    }
 
     SearchScreen(
         state = state,

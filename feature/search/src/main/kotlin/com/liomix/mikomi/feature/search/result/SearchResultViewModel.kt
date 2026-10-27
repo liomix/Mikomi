@@ -31,19 +31,19 @@ class SearchResultViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SearchResultUiState())
     val uiState: StateFlow<SearchResultUiState> = _uiState.asStateFlow()
 
-    /** 是否已完成首次绑定（导航参数只在首次进入时生效）。 */
-    private var initialized = false
-
     /** 当前结果对应的关键词。 */
     private var currentKeyword = ""
 
     /** 下一页的服务端游标。 */
     private var nextOffset = 0
 
-    /** 绑定导航参数里的关键词（重复调用无副作用）。 */
+    /**
+     * 绑定导航参数里的关键词并立即加载。
+     *
+     * 每次都重新加载：ViewModel 在 Activity 级共享，上次搜索的实例可能还活着，
+     * 不重置就会出现「搜过 A 再搜 B，结果仍是 A」。
+     */
     fun bind(keyword: String) {
-        if (initialized) return
-        initialized = true
         loadFirstPage(keyword)
     }
 

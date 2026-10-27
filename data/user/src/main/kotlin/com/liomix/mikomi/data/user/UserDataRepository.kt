@@ -19,6 +19,9 @@ interface UserDataRepository {
     suspend fun saveProgress(animeId: String, episodeId: String, positionMs: Long, durationMs: Long)
     suspend fun setTheme(theme: String)
 
+    /** 设置主题配色预设 id（见 ThemePalette）。 */
+    suspend fun setColorScheme(colorScheme: String)
+
     /** 记录一次搜索关键词。 */
     suspend fun addSearchHistory(keyword: String)
 

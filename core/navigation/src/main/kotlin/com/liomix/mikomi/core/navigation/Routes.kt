@@ -30,6 +30,10 @@ data object HistoryDestination : NavKey
 @Serializable
 data object SettingsDestination : NavKey
 
+/** 主题设置二级页面（我的页左上角图标进入）。 */
+@Serializable
+data object ThemeDestination : NavKey
+
 /** 时间表二级页面（首页快捷入口跳转）。 */
 @Serializable
 data object ScheduleDestination : NavKey

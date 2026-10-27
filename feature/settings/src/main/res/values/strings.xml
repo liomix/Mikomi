@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="theme_title">主题</string>
+    <string name="theme_back">返回</string>
+    <string name="theme_color_section">主题颜色</string>
+    <string name="theme_night_mode">切换到夜间模式</string>
+</resources>

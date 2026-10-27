@@ -137,12 +137,12 @@ fun MikomiNavHost(
         immersionBridge.onNavBarTempChange(true)
     }
 
-    // 非巡礼沉浸态的返回事件始终按导航栈处理。
+    // 非巡礼沉浸态的返回事件始终按导航栈处理；栈内只剩根页面时退出应用。
     val navBackHandler: () -> Unit = {
         if (shouldRevealNavBar) {
             immersionBridge.onNavBarTempChange(true)
-        } else {
-            navigator.goBack()
+        } else if (!navigator.goBack()) {
+            (view.context as? Activity)?.finish()
         }
     }
 

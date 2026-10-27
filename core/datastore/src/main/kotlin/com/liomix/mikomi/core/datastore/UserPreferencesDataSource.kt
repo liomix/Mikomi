@@ -28,6 +28,7 @@ class UserPreferencesDataSource @Inject constructor(
             theme = prefs[KEY_THEME] ?: DEFAULT_THEME,
             defaultQuality = prefs[KEY_QUALITY] ?: DEFAULT_QUALITY,
             autoPlayNext = prefs[KEY_AUTO_PLAY_NEXT] ?: true,
+            colorScheme = prefs[KEY_COLOR_SCHEME] ?: DEFAULT_COLOR_SCHEME,
         )
     }
 
@@ -43,11 +44,17 @@ class UserPreferencesDataSource @Inject constructor(
         dataStore.edit { it[KEY_AUTO_PLAY_NEXT] = enabled }
     }
 
+    suspend fun setColorScheme(colorScheme: String) {
+        dataStore.edit { it[KEY_COLOR_SCHEME] = colorScheme }
+    }
+
     private companion object {
         val KEY_THEME = stringPreferencesKey("theme")
         val KEY_QUALITY = stringPreferencesKey("default_quality")
         val KEY_AUTO_PLAY_NEXT = booleanPreferencesKey("auto_play_next")
+        val KEY_COLOR_SCHEME = stringPreferencesKey("color_scheme")
         const val DEFAULT_THEME = "system"
         const val DEFAULT_QUALITY = "auto"
+        const val DEFAULT_COLOR_SCHEME = "default"
     }
 }

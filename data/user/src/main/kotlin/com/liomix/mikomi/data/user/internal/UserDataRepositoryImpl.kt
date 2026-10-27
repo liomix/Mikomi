@@ -61,6 +61,10 @@ internal class UserDataRepositoryImpl @Inject constructor(
         userPreferencesDataSource.setTheme(theme)
     }
 
+    override suspend fun setColorScheme(colorScheme: String) {
+        userPreferencesDataSource.setColorScheme(colorScheme)
+    }
+
     override suspend fun addSearchHistory(keyword: String) {
         searchHistoryDataSource.add(keyword)
     }

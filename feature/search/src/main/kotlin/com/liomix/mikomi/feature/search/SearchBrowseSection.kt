@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.AnimeCoverImage
@@ -109,6 +110,8 @@ internal fun SearchBrowseSection(
                 SectionHeader(
                     icon = Icons.Outlined.History,
                     title = stringResource(R.string.search_history),
+                    // 紧贴搜索框，减少顶部空白。
+                    topPadding = 2.dp,
                     action = {
                         IconButton(onClick = onClearHistory) {
                             Icon(
@@ -171,12 +174,13 @@ private fun SectionHeader(
     icon: ImageVector,
     title: String,
     modifier: Modifier = Modifier,
+    topPadding: Dp = 20.dp,
     action: @Composable (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 8.dp, top = 20.dp, bottom = 8.dp),
+            .padding(start = 16.dp, end = 8.dp, top = topPadding, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(

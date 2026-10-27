@@ -1,7 +1,10 @@
 package com.liomix.mikomi.feature.profile.navigation
 
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
+import com.liomix.mikomi.core.navigation.Navigator
 import com.liomix.mikomi.core.navigation.ProfileDestination
+import com.liomix.mikomi.core.navigation.SettingsDestination
+import com.liomix.mikomi.core.navigation.ThemeDestination
 import com.liomix.mikomi.feature.profile.ProfileScreen
 import dagger.Module
 import dagger.Provides
@@ -15,9 +18,12 @@ object ProfileNavigationModule {
 
     @Provides
     @IntoSet
-    fun provideEntryProviderInstaller(): EntryProviderInstaller = { _ ->
+    fun provideEntryProviderInstaller(navigator: Navigator): EntryProviderInstaller = { _ ->
         entry<ProfileDestination> {
-            ProfileScreen()
+            ProfileScreen(
+                onThemeClick = { navigator.goTo(ThemeDestination) },
+                onSettingsClick = { navigator.goTo(SettingsDestination) },
+            )
         }
     }
 }

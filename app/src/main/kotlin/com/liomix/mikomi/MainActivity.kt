@@ -5,10 +5,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
+import com.liomix.mikomi.core.model.UserPreferences
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.ImmersionBridge
 import com.liomix.mikomi.core.navigation.Navigator
+import com.liomix.mikomi.data.user.UserDataRepository
 import com.liomix.mikomi.navigation.MikomiNavHost
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -24,6 +29,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var immersionBridge: ImmersionBridge
+
+    @Inject
+    lateinit var userDataRepository: UserDataRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,7 +49,21 @@ class MainActivity : ComponentActivity() {
             ),
         )
         setContent {
-            MikomiTheme {
+            // 主题配色跟随用户偏好实时变化：设置页选色后立即生效。
+            val preferences by userDataRepository.observeUserPreferences()
+                .collectAsStateWithLifecycle(initialValue = UserPreferences())
+
+            // system 跟随系统深色模式；light / dark 由设置页的夜间模式开关固化。
+            val darkTheme = when (preferences.theme) {
+                "dark" -> true
+                "light" -> false
+                else -> isSystemInDarkTheme()
+            }
+
+            MikomiTheme(
+                darkTheme = darkTheme,
+                colorSchemeId = preferences.colorScheme,
+            ) {
                 MikomiNavHost(
                     navigator = navigator,
                     entryProviderInstallers = entryProviderInstallers,

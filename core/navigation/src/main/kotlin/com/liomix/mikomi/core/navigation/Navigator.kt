@@ -26,7 +26,18 @@ class Navigator(startDestination: NavKey) {
         backStack.add(destination)
     }
 
-    fun goBack() {
+    /**
+     * 返回上一页。
+     *
+     * 返回栈必须至少保留一个目的地：栈空时 `NavDisplay` 会抛
+     * `IllegalArgumentException: NavDisplay backstack cannot be empty`。
+     * 根页面的返回由调用方交给系统处理（退出应用）。
+     *
+     * @return 是否消费了本次返回（false 表示已在根页面，调用方可退出应用）。
+     */
+    fun goBack(): Boolean {
+        if (backStack.size <= 1) return false
         backStack.removeLastOrNull()
+        return true
     }
 }

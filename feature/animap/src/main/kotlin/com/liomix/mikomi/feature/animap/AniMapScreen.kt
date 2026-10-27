@@ -142,7 +142,8 @@ fun AniMapScreen(
                     Text(
                         text = loadingText,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        // 巡礼页始终是浅色地图，不随夜间模式变深：文字固定用浅色主题的次要色。
+                        color = AniMapOverlayTextColor,
                     )
                 }
             }
@@ -172,3 +173,6 @@ fun AniMapScreen(
         }
     }
 }
+
+/** 巡礼页浮层文字色（固定浅色主题的次要文字色，不参与夜间切换）。 */
+private val AniMapOverlayTextColor = Color(0xFF49454F)

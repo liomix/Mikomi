@@ -33,6 +33,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
+/** 选中项胶囊底的不透明度（primary 淡化，承托同一主题色的图标与文字）。 */
+private const val SELECTED_CONTAINER_ALPHA = 0.14f
+
 /**
  * 导航栏条目模型。
  *
@@ -98,9 +101,11 @@ private fun MikomiNavBarItem(
     // 悬停反馈：鼠标/触控板停留在 tab 上时内容（图标 + 标签文字）提亮一档，
     // 触屏设备无 hover 事件，行为不变。
     val hovered by interactionSource.collectIsHoveredAsState()
+    // 选中态跟随主题色：图标与文字用 primary，胶囊底为 primary 的淡色，
+    // 这样设置页切换配色后底栏会同步变色（作用域见 ThemePalette）。
     val containerColor by animateColorAsState(
         targetValue = when {
-            selected -> MaterialTheme.colorScheme.secondaryContainer
+            selected -> MaterialTheme.colorScheme.primary.copy(alpha = SELECTED_CONTAINER_ALPHA)
             hovered -> MaterialTheme.colorScheme.surfaceContainerHighest
             else -> Color.Transparent
         },
@@ -108,7 +113,7 @@ private fun MikomiNavBarItem(
     )
     val contentColor by animateColorAsState(
         targetValue = when {
-            selected -> MaterialTheme.colorScheme.onSecondaryContainer
+            selected -> MaterialTheme.colorScheme.primary
             hovered -> MaterialTheme.colorScheme.onSurface
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         },

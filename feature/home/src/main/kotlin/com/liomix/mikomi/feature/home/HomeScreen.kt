@@ -2,6 +2,7 @@ package com.liomix.mikomi.feature.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +24,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -60,6 +63,39 @@ private fun homeContentPadding(): PaddingValues {
 
 private const val LOAD_MORE_THRESHOLD = 3
 
+/**
+ * 主页下拉刷新容器。
+ *
+ * Material 默认指示器是固定的灰底（surfaceContainerHigh）+ primary 箭头，
+ * 底圈不随主题配色变化。这里显式指定容器与内容色，让整个指示器都受主题色支配：
+ * 圆底取 primaryContainer、箭头取 onPrimaryContainer，切换配色或日夜模式都会同步。
+ */
+@Composable
+private fun HomePullToRefresh(
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val state = rememberPullToRefreshState()
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = modifier,
+        state = state,
+        indicator = {
+            PullToRefreshDefaults.Indicator(
+                state = state,
+                isRefreshing = isRefreshing,
+                modifier = Modifier.align(Alignment.TopCenter),
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        },
+        content = content,
+    )
+}
+
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
@@ -74,7 +110,7 @@ fun HomeScreen(
 ) {
     when (uiState) {
         // 骨架屏也支持下拉刷新：首次加载慢/失败时用户可主动触发重试。
-        HomeUiState.Loading -> PullToRefreshBox(
+        HomeUiState.Loading -> HomePullToRefresh(
             isRefreshing = isRefreshing,
             onRefresh = onRefresh,
             modifier = modifier.fillMaxSize(),
@@ -184,7 +220,7 @@ private fun HomeContent(
     }
 
     // 下拉刷新：刷新轮播图与内容区（同一数据源，refreshHome 重拉第一页并回写本地）。
-    PullToRefreshBox(
+    HomePullToRefresh(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
         modifier = modifier.fillMaxSize(),

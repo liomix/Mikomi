@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- 深色模式首帧：透明系统栏 + 浅色图标（与浅色 App 背景对齐）。 -->
+    <!-- 深色模式首帧：透明系统栏 + 浅色图标 + 黑色窗口底色。 -->
     <style name="Theme.Mikomi" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
+        <!-- 系统深色模式下的首帧底色，避免夜间冷启动白闪。 -->
+        <item name="android:windowBackground">@color/black</item>
     </style>
 </resources>

@@ -6,5 +6,7 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
+        <!-- 冷启动首帧底色：与 Compose 主题背景一致，避免白屏/黑屏闪烁。 -->
+        <item name="android:windowBackground">@color/white</item>
     </style>
 </resources>

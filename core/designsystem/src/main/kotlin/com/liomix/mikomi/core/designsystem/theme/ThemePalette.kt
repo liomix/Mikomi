@@ -8,6 +8,13 @@ import androidx.compose.ui.graphics.Color
  * [Default] 表示跟随系统动态取色（Android 12+）或内置紫色；
  * 其余为固定主色方案：[gradient] 用于设置页色卡预览，
  * light/dark 两套主色保证各自背景下的对比度。
+ *
+ * 作用域（切换后实时生效，统一取 primary / primaryContainer）：
+ * - 按钮、开关、单选框等控件的启用 / 选中态；
+ * - 底部导航栏选中项的图标与文字（及淡化的胶囊底）；
+ * - 详情页 Tab、搜索页可交互文字、设置页色卡选中描边等 primary 用色。
+ *
+ * 不在作用域内：夜间模式的背景与表面色（固定纯黑 / #181818）。
  */
 enum class ThemePalette(
     val id: String,
@@ -17,6 +24,7 @@ enum class ThemePalette(
     val lightPrimary: Color,
     val lightPrimaryContainer: Color,
     val lightOnPrimaryContainer: Color,
+    /** 夜间主色变体：当前夜间统一沿用 [lightPrimary]，此字段留作高对比备用。 */
     val darkPrimary: Color,
     val darkPrimaryContainer: Color,
     val darkOnPrimaryContainer: Color,

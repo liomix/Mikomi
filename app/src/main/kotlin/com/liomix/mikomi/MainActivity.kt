@@ -1,12 +1,16 @@
 package com.liomix.mikomi
 
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.model.UserPreferences
@@ -64,6 +68,12 @@ class MainActivity : ComponentActivity() {
                 darkTheme = darkTheme,
                 colorSchemeId = preferences.colorScheme,
             ) {
+                // 窗口底色跟随当前主题：手动切夜间后再冷启动 / 返回前台不会闪白色。
+                val windowBackground = MaterialTheme.colorScheme.background
+                LaunchedEffect(windowBackground) {
+                    window?.setBackgroundDrawable(ColorDrawable(windowBackground.toArgb()))
+                }
+
                 MikomiNavHost(
                     navigator = navigator,
                     entryProviderInstallers = entryProviderInstallers,

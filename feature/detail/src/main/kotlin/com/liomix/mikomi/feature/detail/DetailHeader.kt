@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.ui.component.ScrollingText
 import com.liomix.mikomi.core.ui.component.SkeletonBox
 import java.util.Locale
 
@@ -69,15 +70,13 @@ internal fun DetailHeader(
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp),
         ) {
-            // 标题单行省略。
-            Text(
+            // 标题：单行，超宽时无限横向滚动（与 Dart 版 ScrollingText 一致）。
+            ScrollingText(
                 text = anime.title,
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                 ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(20.dp))

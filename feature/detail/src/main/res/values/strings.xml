@@ -4,7 +4,6 @@
     <string name="detail_tab_overview">概述</string>
     <string name="detail_tab_credits">主创</string>
     <string name="detail_tab_teasing">吐槽</string>
-    <string name="detail_tab_comment">评论</string>
     <string name="detail_synopsis">简介</string>
     <string name="detail_tags">标签</string>
     <string name="detail_no_synopsis">暂无简介</string>
@@ -23,7 +22,6 @@
     <string name="detail_air_date">上映时间</string>
     <string name="detail_rank">Bangumi排行</string>
     <string name="detail_rating_count">%1$d人评分</string>
-    <string name="detail_comment_placeholder">评论功能开发中</string>
     <string name="detail_no_teasing">暂无吐槽</string>
     <string name="detail_teasing_load_failed">吐槽加载失败</string>
     <string name="detail_teasing_load_more_failed">加载失败</string>

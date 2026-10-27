@@ -203,8 +203,6 @@ private fun DetailContent(
                         onLoadMore = onLoadMoreTeasing,
                         onRetry = onRetryTeasing,
                     )
-
-                    DetailTabType.COMMENT -> CommentTab()
                 }
             }
         }
@@ -380,12 +378,11 @@ private fun TopBar(hazeState: HazeState) {
     )
 }
 
-/** 详情页四个 Tab。 */
+/** 详情页三个 Tab。 */
 internal enum class DetailTabType(
     val labelRes: Int,
 ) {
     OVERVIEW(com.liomix.mikomi.feature.detail.R.string.detail_tab_overview),
     CREDITS(com.liomix.mikomi.feature.detail.R.string.detail_tab_credits),
     TEASING(com.liomix.mikomi.feature.detail.R.string.detail_tab_teasing),
-    COMMENT(com.liomix.mikomi.feature.detail.R.string.detail_tab_comment),
 }

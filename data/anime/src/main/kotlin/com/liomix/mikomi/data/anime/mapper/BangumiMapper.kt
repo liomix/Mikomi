@@ -64,6 +64,8 @@ internal fun BangumiSubjectDto.toDetailEntity(): AnimeEntity = AnimeEntity(
     genres = metaTags
         .filterNot { it in GENRE_NOISE }
         .joinToString(GENRES_SEPARATOR),
+    // 详情页回写的数据标记为 detail，避免污染首页「评分 TOP5」轮播与热度推荐。
+    source = "detail",
 )
 
 /**

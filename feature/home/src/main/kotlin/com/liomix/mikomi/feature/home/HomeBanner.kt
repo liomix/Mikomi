@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -49,7 +50,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.platform.LocalContext
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.ScrollingText
 import java.util.Locale
@@ -174,6 +179,19 @@ private fun BannerItem(
         label = "bannerPressCorner",
     )
 
+    // 与全站封面统一走 ImageRequest + 显式 memoryCacheKey：
+    // 裸 AsyncImage(String) 与 AnimeCoverImage(ImageRequest) 在 Coil 内
+    // 内存缓存 key 计算路径不同，可能串图（搜索完退回来轮播显示搜索海报）。
+    val context = LocalContext.current
+    val placeholderColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val imageRequest = remember(anime.coverUrl, context) {
+        ImageRequest.Builder(context)
+            .data(anime.coverUrl)
+            .crossfade(true)
+            .memoryCacheKey(anime.coverUrl)
+            .build()
+    }
+
     Box(
         modifier = modifier
             .height(BANNER_HEIGHT)
@@ -182,18 +200,25 @@ private fun BannerItem(
                 scaleY = scale
             }
             .clip(RoundedCornerShape(corner))
+            // 占位底色：封面图加载中 / 失败时仍能看到轮播卡片轮廓。
+            // 用主题表面色（夜间 #181818、日间浅色），两种模式下都不会突兀。
+            .background(placeholderColor)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick,
             ),
     ) {
-        AsyncImage(
-            model = anime.coverUrl,
-            contentDescription = anime.title,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-        )
+        key(anime.id) {
+            AsyncImage(
+                model = imageRequest,
+                contentDescription = anime.title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                placeholder = ColorPainter(placeholderColor),
+                error = ColorPainter(placeholderColor),
+            )
+        }
 
         // 底部磨砂渐变遮罩：0.35 起比 0.5 更柔和，配合 20dp 圆角更现代
         Box(

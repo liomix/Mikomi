@@ -70,4 +70,14 @@ object Migrations {
             db.execSQL("ALTER TABLE anime ADD COLUMN genres TEXT NOT NULL DEFAULT ''")
         }
     }
+
+    /**
+     * 5 → 6：anime 表新增 source 列（区分首页 trending 与详情页回写），
+     * 已有数据默认按首页数据（`home`）处理。
+     */
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE anime ADD COLUMN source TEXT NOT NULL DEFAULT 'home'")
+        }
+    }
 }

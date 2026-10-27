@@ -21,6 +21,14 @@ data class AnimeEntity(
     @ColumnInfo(defaultValue = "0") val ratingCount: Int = 0,
     /** 展示用类型标签，多值以 `·` 连接存储。 */
     @ColumnInfo(defaultValue = "") val genres: String = "",
+    /**
+     * 数据来源标记：`home` = 首页 trending 写入、`detail` = 详情页回写。
+     *
+     * 首页轮播图 / 推荐列表按「评分 / 热度」在全表取前 N，若不区分来源，
+     * 详情页看过的番剧会带着评分混进首页榜单（表现为「搜完回来轮播出现该番」）。
+     * 通过本列让首页查询只命中 trending 数据。
+     */
+    @ColumnInfo(defaultValue = "home") val source: String = "home",
 )
 
 @Entity(tableName = "episode")

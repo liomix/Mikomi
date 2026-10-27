@@ -22,6 +22,7 @@ fun DetailRoute(
     val creditDetailState by viewModel.creditDetailState.collectAsStateWithLifecycle()
     val creditCommentsState by viewModel.creditCommentsState.collectAsStateWithLifecycle()
     val teasingState by viewModel.teasingState.collectAsStateWithLifecycle()
+    val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
 
     DetailScreen(
         uiState = uiState,
@@ -29,6 +30,8 @@ fun DetailRoute(
         creditDetailState = creditDetailState,
         creditCommentsState = creditCommentsState,
         teasingState = teasingState,
+        isFavorite = isFavorite,
+        onToggleFavorite = viewModel::toggleFavorite,
         onLoadCredits = viewModel::loadCredits,
         onCharacterClick = { id -> viewModel.openCreditDetail(id, isCharacter = true) },
         onStaffClick = { id -> viewModel.openCreditDetail(id, isCharacter = false) },

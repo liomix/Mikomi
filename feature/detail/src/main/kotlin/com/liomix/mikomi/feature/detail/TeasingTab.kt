@@ -3,6 +3,7 @@ package com.liomix.mikomi.feature.detail
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,7 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,61 +47,63 @@ private val TEASING_AVATAR_SIZE = 40.dp
 private const val TEASING_SKELETON_COUNT = 5
 
 /**
- * 吐槽 Tab 内容。
+ * 吐槽 Tab：自带独立滚动的吐槽列表（对齐 Dart 版 `AnimeTeasingContent`）。
  *
- * 吐槽条目直接平铺到详情页外层 [androidx.compose.foundation.lazy.LazyColumn]，
- * 不嵌套独立滚动容器：一是避免懒列表被无限高度约束测量导致崩溃，
- * 二是让列表滚动、分页预取与吸顶 TabBar 共用同一个滚动状态，滑动手感与 Dart 版一致。
+ * 列表状态由外层传入并在 Tab 切换间保留，滚动到尾部自动翻页；
+ * 滑动只作用于本列表，不会带动详情页头部。
  */
-internal fun LazyListScope.teasingTab(
+@Composable
+internal fun TeasingTab(
     state: TeasingUiState,
+    listState: LazyListState,
+    onLoadTeasing: () -> Unit,
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    when (state) {
-        TeasingUiState.Loading -> {
-            items(
-                count = TEASING_SKELETON_COUNT,
-                key = { "teasing_skeleton_$it" },
-                contentType = { "teasing_skeleton" },
-            ) {
-                TeasingSkeletonItem()
-            }
-        }
+    // 首次组合即触发拉取；重复进入由 ViewModel 内部去重。
+    LaunchedEffect(Unit) {
+        onLoadTeasing()
+    }
 
-        TeasingUiState.Error -> {
-            item(key = "teasing_error") {
-                TeasingStatusBlock(
-                    icon = Icons.Outlined.ChatBubbleOutline,
-                    message = stringResource(R.string.detail_teasing_load_failed),
-                    actionLabel = stringResource(R.string.detail_retry),
-                    onAction = onRetry,
-                )
-            }
-        }
+    when (state) {
+        TeasingUiState.Loading -> TeasingSkeletonList(modifier = modifier)
+
+        TeasingUiState.Error -> TeasingStatusBlock(
+            icon = Icons.Outlined.ChatBubbleOutline,
+            message = stringResource(R.string.detail_teasing_load_failed),
+            actionLabel = stringResource(R.string.detail_retry),
+            onAction = onRetry,
+            modifier = modifier,
+        )
 
         is TeasingUiState.Loaded -> {
             if (state.comments.isEmpty()) {
-                item(key = "teasing_empty") {
-                    TeasingStatusBlock(
-                        icon = Icons.Outlined.ChatBubbleOutline,
-                        message = stringResource(R.string.detail_no_teasing),
-                    )
-                }
+                TeasingStatusBlock(
+                    icon = Icons.Outlined.ChatBubbleOutline,
+                    message = stringResource(R.string.detail_no_teasing),
+                    modifier = modifier,
+                )
             } else {
-                items(
-                    items = state.comments,
-                    key = { comment -> "teasing_${comment.id}" },
-                    contentType = { "teasing_item" },
-                ) { comment ->
-                    TeasingCommentItem(comment = comment)
-                }
-                item(key = "teasing_footer") {
-                    TeasingFooter(
-                        state = state,
-                        onLoadMore = onLoadMore,
-                        onRetry = onRetry,
-                    )
+                LazyColumn(
+                    state = listState,
+                    modifier = modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = CONTENT_BOTTOM_SPACER),
+                ) {
+                    items(
+                        items = state.comments,
+                        key = { comment -> "teasing_${comment.id}" },
+                        contentType = { "teasing_item" },
+                    ) { comment ->
+                        TeasingCommentItem(comment = comment)
+                    }
+                    item(key = "teasing_footer") {
+                        TeasingFooter(
+                            state = state,
+                            onLoadMore = onLoadMore,
+                            onRetry = onRetry,
+                        )
+                    }
                 }
             }
         }
@@ -253,9 +257,10 @@ private fun TeasingStatusBlock(
 ) {
     Column(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(top = 72.dp, bottom = 72.dp),
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
         Icon(
             imageVector = icon,
@@ -278,7 +283,16 @@ private fun TeasingStatusBlock(
     }
 }
 
-/** 骨架屏条目：头像 + 三行文本占位。 */
+/** 骨架屏列表：头像 + 三行文本占位。 */
+@Composable
+private fun TeasingSkeletonList(modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxSize()) {
+        repeat(TEASING_SKELETON_COUNT) {
+            TeasingSkeletonItem()
+        }
+    }
+}
+
 @Composable
 private fun TeasingSkeletonItem(modifier: Modifier = Modifier) {
     Row(

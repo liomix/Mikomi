@@ -11,6 +11,7 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:navigation"))
     implementation(project(":data:anime"))
+    implementation(project(":data:user"))
 
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)

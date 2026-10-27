@@ -8,6 +8,7 @@ import com.liomix.mikomi.core.model.CreditDetail
 import com.liomix.mikomi.data.anime.AnimeCommentRepository
 import com.liomix.mikomi.data.anime.AnimeCreditsRepository
 import com.liomix.mikomi.data.anime.AnimeRepository
+import com.liomix.mikomi.data.user.UserDataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -32,9 +34,23 @@ class DetailViewModel @Inject constructor(
     private val animeRepository: AnimeRepository,
     private val creditsRepository: AnimeCreditsRepository,
     private val commentRepository: AnimeCommentRepository,
+    private val userDataRepository: UserDataRepository,
 ) : ViewModel() {
 
     private val animeId = MutableStateFlow<String?>(null)
+
+    /** 当前番剧是否已收藏（跟随本地收藏列表实时变化）。 */
+    val isFavorite: StateFlow<Boolean> = animeId
+        .filterNotNull()
+        .flatMapLatest { id ->
+            userDataRepository.observeFavorites()
+                .map { favorites -> favorites.any { it.animeId == id } }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = false,
+        )
 
     val uiState: StateFlow<DetailUiState> = animeId
         .flatMapLatest { id ->
@@ -157,6 +173,25 @@ class DetailViewModel @Inject constructor(
     fun dismissCreditDetail() {
         _creditDetailState.value = CreditDetailUiState.Hidden
         _creditCommentsState.value = CreditCommentsUiState.Hidden
+    }
+
+    /** 切换收藏状态（收藏 / 取消收藏）。 */
+    fun toggleFavorite() {
+        val id = animeId.value ?: return
+        val favorite = isFavorite.value
+        viewModelScope.launch {
+            try {
+                if (favorite) {
+                    userDataRepository.removeFavorite(id)
+                } else {
+                    userDataRepository.addFavorite(id)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Toggle favorite failed", e)
+            }
+        }
     }
 
     /** 加载吐槽首屏（首次进入吐槽 Tab 时调用，重复调用无副作用）。 */

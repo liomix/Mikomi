@@ -1,13 +1,13 @@
 package com.liomix.mikomi.feature.detail
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,14 +16,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -32,18 +35,14 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.ErrorState
@@ -52,18 +51,24 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.hazeSource
 
-/** 头部折叠高度。 */
+/** 头部固定高度。 */
 private val HEADER_HEIGHT = 420.dp
 
-/** 滚动超过该距离（dp）后顶栏标题淡入，对齐 Dart 版 offset > 200。 */
-private val SHOW_TITLE_OFFSET = 200.dp
+/** 内容区底部留白：避让右下角悬浮按钮组（收藏 48 + 间距 12 + 追番 56 + 外边距 24 + 余量）。 */
+internal val CONTENT_BOTTOM_SPACER = 156.dp
 
-/** TabBar 在 LazyColumn 中的下标（0 = 头部）。 */
-private const val TAB_BAR_INDEX = 1
+/** 收藏按钮直径（比追番按钮更收，形成主次）。 */
+private val FAVORITE_BUTTON_SIZE = 48.dp
 
-/** 内容底部留白：避让悬浮播放按钮（56dp FAB + 24dp 外边距 + 余量）。 */
-private val CONTENT_BOTTOM_SPACER = 96.dp
-
+/**
+ * 详情页。
+ *
+ * 布局分三层，纵向互不影响：
+ * 1. 头部（封面 + 标题 + 信息）固定不动；
+ * 2. TabBar 固定；
+ * 3. 内容区占满剩余高度，**每个 Tab 拥有自己的滚动状态**，
+ *    上下滑动只滚动当前 Tab 的内容，不会带动头部或整个页面。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScreen(
@@ -72,6 +77,8 @@ fun DetailScreen(
     creditDetailState: CreditDetailUiState,
     creditCommentsState: CreditCommentsUiState,
     teasingState: TeasingUiState,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
     onLoadCredits: () -> Unit,
     onCharacterClick: (Int) -> Unit,
     onStaffClick: (Int) -> Unit,
@@ -85,6 +92,8 @@ fun DetailScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
+        // 头部封面直接顶到屏幕最上方（状态栏之下由 header 自行留白），insets 在页面内自行处理。
+        contentWindowInsets = WindowInsets(0),
     ) { innerPadding ->
         when (uiState) {
             DetailUiState.Loading -> LoadingState(
@@ -100,6 +109,8 @@ fun DetailScreen(
                 anime = uiState.anime,
                 creditsState = creditsState,
                 teasingState = teasingState,
+                isFavorite = isFavorite,
+                onToggleFavorite = onToggleFavorite,
                 onLoadCredits = onLoadCredits,
                 onLoadTeasing = onLoadTeasing,
                 onLoadMoreTeasing = onLoadMoreTeasing,
@@ -127,6 +138,8 @@ private fun DetailContent(
     anime: Anime,
     creditsState: AnimeCreditsUiState,
     teasingState: TeasingUiState,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
     onLoadCredits: () -> Unit,
     onLoadTeasing: () -> Unit,
     onLoadMoreTeasing: () -> Unit,
@@ -136,116 +149,180 @@ private fun DetailContent(
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val listState = rememberLazyListState()
-    // 当前选中的 Tab（点击 TabBar 切换，内容直接渲染，避免 Pager 嵌套滚动崩溃）。
     var selectedTab by remember { mutableStateOf(DetailTabType.OVERVIEW) }
-    // 毛玻璃：内容作 source，顶栏作 child，顶栏背景永远高斯模糊。
+    // 毛玻璃：内容作 source，顶栏作 child。
     val hazeState = remember { HazeState() }
-    val showTitleOffsetPx = with(LocalDensity.current) { SHOW_TITLE_OFFSET.roundToPx() }
 
-    // 吐槽：首次切到该 Tab 才拉取首屏（懒加载，避免进详情页就多打一次网络）。
-    // 切换 Tab 时把列表拉回 TabBar 位置，避免停留在上一个 Tab 的滚动位置。
-    LaunchedEffect(selectedTab) {
-        if (selectedTab == DetailTabType.TEASING) {
-            onLoadTeasing()
-        }
-        if (listState.firstVisibleItemIndex > TAB_BAR_INDEX) {
-            listState.animateScrollToItem(TAB_BAR_INDEX)
-        }
-    }
-
-    // 对齐 Dart 版：滚动 offset > 200px 后标题淡入，否则隐藏。
-    val showTitle by remember {
-        derivedStateOf {
-            listState.firstVisibleItemScrollOffset > showTitleOffsetPx
-        }
-    }
+    // 每个 Tab 独立的滚动状态，切 Tab 后各自位置保留、互不干扰。
+    val overviewScroll = rememberScrollState()
+    val creditsScroll = rememberScrollState()
+    val commentScroll = rememberScrollState()
+    val teasingListState = rememberLazyListState()
 
     Box(modifier = modifier.fillMaxSize()) {
-        LazyColumn(
-            state = listState,
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(state = hazeState),
         ) {
-            // 头部：随滚动自然滚走（等价 SliverAppBar 折叠收起）。
-            item(key = "header") {
-                ParallaxHeader(
-                    anime = anime,
-                    listState = listState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(HEADER_HEIGHT),
-                )
-            }
-            // 吸顶 TabBar。
-            stickyHeader(key = "tabBar") {
-                DetailTabBar(
-                    selectedTab = selectedTab,
-                    onSelect = { selectedTab = it },
-                )
-            }
-            // 当前 Tab 内容：吐槽直接平铺为列表条目，其余 Tab 作为单个 item 渲染。
-            when (selectedTab) {
-                DetailTabType.TEASING -> teasingTab(
-                    state = teasingState,
-                    onLoadMore = onLoadMoreTeasing,
-                    onRetry = onRetryTeasing,
-                )
+            // 头部：固定不随内容滚动。
+            DetailHeader(
+                anime = anime,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(HEADER_HEIGHT),
+            )
+            DetailTabBar(
+                selectedTab = selectedTab,
+                onSelect = { selectedTab = it },
+            )
+            // 内容区：占满剩余高度，内部各自滚动。
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            ) {
+                when (selectedTab) {
+                    DetailTabType.OVERVIEW -> ScrollableTabPane(scrollState = overviewScroll) {
+                        OverviewTab(anime = anime)
+                    }
 
-                else -> item(key = "tab_content_${selectedTab.name}") {
-                    DetailTabContent(
-                        tab = selectedTab,
-                        anime = anime,
-                        creditsState = creditsState,
-                        onLoadCredits = onLoadCredits,
-                        onCharacterClick = onCharacterClick,
-                        onStaffClick = onStaffClick,
+                    DetailTabType.CREDITS -> ScrollableTabPane(scrollState = creditsScroll) {
+                        CreditsTab(
+                            creditsState = creditsState,
+                            onLoadCredits = onLoadCredits,
+                            onCharacterClick = onCharacterClick,
+                            onStaffClick = onStaffClick,
+                        )
+                    }
+
+                    DetailTabType.TEASING -> TeasingTab(
+                        state = teasingState,
+                        listState = teasingListState,
+                        onLoadTeasing = onLoadTeasing,
+                        onLoadMore = onLoadMoreTeasing,
+                        onRetry = onRetryTeasing,
                     )
+
+                    DetailTabType.COMMENT -> CommentTab()
                 }
-            }
-            // 底部留白：避让悬浮播放按钮，避免内容末端被遮挡。
-            item(key = "content_bottom_spacer") {
-                Spacer(modifier = Modifier.height(CONTENT_BOTTOM_SPACER))
             }
         }
 
-        // 顶部栏：常驻毛玻璃，滚动超过阈值后标题淡入。
-        TopBar(
-            title = anime.title,
-            showTitle = showTitle,
-            hazeState = hazeState,
-        )
+        // 顶栏：常驻毛玻璃，让状态栏图标在封面图上依旧清晰。
+        TopBar(hazeState = hazeState)
 
-        // 底部播放按钮。
-        PlayButton(
-            onClick = onPlayClick,
-            modifier = Modifier.align(Alignment.BottomCenter),
+        // 右下角悬浮按钮组：收藏（圆形星标）+ 追番（扩展按钮）。
+        BottomActions(
+            isFavorite = isFavorite,
+            onToggleFavorite = onToggleFavorite,
+            onFollowClick = onPlayClick,
+            modifier = Modifier.align(Alignment.BottomEnd),
         )
     }
 }
 
-/** 头部：封面视差。 */
+/** 右下角按钮组：收藏在上、追番在下，纵向右对齐。 */
 @Composable
-private fun ParallaxHeader(
-    anime: Anime,
-    listState: LazyListState,
+private fun BottomActions(
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
+    onFollowClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val scrollOffset by remember {
-        derivedStateOf { listState.firstVisibleItemScrollOffset.toFloat() }
+    Column(
+        modifier = modifier
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(end = 20.dp, bottom = 24.dp),
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        FavoriteButton(
+            isFavorite = isFavorite,
+            onClick = onToggleFavorite,
+        )
+        FollowButton(onClick = onFollowClick)
     }
-    // 背景视差：背景图以更慢速度上移，产生景深。
-    val parallax by animateFloatAsState(
-        targetValue = scrollOffset * 0.5f,
-        animationSpec = tween(durationMillis = 16),
-        label = "headerParallax",
-    )
-    DetailHeader(
-        anime = anime,
-        parallax = parallax,
+}
+
+/** 收藏按钮：圆形星标，已收藏时填充主色。 */
+@Composable
+private fun FavoriteButton(
+    isFavorite: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.size(FAVORITE_BUTTON_SIZE),
+        shape = CircleShape,
+        color = if (isFavorite) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHighest
+        },
+        contentColor = if (isFavorite) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = if (isFavorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+                contentDescription = stringResource(
+                    if (isFavorite) R.string.detail_remove_favorite else R.string.detail_add_favorite,
+                ),
+                modifier = Modifier.size(26.dp),
+            )
+        }
+    }
+}
+
+/** 追番按钮：扩展 FAB（播放图标 + 文案），对齐 Dart 版 PlayButton。 */
+@Composable
+private fun FollowButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ExtendedFloatingActionButton(
+        onClick = onClick,
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        shape = RoundedCornerShape(16.dp),
+        icon = {
+            Icon(
+                imageVector = Icons.Filled.PlayArrow,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+            )
+        },
+        text = {
+            Text(
+                text = stringResource(R.string.detail_follow),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+        },
     )
+}
+
+/** 普通内容 Tab 的滚动容器（概述 / 主创等非懒加载内容）。 */
+@Composable
+private fun ScrollableTabPane(
+    scrollState: ScrollState,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(bottom = CONTENT_BOTTOM_SPACER),
+    ) {
+        content()
+    }
 }
 
 @Composable
@@ -291,83 +368,16 @@ private fun DetailTabBar(
     }
 }
 
+/** 顶栏毛玻璃：只覆盖状态栏高度（头部固定后不会有内容从顶栏下方穿过）。 */
 @Composable
-private fun DetailTabContent(
-    tab: DetailTabType,
-    anime: Anime,
-    creditsState: AnimeCreditsUiState,
-    onLoadCredits: () -> Unit,
-    onCharacterClick: (Int) -> Unit,
-    onStaffClick: (Int) -> Unit,
-) {
-    when (tab) {
-        DetailTabType.OVERVIEW -> OverviewTab(anime = anime)
-        DetailTabType.CREDITS -> CreditsTab(
-            creditsState = creditsState,
-            onLoadCredits = onLoadCredits,
-            onCharacterClick = onCharacterClick,
-            onStaffClick = onStaffClick,
-        )
-
-        // 吐槽条目直接平铺到外层列表，不走这里。
-        DetailTabType.TEASING -> Unit
-        DetailTabType.COMMENT -> CommentTab()
-    }
-}
-
-@Composable
-private fun TopBar(
-    title: String,
-    showTitle: Boolean,
-    hazeState: HazeState,
-) {
-    // 顶栏常驻毛玻璃；标题随滚动淡入（对齐 Dart 版 AnimatedOpacity）。
-    Row(
+private fun TopBar(hazeState: HazeState) {
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .hazeChild(state = hazeState)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        val titleAlpha by animateFloatAsState(
-            targetValue = if (showTitle) 1f else 0f,
-            animationSpec = tween(durationMillis = 200),
-            label = "titleAlpha",
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = titleAlpha),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
-private fun BoxScope.PlayButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    FloatingActionButton(
-        onClick = onClick,
-        shape = CircleShape,
-        containerColor = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary,
-        modifier = modifier
-            .align(Alignment.BottomEnd)
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(end = 20.dp, bottom = 24.dp),
-    ) {
-        Icon(
-            imageVector = Icons.Filled.PlayArrow,
-            contentDescription = stringResource(R.string.detail_play),
-            modifier = Modifier.size(32.dp),
-        )
-    }
+            .height(statusBarHeight)
+            .hazeChild(state = hazeState),
+    )
 }
 
 /** 详情页四个 Tab。 */

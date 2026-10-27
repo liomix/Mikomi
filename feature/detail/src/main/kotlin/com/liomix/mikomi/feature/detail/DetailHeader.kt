@@ -24,21 +24,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.SkeletonBox
 import java.util.Locale
-import kotlin.math.roundToInt
 
 /**
  * 详情页头部：模糊封面背景 + 标题 + 左封面 / 右信息（上映时间、排行、评分）。
@@ -46,30 +42,24 @@ import kotlin.math.roundToInt
  * 对齐 Dart 版 `AnimeHeader`：背景图高斯模糊铺满，标题单行省略，
  * 左侧封面圆角，右侧竖排信息（label 14sp / value 20sp bold，与 Dart 版一致）。
  *
- * [parallax] 为背景/封面的视差偏移（px），由外层滚动驱动，产生景深。
- * [alpha] 为整体透明度，滚动时头部淡出，避免与顶栏透叠。
+ * 头部固定不随内容滚动，因此不再做视差偏移。
  */
 @Composable
 internal fun DetailHeader(
     anime: Anime,
     modifier: Modifier = Modifier,
-    parallax: Float = 0f,
-    alpha: Float = 1f,
 ) {
-    val parallaxOffset = parallax.roundToInt()
     Box(
         modifier = modifier
-            .fillMaxWidth()
-            .graphicsLayer { this.alpha = alpha },
+            .fillMaxWidth(),
     ) {
-        // 模糊背景封面（视差：更慢上移）。
+        // 模糊背景封面。
         AsyncImage(
             model = anime.coverUrl,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .offset { IntOffset(0, parallaxOffset) }
                 .blur(24.dp),
         )
 

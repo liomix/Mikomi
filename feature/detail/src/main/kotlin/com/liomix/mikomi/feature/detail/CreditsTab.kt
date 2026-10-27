@@ -58,6 +58,8 @@ private val AVATAR_SIZE = 60.dp
 internal fun CreditsTab(
     creditsState: AnimeCreditsUiState,
     onLoadCredits: () -> Unit,
+    onCharacterClick: (Int) -> Unit,
+    onStaffClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // 懒加载：首次进入（Idle）时触发拉取。
@@ -80,6 +82,8 @@ internal fun CreditsTab(
         is AnimeCreditsUiState.Loaded -> CreditsContent(
             characters = creditsState.characters,
             staff = creditsState.staff,
+            onCharacterClick = onCharacterClick,
+            onStaffClick = onStaffClick,
             modifier = modifier,
         )
     }
@@ -89,6 +93,8 @@ internal fun CreditsTab(
 private fun CreditsContent(
     characters: List<AnimeCharacter>,
     staff: List<StaffMember>,
+    onCharacterClick: (Int) -> Unit,
+    onStaffClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // 作为外层 LazyColumn 的 item，纵向用普通 Column（非懒加载），横向用 LazyRow 滚动。
@@ -104,7 +110,10 @@ private fun CreditsContent(
             EmptyState(message = stringResource(R.string.detail_no_characters))
         } else {
             CreditGrid(items = characters) { character ->
-                CharacterCard(character = character)
+                CharacterCard(
+                    character = character,
+                    onClick = { onCharacterClick(character.id) },
+                )
             }
         }
 
@@ -114,7 +123,10 @@ private fun CreditsContent(
             EmptyState(message = stringResource(R.string.detail_no_staff))
         } else {
             CreditGrid(items = staff) { member ->
-                StaffCard(member = member)
+                StaffCard(
+                    member = member,
+                    onClick = { onStaffClick(member.id) },
+                )
             }
         }
     }
@@ -161,9 +173,11 @@ private fun <T> CreditGrid(
 @Composable
 private fun CharacterCard(
     character: AnimeCharacter,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
+        onClick = onClick,
         modifier = modifier
             .width(CREDIT_CARD_WIDTH)
             .height(CREDIT_CARD_HEIGHT),
@@ -209,9 +223,11 @@ private fun CharacterCard(
 @Composable
 private fun StaffCard(
     member: StaffMember,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
+        onClick = onClick,
         modifier = modifier
             .width(CREDIT_CARD_WIDTH)
             .height(CREDIT_CARD_HEIGHT),

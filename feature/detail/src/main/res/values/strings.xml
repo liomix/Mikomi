@@ -13,6 +13,14 @@
     <string name="detail_staff">制作人员</string>
     <string name="detail_no_characters">暂无角色信息</string>
     <string name="detail_no_staff">暂无制作人员信息</string>
+    <string name="detail_credit_basic_info">基本信息</string>
+    <string name="detail_no_basic_info">暂无</string>
+    <string name="detail_credit_summary">简介</string>
+    <string name="detail_credit_tab_info">人物资料</string>
+    <string name="detail_credit_tab_comments">吐槽箱</string>
+    <string name="detail_no_comments">暂无评论</string>
+    <string name="detail_expand_replies">展开%1$d条回复</string>
+    <string name="detail_collapse_replies">收起%1$d条回复</string>
     <string name="detail_air_date">上映时间</string>
     <string name="detail_rank">Bangumi排行</string>
     <string name="detail_rating_count">%1$d人评分</string>

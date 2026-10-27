@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.model.CreditDetail
 import com.liomix.mikomi.data.anime.AnimeCreditsRepository
 import com.liomix.mikomi.data.anime.AnimeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -56,10 +57,18 @@ class DetailViewModel @Inject constructor(
     private val _creditsState = MutableStateFlow<AnimeCreditsUiState>(AnimeCreditsUiState.Idle)
     val creditsState: StateFlow<AnimeCreditsUiState> = _creditsState
 
+    private val _creditDetailState = MutableStateFlow<CreditDetailUiState>(CreditDetailUiState.Hidden)
+    val creditDetailState: StateFlow<CreditDetailUiState> = _creditDetailState
+
+    private val _creditCommentsState = MutableStateFlow<CreditCommentsUiState>(CreditCommentsUiState.Hidden)
+    val creditCommentsState: StateFlow<CreditCommentsUiState> = _creditCommentsState
+
     fun bind(animeId: String) {
         if (this.animeId.value == animeId) return
         this.animeId.value = animeId
         _creditsState.value = AnimeCreditsUiState.Idle
+        _creditDetailState.value = CreditDetailUiState.Hidden
+        _creditCommentsState.value = CreditCommentsUiState.Hidden
         refreshDetail(animeId)
     }
 
@@ -96,6 +105,48 @@ class DetailViewModel @Inject constructor(
                 _creditsState.value = AnimeCreditsUiState.Error
             }
         }
+    }
+
+    /** 打开主创详情弹层（isCharacter 区分角色/制作人员），同时拉详情与评论。 */
+    fun openCreditDetail(id: Int, isCharacter: Boolean) {
+        _creditDetailState.value = CreditDetailUiState.Loading
+        _creditCommentsState.value = CreditCommentsUiState.Loading
+        viewModelScope.launch {
+            try {
+                val detail = if (isCharacter) {
+                    creditsRepository.fetchCharacterDetail(id)
+                } else {
+                    creditsRepository.fetchPersonDetail(id)
+                }
+                _creditDetailState.value = CreditDetailUiState.Loaded(detail)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Load credit detail failed", e)
+                _creditDetailState.value = CreditDetailUiState.Error
+            }
+        }
+        viewModelScope.launch {
+            try {
+                val comments = if (isCharacter) {
+                    creditsRepository.fetchCharacterComments(id)
+                } else {
+                    creditsRepository.fetchPersonComments(id)
+                }
+                _creditCommentsState.value = CreditCommentsUiState.Loaded(comments)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Load credit comments failed", e)
+                _creditCommentsState.value = CreditCommentsUiState.Error
+            }
+        }
+    }
+
+    /** 关闭主创详情弹层。 */
+    fun dismissCreditDetail() {
+        _creditDetailState.value = CreditDetailUiState.Hidden
+        _creditCommentsState.value = CreditCommentsUiState.Hidden
     }
 
     private companion object {

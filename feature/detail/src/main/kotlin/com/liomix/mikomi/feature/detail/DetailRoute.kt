@@ -19,11 +19,18 @@ fun DetailRoute(
     viewModel.bind(animeId)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val creditsState by viewModel.creditsState.collectAsStateWithLifecycle()
+    val creditDetailState by viewModel.creditDetailState.collectAsStateWithLifecycle()
+    val creditCommentsState by viewModel.creditCommentsState.collectAsStateWithLifecycle()
 
     DetailScreen(
         uiState = uiState,
         creditsState = creditsState,
+        creditDetailState = creditDetailState,
+        creditCommentsState = creditCommentsState,
         onLoadCredits = viewModel::loadCredits,
+        onCharacterClick = { id -> viewModel.openCreditDetail(id, isCharacter = true) },
+        onStaffClick = { id -> viewModel.openCreditDetail(id, isCharacter = false) },
+        onDismissCreditDetail = viewModel::dismissCreditDetail,
         onPlayClick = onPlayClick,
         modifier = modifier,
     )

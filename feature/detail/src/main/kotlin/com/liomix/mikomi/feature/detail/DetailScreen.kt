@@ -61,7 +61,12 @@ private val SHOW_TITLE_OFFSET = 200.dp
 fun DetailScreen(
     uiState: DetailUiState,
     creditsState: AnimeCreditsUiState,
+    creditDetailState: CreditDetailUiState,
+    creditCommentsState: CreditCommentsUiState,
     onLoadCredits: () -> Unit,
+    onCharacterClick: (Int) -> Unit,
+    onStaffClick: (Int) -> Unit,
+    onDismissCreditDetail: () -> Unit,
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -83,10 +88,21 @@ fun DetailScreen(
                 anime = uiState.anime,
                 creditsState = creditsState,
                 onLoadCredits = onLoadCredits,
+                onCharacterClick = onCharacterClick,
+                onStaffClick = onStaffClick,
                 onPlayClick = onPlayClick,
                 modifier = Modifier.padding(innerPadding),
             )
         }
+    }
+
+    // 主创详情底部弹层。
+    if (creditDetailState != CreditDetailUiState.Hidden) {
+        CreditDetailSheet(
+            detailState = creditDetailState,
+            commentsState = creditCommentsState,
+            onDismiss = onDismissCreditDetail,
+        )
     }
 }
 
@@ -95,6 +111,8 @@ private fun DetailContent(
     anime: Anime,
     creditsState: AnimeCreditsUiState,
     onLoadCredits: () -> Unit,
+    onCharacterClick: (Int) -> Unit,
+    onStaffClick: (Int) -> Unit,
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -143,6 +161,8 @@ private fun DetailContent(
                     anime = anime,
                     creditsState = creditsState,
                     onLoadCredits = onLoadCredits,
+                    onCharacterClick = onCharacterClick,
+                    onStaffClick = onStaffClick,
                 )
             }
         }
@@ -234,12 +254,16 @@ private fun DetailTabContent(
     anime: Anime,
     creditsState: AnimeCreditsUiState,
     onLoadCredits: () -> Unit,
+    onCharacterClick: (Int) -> Unit,
+    onStaffClick: (Int) -> Unit,
 ) {
     when (tab) {
         DetailTabType.OVERVIEW -> OverviewTab(anime = anime)
         DetailTabType.CREDITS -> CreditsTab(
             creditsState = creditsState,
             onLoadCredits = onLoadCredits,
+            onCharacterClick = onCharacterClick,
+            onStaffClick = onStaffClick,
         )
 
         DetailTabType.TEASING -> TeasingTab()

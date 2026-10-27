@@ -70,3 +70,61 @@ data class BangumiStaffInfoDto(
 data class BangumiStaffResponseDto(
     val data: List<BangumiStaffInfoDto> = emptyList(),
 )
+
+/** 角色详情（`/p1/characters/{id}`）。 */
+@Serializable
+data class BangumiCharacterDetailDto(
+    val id: Int = 0,
+    val name: String? = null,
+    @SerialName("nameCN") val nameCn: String? = null,
+    @SerialName("name_cn") val nameCnNext: String? = null,
+    val images: BangumiCreditImageDto? = null,
+    val summary: String? = null,
+    val info: String? = null,
+) {
+    val localizedName: String?
+        get() = nameCn?.takeIf { it.isNotBlank() }
+            ?: nameCnNext?.takeIf { it.isNotBlank() }
+}
+
+/** 人物详情（`/p1/persons/{id}`）。 */
+@Serializable
+data class BangumiPersonDetailDto(
+    val id: Int = 0,
+    val name: String? = null,
+    @SerialName("nameCN") val nameCn: String? = null,
+    @SerialName("name_cn") val nameCnNext: String? = null,
+    val images: BangumiCreditImageDto? = null,
+    val summary: String? = null,
+    val infobox: List<BangumiInfoboxItemDto> = emptyList(),
+) {
+    val localizedName: String?
+        get() = nameCn?.takeIf { it.isNotBlank() }
+            ?: nameCnNext?.takeIf { it.isNotBlank() }
+}
+
+/** 人物信息框条目（key/value）。 */
+@Serializable
+data class BangumiInfoboxItemDto(
+    val key: String? = null,
+    val value: kotlinx.serialization.json.JsonElement? = null,
+)
+
+/** 评论用户。 */
+@Serializable
+data class BangumiCommentUserDto(
+    val id: Int = 0,
+    val username: String? = null,
+    val nickname: String? = null,
+    val avatar: BangumiCreditImageDto? = null,
+)
+
+/** 主创评论（含递归回复）。 */
+@Serializable
+data class BangumiCommentDto(
+    val id: Int = 0,
+    val user: BangumiCommentUserDto? = null,
+    val content: String? = null,
+    @SerialName("createdAt") val createdAt: Long = 0,
+    val replies: List<BangumiCommentDto> = emptyList(),
+)

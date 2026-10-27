@@ -43,3 +43,41 @@ data class StaffMember(
     val positionText: String
         get() = positions.joinToString("、")
 }
+
+/** 主创详情（角色或制作人员的完整资料，供底部弹层展示）。 */
+data class CreditDetail(
+    val id: Int,
+    val name: String,
+    /** 中文名（本地化名），可能为空。 */
+    val localizedName: String? = null,
+    /** 大图头像。 */
+    val imageUrl: String? = null,
+    /** 基本信息（多行文本，如生日/身高/血型等）。 */
+    val info: String? = null,
+    /** 简介。 */
+    val summary: String? = null,
+) {
+    val displayName: String
+        get() = localizedName?.takeIf { it.isNotBlank() } ?: name
+}
+
+/** 评论用户。 */
+data class CreditCommentUser(
+    val id: Int,
+    val username: String,
+    val nickname: String,
+    val avatarUrl: String? = null,
+) {
+    val displayName: String
+        get() = nickname.takeIf { it.isNotBlank() } ?: username
+}
+
+/** 主创吐槽/评论。 */
+data class CreditComment(
+    val id: Int,
+    val user: CreditCommentUser,
+    val content: String,
+    /** Unix 时间戳（秒）。 */
+    val createdAt: Long,
+    val replies: List<CreditComment> = emptyList(),
+)

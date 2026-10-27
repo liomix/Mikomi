@@ -1,12 +1,15 @@
 package com.liomix.mikomi.data.anime.internal
 
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
+import com.liomix.mikomi.core.model.CreditComment
+import com.liomix.mikomi.core.model.CreditDetail
 import com.liomix.mikomi.data.anime.AnimeCredits
 import com.liomix.mikomi.data.anime.AnimeCreditsRepository
 import com.liomix.mikomi.data.anime.mapper.BANGUMI_ID_PREFIX
 import com.liomix.mikomi.data.anime.mapper.ANILIST_ID_PREFIX
 import com.liomix.mikomi.data.anime.mapper.sortedByPosition
 import com.liomix.mikomi.data.anime.mapper.sortedByRelation
+import com.liomix.mikomi.data.anime.mapper.toCreditDetail
 import com.liomix.mikomi.data.anime.mapper.toDomain
 import com.liomix.mikomi.data.anime.remote.bangumi.BangumiApi
 import com.liomix.mikomi.data.anime.remote.bangumi.BangumiTrendApi
@@ -37,6 +40,26 @@ internal class AnimeCreditsRepositoryImpl @Inject constructor(
             )
         }
     }
+
+    override suspend fun fetchCharacterDetail(characterId: Int): CreditDetail =
+        withContext(ioDispatcher) {
+            bangumiTrendApi.fetchCharacterDetail(characterId).toCreditDetail()
+        }
+
+    override suspend fun fetchPersonDetail(personId: Int): CreditDetail =
+        withContext(ioDispatcher) {
+            bangumiTrendApi.fetchPersonDetail(personId).toCreditDetail()
+        }
+
+    override suspend fun fetchCharacterComments(characterId: Int): List<CreditComment> =
+        withContext(ioDispatcher) {
+            bangumiTrendApi.fetchCharacterComments(characterId).map { it.toDomain() }
+        }
+
+    override suspend fun fetchPersonComments(personId: Int): List<CreditComment> =
+        withContext(ioDispatcher) {
+            bangumiTrendApi.fetchPersonComments(personId).map { it.toDomain() }
+        }
 
     private suspend fun fetchCharacters(bangumiId: Int) =
         bangumiApi.fetchSubjectCharacters(bangumiId)

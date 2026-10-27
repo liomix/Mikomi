@@ -244,6 +244,7 @@ private val SELECTED_BORDER_WIDTH = 3.dp
 /**
  * 图标样式选项：圆角图标预览 + 名称。
  *
+ * 触控区域严格等于图标本身（72dp），名称只作说明不可点；
  * 选中时外圈描主色并在内外留出间隙（与配色色卡选中态一致）。
  */
 @Composable
@@ -260,7 +261,7 @@ private fun AppIconOption(
         MaterialTheme.colorScheme.onSurfaceVariant
     }
     Column(
-        modifier = modifier.clickable(onClick = onClick),
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
@@ -273,12 +274,14 @@ private fun AppIconOption(
                 )
                 .padding(SELECTED_BORDER_WIDTH)
                 .clip(RoundedCornerShape(21.dp))
-                .background(APP_ICON_PREVIEW_BACKGROUND),
+                .background(APP_ICON_PREVIEW_BACKGROUND)
+                // 点击与涟漪都限制在图标区域内，名称不参与触控。
+                .clickable(onClick = onClick),
             contentAlignment = Alignment.Center,
         ) {
             Image(
                 painter = painterResource(style.previewRes),
-                contentDescription = null,
+                contentDescription = stringResource(style.labelRes),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxSize()

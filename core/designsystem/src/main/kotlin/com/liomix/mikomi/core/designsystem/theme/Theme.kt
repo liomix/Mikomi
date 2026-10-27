@@ -49,6 +49,24 @@ private fun ColorScheme.withNightSurfaces(): ColorScheme = copy(
 )
 
 /**
+ * 日间表面层级：浅灰底 + 纯白卡片。
+ *
+ * M3 默认的 background(#FFFBFE) 与 surfaceContainerLow(#F7F2FA) 几乎是同一个白，
+ * 设置页的卡片因此「贴」在背景上看不出边界。这里把背景压到浅灰紫、卡片提到纯白，
+ * 与夜间「深底稍亮卡片」的思路保持一致，卡片在两种模式下都有清晰边界。
+ */
+private fun ColorScheme.withDaySurfaces(): ColorScheme = copy(
+    background = Color(0xFFECE6F0),
+    surface = Color(0xFFFFFFFF),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFFFFFFF),
+    surfaceContainer = Color(0xFFF5EFF9),
+    surfaceContainerHigh = Color(0xFFE6E0E9),
+    surfaceContainerHighest = Color(0xFFDDD7E1),
+    surfaceVariant = Color(0xFFE7E0EC),
+)
+
+/**
  * 应用主题。
  *
  * @param colorSchemeId 用户选择的配色预设 id（见 [ThemePalette]）；
@@ -79,8 +97,12 @@ fun MikomiTheme(
         },
     )
 
-    // 夜间统一锁定表面色：背景纯黑、卡片 #181818。
-    val resolvedScheme = if (darkTheme) colorScheme.withNightSurfaces() else colorScheme
+    // 表面层级按模式锁定：夜间纯黑底 + #181818 卡片；日间浅灰底 + 纯白卡片。
+    val resolvedScheme = if (darkTheme) {
+        colorScheme.withNightSurfaces()
+    } else {
+        colorScheme.withDaySurfaces()
+    }
 
     MaterialTheme(
         colorScheme = resolvedScheme,

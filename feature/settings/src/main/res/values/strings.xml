@@ -5,4 +5,12 @@
     <string name="theme_color_section">主题颜色</string>
     <string name="theme_night_mode">切换到夜间模式</string>
     <string name="theme_day_mode">切换到日间模式</string>
+
+    <!-- 应用图标 -->
+    <string name="settings_app_icon_section">应用图标</string>
+    <string name="settings_app_icon_default">默认</string>
+    <string name="settings_app_icon_dark">深色</string>
+    <string name="settings_app_icon_minimal">极简</string>
+    <string name="settings_app_icon_changed">桌面图标已更新，若未变化请稍候或重启桌面</string>
+    <string name="settings_app_icon_failed">图标切换失败</string>
 </resources>

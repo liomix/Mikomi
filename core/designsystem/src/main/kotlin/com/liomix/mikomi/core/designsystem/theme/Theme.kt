@@ -1,20 +1,16 @@
 package com.liomix.mikomi.core.designsystem.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -56,53 +52,38 @@ private fun ColorScheme.withNightSurfaces(): ColorScheme = copy(
  * 应用主题。
  *
  * @param colorSchemeId 用户选择的配色预设 id（见 [ThemePalette]）；
- *   默认值 `default` 表示跟随系统动态取色（Android 12+）或内置紫色方案。
+ *   默认 `default` 为蓝色，不再跟随系统动态取色，保证默认外观统一。
  */
 @Composable
 fun MikomiTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
     colorSchemeId: String = ThemePalette.Default.id,
     content: @Composable () -> Unit,
 ) {
     val palette = ThemePalette.fromId(colorSchemeId)
-    val baseScheme = when {
-        // 用户显式选了非默认配色 → 用预设主色覆盖基础方案（保持其余语义色不变）。
-        // 主色在日 / 夜保持同一色值（用户要求「夜间主题色原样」），
-        // 只切换容器色为夜间深色版，避免深色界面出现大块亮色。
-        palette != ThemePalette.Default -> {
-            val base = if (darkTheme) DarkColorScheme else LightColorScheme
-            base.copy(
-                // 夜间在纯黑上需要更高亮度：色相不变，仅向白色混合到可读对比度。
-                primary = if (darkTheme) palette.lightPrimary.forNight() else palette.lightPrimary,
-                onPrimary = PaletteOnPrimary,
-                primaryContainer = if (darkTheme) {
-                    palette.darkPrimaryContainer
-                } else {
-                    palette.lightPrimaryContainer
-                },
-                onPrimaryContainer = if (darkTheme) {
-                    palette.darkOnPrimaryContainer
-                } else {
-                    palette.lightOnPrimaryContainer
-                },
-            )
-        }
+    // 所有配色（含默认蓝色）都用预设主色覆盖基础方案，其余语义色保持不变。
+    // 主色在日 / 夜保持同一色值并把夜间版本自动提亮到可读对比度，
+    // 只有容器色按模式区分，避免深色界面出现大块亮色。
+    val colorScheme = (if (darkTheme) DarkColorScheme else LightColorScheme).copy(
+        primary = if (darkTheme) palette.lightPrimary.forNight() else palette.lightPrimary,
+        onPrimary = PaletteOnPrimary,
+        primaryContainer = if (darkTheme) {
+            palette.darkPrimaryContainer
+        } else {
+            palette.lightPrimaryContainer
+        },
+        onPrimaryContainer = if (darkTheme) {
+            palette.darkOnPrimaryContainer
+        } else {
+            palette.lightOnPrimaryContainer
+        },
+    )
 
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
-    // 夜间统一锁定表面色：背景纯黑、卡片 #181818（覆盖动态取色带来的灰底）。
-    val colorScheme = if (darkTheme) baseScheme.withNightSurfaces() else baseScheme
+    // 夜间统一锁定表面色：背景纯黑、卡片 #181818。
+    val resolvedScheme = if (darkTheme) colorScheme.withNightSurfaces() else colorScheme
 
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = resolvedScheme,
         typography = Typography,
     ) {
         // MaterialTheme 本身不设置 LocalContentColor（默认黑色），
@@ -110,7 +91,7 @@ fun MikomiTheme(
         // Text、Icon 因此会一直是黑色（夜间不可读）。这里统一兜底为 onBackground，
         // Surface 内部仍会用自己的 contentColor 覆盖。
         CompositionLocalProvider(
-            LocalContentColor provides colorScheme.onBackground,
+            LocalContentColor provides resolvedScheme.onBackground,
             content = content,
         )
     }

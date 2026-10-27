@@ -22,6 +22,9 @@ interface UserDataRepository {
     /** 设置主题配色预设 id（见 ThemePalette）。 */
     suspend fun setColorScheme(colorScheme: String)
 
+    /** 设置桌面应用图标样式 id（见 AppIconStyle）。 */
+    suspend fun setAppIcon(appIcon: String)
+
     /** 记录一次搜索关键词。 */
     suspend fun addSearchHistory(keyword: String)
 

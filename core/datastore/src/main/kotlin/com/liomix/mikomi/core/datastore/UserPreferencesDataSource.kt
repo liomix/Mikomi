@@ -29,6 +29,7 @@ class UserPreferencesDataSource @Inject constructor(
             defaultQuality = prefs[KEY_QUALITY] ?: DEFAULT_QUALITY,
             autoPlayNext = prefs[KEY_AUTO_PLAY_NEXT] ?: true,
             colorScheme = prefs[KEY_COLOR_SCHEME] ?: DEFAULT_COLOR_SCHEME,
+            appIcon = prefs[KEY_APP_ICON] ?: DEFAULT_APP_ICON,
         )
     }
 
@@ -48,13 +49,19 @@ class UserPreferencesDataSource @Inject constructor(
         dataStore.edit { it[KEY_COLOR_SCHEME] = colorScheme }
     }
 
+    suspend fun setAppIcon(appIcon: String) {
+        dataStore.edit { it[KEY_APP_ICON] = appIcon }
+    }
+
     private companion object {
         val KEY_THEME = stringPreferencesKey("theme")
         val KEY_QUALITY = stringPreferencesKey("default_quality")
         val KEY_AUTO_PLAY_NEXT = booleanPreferencesKey("auto_play_next")
         val KEY_COLOR_SCHEME = stringPreferencesKey("color_scheme")
+        val KEY_APP_ICON = stringPreferencesKey("app_icon")
         const val DEFAULT_THEME = "system"
         const val DEFAULT_QUALITY = "auto"
         const val DEFAULT_COLOR_SCHEME = "default"
+        const val DEFAULT_APP_ICON = "default"
     }
 }

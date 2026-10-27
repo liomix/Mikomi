@@ -1,5 +1,6 @@
 package com.liomix.mikomi.feature.settings.theme
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,7 +22,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -34,13 +34,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
 import com.liomix.mikomi.feature.settings.R
+import com.liomix.mikomi.feature.settings.appicon.AppIconStyle
 import com.liomix.mikomi.feature.settings.component.BAndWSwitch
 import com.liomix.mikomi.feature.settings.component.DarkModeRevealHost
 import com.liomix.mikomi.feature.settings.component.SettingsCard
@@ -49,8 +51,9 @@ import com.liomix.mikomi.feature.settings.component.SettingsCardSection
 /**
  * 主题设置页。
  *
- * 每类设置独立成卡片；「主题颜色」卡片内含两个同级别子卡片：
- * 配色色卡、黑白（日 / 夜）切换。
+ * 每类设置独立成卡片：
+ * - 「主题颜色」卡片内含两个同级别子卡片：配色色卡、黑白（日 / 夜）切换；
+ * - 「应用图标」卡片：桌面图标样式选择（切换 activity-alias，即时生效）。
  *
  * 日夜切换的圆形揭示动画全部由 [DarkModeRevealHost] 负责，
  * 本页只描述布局。
@@ -59,8 +62,10 @@ import com.liomix.mikomi.feature.settings.component.SettingsCardSection
 fun ThemeScreen(
     colorSchemeId: String,
     isDarkMode: Boolean,
+    appIconId: String,
     onSelectColorScheme: (String) -> Unit,
     onToggleDarkMode: (Boolean) -> Unit,
+    onSelectAppIcon: (String) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -118,6 +123,36 @@ fun ThemeScreen(
                         BAndWSwitch(isDarkMode = isDarkMode)
                     }
                 }
+
+                // 应用图标：切换桌面显示的应用图标（系统组件状态，即时生效）。
+                SettingsCard {
+                    SettingsCardSection {
+                        Text(
+                            text = stringResource(R.string.settings_app_icon_section),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp),
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(20.dp),
+                        ) {
+                            items(
+                                items = AppIconStyle.entries,
+                                key = { style -> style.id },
+                            ) { style ->
+                                AppIconOption(
+                                    style = style,
+                                    selected = style.id == appIconId,
+                                    onClick = { onSelectAppIcon(style.id) },
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
+                }
             }
         }
     }
@@ -151,7 +186,7 @@ private fun ThemeTopBar(
 }
 
 /**
- * 配色色卡：渐变底 + 两个胶囊形示意块。
+ * 配色色卡：整块纯色（只用该配色的主色，不加任何装饰）。
  *
  * 选中时外圈描主色并在内外留出间隙（对齐参考版式的选中态）。
  */
@@ -173,36 +208,72 @@ private fun PaletteSwatch(
             )
             .padding(SELECTED_BORDER_WIDTH)
             .clip(RoundedCornerShape(17.dp))
-            .background(Brush.linearGradient(palette.gradient))
+            .background(palette.swatch)
             .clickable(onClick = onClick),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp, vertical = 14.dp),
-        ) {
-            // 上方短胶囊。
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.6f)
-                    .height(18.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.85f)),
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            // 下方长胶囊。
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.78f)
-                    .height(26.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.95f)),
-            )
-        }
-    }
+    )
 }
 
 /** 色卡尺寸（与参考版式 3.x 屏占比接近）。 */
 private val SWATCH_WIDTH = 92.dp
 private val SWATCH_HEIGHT = 124.dp
 private val SELECTED_BORDER_WIDTH = 3.dp
+
+/**
+ * 图标样式选项：圆角图标预览 + 名称。
+ *
+ * 选中时外圈描主色并在内外留出间隙（与配色色卡选中态一致）。
+ */
+@Composable
+private fun AppIconOption(
+    style: AppIconStyle,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val borderColor = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
+    val contentColor = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Column(
+        modifier = modifier.clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(APP_ICON_PREVIEW_SIZE)
+                .border(
+                    width = if (selected) SELECTED_BORDER_WIDTH else 0.dp,
+                    color = borderColor,
+                    shape = RoundedCornerShape(24.dp),
+                )
+                .padding(SELECTED_BORDER_WIDTH)
+                .clip(RoundedCornerShape(21.dp))
+                .background(APP_ICON_PREVIEW_BACKGROUND),
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                painter = painterResource(style.previewRes),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(APP_ICON_FOREGROUND_PADDING),
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(style.labelRes),
+            style = MaterialTheme.typography.labelMedium,
+            color = contentColor,
+        )
+    }
+}
+
+/** 图标预览尺寸与前景内边距（贴近自适应图标的前景安全区）。 */
+private val APP_ICON_PREVIEW_SIZE = 72.dp
+private val APP_ICON_FOREGROUND_PADDING = 10.dp
+
+/** 预览底色：与真实启动图标的白底保持一致。 */
+private val APP_ICON_PREVIEW_BACKGROUND = Color(0xFFFEFEFE)

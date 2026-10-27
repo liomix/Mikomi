@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -41,6 +42,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
+import com.liomix.mikomi.core.ui.component.MikomiToast
+import com.liomix.mikomi.core.ui.component.MikomiToastData
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.appicon.AppIconStyle
 import com.liomix.mikomi.feature.settings.component.BAndWSwitch
@@ -55,106 +58,126 @@ import com.liomix.mikomi.feature.settings.component.SettingsCardSection
  * - 「主题颜色」卡片内含两个同级别子卡片：配色色卡、黑白（日 / 夜）切换；
  * - 「应用图标」卡片：桌面图标样式选择（切换 activity-alias，即时生效）。
  *
- * 日夜切换的圆形揭示动画全部由 [DarkModeRevealHost] 负责，
- * 本页只描述布局。
+ * 日夜切换的圆形揭示动画全部由 [DarkModeRevealHost] 负责；页面级提示由
+ * [MikomiToast]（core:ui 公共组件）渲染在底部，本页只描述布局。
  */
 @Composable
 fun ThemeScreen(
     colorSchemeId: String,
     isDarkMode: Boolean,
     appIconId: String,
+    toast: MikomiToastData?,
     onSelectColorScheme: (String) -> Unit,
     onToggleDarkMode: (Boolean) -> Unit,
     onSelectAppIcon: (String) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    DarkModeRevealHost(
-        isDarkMode = isDarkMode,
-        onToggleDarkMode = onToggleDarkMode,
-        modifier = modifier.fillMaxSize(),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
+    Box(modifier = modifier.fillMaxSize()) {
+        DarkModeRevealHost(
+            isDarkMode = isDarkMode,
+            onToggleDarkMode = onToggleDarkMode,
+            modifier = Modifier.fillMaxSize(),
         ) {
-            ThemeTopBar(onBackClick = onBackClick)
-
             Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background),
             ) {
-                SettingsCard {
-                    // 配色选择。
-                    SettingsCardSection {
-                        Text(
-                            text = stringResource(R.string.theme_color_section),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp),
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            items(
-                                items = ThemePalette.entries,
-                                key = { palette -> palette.id },
-                            ) { palette ->
-                                PaletteSwatch(
-                                    palette = palette,
-                                    selected = palette.id == colorSchemeId,
-                                    onClick = { onSelectColorScheme(palette.id) },
-                                )
+                ThemeTopBar(onBackClick = onBackClick)
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    // 主题颜色：配色色卡 + 黑白（日 / 夜）切换。
+                    SettingsCard {
+                        SettingsCardSection {
+                            Text(
+                                text = stringResource(R.string.theme_color_section),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(
+                                    start = 20.dp,
+                                    end = 20.dp,
+                                    top = 20.dp,
+                                ),
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 20.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                items(
+                                    items = ThemePalette.entries,
+                                    key = { palette -> palette.id },
+                                ) { palette ->
+                                    PaletteSwatch(
+                                        palette = palette,
+                                        selected = palette.id == colorSchemeId,
+                                        onClick = { onSelectColorScheme(palette.id) },
+                                    )
+                                }
                             }
+                            Spacer(modifier = Modifier.height(12.dp))
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // 黑白（日 / 夜）切换：动画与交互由组件内部完成。
+                        SettingsCardSection(dividerAbove = true) {
+                            BAndWSwitch(isDarkMode = isDarkMode)
+                        }
                     }
 
-                    // 黑白（日 / 夜）切换：动画与交互由组件内部完成。
-                    SettingsCardSection(dividerAbove = true) {
-                        BAndWSwitch(isDarkMode = isDarkMode)
-                    }
-                }
-
-                // 应用图标：切换桌面显示的应用图标（系统组件状态，即时生效）。
-                SettingsCard {
-                    SettingsCardSection {
-                        Text(
-                            text = stringResource(R.string.settings_app_icon_section),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp),
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(20.dp),
-                        ) {
-                            items(
-                                items = AppIconStyle.entries,
-                                key = { style -> style.id },
-                            ) { style ->
-                                AppIconOption(
-                                    style = style,
-                                    selected = style.id == appIconId,
-                                    onClick = { onSelectAppIcon(style.id) },
-                                )
+                    // 应用图标：切换桌面显示的应用图标（系统组件状态，即时生效）。
+                    SettingsCard {
+                        SettingsCardSection {
+                            Text(
+                                text = stringResource(R.string.settings_app_icon_section),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(
+                                    start = 20.dp,
+                                    end = 20.dp,
+                                    top = 20.dp,
+                                ),
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 20.dp),
+                                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                            ) {
+                                items(
+                                    items = AppIconStyle.entries,
+                                    key = { style -> style.id },
+                                ) { style ->
+                                    AppIconOption(
+                                        style = style,
+                                        selected = style.id == appIconId,
+                                        onClick = { onSelectAppIcon(style.id) },
+                                    )
+                                }
                             }
+                            Spacer(modifier = Modifier.height(20.dp))
                         }
-                        Spacer(modifier = Modifier.height(20.dp))
                     }
                 }
             }
         }
+
+        // 页面级提示：叠在内容与日夜切换遮罩之上。
+        MikomiToast(
+            data = toast,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(start = 24.dp, end = 24.dp, bottom = 28.dp),
+        )
     }
 }
 

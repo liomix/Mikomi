@@ -1,14 +1,19 @@
 package com.liomix.mikomi.feature.settings.theme
 
-import android.widget.Toast
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.liomix.mikomi.core.ui.component.MikomiToastData
+import kotlinx.coroutines.delay
 
 /** 主题设置 Route（有状态）：收集配色 / 夜间模式 / 桌面图标，变更写入偏好。 */
 @Composable
@@ -28,11 +33,25 @@ fun ThemeRoute(
         else -> systemInDarkTheme
     }
 
-    // 图标切换由系统组件状态决定，结果用 Toast 告知（桌面刷新有延迟）。
+    // 提示弹窗：文案在 UI 层解析；图标由 ViewModel 给出（切换后的无底色图标）。
     val context = LocalContext.current
+    var toast by remember { mutableStateOf<MikomiToastData?>(null) }
+    // 序号变化即重新计时：连续两次相同提示也能完整显示一次。
+    var toastSeq by remember { mutableIntStateOf(0) }
+
     LaunchedEffect(viewModel) {
-        viewModel.messages.collect { messageRes ->
-            Toast.makeText(context, messageRes, Toast.LENGTH_SHORT).show()
+        viewModel.toasts.collect { event ->
+            toast = MikomiToastData(
+                message = context.getString(event.messageRes),
+                iconRes = event.iconRes,
+            )
+            toastSeq++
+        }
+    }
+    LaunchedEffect(toastSeq) {
+        if (toastSeq > 0) {
+            delay(TOAST_VISIBLE_MILLIS)
+            toast = null
         }
     }
 
@@ -40,6 +59,7 @@ fun ThemeRoute(
         colorSchemeId = colorSchemeId,
         isDarkMode = isDarkMode,
         appIconId = appIconId,
+        toast = toast,
         onSelectColorScheme = viewModel::selectColorScheme,
         onToggleDarkMode = viewModel::setDarkMode,
         onSelectAppIcon = viewModel::selectAppIcon,
@@ -47,3 +67,6 @@ fun ThemeRoute(
         modifier = modifier,
     )
 }
+
+/** 提示弹窗停留时长（够读完一句提示，又不至于遮挡页面）。 */
+private const val TOAST_VISIBLE_MILLIS = 2_600L

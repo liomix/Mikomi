@@ -25,13 +25,20 @@
             用 PackageManager.setComponentEnabledSetting 只启用其中一个。
             注意：MainActivity 本身不再声明 LAUNCHER intent-filter，否则切换图标不生效。
 
-            TODO 图标素材：把各 alias 的 android:icon / android:roundIcon 换成对应 mipmap，
-            并同步 AppIconStyle 中的预览资源。
+            每个 alias 都设置了独立的 taskAffinity：否则切换图标后桌面新图标与
+            旧 task 的 affinity 相同，点新图标会复用 baseIntent 指向「已禁用 alias」
+            的旧 task，系统会报 Activity class ... does not exist。
+
+            新增图标的步骤：
+            1. 添加 mipmap 资源（mipmap-anydpi-v26 自适应图标 + 各 dpi 方形兜底）；
+            2. 在下面追加一个 android:enabled="false" 的 alias，icon/roundIcon 指向新资源；
+            3. 在 AppIconStyle 中加一项（aliasName 与这里保持一致），并同步设置页预览图。
         -->
         <activity-alias
             android:name=".LauncherDefault"
             android:enabled="true"
             android:exported="true"
+            android:taskAffinity="com.liomix.mikomi.icon.default"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_round"
@@ -43,12 +50,13 @@
         </activity-alias>
 
         <activity-alias
-            android:name=".LauncherDark"
+            android:name=".LauncherPink"
             android:enabled="false"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher"
+            android:taskAffinity="com.liomix.mikomi.icon.pink"
+            android:icon="@mipmap/ic_launcher_pink"
             android:label="@string/app_name"
-            android:roundIcon="@mipmap/ic_launcher_round"
+            android:roundIcon="@mipmap/ic_launcher_pink"
             android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -57,12 +65,13 @@
         </activity-alias>
 
         <activity-alias
-            android:name=".LauncherMinimal"
+            android:name=".LauncherGreen"
             android:enabled="false"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher"
+            android:taskAffinity="com.liomix.mikomi.icon.green"
+            android:icon="@mipmap/ic_launcher_green"
             android:label="@string/app_name"
-            android:roundIcon="@mipmap/ic_launcher_round"
+            android:roundIcon="@mipmap/ic_launcher_green"
             android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

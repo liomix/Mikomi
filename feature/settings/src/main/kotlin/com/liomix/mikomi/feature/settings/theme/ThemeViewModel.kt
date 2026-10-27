@@ -2,6 +2,8 @@ package com.liomix.mikomi.feature.settings.theme
 
 import android.content.Context
 import android.util.Log
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
@@ -21,6 +23,17 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+/**
+ * 主题页的一次性提示。
+ *
+ * @param messageRes 提示文案资源。
+ * @param iconRes 可选的无底色图标，通常是切换后的应用图标。
+ */
+data class ThemeToast(
+    @StringRes val messageRes: Int,
+    @DrawableRes val iconRes: Int? = null,
+)
 
 /** 主题设置 ViewModel：配色、夜间模式、桌面图标。 */
 @HiltViewModel
@@ -56,9 +69,9 @@ class ThemeViewModel @Inject constructor(
             initialValue = AppIconStyle.Default.id,
         )
 
-    /** 一次性提示（字符串资源 id），由 UI 层以 Toast 呈现。 */
-    private val _messages = MutableSharedFlow<Int>(extraBufferCapacity = 1)
-    val messages: SharedFlow<Int> = _messages.asSharedFlow()
+    /** 一次性提示，由 UI 层用 [com.liomix.mikomi.core.ui.component.MikomiToast] 呈现。 */
+    private val _toasts = MutableSharedFlow<ThemeToast>(extraBufferCapacity = 1)
+    val toasts: SharedFlow<ThemeToast> = _toasts.asSharedFlow()
 
     fun selectColorScheme(id: String) {
         viewModelScope.launch {
@@ -98,15 +111,21 @@ class ThemeViewModel @Inject constructor(
                 val applied = AppIconManager.apply(context, style)
                 if (applied) {
                     userDataRepository.setAppIcon(style.id)
-                    _messages.tryEmit(R.string.settings_app_icon_changed)
+                    // 图标用「刚切换成的样式」：DataStore 是异步落库的，
+                    // 等 appIconId 回流会让弹窗短暂显示旧图标。
+                    _toasts.tryEmit(
+                        ThemeToast(R.string.settings_app_icon_changed, style.glyphRes),
+                    )
                 } else {
-                    _messages.tryEmit(R.string.settings_app_icon_failed)
+                    _toasts.tryEmit(
+                        ThemeToast(R.string.settings_app_icon_failed, style.glyphRes),
+                    )
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Select app icon failed, id=$id", e)
-                _messages.tryEmit(R.string.settings_app_icon_failed)
+                _toasts.tryEmit(ThemeToast(R.string.settings_app_icon_failed, style.glyphRes))
             }
         }
     }

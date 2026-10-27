@@ -21,34 +21,40 @@ internal object AppIconManager {
      * 先启用目标 alias、再禁用其它，避免中间态出现「桌面上没有图标」。
      * 使用 [PackageManager.DONT_KILL_APP] 保证当前进程不被杀掉。
      *
+     * 注意：这里**不能**用 `getActivityInfo` 预检 alias 是否存在——未启用的
+     * alias（`android:enabled="false"`）查不到，会抛 [PackageManager.NameNotFoundException]
+     * 造成误判。直接用 [PackageManager.setComponentEnabledSetting] 探测：
+     * 组件真的不存在时它会抛 [IllegalArgumentException]。
+     *
      * @return 是否成功；manifest 中缺少对应 alias 等异常情况返回 `false`。
      */
     fun apply(context: Context, style: AppIconStyle): Boolean {
         val packageManager = context.packageManager
         val packageName = context.packageName
         return try {
-            val target = componentOf(packageName, style)
-            if (!aliasExists(packageManager, target)) {
-                Log.w(TAG, "Alias not declared in manifest: ${style.aliasName}")
-                return false
-            }
             packageManager.setComponentEnabledSetting(
-                target,
+                componentOf(packageName, style),
                 PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                 PackageManager.DONT_KILL_APP,
             )
             AppIconStyle.entries
                 .filter { it != style }
-                .map { componentOf(packageName, it) }
-                .filter { aliasExists(packageManager, it) }
-                .forEach { component ->
-                    packageManager.setComponentEnabledSetting(
-                        component,
-                        PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                        PackageManager.DONT_KILL_APP,
-                    )
+                .forEach { other ->
+                    // 其它样式逐个尝试禁用：某个 alias 缺失不应影响整体切换。
+                    runCatching {
+                        packageManager.setComponentEnabledSetting(
+                            componentOf(packageName, other),
+                            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                            PackageManager.DONT_KILL_APP,
+                        )
+                    }.onFailure { error ->
+                        Log.w(TAG, "Disable alias failed: ${other.aliasName}", error)
+                    }
                 }
             true
+        } catch (e: IllegalArgumentException) {
+            Log.w(TAG, "Alias not declared in manifest: ${style.aliasName}", e)
+            false
         } catch (e: Exception) {
             Log.w(TAG, "Apply app icon failed, id=${style.id}", e)
             false
@@ -57,15 +63,6 @@ internal object AppIconManager {
 
     private fun componentOf(packageName: String, style: AppIconStyle): ComponentName =
         ComponentName(packageName, "$packageName.${style.aliasName}")
-
-    /** alias 是否在 manifest 中声明（未声明的组件设置状态会抛异常）。 */
-    private fun aliasExists(packageManager: PackageManager, component: ComponentName): Boolean =
-        try {
-            packageManager.getActivityInfo(component, 0)
-            true
-        } catch (_: PackageManager.NameNotFoundException) {
-            false
-        }
 
     private const val TAG = "AppIconManager"
 }

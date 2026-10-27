@@ -8,4 +8,8 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="ic_launcher_background">#FEFEFE</color>
+    <!-- 粉色图标的前景原图为白底，背景层同色以免出现色差边框。 -->
+    <color name="ic_launcher_pink_background">#FFFFFFFF</color>
+    <!-- 绿色图标：背景色取自原图背景采样值 (253,253,254)，与前景层白底无缝衔接。 -->
+    <color name="ic_launcher_green_background">#FDFDFE</color>
 </resources>

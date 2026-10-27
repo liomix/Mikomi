@@ -13,13 +13,16 @@ import com.liomix.mikomi.feature.settings.R
  * 新增样式步骤（图标素材到位后）：
  * 1. 在 app 模块添加 `mipmap-*` 图标资源；
  * 2. 在 AndroidManifest 增加 `activity-alias`（默认 `android:enabled="false"`）；
- * 3. 替换本模块 `drawable-nodpi/settings_icon_<id>.png` 预览图；
+ * 3. 用 `tools/generate_app_icons.py` 生成 `settings_icon_<id>.png`（预览）
+ *    与 `settings_icon_<id>_glyph.png`（无底色图标）；
  * 4. 在下面的枚举里加一项。
  */
 enum class AppIconStyle(
     val id: String,
     @StringRes val labelRes: Int,
     @DrawableRes val previewRes: Int,
+    /** 无底色图标（透明背景），用于提示弹窗等需要浮在背景上的场景。 */
+    @DrawableRes val glyphRes: Int,
     /**
      * AndroidManifest 中 activity-alias 的相对类名（不含包名）。
      *
@@ -32,19 +35,22 @@ enum class AppIconStyle(
         id = "default",
         labelRes = R.string.settings_app_icon_default,
         previewRes = R.drawable.settings_icon_default,
+        glyphRes = R.drawable.settings_icon_default_glyph,
         aliasName = "LauncherDefault",
     ),
-    Dark(
-        id = "dark",
-        labelRes = R.string.settings_app_icon_dark,
-        previewRes = R.drawable.settings_icon_dark,
-        aliasName = "LauncherDark",
+    Pink(
+        id = "pink",
+        labelRes = R.string.settings_app_icon_pink,
+        previewRes = R.drawable.settings_icon_pink,
+        glyphRes = R.drawable.settings_icon_pink_glyph,
+        aliasName = "LauncherPink",
     ),
-    Minimal(
-        id = "minimal",
-        labelRes = R.string.settings_app_icon_minimal,
-        previewRes = R.drawable.settings_icon_minimal,
-        aliasName = "LauncherMinimal",
+    Green(
+        id = "green",
+        labelRes = R.string.settings_app_icon_green,
+        previewRes = R.drawable.settings_icon_green,
+        glyphRes = R.drawable.settings_icon_green_glyph,
+        aliasName = "LauncherGreen",
     ),
     ;
 

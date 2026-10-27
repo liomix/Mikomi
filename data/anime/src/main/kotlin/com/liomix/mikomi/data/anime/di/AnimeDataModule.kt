@@ -1,10 +1,12 @@
 package com.liomix.mikomi.data.anime.di
 
+import com.liomix.mikomi.data.anime.AnimeCreditsRepository
 import com.liomix.mikomi.data.anime.AnimeIdMapper
 import com.liomix.mikomi.data.anime.AnimeRepository
 import com.liomix.mikomi.data.anime.HomeRepository
 import com.liomix.mikomi.data.anime.RankRepository
 import com.liomix.mikomi.data.anime.ScheduleRepository
+import com.liomix.mikomi.data.anime.internal.AnimeCreditsRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.AnimeIdMapperImpl
 import com.liomix.mikomi.data.anime.internal.AnimeRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.HomeRepositoryImpl
@@ -41,6 +43,9 @@ internal abstract class AnimeDataModule {
 
     @Binds
     internal abstract fun bindRankRepository(impl: RankRepositoryImpl): RankRepository
+
+    @Binds
+    internal abstract fun bindAnimeCreditsRepository(impl: AnimeCreditsRepositoryImpl): AnimeCreditsRepository
 
     @Binds
     internal abstract fun bindAnimeIdMapper(impl: AnimeIdMapperImpl): AnimeIdMapper

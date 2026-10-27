@@ -12,17 +12,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun DetailRoute(
     animeId: String,
-    onEpisodeClick: (String) -> Unit,
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DetailViewModel = hiltViewModel(),
 ) {
     viewModel.bind(animeId)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val creditsState by viewModel.creditsState.collectAsStateWithLifecycle()
 
     DetailScreen(
         uiState = uiState,
-        onEpisodeClick = onEpisodeClick,
+        creditsState = creditsState,
+        onLoadCredits = viewModel::loadCredits,
         onPlayClick = onPlayClick,
         modifier = modifier,
     )

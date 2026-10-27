@@ -3,14 +3,16 @@
     <string name="detail_back">返回</string>
     <string name="detail_load_failed">加载失败</string>
     <string name="detail_tab_overview">概述</string>
-    <string name="detail_tab_detail">详细</string>
+    <string name="detail_tab_credits">主创</string>
     <string name="detail_tab_teasing">吐槽</string>
     <string name="detail_tab_comment">评论</string>
     <string name="detail_synopsis">简介</string>
     <string name="detail_tags">标签</string>
     <string name="detail_no_synopsis">暂无简介</string>
-    <string name="detail_episodes">剧集</string>
-    <string name="detail_no_episodes">暂无剧集</string>
+    <string name="detail_characters">角色</string>
+    <string name="detail_staff">制作人员</string>
+    <string name="detail_no_characters">暂无角色信息</string>
+    <string name="detail_no_staff">暂无制作人员信息</string>
     <string name="detail_air_date">上映时间</string>
     <string name="detail_rank">Bangumi排行</string>
     <string name="detail_rating_count">%1$d人评分</string>
@@ -19,5 +21,4 @@
     <string name="detail_expand_more">展开</string>
     <string name="detail_collapse">收起</string>
     <string name="detail_play">立即播放</string>
-    <string name="detail_episode_number">第 %1$d 集</string>
 </resources>

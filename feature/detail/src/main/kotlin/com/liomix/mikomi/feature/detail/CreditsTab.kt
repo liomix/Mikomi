@@ -25,6 +25,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -34,10 +35,14 @@ import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.model.AnimeCharacter
 import com.liomix.mikomi.core.model.StaffMember
 import com.liomix.mikomi.core.ui.component.EmptyState
+import com.liomix.mikomi.core.ui.component.ScrollingText
 import com.liomix.mikomi.core.ui.component.SkeletonBox
 
-/** 主创卡片固定宽度（对齐 Dart 版 160）。 */
-private val CREDIT_CARD_WIDTH = 160.dp
+/** 主创卡片固定宽度（名字无限滚动 + 关系 badge 需要更宽空间）。 */
+private val CREDIT_CARD_WIDTH = 180.dp
+
+/** 主创卡片固定高度（对齐 Dart 版 80，双行布局规整）。 */
+private val CREDIT_CARD_HEIGHT = 80.dp
 
 /** 头像直径。 */
 private val AVATAR_SIZE = 60.dp
@@ -98,13 +103,8 @@ private fun CreditsContent(
         if (characters.isEmpty()) {
             EmptyState(message = stringResource(R.string.detail_no_characters))
         } else {
-            CreditGrid {
-                items(
-                    items = characters,
-                    key = { "char_${it.id}" },
-                ) { character ->
-                    CharacterCard(character = character)
-                }
+            CreditGrid(items = characters) { character ->
+                CharacterCard(character = character)
             }
         }
 
@@ -113,13 +113,8 @@ private fun CreditsContent(
         if (staff.isEmpty()) {
             EmptyState(message = stringResource(R.string.detail_no_staff))
         } else {
-            CreditGrid {
-                items(
-                    items = staff,
-                    key = { "staff_${it.id}" },
-                ) { member ->
-                    StaffCard(member = member)
-                }
+            CreditGrid(items = staff) { member ->
+                StaffCard(member = member)
             }
         }
     }
@@ -138,16 +133,29 @@ private fun SectionTitle(
     )
 }
 
-/** 横向卡片容器（对齐 Dart 版 horizontal grid）。 */
+/** 横向双行卡片容器（对齐 Dart 版 horizontal grid：每列 2 个卡片纵向堆叠）。 */
 @Composable
-private fun CreditGrid(
-    content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit,
+private fun <T> CreditGrid(
+    items: List<T>,
+    itemContent: @Composable (T) -> Unit,
 ) {
+    // 每列 2 个卡片，横向滚动；列数 = ceil(items.size / 2)。
+    val columnCount = (items.size + 1) / 2
     androidx.compose.foundation.lazy.LazyRow(
         contentPadding = PaddingValues(0.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        content = content,
-    )
+    ) {
+        items(count = columnCount, key = { it }) { columnIndex ->
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                val firstIndex = columnIndex * 2
+                itemContent(items[firstIndex])
+                val secondIndex = firstIndex + 1
+                if (secondIndex < items.size) {
+                    itemContent(items[secondIndex])
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -156,7 +164,9 @@ private fun CharacterCard(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.width(CREDIT_CARD_WIDTH),
+        modifier = modifier
+            .width(CREDIT_CARD_WIDTH)
+            .height(CREDIT_CARD_HEIGHT),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
@@ -171,13 +181,12 @@ private fun CharacterCard(
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
+                    // 名字：单行无限滚动（超宽自动横向滚动，对齐 Dart 版 ScrollingText）。
+                    ScrollingText(
                         text = character.name,
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontWeight = FontWeight.Medium,
                         ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -185,12 +194,11 @@ private fun CharacterCard(
                 }
                 character.voiceActors.firstOrNull()?.let { actor ->
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
+                    ScrollingText(
                         text = actor.name,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
                     )
                 }
             }
@@ -204,7 +212,9 @@ private fun StaffCard(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.width(CREDIT_CARD_WIDTH),
+        modifier = modifier
+            .width(CREDIT_CARD_WIDTH)
+            .height(CREDIT_CARD_HEIGHT),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
@@ -219,13 +229,12 @@ private fun StaffCard(
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
+                    // 名字：单行无限滚动。
+                    ScrollingText(
                         text = member.displayName,
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontWeight = FontWeight.Medium,
                         ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     if (member.positionText.isNotEmpty()) {
@@ -237,12 +246,11 @@ private fun StaffCard(
                     member.localizedName != member.name
                 ) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
+                    ScrollingText(
                         text = member.name,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
                     )
                 }
             }
@@ -288,21 +296,85 @@ private fun RelationBadge(
     text: String,
     modifier: Modifier = Modifier,
 ) {
+    val (container, content) = creditBadgeColors(text)
     Surface(
         shape = RoundedCornerShape(4.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = container,
         modifier = modifier,
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = content,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
         )
     }
 }
+
+/**
+ * 关系/职位标签语义配色（浅底 + 深字，保证文字对比度 ≥ 4.5:1）。
+ *
+ * 对齐 UX 规范：颜色不单独承载信息（标签文字本身即语义），仅作视觉增强；
+ * 角色关系与制作人员职位各一套柔和色，未命中回退中性灰。
+ */
+private fun creditBadgeColors(text: String): Pair<Color, Color> {
+    val style = CREDIT_BADGE_STYLES.entries.firstOrNull { (keyword, _) ->
+        text.contains(keyword)
+    }?.value ?: NeutralBadgeStyle
+    return style.container to style.content
+}
+
+/** 标签样式：底色 + 文字色。 */
+private data class CreditBadgeStyle(
+    val container: Color,
+    val content: Color,
+)
+
+/** 标签配色表（关键词命中即取色；「其他」兜底中性灰）。 */
+private val CREDIT_BADGE_STYLES = linkedMapOf(
+    // 角色关系。
+    "主角" to CreditBadgeStyle(
+        container = Color(0xFFFFE0E0),
+        content = Color(0xFFB3261E),
+    ),
+    "配角" to CreditBadgeStyle(
+        container = Color(0xFFD6E4FF),
+        content = Color(0xFF1A56C7),
+    ),
+    "客串" to CreditBadgeStyle(
+        container = Color(0xFFE8DFFF),
+        content = Color(0xFF5A2FA6),
+    ),
+    // 制作人员职位。
+    "原作" to CreditBadgeStyle(
+        container = Color(0xFFFFE8C7),
+        content = Color(0xFF8A4B00),
+    ),
+    "导演" to CreditBadgeStyle(
+        container = Color(0xFFFFD9D2),
+        content = Color(0xFFA52714),
+    ),
+    "系列构成" to CreditBadgeStyle(
+        container = Color(0xFFD0F0E8),
+        content = Color(0xFF0B6B5A),
+    ),
+    "角色设计" to CreditBadgeStyle(
+        container = Color(0xFFDDF2D2),
+        content = Color(0xFF2E6B1E),
+    ),
+    "音乐" to CreditBadgeStyle(
+        container = Color(0xFFF5DDF5),
+        content = Color(0xFF7A2B7A),
+    ),
+)
+
+/** 未匹配关键词时的中性灰兜底。 */
+private val NeutralBadgeStyle = CreditBadgeStyle(
+    container = Color(0xFFE8EAED),
+    content = Color(0xFF4A5568),
+)
 
 /** 主创骨架屏：角色 + 制作人员各两排卡片占位。 */
 @Composable

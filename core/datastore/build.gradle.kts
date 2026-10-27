@@ -13,4 +13,5 @@ dependencies {
     ksp(libs.hilt.compiler)
     api(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
 }

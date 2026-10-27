@@ -17,6 +17,10 @@ data object ProfileDestination : NavKey
 @Serializable
 data object SearchDestination : NavKey
 
+/** 搜索结果页路由：搜索页的第二级页面（返回即回到搜索页）。 */
+@Serializable
+data class SearchResultDestination(val keyword: String) : NavKey
+
 @Serializable
 data object LibraryDestination : NavKey
 

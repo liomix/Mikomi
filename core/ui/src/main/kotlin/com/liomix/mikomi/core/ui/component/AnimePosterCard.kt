@@ -1,0 +1,37 @@
+package com.liomix.mikomi.core.ui.component
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.model.Anime
+
+/**
+ * 番剧海报卡：2:3 封面 + 单行滚动标题。
+ *
+ * 首页推荐网格与搜索结果网格共用同一套展示样式，保证两处视觉一致。
+ */
+@Composable
+fun AnimePosterCard(
+    anime: Anime,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.clickable(onClick = onClick)) {
+        AnimeCoverImage(
+            url = anime.coverUrl,
+            contentDescription = anime.title,
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        ScrollingText(
+            text = anime.title,
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}

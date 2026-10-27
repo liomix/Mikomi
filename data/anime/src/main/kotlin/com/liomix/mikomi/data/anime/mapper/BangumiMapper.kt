@@ -2,12 +2,36 @@ package com.liomix.mikomi.data.anime.mapper
 
 import com.liomix.mikomi.core.database.entity.AnimeEntity
 import com.liomix.mikomi.core.database.entity.RankEntity
+import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.model.AnimeStatus
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSubjectDto
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiTrendItem
 
 /** trending 条目：用趋势计数 [BangumiTrendItem.count] 作为热度排序依据。 */
 internal fun BangumiTrendItem.toEntity(): AnimeEntity =
     subject.toEntity(popularity = count)
+
+/** trending 条目 → 领域模型（搜索结果展示用，不落库）。 */
+internal fun BangumiTrendItem.toDomain(): Anime = subject.toDomain(popularity = count)
+
+/**
+ * 搜索 / 趋势条目 → 领域模型。
+ *
+ * 直接用于搜索结果展示，不经 Room；简介同样只保留中文译文。
+ */
+internal fun BangumiSubjectDto.toDomain(popularity: Int? = null): Anime = Anime(
+    id = "$BANGUMI_ID_PREFIX$id",
+    title = displayName,
+    coverUrl = images?.large ?: images?.common ?: images?.medium,
+    synopsis = summary?.let(::extractChineseSummary),
+    rating = rating?.score,
+    status = AnimeStatus.UNKNOWN,
+    genres = metaTags.filterNot { it in GENRE_NOISE }.take(GENRE_DISPLAY_LIMIT),
+    popularity = popularity ?: rating?.total ?: 0,
+    airDate = date,
+    rank = rating?.rank ?: 0,
+    ratingCount = rating?.total ?: 0,
+)
 
 internal fun BangumiSubjectDto.toEntity(popularity: Int? = null): AnimeEntity = AnimeEntity(
     id = "$BANGUMI_ID_PREFIX$id",

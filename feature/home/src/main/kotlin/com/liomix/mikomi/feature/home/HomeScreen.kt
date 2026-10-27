@@ -1,6 +1,5 @@
 package com.liomix.mikomi.feature.home
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,9 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.ui.component.AnimeCoverImage
+import com.liomix.mikomi.core.ui.component.AnimePosterCard
 import com.liomix.mikomi.core.ui.component.ErrorState
-import com.liomix.mikomi.core.ui.component.ScrollingText
 import com.liomix.mikomi.core.ui.component.SkeletonBox
 
 /** 网格列宽：手机竖屏约 3 列，宽屏自动增加列数（Dart 版为固定 3 列）。 */
@@ -239,7 +237,7 @@ private fun HomeContent(
                 key = { it.id },
                 contentType = { "anime" },
             ) { item ->
-                AnimeCard(
+                AnimePosterCard(
                     anime = item,
                     onClick = { onAnimeClick(item.id) },
                 )
@@ -261,23 +259,6 @@ private fun HomeContent(
             }
         }
         }
-    }
-}
-
-@Composable
-private fun AnimeCard(
-    anime: Anime,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier.clickable(onClick = onClick)) {
-        AnimeCoverImage(url = anime.coverUrl, contentDescription = anime.title)
-        Spacer(modifier = Modifier.height(6.dp))
-        ScrollingText(
-            text = anime.title,
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
 }
 

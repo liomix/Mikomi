@@ -6,6 +6,7 @@ import com.liomix.mikomi.data.anime.AnimeIdMapper
 import com.liomix.mikomi.data.anime.AnimeRepository
 import com.liomix.mikomi.data.anime.HomeRepository
 import com.liomix.mikomi.data.anime.RankRepository
+import com.liomix.mikomi.data.anime.SearchRepository
 import com.liomix.mikomi.data.anime.ScheduleRepository
 import com.liomix.mikomi.data.anime.internal.AnimeCommentRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.AnimeCreditsRepositoryImpl
@@ -13,6 +14,7 @@ import com.liomix.mikomi.data.anime.internal.AnimeIdMapperImpl
 import com.liomix.mikomi.data.anime.internal.AnimeRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.HomeRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.RankRepositoryImpl
+import com.liomix.mikomi.data.anime.internal.SearchRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.ScheduleRepositoryImpl
 import com.liomix.mikomi.data.anime.remote.AnimeApi
 import dagger.Binds
@@ -51,6 +53,9 @@ internal abstract class AnimeDataModule {
 
     @Binds
     internal abstract fun bindAnimeCommentRepository(impl: AnimeCommentRepositoryImpl): AnimeCommentRepository
+
+    @Binds
+    internal abstract fun bindSearchRepository(impl: SearchRepositoryImpl): SearchRepository
 
     @Binds
     internal abstract fun bindAnimeIdMapper(impl: AnimeIdMapperImpl): AnimeIdMapper

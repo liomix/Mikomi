@@ -26,13 +26,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -45,12 +41,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
 import com.liomix.mikomi.feature.settings.R
+import com.liomix.mikomi.feature.settings.component.BAndWSwitch
+import com.liomix.mikomi.feature.settings.component.DarkModeRevealHost
+import com.liomix.mikomi.feature.settings.component.SettingsCard
+import com.liomix.mikomi.feature.settings.component.SettingsCardSection
 
 /**
  * 主题设置页。
  *
- * 每类设置独立成卡片；「主题颜色」卡片内包含两块同级别内容：
- * 顶部配色色卡、底部「切换到夜间模式」开关行（中间以分隔线区隔）。
+ * 每类设置独立成卡片；「主题颜色」卡片内含两个同级别子卡片：
+ * 配色色卡、黑白（日 / 夜）切换。
+ *
+ * 日夜切换的圆形揭示动画全部由 [DarkModeRevealHost] 负责，
+ * 本页只描述布局。
  */
 @Composable
 fun ThemeScreen(
@@ -61,27 +64,61 @@ fun ThemeScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+    DarkModeRevealHost(
+        isDarkMode = isDarkMode,
+        onToggleDarkMode = onToggleDarkMode,
+        modifier = modifier.fillMaxSize(),
     ) {
-        ThemeTopBar(onBackClick = onBackClick)
-
         Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
         ) {
-            ThemeColorCard(
-                selectedId = colorSchemeId,
-                isDarkMode = isDarkMode,
-                onSelect = onSelectColorScheme,
-                onToggleDarkMode = onToggleDarkMode,
-            )
+            ThemeTopBar(onBackClick = onBackClick)
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                SettingsCard {
+                    // 配色选择。
+                    SettingsCardSection {
+                        Text(
+                            text = stringResource(R.string.theme_color_section),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp),
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            items(
+                                items = ThemePalette.entries,
+                                key = { palette -> palette.id },
+                            ) { palette ->
+                                PaletteSwatch(
+                                    palette = palette,
+                                    selected = palette.id == colorSchemeId,
+                                    onClick = { onSelectColorScheme(palette.id) },
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
+                    // 黑白（日 / 夜）切换：动画与交互由组件内部完成。
+                    SettingsCardSection(dividerAbove = true) {
+                        BAndWSwitch(isDarkMode = isDarkMode)
+                    }
+                }
+            }
         }
     }
 }
@@ -109,92 +146,6 @@ private fun ThemeTopBar(
             text = stringResource(R.string.theme_title),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-        )
-    }
-}
-
-/** 主题颜色卡片：配色色卡 + 夜间模式开关（两个同级别子项）。 */
-@Composable
-private fun ThemeColorCard(
-    selectedId: String,
-    isDarkMode: Boolean,
-    onSelect: (String) -> Unit,
-    onToggleDarkMode: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        Column(modifier = Modifier.padding(vertical = 20.dp)) {
-            Text(
-                text = stringResource(R.string.theme_color_section),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 20.dp),
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(
-                    items = ThemePalette.entries,
-                    key = { palette -> palette.id },
-                ) { palette ->
-                    PaletteSwatch(
-                        palette = palette,
-                        selected = palette.id == selectedId,
-                        onClick = { onSelect(palette.id) },
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-            )
-            NightModeRow(
-                isDarkMode = isDarkMode,
-                onToggle = onToggleDarkMode,
-            )
-        }
-    }
-}
-
-/** 夜间模式开关行：整行可点，右侧开关同步状态。 */
-@Composable
-private fun NightModeRow(
-    isDarkMode: Boolean,
-    onToggle: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onToggle(!isDarkMode) }
-            .padding(horizontal = 20.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.DarkMode,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(24.dp),
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = stringResource(R.string.theme_night_mode),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.weight(1f),
-        )
-        Switch(
-            checked = isDarkMode,
-            onCheckedChange = onToggle,
         )
     }
 }

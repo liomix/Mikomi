@@ -4,4 +4,5 @@
     <string name="theme_back">返回</string>
     <string name="theme_color_section">主题颜色</string>
     <string name="theme_night_mode">切换到夜间模式</string>
+    <string name="theme_day_mode">切换到日间模式</string>
 </resources>

@@ -7,13 +7,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
- * 搜索结果页 Route（有状态）：绑定关键词、收集状态、回调上抛。
+ * 搜索结果页 Route（有状态）：绑定导航参数里的关键词、收集状态、回调上抛。
  */
 @Composable
 fun SearchResultRoute(
     keyword: String,
     onBackClick: () -> Unit,
-    onSearchAgain: () -> Unit,
     onAnimeClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SearchResultViewModel = hiltViewModel(),
@@ -23,8 +22,10 @@ fun SearchResultRoute(
 
     SearchResultScreen(
         state = state,
+        onQueryChange = viewModel::onQueryChange,
+        onSearch = viewModel::submitSearch,
+        onClearQuery = viewModel::clearQuery,
         onBack = onBackClick,
-        onSearchAgain = onSearchAgain,
         onAnimeClick = onAnimeClick,
         onLoadMore = viewModel::loadMore,
         onRetry = viewModel::retry,

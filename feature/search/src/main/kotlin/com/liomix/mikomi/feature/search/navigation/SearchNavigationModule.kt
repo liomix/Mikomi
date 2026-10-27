@@ -32,8 +32,6 @@ object SearchNavigationModule {
             SearchResultRoute(
                 keyword = destination.keyword,
                 onBackClick = { navigator.goBack() },
-                // 重新搜索：回到搜索页改词（关键词已保留在输入框），不再压新一层。
-                onSearchAgain = { navigator.goBack() },
                 onAnimeClick = { animeId -> navigator.goTo(DetailDestination(animeId)) },
             )
         }

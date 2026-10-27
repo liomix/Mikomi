@@ -17,11 +17,6 @@
     <string name="search_suggestion_retry_hint">继续输入可重新加载</string>
     <string name="search_no_result">没有找到「%1$s」</string>
     <string name="search_no_result_hint">换个关键词试试，或看看下方的热门</string>
-    <string name="search_result_title">搜索结果</string>
-    <string name="search_result_keyword">「%1$s」</string>
-    <string name="search_search_again">重新搜索</string>
-    <string name="search_result_count">「%1$s」找到 %2$d 个结果</string>
-    <string name="search_no_more">已显示全部结果</string>
 
     <string name="search_load_failed">加载失败</string>
     <string name="search_retry">重试</string>

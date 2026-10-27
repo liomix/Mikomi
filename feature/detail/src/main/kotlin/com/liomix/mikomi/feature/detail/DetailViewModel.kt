@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.CreditDetail
+import com.liomix.mikomi.data.anime.AnimeCommentRepository
 import com.liomix.mikomi.data.anime.AnimeCreditsRepository
 import com.liomix.mikomi.data.anime.AnimeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,6 +31,7 @@ import kotlinx.coroutines.launch
 class DetailViewModel @Inject constructor(
     private val animeRepository: AnimeRepository,
     private val creditsRepository: AnimeCreditsRepository,
+    private val commentRepository: AnimeCommentRepository,
 ) : ViewModel() {
 
     private val animeId = MutableStateFlow<String?>(null)
@@ -63,12 +65,20 @@ class DetailViewModel @Inject constructor(
     private val _creditCommentsState = MutableStateFlow<CreditCommentsUiState>(CreditCommentsUiState.Hidden)
     val creditCommentsState: StateFlow<CreditCommentsUiState> = _creditCommentsState
 
+    private val _teasingState = MutableStateFlow<TeasingUiState>(TeasingUiState.Loading)
+    val teasingState: StateFlow<TeasingUiState> = _teasingState
+
+    /** 吐槽首屏是否已发起请求（避免重复拉取）。 */
+    private var teasingRequested = false
+
     fun bind(animeId: String) {
         if (this.animeId.value == animeId) return
         this.animeId.value = animeId
         _creditsState.value = AnimeCreditsUiState.Idle
         _creditDetailState.value = CreditDetailUiState.Hidden
         _creditCommentsState.value = CreditCommentsUiState.Hidden
+        _teasingState.value = TeasingUiState.Loading
+        teasingRequested = false
         refreshDetail(animeId)
     }
 
@@ -149,7 +159,80 @@ class DetailViewModel @Inject constructor(
         _creditCommentsState.value = CreditCommentsUiState.Hidden
     }
 
+    /** 加载吐槽首屏（首次进入吐槽 Tab 时调用，重复调用无副作用）。 */
+    fun loadTeasing() {
+        if (teasingRequested) return
+        val id = animeId.value ?: return
+        teasingRequested = true
+        _teasingState.value = TeasingUiState.Loading
+        viewModelScope.launch {
+            try {
+                val page = commentRepository.fetchTeasingComments(id, TEASING_PAGE_SIZE, offset = 0)
+                _teasingState.value = TeasingUiState.Loaded(
+                    comments = page.comments,
+                    hasMore = page.hasMore,
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Load teasing failed", e)
+                _teasingState.value = TeasingUiState.Error
+            }
+        }
+    }
+
+    /** 加载吐槽下一页（列表滚动到底部时调用）。 */
+    fun loadMoreTeasing() {
+        val current = _teasingState.value as? TeasingUiState.Loaded ?: return
+        if (current.appending || current.appendFailed || !current.hasMore) return
+        val id = animeId.value ?: return
+        _teasingState.value = current.copy(appending = true)
+        viewModelScope.launch {
+            try {
+                // 以已加载条数作为 offset，避免维护额外游标。
+                val page = commentRepository.fetchTeasingComments(
+                    animeId = id,
+                    limit = TEASING_PAGE_SIZE,
+                    offset = current.comments.size,
+                )
+                // 服务端分页可能因新评论插入而返回重复项，按 id 去重保证列表 key 唯一。
+                val existingIds = current.comments.mapTo(HashSet()) { it.id }
+                val appended = page.comments.filter { it.id !in existingIds }
+                _teasingState.value = TeasingUiState.Loaded(
+                    comments = current.comments + appended,
+                    // 无新增内容时终止分页，避免同一 offset 反复请求。
+                    hasMore = page.hasMore && appended.isNotEmpty(),
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Load more teasing failed", e)
+                _teasingState.value = current.copy(appending = false, appendFailed = true)
+            }
+        }
+    }
+
+    /**
+     * 吐槽加载失败后重试。
+     *
+     * 首屏失败 → 重新拉第一页；翻页失败 → 续拉下一页（保留已加载内容）。
+     */
+    fun retryTeasing() {
+        val current = _teasingState.value
+        if (current is TeasingUiState.Loaded) {
+            if (!current.appendFailed) return
+            _teasingState.value = current.copy(appendFailed = false)
+            loadMoreTeasing()
+        } else {
+            teasingRequested = false
+            loadTeasing()
+        }
+    }
+
     private companion object {
         const val TAG = "DetailViewModel"
+
+        /** 吐槽每页条数（对齐 Dart 版）。 */
+        const val TEASING_PAGE_SIZE = 20
     }
 }

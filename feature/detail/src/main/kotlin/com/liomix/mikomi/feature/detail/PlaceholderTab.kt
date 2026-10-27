@@ -43,14 +43,6 @@ internal fun PlaceholderTab(
 }
 
 @Composable
-internal fun TeasingTab(modifier: Modifier = Modifier) {
-    PlaceholderTab(
-        message = stringResource(R.string.detail_teasing_placeholder),
-        modifier = modifier,
-    )
-}
-
-@Composable
 internal fun CommentTab(modifier: Modifier = Modifier) {
     PlaceholderTab(
         message = stringResource(R.string.detail_comment_placeholder),

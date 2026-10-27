@@ -47,9 +47,6 @@ import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.model.CreditComment
 import com.liomix.mikomi.core.model.CreditDetail
 import com.liomix.mikomi.core.ui.component.SkeletonBox
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /** 头像尺寸（对齐 Dart 版 120x180 竖版）。 */
 private val DETAIL_IMAGE_WIDTH = 120.dp
@@ -509,23 +506,5 @@ private fun CreditDetailError(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-    }
-}
-
-/** 相对时间格式化（对齐 Dart 版 _formatDate）。 */
-private fun formatRelativeTime(timestampSec: Long): String {
-    if (timestampSec <= 0) return ""
-    val date = Date(timestampSec * 1000)
-    val now = Date()
-    val diffMs = now.time - date.time
-    val minutes = diffMs / 60_000
-    val hours = diffMs / 3_600_000
-    val days = diffMs / 86_400_000
-    return when {
-        minutes < 1 -> "刚刚"
-        minutes < 60 -> "${minutes}分钟前"
-        hours < 24 -> "${hours}小时前"
-        days < 7 -> "${days}天前"
-        else -> SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(date)
     }
 }

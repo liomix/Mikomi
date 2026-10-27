@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,6 +32,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +58,12 @@ private val HEADER_HEIGHT = 420.dp
 /** 滚动超过该距离（dp）后顶栏标题淡入，对齐 Dart 版 offset > 200。 */
 private val SHOW_TITLE_OFFSET = 200.dp
 
+/** TabBar 在 LazyColumn 中的下标（0 = 头部）。 */
+private const val TAB_BAR_INDEX = 1
+
+/** 内容底部留白：避让悬浮播放按钮（56dp FAB + 24dp 外边距 + 余量）。 */
+private val CONTENT_BOTTOM_SPACER = 96.dp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScreen(
@@ -63,10 +71,14 @@ fun DetailScreen(
     creditsState: AnimeCreditsUiState,
     creditDetailState: CreditDetailUiState,
     creditCommentsState: CreditCommentsUiState,
+    teasingState: TeasingUiState,
     onLoadCredits: () -> Unit,
     onCharacterClick: (Int) -> Unit,
     onStaffClick: (Int) -> Unit,
     onDismissCreditDetail: () -> Unit,
+    onLoadTeasing: () -> Unit,
+    onLoadMoreTeasing: () -> Unit,
+    onRetryTeasing: () -> Unit,
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -87,7 +99,11 @@ fun DetailScreen(
             is DetailUiState.Success -> DetailContent(
                 anime = uiState.anime,
                 creditsState = creditsState,
+                teasingState = teasingState,
                 onLoadCredits = onLoadCredits,
+                onLoadTeasing = onLoadTeasing,
+                onLoadMoreTeasing = onLoadMoreTeasing,
+                onRetryTeasing = onRetryTeasing,
                 onCharacterClick = onCharacterClick,
                 onStaffClick = onStaffClick,
                 onPlayClick = onPlayClick,
@@ -110,7 +126,11 @@ fun DetailScreen(
 private fun DetailContent(
     anime: Anime,
     creditsState: AnimeCreditsUiState,
+    teasingState: TeasingUiState,
     onLoadCredits: () -> Unit,
+    onLoadTeasing: () -> Unit,
+    onLoadMoreTeasing: () -> Unit,
+    onRetryTeasing: () -> Unit,
     onCharacterClick: (Int) -> Unit,
     onStaffClick: (Int) -> Unit,
     onPlayClick: () -> Unit,
@@ -122,6 +142,17 @@ private fun DetailContent(
     // 毛玻璃：内容作 source，顶栏作 child，顶栏背景永远高斯模糊。
     val hazeState = remember { HazeState() }
     val showTitleOffsetPx = with(LocalDensity.current) { SHOW_TITLE_OFFSET.roundToPx() }
+
+    // 吐槽：首次切到该 Tab 才拉取首屏（懒加载，避免进详情页就多打一次网络）。
+    // 切换 Tab 时把列表拉回 TabBar 位置，避免停留在上一个 Tab 的滚动位置。
+    LaunchedEffect(selectedTab) {
+        if (selectedTab == DetailTabType.TEASING) {
+            onLoadTeasing()
+        }
+        if (listState.firstVisibleItemIndex > TAB_BAR_INDEX) {
+            listState.animateScrollToItem(TAB_BAR_INDEX)
+        }
+    }
 
     // 对齐 Dart 版：滚动 offset > 200px 后标题淡入，否则隐藏。
     val showTitle by remember {
@@ -154,16 +185,28 @@ private fun DetailContent(
                     onSelect = { selectedTab = it },
                 )
             }
-            // 当前 Tab 内容（作为 LazyColumn item 直接渲染，各自内容可随列表滚动）。
-            item(key = "tab_content_${selectedTab.name}") {
-                DetailTabContent(
-                    tab = selectedTab,
-                    anime = anime,
-                    creditsState = creditsState,
-                    onLoadCredits = onLoadCredits,
-                    onCharacterClick = onCharacterClick,
-                    onStaffClick = onStaffClick,
+            // 当前 Tab 内容：吐槽直接平铺为列表条目，其余 Tab 作为单个 item 渲染。
+            when (selectedTab) {
+                DetailTabType.TEASING -> teasingTab(
+                    state = teasingState,
+                    onLoadMore = onLoadMoreTeasing,
+                    onRetry = onRetryTeasing,
                 )
+
+                else -> item(key = "tab_content_${selectedTab.name}") {
+                    DetailTabContent(
+                        tab = selectedTab,
+                        anime = anime,
+                        creditsState = creditsState,
+                        onLoadCredits = onLoadCredits,
+                        onCharacterClick = onCharacterClick,
+                        onStaffClick = onStaffClick,
+                    )
+                }
+            }
+            // 底部留白：避让悬浮播放按钮，避免内容末端被遮挡。
+            item(key = "content_bottom_spacer") {
+                Spacer(modifier = Modifier.height(CONTENT_BOTTOM_SPACER))
             }
         }
 
@@ -266,7 +309,8 @@ private fun DetailTabContent(
             onStaffClick = onStaffClick,
         )
 
-        DetailTabType.TEASING -> TeasingTab()
+        // 吐槽条目直接平铺到外层列表，不走这里。
+        DetailTabType.TEASING -> Unit
         DetailTabType.COMMENT -> CommentTab()
     }
 }

@@ -25,7 +25,11 @@
     <string name="detail_rank">Bangumi排行</string>
     <string name="detail_rating_count">%1$d人评分</string>
     <string name="detail_comment_placeholder">评论功能开发中</string>
-    <string name="detail_teasing_placeholder">吐槽功能开发中</string>
+    <string name="detail_no_teasing">暂无吐槽</string>
+    <string name="detail_teasing_load_failed">吐槽加载失败</string>
+    <string name="detail_teasing_load_more_failed">加载失败</string>
+    <string name="detail_teasing_no_more">没有更多吐槽了</string>
+    <string name="detail_retry">重试</string>
     <string name="detail_expand_more">展开</string>
     <string name="detail_collapse">收起</string>
     <string name="detail_play">立即播放</string>

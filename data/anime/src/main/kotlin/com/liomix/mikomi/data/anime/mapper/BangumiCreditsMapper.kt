@@ -2,8 +2,8 @@ package com.liomix.mikomi.data.anime.mapper
 
 import com.liomix.mikomi.core.model.AnimeCharacter
 import com.liomix.mikomi.core.model.CharacterImageSet
+import com.liomix.mikomi.core.model.CommentUser
 import com.liomix.mikomi.core.model.CreditComment
-import com.liomix.mikomi.core.model.CreditCommentUser
 import com.liomix.mikomi.core.model.CreditDetail
 import com.liomix.mikomi.core.model.StaffMember
 import com.liomix.mikomi.core.model.VoiceActor
@@ -97,7 +97,7 @@ internal fun BangumiPersonDetailDto.toCreditDetail(): CreditDetail = CreditDetai
 /** 评论 DTO → 领域模型（递归回复）。 */
 internal fun BangumiCommentDto.toDomain(): CreditComment = CreditComment(
     id = id,
-    user = CreditCommentUser(
+    user = CommentUser(
         id = user?.id ?: 0,
         username = user?.username.orEmpty(),
         nickname = user?.nickname.orEmpty(),

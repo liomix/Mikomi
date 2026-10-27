@@ -21,16 +21,21 @@ fun DetailRoute(
     val creditsState by viewModel.creditsState.collectAsStateWithLifecycle()
     val creditDetailState by viewModel.creditDetailState.collectAsStateWithLifecycle()
     val creditCommentsState by viewModel.creditCommentsState.collectAsStateWithLifecycle()
+    val teasingState by viewModel.teasingState.collectAsStateWithLifecycle()
 
     DetailScreen(
         uiState = uiState,
         creditsState = creditsState,
         creditDetailState = creditDetailState,
         creditCommentsState = creditCommentsState,
+        teasingState = teasingState,
         onLoadCredits = viewModel::loadCredits,
         onCharacterClick = { id -> viewModel.openCreditDetail(id, isCharacter = true) },
         onStaffClick = { id -> viewModel.openCreditDetail(id, isCharacter = false) },
         onDismissCreditDetail = viewModel::dismissCreditDetail,
+        onLoadTeasing = viewModel::loadTeasing,
+        onLoadMoreTeasing = viewModel::loadMoreTeasing,
+        onRetryTeasing = viewModel::retryTeasing,
         onPlayClick = onPlayClick,
         modifier = modifier,
     )

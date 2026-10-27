@@ -7,6 +7,7 @@ import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiPersonDetailDto
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchRequest
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchResponse
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiStaffResponseDto
+import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSubjectCommentsResponseDto
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSubjectDto
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiTrendResponse
 import retrofit2.http.Body
@@ -39,6 +40,13 @@ internal interface BangumiTrendApi {
 
     @GET("p1/persons/{id}/comments")
     suspend fun fetchPersonComments(@Path("id") personId: Int): List<BangumiCommentDto>
+
+    @GET("p1/subjects/{id}/comments")
+    suspend fun fetchSubjectComments(
+        @Path("id") subjectId: Int,
+        @Query("limit") limit: Int,
+        @Query("offset") offset: Int,
+    ): BangumiSubjectCommentsResponseDto
 }
 
 /** Bangumi v0 API（api.bgm.tv）：搜索 / 详情 / 角色。 */

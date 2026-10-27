@@ -61,23 +61,3 @@ data class CreditDetail(
         get() = localizedName?.takeIf { it.isNotBlank() } ?: name
 }
 
-/** 评论用户。 */
-data class CreditCommentUser(
-    val id: Int,
-    val username: String,
-    val nickname: String,
-    val avatarUrl: String? = null,
-) {
-    val displayName: String
-        get() = nickname.takeIf { it.isNotBlank() } ?: username
-}
-
-/** 主创吐槽/评论。 */
-data class CreditComment(
-    val id: Int,
-    val user: CreditCommentUser,
-    val content: String,
-    /** Unix 时间戳（秒）。 */
-    val createdAt: Long,
-    val replies: List<CreditComment> = emptyList(),
-)

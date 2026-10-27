@@ -5,6 +5,7 @@ import com.liomix.mikomi.core.model.AnimeCharacter
 import com.liomix.mikomi.core.model.CreditComment
 import com.liomix.mikomi.core.model.CreditDetail
 import com.liomix.mikomi.core.model.StaffMember
+import com.liomix.mikomi.core.model.TeasingComment
 
 /** 详情页加载状态。 */
 sealed interface DetailUiState {
@@ -54,4 +55,22 @@ sealed interface CreditCommentsUiState {
     data class Loaded(val comments: List<CreditComment>) : CreditCommentsUiState
 
     data object Error : CreditCommentsUiState
+}
+
+/** 吐槽 Tab 状态（分页懒加载）。 */
+sealed interface TeasingUiState {
+    /** 首屏加载中。 */
+    data object Loading : TeasingUiState
+
+    data object Error : TeasingUiState
+
+    data class Loaded(
+        val comments: List<TeasingComment>,
+        /** 是否还有更多（服务端仍有下一页）。 */
+        val hasMore: Boolean,
+        /** 正在加载下一页。 */
+        val appending: Boolean = false,
+        /** 下一页加载失败（可点击重试）。 */
+        val appendFailed: Boolean = false,
+    ) : TeasingUiState
 }

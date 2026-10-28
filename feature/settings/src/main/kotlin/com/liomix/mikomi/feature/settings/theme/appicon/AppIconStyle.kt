@@ -1,4 +1,4 @@
-package com.liomix.mikomi.feature.settings.appicon
+package com.liomix.mikomi.feature.settings.theme.appicon
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes

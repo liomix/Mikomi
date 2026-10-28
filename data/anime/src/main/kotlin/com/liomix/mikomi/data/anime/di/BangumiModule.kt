@@ -1,6 +1,8 @@
 package com.liomix.mikomi.data.anime.di
 
 import com.liomix.mikomi.data.anime.remote.bangumi.BangumiApi
+import com.liomix.mikomi.core.network.bangumi.BangumiMirrorInterceptor
+import com.liomix.mikomi.core.network.bangumi.BangumiNetworkConfigProvider
 import com.liomix.mikomi.data.anime.remote.bangumi.BangumiTrendApi
 import dagger.Module
 import dagger.Provides
@@ -20,8 +22,13 @@ object BangumiModule {
     @Provides
     @Singleton
     @BangumiClient
-    fun provideBangumiClient(client: OkHttpClient): OkHttpClient =
+    fun provideBangumiClient(
+        client: OkHttpClient,
+        configProvider: BangumiNetworkConfigProvider,
+    ): OkHttpClient =
         client.newBuilder()
+            // 镜像改写：只换域名，路径/查询串原样保留；直连时该拦截器直接透传。
+            .addInterceptor(BangumiMirrorInterceptor(configProvider))
             .addInterceptor { chain ->
                 chain.proceed(
                     chain.request().newBuilder()

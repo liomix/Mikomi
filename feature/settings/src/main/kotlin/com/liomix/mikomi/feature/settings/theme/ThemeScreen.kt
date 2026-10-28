@@ -34,7 +34,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,7 +50,7 @@ import com.liomix.mikomi.feature.settings.component.SettingsCapsule
 import com.liomix.mikomi.core.ui.component.MikomiToast
 import com.liomix.mikomi.core.ui.component.MikomiToastData
 import com.liomix.mikomi.feature.settings.R
-import com.liomix.mikomi.feature.settings.appicon.AppIconStyle
+import com.liomix.mikomi.feature.settings.theme.appicon.AppIconStyle
 import com.liomix.mikomi.feature.settings.component.BAndWSwitch
 import com.liomix.mikomi.feature.settings.component.DarkModeRevealHost
 import com.liomix.mikomi.feature.settings.component.SettingsCard

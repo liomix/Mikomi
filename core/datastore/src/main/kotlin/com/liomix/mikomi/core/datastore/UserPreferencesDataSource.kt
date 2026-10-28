@@ -32,6 +32,8 @@ class UserPreferencesDataSource @Inject constructor(
             appIcon = prefs[KEY_APP_ICON] ?: DEFAULT_APP_ICON,
             transitionStyle = prefs[KEY_TRANSITION_STYLE] ?: DEFAULT_TRANSITION_STYLE,
             pageTransitionStyle = prefs[KEY_PAGE_TRANSITION_STYLE] ?: DEFAULT_TRANSITION_STYLE,
+            bangumiApiMode = prefs[KEY_BANGUMI_API_MODE] ?: DEFAULT_BANGUMI_API_MODE,
+            bangumiMirrorUrl = prefs[KEY_BANGUMI_MIRROR_URL] ?: "",
         )
     }
 
@@ -63,6 +65,14 @@ class UserPreferencesDataSource @Inject constructor(
         dataStore.edit { it[KEY_PAGE_TRANSITION_STYLE] = style }
     }
 
+    suspend fun setBangumiApiMode(mode: String) {
+        dataStore.edit { it[KEY_BANGUMI_API_MODE] = mode }
+    }
+
+    suspend fun setBangumiMirrorUrl(url: String) {
+        dataStore.edit { it[KEY_BANGUMI_MIRROR_URL] = url }
+    }
+
     private companion object {
         val KEY_THEME = stringPreferencesKey("theme")
         val KEY_QUALITY = stringPreferencesKey("default_quality")
@@ -71,10 +81,13 @@ class UserPreferencesDataSource @Inject constructor(
         val KEY_APP_ICON = stringPreferencesKey("app_icon")
         val KEY_TRANSITION_STYLE = stringPreferencesKey("transition_style")
         val KEY_PAGE_TRANSITION_STYLE = stringPreferencesKey("page_transition_style")
+        val KEY_BANGUMI_API_MODE = stringPreferencesKey("bangumi_api_mode")
+        val KEY_BANGUMI_MIRROR_URL = stringPreferencesKey("bangumi_mirror_url")
         const val DEFAULT_THEME = "system"
         const val DEFAULT_QUALITY = "auto"
         const val DEFAULT_COLOR_SCHEME = "default"
         const val DEFAULT_APP_ICON = "default"
         const val DEFAULT_TRANSITION_STYLE = "translate"
+        const val DEFAULT_BANGUMI_API_MODE = "direct"
     }
 }

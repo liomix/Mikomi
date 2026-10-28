@@ -31,6 +31,12 @@ interface UserDataRepository {
     /** 设置页面动效 id（见 PageTransitionStyle）。 */
     suspend fun setPageTransitionStyle(style: String)
 
+    /** 设置 Bangumi 连接方式 id（见 BangumiApiMode）。 */
+    suspend fun setBangumiApiMode(mode: String)
+
+    /** 设置镜像基地址（仅镜像模式使用）。 */
+    suspend fun setBangumiMirrorUrl(url: String)
+
     /** 记录一次搜索关键词。 */
     suspend fun addSearchHistory(keyword: String)
 

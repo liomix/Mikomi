@@ -2,9 +2,11 @@ package com.liomix.mikomi.feature.settings.navigation
 
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.Navigator
+import com.liomix.mikomi.core.navigation.NetworkDestination
 import com.liomix.mikomi.core.navigation.SettingsDestination
 import com.liomix.mikomi.core.navigation.ThemeDestination
 import com.liomix.mikomi.feature.settings.SettingsScreen
+import com.liomix.mikomi.feature.settings.network.NetworkRoute
 import com.liomix.mikomi.feature.settings.theme.ThemeRoute
 import dagger.Module
 import dagger.Provides
@@ -20,10 +22,17 @@ object SettingsNavigationModule {
     @IntoSet
     fun provideEntryProviderInstaller(navigator: Navigator): EntryProviderInstaller = { _ ->
         entry<SettingsDestination> {
-            SettingsScreen()
+            SettingsScreen(
+                onOpenTheme = { navigator.goTo(ThemeDestination) },
+                onOpenNetwork = { navigator.goTo(NetworkDestination) },
+                onBackClick = { navigator.goBack() },
+            )
         }
         entry<ThemeDestination> {
             ThemeRoute(onBackClick = { navigator.goBack() })
+        }
+        entry<NetworkDestination> {
+            NetworkRoute(onBackClick = { navigator.goBack() })
         }
     }
 }

@@ -34,6 +34,10 @@ data object SettingsDestination : NavKey
 @Serializable
 data object ThemeDestination : NavKey
 
+/** 网络设置二级页面（设置页的第二页）。 */
+@Serializable
+data object NetworkDestination : NavKey
+
 /** 时间表二级页面（首页快捷入口跳转）。 */
 @Serializable
 data object ScheduleDestination : NavKey

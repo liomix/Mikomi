@@ -11,8 +11,8 @@ import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.data.user.UserDataRepository
 import com.liomix.mikomi.feature.settings.R
-import com.liomix.mikomi.feature.settings.appicon.AppIconManager
-import com.liomix.mikomi.feature.settings.appicon.AppIconStyle
+import com.liomix.mikomi.feature.settings.theme.appicon.AppIconManager
+import com.liomix.mikomi.feature.settings.theme.appicon.AppIconStyle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject

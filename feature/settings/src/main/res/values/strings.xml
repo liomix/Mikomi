@@ -24,4 +24,34 @@
     <string name="settings_page_fade">溶解</string>
     <string name="settings_page_scale">弹入</string>
     <string name="settings_page_none">无</string>
+
+    <!-- 网络 -->
+    <string name="settings_network_title">网络</string>
+    <string name="settings_network_back">返回</string>
+    <string name="settings_network_mode_section">连接方式</string>
+    <string name="settings_network_mode_direct">直连</string>
+    <string name="settings_network_mode_direct_desc">直接访问 api.bgm.tv，需要当前网络能连通 Bangumi</string>
+    <string name="settings_network_mode_mirror">镜像代理</string>
+    <string name="settings_network_mode_mirror_desc">通过中转地址访问，接口路径不变，由镜像转发到 Bangumi</string>
+    <string name="settings_network_mirror_section">镜像地址</string>
+    <string name="settings_network_mirror_placeholder">填写镜像地址</string>
+    <string name="settings_network_mirror_clear">清空地址</string>
+    <string name="settings_network_mirror_hint">例如 https://api.kazumi.fyi，支持带子路径</string>
+    <string name="settings_network_mirror_disabled">选择「镜像代理」后填写</string>
+    <string name="settings_network_mirror_invalid">地址无效，需要以 http:// 或 https:// 开头</string>
+    <string name="settings_network_test">测试连接</string>
+    <string name="settings_network_testing">测试中…</string>
+    <string name="settings_network_test_ok">可连通 · %1$d ms</string>
+    <string name="settings_network_test_http">HTTP %1$d · 该镜像不代理这个接口</string>
+    <string name="settings_network_test_failed">连接失败：%1$s</string>
+    <string name="settings_network_about_section">关于</string>
+    <string name="settings_network_about_body">镜像只替换请求的域名，接口路径与参数保持原样。日后自建反向代理时，把地址换成自己的即可，无需改动任何代码。</string>
+
+    <!-- 设置首页 -->
+    <string name="settings_title">设置</string>
+    <string name="settings_back">返回</string>
+    <string name="settings_entry_theme">外观</string>
+    <string name="settings_entry_theme_desc">主题颜色、深浅模式、应用图标与动态效果</string>
+    <string name="settings_entry_network">网络</string>
+    <string name="settings_entry_network_desc">Bangumi 连接方式与镜像代理地址</string>
 </resources>

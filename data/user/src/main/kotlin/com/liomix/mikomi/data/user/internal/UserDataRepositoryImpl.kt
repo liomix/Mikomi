@@ -77,6 +77,14 @@ internal class UserDataRepositoryImpl @Inject constructor(
         userPreferencesDataSource.setPageTransitionStyle(style)
     }
 
+    override suspend fun setBangumiApiMode(mode: String) {
+        userPreferencesDataSource.setBangumiApiMode(mode)
+    }
+
+    override suspend fun setBangumiMirrorUrl(url: String) {
+        userPreferencesDataSource.setBangumiMirrorUrl(url)
+    }
+
     override suspend fun addSearchHistory(keyword: String) {
         searchHistoryDataSource.add(keyword)
     }

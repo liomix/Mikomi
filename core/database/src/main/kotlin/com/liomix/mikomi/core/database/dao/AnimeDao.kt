@@ -84,8 +84,9 @@ interface RankDao {
     )
     fun observeByRegion(region: String): Flow<List<RankEntity>>
 
-    @Query("DELETE FROM rank_entry")
-    suspend fun clearAll()
+    /** 删除指定产地的榜单：刷新时按产地整体替换，避免一榜失败把另一榜也清掉。 */
+    @Query("DELETE FROM rank_entry WHERE region = :region")
+    suspend fun deleteByRegion(region: String)
 
     @Upsert
     suspend fun upsertAll(entries: List<RankEntity>)

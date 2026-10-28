@@ -24,8 +24,8 @@ private val LightColorScheme = lightColorScheme(
     tertiary = Pink40,
 )
 
-/** 预设配色下 primary 上的前景色（各预设主色均为中深色调，统一用白字）。 */
-private val PaletteOnPrimary = Color(0xFFFFFFFF)
+/** 预设配色下 primary 上的前景色：四种预设主色都偏亮，统一用黑字以满足 4.5:1 对比度。 */
+private val PaletteOnPrimary = Color(0xFF000000)
 
 /** 夜间背景：纯黑。 */
 private val NightBackground = Color(0xFF000000)

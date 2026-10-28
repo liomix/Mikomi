@@ -1,4 +1,4 @@
-package com.liomix.mikomi.feature.settings.component
+package com.liomix.mikomi.core.ui.component
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -28,6 +28,9 @@ private val CapsuleHeight = 40.dp
 /** 文字左右内边距。 */
 private val CapsuleHorizontalPadding = 18.dp
 
+/** 胶囊形状（百分比圆角）：常量，避免每次组合都新建 Shape。 */
+private val CapsuleShape = RoundedCornerShape(percent = 50)
+
 /** 选中态 / 未选中态切换时的颜色过渡时长。 */
 private const val ColorAnimMillis = 180
 
@@ -41,7 +44,7 @@ private const val BorderAlphaSelected = 0.55f
 private const val BorderAlphaUnselected = 0.7f
 
 /**
- * 设置页的选项胶囊（一组里单选一个）。
+ * 通用胶囊按钮：一组里单选一个（标签、选项、筛选项都用它）。
  *
  * 视觉：未选中为透明底 + 中性细描边；选中为主色淡底 + 主色描边 + 主色半粗文字。
  * 颜色变化带 180ms 过渡，切换时不会硬跳。
@@ -51,19 +54,18 @@ private const val BorderAlphaUnselected = 0.7f
  * 且 48dp 的容器让胶囊本身显得笨重。
  * 因此：只用于这类成组、可反复切换的轻量选项，不要用它承载关键的独立操作。
  *
- * @param text 选项文案（由调用方 `stringResource` 解析后传入，组件层不依赖业务资源）。
+ * @param text 文案（由调用方 `stringResource` 解析后传入，组件层不依赖业务资源）。
  * @param selected 是否处于选中态。
  * @param onClick 点击回调（语义按单选按钮上报）。
  */
 @Composable
-fun SettingsCapsule(
+fun Capsule(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
-    val shape = RoundedCornerShape(percent = 50)
 
     val containerColor by animateColorAsState(
         targetValue = if (selected) {
@@ -94,13 +96,13 @@ fun SettingsCapsule(
     Surface(
         modifier = modifier
             .heightIn(min = CapsuleHeight)
-            .clip(shape)
+            .clip(CapsuleShape)
             .selectable(
                 selected = selected,
                 role = Role.RadioButton,
                 onClick = onClick,
             ),
-        shape = shape,
+        shape = CapsuleShape,
         color = containerColor,
         contentColor = contentColor,
         border = BorderStroke(1.dp, borderColor),

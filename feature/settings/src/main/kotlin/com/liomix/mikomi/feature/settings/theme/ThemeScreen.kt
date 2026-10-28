@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
 import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
-import com.liomix.mikomi.feature.settings.component.SettingsCapsule
+import com.liomix.mikomi.core.ui.component.Capsule
 import com.liomix.mikomi.core.ui.component.MikomiToast
 import com.liomix.mikomi.core.ui.component.MikomiToastData
 import com.liomix.mikomi.feature.settings.R
@@ -171,7 +171,7 @@ fun ThemeScreen(
                                         key = { style -> style.id },
                                         contentType = { "hero" },
                                     ) { style ->
-                                        SettingsCapsule(
+                                        Capsule(
                                             text = stringResource(style.labelRes),
                                             selected = currentHero == style,
                                             onClick = { onSelectTransitionStyle(style.id) },
@@ -190,7 +190,7 @@ fun ThemeScreen(
                                         key = { style -> style.id },
                                         contentType = { "page" },
                                     ) { style ->
-                                        SettingsCapsule(
+                                        Capsule(
                                             text = stringResource(style.labelRes),
                                             selected = currentPage == style,
                                             onClick = { onSelectPageTransitionStyle(style.id) },

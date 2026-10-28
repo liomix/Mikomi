@@ -35,13 +35,16 @@ import kotlinx.coroutines.delay
  *   再由 `scrollTo(0)` 瞬间回到起点，与 Dart 版 `animateTo`/`jumpTo` 一一对应；
  * - 循环：静止 [START_PAUSE_MILLIS] → 滚到末尾（[SCROLL_MILLIS]）→
  *   末尾停留 [END_PAUSE_MILLIS] → 回到起点；
- * - 未溢出时零动画开销（懒列表大量 item 不空转）。
+ * - 未溢出时零动画开销（懒列表大量 item 不空转）；
+ * - [userScrollEnabled] 为 false 时关闭手动拖动，仅保留自动滚动，
+ *   避免在 HorizontalPager 等横向容器里抢占外层滑动手势。
  */
 @Composable
 fun ScrollingText(
     text: String,
     modifier: Modifier = Modifier,
     style: TextStyle = LocalTextStyle.current,
+    userScrollEnabled: Boolean = true,
 ) {
     val scrollState = rememberScrollState()
 
@@ -78,7 +81,7 @@ fun ScrollingText(
             maxLines = 1,
             softWrap = false,
             overflow = TextOverflow.Clip,
-            modifier = Modifier.horizontalScroll(scrollState),
+            modifier = Modifier.horizontalScroll(scrollState, enabled = userScrollEnabled),
         )
     }
 }

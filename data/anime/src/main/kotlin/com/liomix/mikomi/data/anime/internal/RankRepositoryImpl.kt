@@ -49,11 +49,22 @@ internal class RankRepositoryImpl @Inject constructor(
     override suspend fun refreshRank(): Unit = withContext(ioDispatcher) {
         val chinese = fetchRank(RankRegion.CHINESE)
         val japanese = fetchRank(RankRegion.JAPANESE)
-        // 先拉到两榜数据，再在同一事务里整体替换，Room Flow 只发射一次：
-        // 刷新过程中榜单不会闪一帧空数据（骨架屏）。
+
+        // 空结果不等于「榜上确实没有条目」，更可能是限额 / 空响应。
+        // 整表 clearAll 后再写入空列表会把用户已看到的榜单抹掉（界面退化成骨架屏），
+        // 所以这里按产地逐个替换：哪一榜拿到数据才更新哪一榜。
+        if (chinese.isEmpty() && japanese.isEmpty()) return@withContext
+
+        // 两榜在同一事务里替换，Room Flow 只发射一次，刷新过程中不会闪空数据。
         database.withTransaction {
-            rankDao.clearAll()
-            rankDao.upsertAll(chinese + japanese)
+            if (chinese.isNotEmpty()) {
+                rankDao.deleteByRegion(RankRegion.CHINESE.storageValue())
+                rankDao.upsertAll(chinese)
+            }
+            if (japanese.isNotEmpty()) {
+                rankDao.deleteByRegion(RankRegion.JAPANESE.storageValue())
+                rankDao.upsertAll(japanese)
+            }
         }
     }
 

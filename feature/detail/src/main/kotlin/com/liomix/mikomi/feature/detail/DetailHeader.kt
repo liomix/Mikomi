@@ -23,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -34,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.ui.component.BlurredBackdrop
 import com.liomix.mikomi.core.ui.component.ScrollingText
 import com.liomix.mikomi.core.ui.component.SkeletonBox
 import com.liomix.mikomi.core.ui.component.heroTarget
@@ -59,14 +59,10 @@ internal fun DetailHeader(
         modifier = modifier
             .fillMaxWidth(),
     ) {
-        // 模糊背景封面。
-        AsyncImage(
+        // 模糊背景封面：高斯模糊逻辑统一收口到 core:ui 组件。
+        BlurredBackdrop(
             model = anime.coverUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .blur(24.dp),
+            modifier = Modifier.fillMaxSize(),
         )
 
         Column(

@@ -23,14 +23,19 @@ fun DetailRoute(
         viewModel.bind(animeId)
     }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val boundAnimeId by viewModel.boundAnimeId.collectAsStateWithLifecycle()
     val creditsState by viewModel.creditsState.collectAsStateWithLifecycle()
     val creditDetailState by viewModel.creditDetailState.collectAsStateWithLifecycle()
     val creditCommentsState by viewModel.creditCommentsState.collectAsStateWithLifecycle()
     val teasingState by viewModel.teasingState.collectAsStateWithLifecycle()
     val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
 
+    // 共享 ViewModel 会残留上一部番的 Success，bind 又要等首帧之后才跑；
+    // 绑定前一律按加载态处理，避免首帧闪出上一部番（看起来就是「点 A 打开了 B」）。
+    val shownState = if (boundAnimeId == animeId) uiState else DetailUiState.Loading
+
     DetailScreen(
-        uiState = uiState,
+        uiState = shownState,
         creditsState = creditsState,
         creditDetailState = creditDetailState,
         creditCommentsState = creditCommentsState,

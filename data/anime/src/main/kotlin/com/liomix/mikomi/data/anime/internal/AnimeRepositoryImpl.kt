@@ -50,7 +50,21 @@ internal class AnimeRepositoryImpl @Inject constructor(
     override suspend fun refreshAnimeDetail(animeId: String) = withContext(ioDispatcher) {
         val bangumiId = resolveBangumiId(animeId) ?: return@withContext
         val detail = bangumiApi.getSubject(bangumiId)
-        animeDao.upsertAll(listOf(detail.toDetailEntity()))
+        val entity = detail.toDetailEntity()
+        // 同一番剧在首页 trending 里也有一行（`bangumi:` 前缀 id 相同）。
+        // 若直接把 source 写成 detail，首页查询（WHERE source = 'home'）就查不到它了，
+        // 表现为「点开过的番剧从首页网格里消失、后面整排卡片左移」。
+        // 因此已有行一律保留原来源与位次，只更新详情字段。
+        val existing = animeDao.findById(entity.id)
+        animeDao.upsertAll(
+            listOf(
+                if (existing != null) {
+                    entity.copy(source = existing.source, homeRank = existing.homeRank)
+                } else {
+                    entity
+                },
+            ),
+        )
     }
 
     /** 解析领域 id → Bangumi 数字 id；AniList 前缀先做 id 映射。 */

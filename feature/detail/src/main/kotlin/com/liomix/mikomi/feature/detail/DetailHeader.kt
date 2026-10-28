@@ -36,7 +36,11 @@ import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.ScrollingText
 import com.liomix.mikomi.core.ui.component.SkeletonBox
+import com.liomix.mikomi.core.ui.component.heroTarget
 import java.util.Locale
+
+/** 详情页封面圆角（飞行时会与列表卡的 8dp 之间插值）。 */
+private val DETAIL_COVER_RADIUS = 14.dp
 
 /**
  * 详情页头部：模糊封面背景 + 标题 + 左封面 / 右信息（上映时间、排行、评分）。
@@ -86,7 +90,7 @@ internal fun DetailHeader(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-                // 左侧封面。
+                // 左侧封面（飞行终点：与列表卡封面同一个 key，点进来时封面飞到这里）。
                 AsyncImage(
                     model = anime.coverUrl,
                     contentDescription = anime.title,
@@ -94,7 +98,13 @@ internal fun DetailHeader(
                     modifier = Modifier
                         .weight(1f)
                         .aspectRatio(2f / 3f)
-                        .clip(RoundedCornerShape(14.dp)),
+                        .clip(RoundedCornerShape(DETAIL_COVER_RADIUS))
+                        .heroTarget(
+                            key = anime.id,
+                            url = anime.coverUrl,
+                            description = anime.title,
+                            radius = DETAIL_COVER_RADIUS,
+                        ),
                 )
                 // 右侧信息（详情未加载时骨架屏）。
                 val detailLoaded = anime.airDate != null || anime.ratingCount > 0

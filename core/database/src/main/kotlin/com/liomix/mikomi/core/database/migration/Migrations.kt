@@ -80,4 +80,15 @@ object Migrations {
             db.execSQL("ALTER TABLE anime ADD COLUMN source TEXT NOT NULL DEFAULT 'home'")
         }
     }
+
+    /**
+     * 6 → 7：anime 表新增 homeRank 列（首页列表固定位次）。
+     *
+     * 旧数据没有位次信息，统一落 0，首次刷新后会被写入真实位次。
+     */
+    val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE anime ADD COLUMN homeRank INTEGER NOT NULL DEFAULT 0")
+        }
+    }
 }

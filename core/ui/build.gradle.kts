@@ -13,6 +13,7 @@ dependencies {
     api(project(":core:designsystem"))
     api(project(":core:model"))
     api(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.animation)
     api(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)

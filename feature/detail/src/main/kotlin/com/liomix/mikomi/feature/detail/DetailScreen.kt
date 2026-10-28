@@ -3,10 +3,14 @@ package com.liomix.mikomi.feature.detail
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.ErrorState
+import com.liomix.mikomi.core.ui.component.SkeletonBox
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.hazeSource
@@ -95,9 +100,11 @@ fun DetailScreen(
         contentWindowInsets = WindowInsets(0),
     ) { innerPadding ->
         when (uiState) {
-            // 不显示加载图标：番剧数据在列表页已写入 Room，进入详情首帧就有内容，
-            // 加载态只是一两帧的闪烁；未命中缓存时宁可留白，也不闪一下转圈。
-            DetailUiState.Loading -> Unit
+            // 加载态用骨架屏而不是空白页：从列表点进来的首帧若渲染空白页，浅色主题下就是
+            // 整屏发白的「白屏闪一下」；骨架屏与真实布局同构，转场过程中也不会突兀。
+            DetailUiState.Loading -> DetailLoadingSkeleton(
+                modifier = Modifier.padding(innerPadding),
+            )
 
             DetailUiState.Error -> ErrorState(
                 message = stringResource(R.string.detail_load_failed),
@@ -219,8 +226,81 @@ private fun DetailContent(
     }
 }
 
-/** 右下角按钮组：收藏在上、追番在下，纵向右对齐。 */
+/**
+ * 加载骨架：与真实布局同构（头部封面 + 右侧信息行 + 正文行）。
+ *
+ * 详情数据来自 Room，通常一两帧就到；这里只负责让这一两帧不出现「整屏空白」。
+ */
 @Composable
+private fun DetailLoadingSkeleton(
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(HEADER_HEIGHT)
+                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp),
+        ) {
+            SkeletonBox(
+                modifier = Modifier
+                    .fillMaxWidth(0.55f)
+                    .height(26.dp),
+                shape = RoundedCornerShape(13.dp),
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
+                SkeletonBox(
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(2f / 3f),
+                    shape = RoundedCornerShape(14.dp),
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(18.dp),
+                ) {
+                    repeat(3) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            SkeletonBox(
+                                modifier = Modifier.size(width = 56.dp, height = 14.dp),
+                                shape = RoundedCornerShape(7.dp),
+                            )
+                            SkeletonBox(
+                                modifier = Modifier.size(width = 84.dp, height = 20.dp),
+                                shape = RoundedCornerShape(10.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            repeat(4) { index ->
+                SkeletonBox(
+                    modifier = Modifier
+                        .fillMaxWidth(if (index == 3) 0.6f else 1f)
+                        .height(14.dp),
+                    shape = RoundedCornerShape(7.dp),
+                )
+            }
+        }
+    }
+}
+
+/** 右下角按钮组：收藏在上、追番在下，纵向右对齐。 */@Composable
 private fun BottomActions(
     isFavorite: Boolean,
     onToggleFavorite: () -> Unit,

@@ -401,4 +401,5 @@ private val TransitionStyle.labelRes: Int
         TransitionStyle.Standard -> R.string.settings_transition_standard
         TransitionStyle.Fade -> R.string.settings_transition_fade
         TransitionStyle.Scale -> R.string.settings_transition_scale
+        TransitionStyle.Rotate -> R.string.settings_transition_rotate
     }

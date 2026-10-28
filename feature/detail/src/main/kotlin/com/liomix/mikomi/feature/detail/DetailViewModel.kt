@@ -14,6 +14,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
@@ -40,6 +41,16 @@ class DetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val animeId = MutableStateFlow<String?>(null)
+
+    /**
+     * 当前已绑定的番剧 id。
+     *
+     * 详情页的 ViewModel 是跨 entry 共享的（NavDisplay 未配置 ViewModelStore 装饰器），
+     * [uiState] 的 `stateIn` 缓存里会残留上一条 `Success`；而 `bind` 在 `LaunchedEffect`
+     * （首帧之后）才执行，因此首帧会渲染上一部番。UI 层用本字段判断「数据是不是这一部的」，
+     * 不是就先显示骨架屏，避免「点 A 先闪出上一部番」。
+     */
+    val boundAnimeId: StateFlow<String?> = animeId.asStateFlow()
 
     /** 当前番剧是否已收藏（跟随本地收藏列表实时变化）。 */
     val isFavorite: StateFlow<Boolean> = animeId
@@ -82,10 +93,12 @@ class DetailViewModel @Inject constructor(
     private val _creditsState = MutableStateFlow<AnimeCreditsUiState>(AnimeCreditsUiState.Idle)
     val creditsState: StateFlow<AnimeCreditsUiState> = _creditsState
 
-    private val _creditDetailState = MutableStateFlow<CreditDetailUiState>(CreditDetailUiState.Hidden)
+    private val _creditDetailState =
+        MutableStateFlow<CreditDetailUiState>(CreditDetailUiState.Hidden)
     val creditDetailState: StateFlow<CreditDetailUiState> = _creditDetailState
 
-    private val _creditCommentsState = MutableStateFlow<CreditCommentsUiState>(CreditCommentsUiState.Hidden)
+    private val _creditCommentsState =
+        MutableStateFlow<CreditCommentsUiState>(CreditCommentsUiState.Hidden)
     val creditCommentsState: StateFlow<CreditCommentsUiState> = _creditCommentsState
 
     private val _teasingState = MutableStateFlow<TeasingUiState>(TeasingUiState.Loading)

@@ -19,4 +19,5 @@
     <string name="settings_transition_standard">标准</string>
     <string name="settings_transition_fade">淡入淡出</string>
     <string name="settings_transition_scale">缩放</string>
+    <string name="settings_transition_rotate">旋转</string>
 </resources>

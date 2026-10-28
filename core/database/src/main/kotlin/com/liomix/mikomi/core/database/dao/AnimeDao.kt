@@ -17,6 +17,10 @@ interface AnimeDao {
     @Query("SELECT * FROM anime WHERE id = :id")
     fun observeAnime(id: String): Flow<AnimeEntity?>
 
+    /** 按 id 取当前行（详情回写前用于保留首页归属与位次）。 */
+    @Query("SELECT * FROM anime WHERE id = :id")
+    suspend fun findById(id: String): AnimeEntity?
+
     /**
      * 首页轮播图候选：评分降序，`id` 作为稳定次序。
      *
@@ -30,8 +34,13 @@ interface AnimeDao {
     )
     fun observeTopRated(limit: Int): Flow<List<AnimeEntity>>
 
-    /** 首页推荐列表：热度降序 + `id` 稳定次序（同 [observeTopRated]，避免刷新后同分项漂移）。 */
-    @Query("SELECT * FROM anime WHERE source = 'home' ORDER BY popularity DESC, id ASC")
+    /**
+     * 首页推荐列表：按写入时的固定位次 [AnimeEntity.homeRank] 排序。
+     *
+     * 不能用「热度降序」：分页的新一页会按热度插进已显示内容中间，已显示的卡片整体位移，
+     * 用户点下去时卡片数据已经换成另一部番。位次固定后新页只会追加到末尾。
+     */
+    @Query("SELECT * FROM anime WHERE source = 'home' ORDER BY homeRank ASC, id ASC")
     fun observeAnimeByPopularity(): Flow<List<AnimeEntity>>
 
     /** 删除指定 id 前缀的数据（供首页数据源刷新前清理旧数据，避免多源混杂）。 */

@@ -46,14 +46,15 @@ internal class HomeRepositoryImpl @Inject constructor(
         // 下拉刷新过程中轮播图与列表不会闪一帧空数据（骨架屏）。
         database.withTransaction {
             animeDao.deleteByPrefixes(BANGUMI_ID_PREFIX, ANILIST_ID_PREFIX)
-            animeDao.upsertAll(page.entities)
+            animeDao.upsertAll(page.entities.withRank(offset = 0))
         }
         LoadMoreResult(hasMore = page.hasMore, loadedCount = page.entities.size)
     }
 
     override suspend fun loadMore(offset: Int): LoadMoreResult = withContext(ioDispatcher) {
         val page = fetchPage(offset)
-        animeDao.upsertAll(page.entities)
+        // 位次接在已加载内容之后：新一页只追加，不插队。
+        animeDao.upsertAll(page.entities.withRank(offset))
         LoadMoreResult(hasMore = page.hasMore, loadedCount = page.entities.size)
     }
 
@@ -68,7 +69,11 @@ internal class HomeRepositoryImpl @Inject constructor(
         }
 
     private suspend fun fetchBangumiPage(offset: Int): HomePage {
-        val response = bangumiApi.fetchTrending(type = TYPE_ANIME, limit = PAGE_SIZE, offset = offset)
+        val response = bangumiApi.fetchTrending(
+            type = TYPE_ANIME,
+            limit = PAGE_SIZE,
+            offset = offset,
+        )
         return HomePage(
             entities = response.data.map { it.toEntity() },
             hasMore = (offset + response.data.size) < response.total,
@@ -92,6 +97,10 @@ internal class HomeRepositoryImpl @Inject constructor(
             hasMore = pageData?.pageInfo?.hasNextPage ?: false,
         )
     }
+
+    /** 按接口返回顺序写入固定位次（第 N 条 = offset + N）。 */
+    private fun List<AnimeEntity>.withRank(offset: Int): List<AnimeEntity> =
+        mapIndexed { index, entity -> entity.copy(homeRank = offset + index) }
 
     private data class HomePage(
         val entities: List<AnimeEntity>,

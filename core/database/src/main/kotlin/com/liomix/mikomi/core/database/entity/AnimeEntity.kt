@@ -29,6 +29,14 @@ data class AnimeEntity(
      * 通过本列让首页查询只命中 trending 数据。
      */
     @ColumnInfo(defaultValue = "home") val source: String = "home",
+    /**
+     * 首页推荐列表的固定位次（写入时按接口返回顺序赋值：第 N 条 = N）。
+     *
+     * 列表按本列排序而不是按热度：按热度排序时 loadMore 的新一页会「插队」到已显示内容中间，
+     * 用户点下去的一瞬间卡片数据已被换成另一部番（表现为「明明点的 A 却打开 B」）。
+     * 位次固定后新数据只会追加到末尾，已显示的卡片不会位移。
+     */
+    @ColumnInfo(defaultValue = "0") val homeRank: Int = 0,
 )
 
 @Entity(tableName = "episode")

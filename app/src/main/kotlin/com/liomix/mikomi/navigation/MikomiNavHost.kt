@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.spring
@@ -12,6 +13,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -91,6 +93,9 @@ private const val FADE_MILLIS = 320
 
 /** 标准转场的起始缩放比：比 [SCALE_FROM] 更收敛，接近 Android 12 默认的页面缩放。 */
 private const val ZOOM_FROM = 0.88f
+
+/** 标准转场的退场缩放比：旧页轻微放大后淡出（远离观感，与 Flutter 的 zoom 返回一致）。 */
+private const val ZOOM_OUT_TO = 1.06f
 
 /**
  * 页面转场统一缓动。
@@ -228,21 +233,17 @@ fun MikomiNavHost(
                 // 关掉 AnimatedContent 的尺寸动画：页面本就是整屏，尺寸动画只会让新旧页
                 // 互相裁剪（表现为页面被裁成一条/半张再展开）。
                 transitionSpec = {
-                    pageTransform(pageStyleId, forward = true).using(null)
+                    pushTransform(pageStyleId).using(null)
                 },
                 popTransitionSpec = {
-                    pageTransform(pageStyleId, forward = false).using(null)
+                    popTransform(pageStyleId).using(null)
                 },
                 // 预测性返回复用返回转场：spring 会实时跟随手势进度，无需单独一套动画。
                 predictivePopTransitionSpec = {
-                    pageTransform(pageStyleId, forward = false).using(null)
+                    popTransform(pageStyleId).using(null)
                 },
             )
         }
-
-        // 封面飞行层：画在所有页面之上，页面转场怎么滑/怎么缩都不影响它
-        // （等价 Flutter Hero 画在 Navigator Overlay 上）。
-        HeroFlightOverlay(controller = heroController)
 
         // 沉浸式或非顶级页面（详情/播放器等二级页面）下隐藏底部导航栏，
         // 滑入/滑出动画；其余页面正常显示。沉浸中可通过手势条临时唤出（showNavBar），
@@ -269,56 +270,64 @@ fun MikomiNavHost(
                 },
             )
         }
+
+        // 封面飞行层放在**最后一个**子项：页面与底部导航栏都在它之下，
+        // 与 Flutter Hero 画在 Navigator Overlay 最上层一致。它没有 pointerInput，不拦触摸。
+        HeroFlightOverlay(controller = heroController)
     }
 }
 
 /**
  * 页面动效：新旧两页之间的过渡，与封面飞行（[HeroFlightController]）互不影响。
  *
- * 三种样式刻意做成不同性质的动作，否则都是「新页盖在旧页上淡入」，只差几个百分点缩放：
- * - 标准：小幅缩放 + 淡入（Material 的 zoom 观感，最克制）
- * - 溶解：旧页淡出 + 新页淡入的真·交叉溶解，无缩放
- * - 弹入：从明显更小的尺寸带回弹地放大，不淡入
- * - 无：页面不做过渡，只保留封面飞行
+ * 进与出刻意**不对称**：
+ * - 进入（[pushTransform]）：新页动、旧页保持不透明；
+ * - 退出（[popTransform]）：返回的目标页直接可见，只让将被销毁的旧页缩放淡出。
+ *
+ * 这条「任意时刻至少一页完全不透明，且要消失的那一页总有退场动作」的规则是关键：
+ * 两页同时半透明会合成出 alpha < 1，透出窗口白底（表现为「白屏闪一下」）；
+ * 而两页都关掉动画则会让返回变成硬切（表现为「返回没有退场」）。
  *
  * 不用 slide：slide 是布局位移，会让页面内元素上报的坐标带上位移，
  * 封面飞行拿不到正确终点（Dart 版干净正是因为 MaterialPageRoute 也是变换）。
  */
-private fun pageTransform(styleId: String, forward: Boolean): ContentTransform = when (
+private fun pushTransform(styleId: String): ContentTransform = when (
     PageTransitionStyle.fromId(styleId)
 ) {
-    PageTransitionStyle.Standard -> zoomTransform(forward)
-    PageTransitionStyle.Fade -> fadeTransform()
-    PageTransitionStyle.Scale -> scaleTransform()
+    PageTransitionStyle.Standard -> zoomIn() togetherWith ExitTransition.None
+    // 只淡入新页、旧页不动：新页半透明时透出的是**不透明的旧页**，不会露白底。
+    PageTransitionStyle.Fade -> fadeIn(fadeSpec()) togetherWith ExitTransition.None
+    PageTransitionStyle.Scale -> scaleIn(
+        scaleInMotion(),
+        initialScale = SCALE_FROM,
+    ) togetherWith ExitTransition.None
     PageTransitionStyle.None -> ContentTransform(EnterTransition.None, ExitTransition.None)
 }
 
-/** 标准：新页 0.88 → 1 放大并淡入（对齐 Dart 版 MaterialPageRoute 的缩放过渡）。 */
-private fun zoomTransform(forward: Boolean): ContentTransform {
-    val scaleFrom = if (forward) ZOOM_FROM else 1f / ZOOM_FROM
-    val enter = scaleIn(pageMotion(), initialScale = scaleFrom) + fadeIn(pageMotion())
-    return enter togetherWith ExitTransition.None
+/** 页面动效的退出方向：目标页直接可见，旧页缩放淡出。 */
+private fun popTransform(styleId: String): ContentTransform = when (
+    PageTransitionStyle.fromId(styleId)
+) {
+    PageTransitionStyle.Standard -> EnterTransition.None togetherWith zoomOut()
+    PageTransitionStyle.Fade -> EnterTransition.None togetherWith fadeOut(fadeSpec())
+    // 与「弹入」对称：缩回原来的小尺寸再消失。
+    PageTransitionStyle.Scale -> EnterTransition.None togetherWith (
+        scaleOut(scaleInMotion(), targetScale = SCALE_FROM) + fadeOut(pageMotion())
+        )
+    PageTransitionStyle.None -> ContentTransform(EnterTransition.None, ExitTransition.None)
 }
 
-/**
- * 溶解：旧页淡出、新页淡入的交叉溶解，两页同时渐变、无位移无缩放。
- *
- * 这是唯一会出现「两页都半透明」的样式，本来就是这个样式的定义；
- * 用 tween 而不是 spring，是为了让溶解速度稳定可预期。
- */
-private fun fadeTransform(): ContentTransform {
-    val spec = tween<Float>(durationMillis = FADE_MILLIS, easing = LinearOutSlowInEasing)
-    return fadeIn(spec) togetherWith fadeOut(spec)
-}
+/** 标准进入：新页 0.88 → 1 放大并淡入（对齐 Dart 版 MaterialPageRoute 的缩放过渡）。 */
+private fun zoomIn(): EnterTransition =
+    scaleIn(pageMotion(), initialScale = ZOOM_FROM) + fadeIn(pageMotion())
 
-/**
- * 弹入：新页从明显更小的尺寸弹入（带回弹），不淡入。
- *
- * 起点取 [SCALE_FROM]（0.55）而不是 0.85，否则和「标准」的 0.88 只差一点点，
- * 用户会觉得两个样式一模一样。
- */
-private fun scaleTransform(): ContentTransform =
-    scaleIn(scaleInMotion(), initialScale = SCALE_FROM) togetherWith ExitTransition.None
+/** 标准退出：旧页略微放大并淡出（远离观看者的观感，也是 Flutter zoom 返回的方向）。 */
+private fun zoomOut(): ExitTransition =
+    scaleOut(pageMotion(), targetScale = ZOOM_OUT_TO) + fadeOut(pageMotion())
+
+/** 淡入淡出样式的统一缓动：溶解速度要稳定可预期，因此用 tween 而不是 spring。 */
+private fun fadeSpec(): FiniteAnimationSpec<Float> =
+    tween(durationMillis = FADE_MILLIS, easing = LinearOutSlowInEasing)
 
 /** 缩放样式的弹簧：略微欠阻尼，带回弹，和「标准」的线性观感拉开距离。 */
 private fun <T> scaleInMotion(): SpringSpec<T> = spring(

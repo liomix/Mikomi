@@ -3,9 +3,12 @@ package com.liomix.mikomi.navigation
 import android.app.Activity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -49,6 +52,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.liomix.mikomi.R
 import com.liomix.mikomi.core.designsystem.component.MikomiNavItem
 import com.liomix.mikomi.core.designsystem.component.MikomiNavigationBar
+import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.navigation.AniMapDestination
 import com.liomix.mikomi.core.navigation.DetailDestination
@@ -65,15 +69,28 @@ import com.liomix.mikomi.core.ui.component.LocalHeroFlightController
 /** 进入巡礼页后自动隐藏底部导航栏的延时（毫秒）：不靠滑动判定，进页面 2s 后自动进入沉浸。 */
 private const val NAV_BAR_AUTO_HIDE_DELAY_MILLIS = 2_000L
 
-/** 转场动画统一 spring 参数（近似 Material 运动规范，流畅不拖沓）。 */
+/**
+ * 页面转场统一 spring 参数。
+ *
+ * `stiffness` 从 1600 降到 400：1600 只有约 120ms，加上封面飞行同时进行，
+ * 几个样式在肉眼上几乎分辨不出来（会被当成「没生效」）。400 约 300ms，
+ * 与 Dart 版 MaterialPageRoute 的时长一致。
+ */
 private const val SPRING_DAMPING = 1.0f
-private const val SPRING_STIFFNESS = 1600.0f
+private const val SPRING_STIFFNESS = 400.0f
 
-/** 缩放转场的起始/结束缩放比。 */
-private const val SCALE_FROM = 0.85f
+/** 缩放转场的起始缩放比（明显小于「标准」的 0.88，保证肉眼可辨）。 */
+private const val SCALE_FROM = 0.55f
+
+/** 缩放样式的弹簧参数：欠阻尼带回弹。 */
+private const val SCALE_SPRING_DAMPING = 0.72f
+private const val SCALE_SPRING_STIFFNESS = 520.0f
+
+/** 交叉溶解（淡入淡出）时长。 */
+private const val FADE_MILLIS = 320
 
 /** 标准转场的起始缩放比：比 [SCALE_FROM] 更收敛，接近 Android 12 默认的页面缩放。 */
-private const val ZOOM_FROM = 0.92f
+private const val ZOOM_FROM = 0.88f
 
 /**
  * 页面转场统一缓动。
@@ -92,7 +109,8 @@ fun MikomiNavHost(
     navigator: Navigator,
     entryProviderInstallers: Set<EntryProviderInstaller>,
     immersionBridge: ImmersionBridge,
-    transitionStyleId: String = TransitionStyle.Standard.id,
+    heroStyleId: String = TransitionStyle.Translate.id,
+    pageStyleId: String = PageTransitionStyle.Standard.id,
 ) {
     val homeLabel = stringResource(R.string.nav_home)
     val aniMapLabel = stringResource(R.string.nav_animap)
@@ -178,7 +196,7 @@ fun MikomiNavHost(
 
     // 封面飞行控制器：整个导航宿主共用一份，样式跟随用户偏好。
     val heroController = remember { HeroFlightController() }
-    SideEffect { heroController.style = TransitionStyle.fromId(transitionStyleId) }
+    SideEffect { heroController.style = TransitionStyle.fromId(heroStyleId) }
 
     // 非巡礼沉浸态的返回事件始终按导航栈处理；栈内只剩根页面时退出应用。
     val navBackHandler: () -> Unit = {
@@ -210,14 +228,14 @@ fun MikomiNavHost(
                 // 关掉 AnimatedContent 的尺寸动画：页面本就是整屏，尺寸动画只会让新旧页
                 // 互相裁剪（表现为页面被裁成一条/半张再展开）。
                 transitionSpec = {
-                    pageTransform(transitionStyleId, forward = true).using(null)
+                    pageTransform(pageStyleId, forward = true).using(null)
                 },
                 popTransitionSpec = {
-                    pageTransform(transitionStyleId, forward = false).using(null)
+                    pageTransform(pageStyleId, forward = false).using(null)
                 },
                 // 预测性返回复用返回转场：spring 会实时跟随手势进度，无需单独一套动画。
                 predictivePopTransitionSpec = {
-                    pageTransform(transitionStyleId, forward = false).using(null)
+                    pageTransform(pageStyleId, forward = false).using(null)
                 },
             )
         }
@@ -255,37 +273,56 @@ fun MikomiNavHost(
 }
 
 /**
- * 页面进入/退出转场：按用户选择的 [TransitionStyle] 组装。
+ * 页面动效：新旧两页之间的过渡，与封面飞行（[HeroFlightController]）互不影响。
  *
- * 这里刻意**只用变换类动画**（缩放 / 淡入淡出），不用 slide：
- * slide 是布局位移，会让页面内元素上报的坐标带上位移，封面飞行（画在页面之上的 overlay）
- * 就拿不到正确的终点位置，飞行中途会先飘出屏幕再回来。Dart 版之所以干净，
- * 正是因为 `MaterialPageRoute` 的页面过渡也是变换（缩放），Hero 才不受影响。
+ * 三种样式刻意做成不同性质的动作，否则都是「新页盖在旧页上淡入」，只差几个百分点缩放：
+ * - 标准：小幅缩放 + 淡入（Material 的 zoom 观感，最克制）
+ * - 溶解：旧页淡出 + 新页淡入的真·交叉溶解，无缩放
+ * - 弹入：从明显更小的尺寸带回弹地放大，不淡入
+ * - 无：页面不做过渡，只保留封面飞行
  *
- * 旧页一律保持不透明直到结束（[ExitTransition.None]）：两页同时半透明会把底下底色透出来，
- * 浅色主题下就是「白屏闪一下」。
+ * 不用 slide：slide 是布局位移，会让页面内元素上报的坐标带上位移，
+ * 封面飞行拿不到正确终点（Dart 版干净正是因为 MaterialPageRoute 也是变换）。
  */
 private fun pageTransform(styleId: String, forward: Boolean): ContentTransform = when (
-    TransitionStyle.fromId(styleId)
+    PageTransitionStyle.fromId(styleId)
 ) {
-    TransitionStyle.Standard -> zoomTransform(forward)
-    TransitionStyle.Fade -> fadeTransform()
-    TransitionStyle.Scale -> scaleTransform()
-    // 旋转做在封面飞行上（页面没有旋转转场），页面本身用标准缩放。
-    TransitionStyle.Rotate -> zoomTransform(forward)
+    PageTransitionStyle.Standard -> zoomTransform(forward)
+    PageTransitionStyle.Fade -> fadeTransform()
+    PageTransitionStyle.Scale -> scaleTransform()
+    PageTransitionStyle.None -> ContentTransform(EnterTransition.None, ExitTransition.None)
 }
 
-/** 标准：新页 0.92 → 1 放大并淡入（对齐 Dart 版 MaterialPageRoute 的缩放过渡）。 */
+/** 标准：新页 0.88 → 1 放大并淡入（对齐 Dart 版 MaterialPageRoute 的缩放过渡）。 */
 private fun zoomTransform(forward: Boolean): ContentTransform {
     val scaleFrom = if (forward) ZOOM_FROM else 1f / ZOOM_FROM
     val enter = scaleIn(pageMotion(), initialScale = scaleFrom) + fadeIn(pageMotion())
     return enter togetherWith ExitTransition.None
 }
 
-/** 淡入淡出：旧页保持不透明直到结束，新页淡入覆盖。 */
-private fun fadeTransform(): ContentTransform =
-    fadeIn(pageMotion()) togetherWith ExitTransition.None
+/**
+ * 溶解：旧页淡出、新页淡入的交叉溶解，两页同时渐变、无位移无缩放。
+ *
+ * 这是唯一会出现「两页都半透明」的样式，本来就是这个样式的定义；
+ * 用 tween 而不是 spring，是为了让溶解速度稳定可预期。
+ */
+private fun fadeTransform(): ContentTransform {
+    val spec = tween<Float>(durationMillis = FADE_MILLIS, easing = LinearOutSlowInEasing)
+    return fadeIn(spec) togetherWith fadeOut(spec)
+}
 
-/** 缩放：新页从小放大覆盖旧页，比标准更明显。 */
+/**
+ * 弹入：新页从明显更小的尺寸弹入（带回弹），不淡入。
+ *
+ * 起点取 [SCALE_FROM]（0.55）而不是 0.85，否则和「标准」的 0.88 只差一点点，
+ * 用户会觉得两个样式一模一样。
+ */
 private fun scaleTransform(): ContentTransform =
-    scaleIn(pageMotion(), initialScale = SCALE_FROM) togetherWith ExitTransition.None
+    scaleIn(scaleInMotion(), initialScale = SCALE_FROM) togetherWith ExitTransition.None
+
+/** 缩放样式的弹簧：略微欠阻尼，带回弹，和「标准」的线性观感拉开距离。 */
+private fun <T> scaleInMotion(): SpringSpec<T> = spring(
+    dampingRatio = SCALE_SPRING_DAMPING,
+    stiffness = SCALE_SPRING_STIFFNESS,
+    visibilityThreshold = null,
+)

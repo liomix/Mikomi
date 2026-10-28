@@ -9,6 +9,8 @@ data class UserPreferences(
     val colorScheme: String = "default",
     /** 桌面应用图标样式 id（见 AppIconStyle）；`default` 为默认图标。 */
     val appIcon: String = "default",
-    /** 详情页转场动画样式 id（见 TransitionStyle）；`standard` 为默认。 */
-    val transitionStyle: String = "standard",
+    /** 封面动效 id（见 TransitionStyle，作用在封面飞行上）；`translate` 为默认。 */
+    val transitionStyle: String = "translate",
+    /** 页面动效 id（见 PageTransitionStyle，作用在页面过渡上）；`standard` 为默认。 */
+    val pageTransitionStyle: String = "standard",
 )

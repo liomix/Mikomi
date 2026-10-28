@@ -96,7 +96,7 @@ class HeroFlightController {
         private set
 
     /** 当前转场样式（由导航宿主同步），决定飞行内容变换。 */
-    var style: TransitionStyle = TransitionStyle.Standard
+    var style: TransitionStyle = TransitionStyle.Translate
 
     /** 起飞请求：起点已定，等终点测量。 */
     private var pendingKey: Any? = null
@@ -271,18 +271,9 @@ fun HeroFlightOverlay(
 
     val fraction = progress.value
     val bounds = lerp(flight.from, flight.to, fraction)
-    // 内容变换对齐 Dart 版 flightShuttleBuilder：
-    // 标准 = 原样、淡入淡出 = alpha、缩放 = 0.8→1、旋转 = 转一圈 + 0→1 放大。
-    val contentAlpha = if (flight.style == TransitionStyle.Fade) fraction else 1f
-    val contentScale = when (flight.style) {
-        TransitionStyle.Scale -> {
-            val eased = 1f - (1f - fraction) * (1f - fraction) * (1f - fraction)
-            0.8f + 0.2f * eased
-        }
-        // Dart 用 ScaleTransition(scale: animation)，即从 0 长到 1。
-        TransitionStyle.Rotate -> fraction
-        else -> 1f
-    }
+    // 内容变换只在「旋转」时生效：转一圈并从 0 放大到原始尺寸
+    //（Dart 的 RotationTransition + ScaleTransition(scale: animation)）；「平移」原样飞行。
+    val contentScale = if (flight.style == TransitionStyle.Rotate) fraction else 1f
     val contentRotation = if (flight.style == TransitionStyle.Rotate) {
         FULL_TURN_DEGREES * smoothInOut(fraction)
     } else {
@@ -307,7 +298,6 @@ fun HeroFlightOverlay(
                 height = with(density) { bounds.height.toDp() },
             )
             .graphicsLayer {
-                alpha = contentAlpha
                 scaleX = contentScale
                 scaleY = contentScale
                 rotationZ = contentRotation

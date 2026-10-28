@@ -15,9 +15,13 @@
     <string name="settings_app_icon_failed">图标切换失败</string>
 
     <!-- 转场动画 -->
-    <string name="settings_transition_section">转场动画</string>
-    <string name="settings_transition_standard">标准</string>
-    <string name="settings_transition_fade">淡入淡出</string>
-    <string name="settings_transition_scale">缩放</string>
+    <string name="settings_effect_section">动态效果</string>
+    <string name="settings_effect_hero">封面动效</string>
+    <string name="settings_effect_page">页面动效</string>
+    <string name="settings_transition_translate">平移</string>
     <string name="settings_transition_rotate">旋转</string>
+    <string name="settings_page_standard">缩放淡入</string>
+    <string name="settings_page_fade">溶解</string>
+    <string name="settings_page_scale">弹入</string>
+    <string name="settings_page_none">无</string>
 </resources>

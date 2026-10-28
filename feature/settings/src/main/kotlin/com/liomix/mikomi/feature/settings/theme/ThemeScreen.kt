@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBars
@@ -35,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,7 +45,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
+import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
+import com.liomix.mikomi.feature.settings.component.SettingsCapsule
 import com.liomix.mikomi.core.ui.component.MikomiToast
 import com.liomix.mikomi.core.ui.component.MikomiToastData
 import com.liomix.mikomi.feature.settings.R
@@ -71,11 +73,13 @@ fun ThemeScreen(
     isDarkMode: Boolean,
     appIconId: String,
     transitionStyleId: String,
+    pageTransitionStyleId: String,
     toast: MikomiToastData?,
     onSelectColorScheme: (String) -> Unit,
     onToggleDarkMode: (Boolean) -> Unit,
     onSelectAppIcon: (String) -> Unit,
     onSelectTransitionStyle: (String) -> Unit,
+    onSelectPageTransitionStyle: (String) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -140,11 +144,11 @@ fun ThemeScreen(
                         }
                     }
 
-                    // 转场动画：详情页进入过渡样式（对齐 Dart 版 HeroAnimationStyle）。
+                    // 动态效果：拆成「封面动效」与「页面动效」两组，互不影响。
                     SettingsCard {
                         SettingsCardSection {
                             Text(
-                                text = stringResource(R.string.settings_transition_section),
+                                text = stringResource(R.string.settings_effect_section),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
@@ -154,21 +158,45 @@ fun ThemeScreen(
                                     top = 20.dp,
                                 ),
                             )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 20.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                items(
-                                    items = TransitionStyle.entries,
-                                    key = { style -> style.id },
-                                    contentType = { "transition" },
-                                ) { style ->
-                                    TransitionOption(
-                                        style = style,
-                                        selected = style.id == transitionStyleId,
-                                        onClick = { onSelectTransitionStyle(style.id) },
-                                    )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            EffectGroup(title = stringResource(R.string.settings_effect_hero)) {
+                                // 用解析后的枚举比较：老版本存过 standard / fade / scale 这类
+                                // 已废弃的 id，直接比字符串会导致「一个都不选中」。
+                                val currentHero = TransitionStyle.fromId(transitionStyleId)
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    items(
+                                        items = TransitionStyle.entries,
+                                        key = { style -> style.id },
+                                        contentType = { "hero" },
+                                    ) { style ->
+                                        SettingsCapsule(
+                                            text = stringResource(style.labelRes),
+                                            selected = currentHero == style,
+                                            onClick = { onSelectTransitionStyle(style.id) },
+                                        )
+                                    }
+                                }
+                            }
+                            EffectGroup(title = stringResource(R.string.settings_effect_page)) {
+                                val currentPage = PageTransitionStyle.fromId(pageTransitionStyleId)
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    items(
+                                        items = PageTransitionStyle.entries,
+                                        key = { style -> style.id },
+                                        contentType = { "page" },
+                                    ) { style ->
+                                        SettingsCapsule(
+                                            text = stringResource(style.labelRes),
+                                            selected = currentPage == style,
+                                            onClick = { onSelectPageTransitionStyle(style.id) },
+                                        )
+                                    }
                                 }
                             }
                             Spacer(modifier = Modifier.height(20.dp))
@@ -347,59 +375,48 @@ private val APP_ICON_FOREGROUND_PADDING = 10.dp
 /** 预览底色：与真实启动图标的白底保持一致。 */
 private val APP_ICON_PREVIEW_BACKGROUND = Color(0xFFFEFEFE)
 
-/** 触屏最小触控目标（rule §5.3：交互元素不低于 48dp × 48dp）。 */
-private val MIN_TOUCH_TARGET = 48.dp
-
 /**
- * 转场动画选项：圆角胶囊 + 名称。
- *
- * 选中时胶囊用主色底，文字取 onPrimary（与配色/图标选中态统一）。
+ * 动态效果里的一个分组（封面动效 / 页面动效）：浅色子卡片 + 标题 + 选项行。
  */
 @Composable
-private fun TransitionOption(
-    style: TransitionStyle,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
+private fun EffectGroup(
+    title: String,
+    content: @Composable () -> Unit,
 ) {
-    val containerColor = if (selected) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHigh
-    }
-    val contentColor = if (selected) {
-        MaterialTheme.colorScheme.onPrimary
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
-    Surface(
-        onClick = onClick,
-        modifier = modifier,
-        shape = RoundedCornerShape(percent = 50),
-        color = containerColor,
-        contentColor = contentColor,
-    ) {
-        // 触控目标交给内层 Box 保证：胶囊最小高度 48dp，文字垂直居中。
-        Box(
-            modifier = Modifier
-                .heightIn(min = MIN_TOUCH_TARGET)
-                .padding(horizontal = 18.dp),
-            contentAlignment = Alignment.Center,
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
-            Text(
-                text = stringResource(style.labelRes),
-                style = MaterialTheme.typography.labelLarge,
-            )
+            Column(modifier = Modifier.padding(vertical = 14.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                content()
+            }
         }
     }
 }
 
-/** 转场动画样式的中文名资源映射。 */
+/** 页面动效的中文名资源映射。 */
+@get:StringRes
+private val PageTransitionStyle.labelRes: Int
+    get() = when (this) {
+        PageTransitionStyle.Standard -> R.string.settings_page_standard
+        PageTransitionStyle.Fade -> R.string.settings_page_fade
+        PageTransitionStyle.Scale -> R.string.settings_page_scale
+        PageTransitionStyle.None -> R.string.settings_page_none
+    }
+
+/** 封面动效的中文名资源映射。 */
 @get:StringRes
 private val TransitionStyle.labelRes: Int
     get() = when (this) {
-        TransitionStyle.Standard -> R.string.settings_transition_standard
-        TransitionStyle.Fade -> R.string.settings_transition_fade
-        TransitionStyle.Scale -> R.string.settings_transition_scale
+        TransitionStyle.Translate -> R.string.settings_transition_translate
         TransitionStyle.Rotate -> R.string.settings_transition_rotate
     }

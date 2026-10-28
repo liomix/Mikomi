@@ -13,4 +13,10 @@
     <string name="settings_app_icon_green">绿色</string>
     <string name="settings_app_icon_changed">桌面图标已更新，若未变化请稍候或重启桌面</string>
     <string name="settings_app_icon_failed">图标切换失败</string>
+
+    <!-- 转场动画 -->
+    <string name="settings_transition_section">转场动画</string>
+    <string name="settings_transition_standard">标准</string>
+    <string name="settings_transition_fade">淡入淡出</string>
+    <string name="settings_transition_scale">缩放</string>
 </resources>

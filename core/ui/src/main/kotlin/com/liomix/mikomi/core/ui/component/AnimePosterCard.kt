@@ -15,6 +15,7 @@ import com.liomix.mikomi.core.model.Anime
  * 番剧海报卡：2:3 封面 + 单行滚动标题。
  *
  * 首页推荐网格与搜索结果网格共用同一套展示样式，保证两处视觉一致。
+ * 封面参与共享元素转场（Hero）：点进详情页时封面飞行到详情页头部。
  */
 @Composable
 fun AnimePosterCard(

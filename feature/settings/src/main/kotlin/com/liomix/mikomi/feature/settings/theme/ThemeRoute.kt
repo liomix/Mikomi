@@ -25,6 +25,7 @@ fun ThemeRoute(
     val colorSchemeId by viewModel.colorSchemeId.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val appIconId by viewModel.appIconId.collectAsStateWithLifecycle()
+    val transitionStyleId by viewModel.transitionStyleId.collectAsStateWithLifecycle()
     val systemInDarkTheme = isSystemInDarkTheme()
     // system 模式下开关状态跟随系统，一旦拨动即固化为 light / dark。
     val isDarkMode = when (themeMode) {
@@ -59,10 +60,12 @@ fun ThemeRoute(
         colorSchemeId = colorSchemeId,
         isDarkMode = isDarkMode,
         appIconId = appIconId,
+        transitionStyleId = transitionStyleId,
         toast = toast,
         onSelectColorScheme = viewModel::selectColorScheme,
         onToggleDarkMode = viewModel::setDarkMode,
         onSelectAppIcon = viewModel::selectAppIcon,
+        onSelectTransitionStyle = viewModel::selectTransitionStyle,
         onBackClick = onBackClick,
         modifier = modifier,
     )

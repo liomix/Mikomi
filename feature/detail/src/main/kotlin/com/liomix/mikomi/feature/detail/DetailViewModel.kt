@@ -16,8 +16,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -57,11 +59,16 @@ class DetailViewModel @Inject constructor(
             if (id == null) {
                 flowOf(DetailUiState.Loading)
             } else {
-                animeRepository.observeAnime(id).map { anime: Anime? ->
-                    when {
-                        anime != null -> DetailUiState.Success(anime = anime)
-                        else -> DetailUiState.Loading
-                    }
+                // 每次切换 animeId 先回到 Loading，避免复用 ViewModel 时
+                // 短暂渲染上一个动漫的详情（「闪一下」问题）。
+                flow<DetailUiState> {
+                    emit(DetailUiState.Loading)
+                    emitAll(
+                        animeRepository.observeAnime(id).map { anime: Anime? ->
+                            if (anime != null) DetailUiState.Success(anime = anime)
+                            else DetailUiState.Loading
+                        },
+                    )
                 }
             }
         }
@@ -88,7 +95,8 @@ class DetailViewModel @Inject constructor(
     private var teasingRequested = false
 
     fun bind(animeId: String) {
-        if (this.animeId.value == animeId) return
+        // 无条件重置：共享 ViewModelStore 下 ViewModel 会被复用，
+        // 必须每次 bind 都回到干净状态并重新加载，否则「搜过 A 再搜 B 仍显示 A」。
         this.animeId.value = animeId
         _creditsState.value = AnimeCreditsUiState.Idle
         _creditDetailState.value = CreditDetailUiState.Hidden

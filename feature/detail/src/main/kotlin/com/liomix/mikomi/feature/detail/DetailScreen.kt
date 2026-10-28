@@ -46,7 +46,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.ErrorState
-import com.liomix.mikomi.core.ui.component.LoadingState
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.hazeSource
@@ -96,9 +95,9 @@ fun DetailScreen(
         contentWindowInsets = WindowInsets(0),
     ) { innerPadding ->
         when (uiState) {
-            DetailUiState.Loading -> LoadingState(
-                modifier = Modifier.padding(innerPadding),
-            )
+            // 不显示加载图标：番剧数据在列表页已写入 Room，进入详情首帧就有内容，
+            // 加载态只是一两帧的闪烁；未命中缓存时宁可留白，也不闪一下转圈。
+            DetailUiState.Loading -> Unit
 
             DetailUiState.Error -> ErrorState(
                 message = stringResource(R.string.detail_load_failed),
@@ -250,6 +249,11 @@ private fun FavoriteButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val contentDescriptionRes = if (isFavorite) {
+        R.string.detail_remove_favorite
+    } else {
+        R.string.detail_add_favorite
+    }
     Surface(
         onClick = onClick,
         modifier = modifier.size(FAVORITE_BUTTON_SIZE),
@@ -268,9 +272,7 @@ private fun FavoriteButton(
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = if (isFavorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
-                contentDescription = stringResource(
-                    if (isFavorite) R.string.detail_remove_favorite else R.string.detail_add_favorite,
-                ),
+                contentDescription = stringResource(contentDescriptionRes),
                 modifier = Modifier.size(26.dp),
             )
         }

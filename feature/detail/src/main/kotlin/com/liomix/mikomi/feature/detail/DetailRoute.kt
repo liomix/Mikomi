@@ -1,6 +1,7 @@
 package com.liomix.mikomi.feature.detail
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -16,7 +17,11 @@ fun DetailRoute(
     modifier: Modifier = Modifier,
     viewModel: DetailViewModel = hiltViewModel(),
 ) {
-    viewModel.bind(animeId)
+    // 用 LaunchedEffect 绑定参数（不在组合中直接调用），
+    // 避免「闪一下上一个动漫详情」的副作用。
+    LaunchedEffect(animeId) {
+        viewModel.bind(animeId)
+    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val creditsState by viewModel.creditsState.collectAsStateWithLifecycle()
     val creditDetailState by viewModel.creditDetailState.collectAsStateWithLifecycle()

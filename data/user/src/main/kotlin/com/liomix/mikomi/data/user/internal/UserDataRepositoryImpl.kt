@@ -69,6 +69,10 @@ internal class UserDataRepositoryImpl @Inject constructor(
         userPreferencesDataSource.setAppIcon(appIcon)
     }
 
+    override suspend fun setTransitionStyle(style: String) {
+        userPreferencesDataSource.setTransitionStyle(style)
+    }
+
     override suspend fun addSearchHistory(keyword: String) {
         searchHistoryDataSource.add(keyword)
     }

@@ -30,6 +30,7 @@ class UserPreferencesDataSource @Inject constructor(
             autoPlayNext = prefs[KEY_AUTO_PLAY_NEXT] ?: true,
             colorScheme = prefs[KEY_COLOR_SCHEME] ?: DEFAULT_COLOR_SCHEME,
             appIcon = prefs[KEY_APP_ICON] ?: DEFAULT_APP_ICON,
+            transitionStyle = prefs[KEY_TRANSITION_STYLE] ?: DEFAULT_TRANSITION_STYLE,
         )
     }
 
@@ -53,15 +54,21 @@ class UserPreferencesDataSource @Inject constructor(
         dataStore.edit { it[KEY_APP_ICON] = appIcon }
     }
 
+    suspend fun setTransitionStyle(style: String) {
+        dataStore.edit { it[KEY_TRANSITION_STYLE] = style }
+    }
+
     private companion object {
         val KEY_THEME = stringPreferencesKey("theme")
         val KEY_QUALITY = stringPreferencesKey("default_quality")
         val KEY_AUTO_PLAY_NEXT = booleanPreferencesKey("auto_play_next")
         val KEY_COLOR_SCHEME = stringPreferencesKey("color_scheme")
         val KEY_APP_ICON = stringPreferencesKey("app_icon")
+        val KEY_TRANSITION_STYLE = stringPreferencesKey("transition_style")
         const val DEFAULT_THEME = "system"
         const val DEFAULT_QUALITY = "auto"
         const val DEFAULT_COLOR_SCHEME = "default"
         const val DEFAULT_APP_ICON = "default"
+        const val DEFAULT_TRANSITION_STYLE = "standard"
     }
 }

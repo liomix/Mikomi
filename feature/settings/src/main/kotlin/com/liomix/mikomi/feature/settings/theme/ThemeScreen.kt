@@ -1,5 +1,6 @@
 package com.liomix.mikomi.feature.settings.theme
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBars
@@ -30,6 +32,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -42,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
+import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.ui.component.MikomiToast
 import com.liomix.mikomi.core.ui.component.MikomiToastData
 import com.liomix.mikomi.feature.settings.R
@@ -66,10 +70,12 @@ fun ThemeScreen(
     colorSchemeId: String,
     isDarkMode: Boolean,
     appIconId: String,
+    transitionStyleId: String,
     toast: MikomiToastData?,
     onSelectColorScheme: (String) -> Unit,
     onToggleDarkMode: (Boolean) -> Unit,
     onSelectAppIcon: (String) -> Unit,
+    onSelectTransitionStyle: (String) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -116,6 +122,7 @@ fun ThemeScreen(
                                 items(
                                     items = ThemePalette.entries,
                                     key = { palette -> palette.id },
+                                    contentType = { "palette" },
                                 ) { palette ->
                                     PaletteSwatch(
                                         palette = palette,
@@ -130,6 +137,41 @@ fun ThemeScreen(
                         // 黑白（日 / 夜）切换：动画与交互由组件内部完成。
                         SettingsCardSection(dividerAbove = true) {
                             BAndWSwitch(isDarkMode = isDarkMode)
+                        }
+                    }
+
+                    // 转场动画：详情页进入过渡样式（对齐 Dart 版 HeroAnimationStyle）。
+                    SettingsCard {
+                        SettingsCardSection {
+                            Text(
+                                text = stringResource(R.string.settings_transition_section),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(
+                                    start = 20.dp,
+                                    end = 20.dp,
+                                    top = 20.dp,
+                                ),
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 20.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                items(
+                                    items = TransitionStyle.entries,
+                                    key = { style -> style.id },
+                                    contentType = { "transition" },
+                                ) { style ->
+                                    TransitionOption(
+                                        style = style,
+                                        selected = style.id == transitionStyleId,
+                                        onClick = { onSelectTransitionStyle(style.id) },
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(20.dp))
                         }
                     }
 
@@ -155,6 +197,7 @@ fun ThemeScreen(
                                 items(
                                     items = AppIconStyle.entries,
                                     key = { style -> style.id },
+                                    contentType = { "app_icon" },
                                 ) { style ->
                                     AppIconOption(
                                         style = style,
@@ -303,3 +346,59 @@ private val APP_ICON_FOREGROUND_PADDING = 10.dp
 
 /** 预览底色：与真实启动图标的白底保持一致。 */
 private val APP_ICON_PREVIEW_BACKGROUND = Color(0xFFFEFEFE)
+
+/** 触屏最小触控目标（rule §5.3：交互元素不低于 48dp × 48dp）。 */
+private val MIN_TOUCH_TARGET = 48.dp
+
+/**
+ * 转场动画选项：圆角胶囊 + 名称。
+ *
+ * 选中时胶囊用主色底，文字取 onPrimary（与配色/图标选中态统一）。
+ */
+@Composable
+private fun TransitionOption(
+    style: TransitionStyle,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val containerColor = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerHigh
+    }
+    val contentColor = if (selected) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(percent = 50),
+        color = containerColor,
+        contentColor = contentColor,
+    ) {
+        // 触控目标交给内层 Box 保证：胶囊最小高度 48dp，文字垂直居中。
+        Box(
+            modifier = Modifier
+                .heightIn(min = MIN_TOUCH_TARGET)
+                .padding(horizontal = 18.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = stringResource(style.labelRes),
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
+    }
+}
+
+/** 转场动画样式的中文名资源映射。 */
+@get:StringRes
+private val TransitionStyle.labelRes: Int
+    get() = when (this) {
+        TransitionStyle.Standard -> R.string.settings_transition_standard
+        TransitionStyle.Fade -> R.string.settings_transition_fade
+        TransitionStyle.Scale -> R.string.settings_transition_scale
+    }

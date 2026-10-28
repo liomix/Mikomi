@@ -7,6 +7,7 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
+import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.data.user.UserDataRepository
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.appicon.AppIconManager
@@ -69,6 +70,15 @@ class ThemeViewModel @Inject constructor(
             initialValue = AppIconStyle.Default.id,
         )
 
+    /** 当前转场动画样式 id。 */
+    val transitionStyleId: StateFlow<String> = userDataRepository.observeUserPreferences()
+        .map { it.transitionStyle }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = TransitionStyle.Standard.id,
+        )
+
     /** 一次性提示，由 UI 层用 [com.liomix.mikomi.core.ui.component.MikomiToast] 呈现。 */
     private val _toasts = MutableSharedFlow<ThemeToast>(extraBufferCapacity = 1)
     val toasts: SharedFlow<ThemeToast> = _toasts.asSharedFlow()
@@ -81,6 +91,19 @@ class ThemeViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Set color scheme failed, id=$id", e)
+            }
+        }
+    }
+
+    /** 选择详情页转场动画样式。 */
+    fun selectTransitionStyle(id: String) {
+        viewModelScope.launch {
+            try {
+                userDataRepository.setTransitionStyle(id)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Set transition style failed, id=$id", e)
             }
         }
     }

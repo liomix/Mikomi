@@ -209,8 +209,13 @@ private fun HomeContent(
     val gridState = rememberLazyGridState()
     val shouldLoadMore by remember {
         derivedStateOf {
-            val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            lastVisible >= gridState.layoutInfo.totalItemsCount - LOAD_MORE_THRESHOLD
+            val info = gridState.layoutInfo
+            // 首帧布局尚未完成时 visibleItemsInfo 为空：此时必须判 false。
+            // 否则 lastVisible(-1) >= totalItemsCount(0) - 3 恒成立，会在进入首页的瞬间
+            // 自动拉第二页，第二页数据按热度并入后已显示的封面会整体重排。
+            val lastVisible = info.visibleItemsInfo.lastOrNull()?.index
+                ?: return@derivedStateOf false
+            lastVisible >= info.totalItemsCount - LOAD_MORE_THRESHOLD
         }
     }
     LaunchedEffect(shouldLoadMore, isLoadingMore, hasMore) {
@@ -242,7 +247,9 @@ private fun HomeContent(
             )
         }
 
-        item(key = if (banners.isEmpty()) "bannerSkeleton" else "banner", span = { GridItemSpan(maxLineSpan) }) {
+        // 轮播图未就绪时用同尺寸骨架占位；key 随状态切换，避免骨架与真实轮播复用同一节点。
+        val bannerItemKey = if (banners.isEmpty()) "bannerSkeleton" else "banner"
+        item(key = bannerItemKey, span = { GridItemSpan(maxLineSpan) }) {
             if (banners.isEmpty()) {
                 HomeBannerSkeleton()
             } else {

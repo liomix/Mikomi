@@ -1,11 +1,20 @@
 package com.liomix.mikomi.navigation
 
 import android.app.Activity
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -41,6 +50,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.liomix.mikomi.R
 import com.liomix.mikomi.core.designsystem.component.MikomiNavItem
 import com.liomix.mikomi.core.designsystem.component.MikomiNavigationBar
+import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.navigation.AniMapDestination
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.HomeDestination
@@ -52,11 +62,31 @@ import com.liomix.mikomi.core.navigation.topLevelDestinations
 /** 进入巡礼页后自动隐藏底部导航栏的延时（毫秒）：不靠滑动判定，进页面 2s 后自动进入沉浸。 */
 private const val NAV_BAR_AUTO_HIDE_DELAY_MILLIS = 2_000L
 
+/** 转场动画统一 spring 参数（近似 Material 运动规范，流畅不拖沓）。 */
+private const val SPRING_DAMPING = 1.0f
+private const val SPRING_STIFFNESS = 1600.0f
+
+/** 缩放转场的起始/结束缩放比。 */
+private const val SCALE_FROM = 0.85f
+
+/**
+ * 页面转场统一缓动。
+ *
+ * `dampingRatio = 1` 无过冲、`stiffness = 1600` 干脆利落；泛型化以便
+ * slide（`IntOffset`）/ fade·scale（`Float`）共用同一套参数。
+ */
+private fun <T> pageMotion(): SpringSpec<T> = spring(
+    dampingRatio = SPRING_DAMPING,
+    stiffness = SPRING_STIFFNESS,
+    visibilityThreshold = null,
+)
+
 @Composable
 fun MikomiNavHost(
     navigator: Navigator,
     entryProviderInstallers: Set<EntryProviderInstaller>,
     immersionBridge: ImmersionBridge,
+    transitionStyleId: String = TransitionStyle.Standard.id,
 ) {
     val homeLabel = stringResource(R.string.nav_home)
     val aniMapLabel = stringResource(R.string.nav_animap)
@@ -126,7 +156,8 @@ fun MikomiNavHost(
         activity.window?.let { window ->
             // 保持 edge-to-edge：内容延伸到系统栏之下，但系统栏本身始终显示。
             WindowCompat.setDecorFitsSystemWindows(window, false)
-            WindowCompat.getInsetsController(window, view).show(WindowInsetsCompat.Type.systemBars())
+            WindowCompat.getInsetsController(window, view)
+                .show(WindowInsetsCompat.Type.systemBars())
         }
     }
 
@@ -159,6 +190,10 @@ fun MikomiNavHost(
             backStack = navigator.backStack,
             onBack = navBackHandler,
             entryProvider = navEntryProvider,
+            transitionSpec = { transitionSpec(transitionStyleId) },
+            popTransitionSpec = { popTransitionSpec(transitionStyleId) },
+            // 预测性返回复用返回转场：spring 会实时跟随手势进度，无需单独一套动画。
+            predictivePopTransitionSpec = { popTransitionSpec(transitionStyleId) },
         )
 
         // 沉浸式或非顶级页面（详情/播放器等二级页面）下隐藏底部导航栏，
@@ -187,4 +222,61 @@ fun MikomiNavHost(
             )
         }
     }
+}
+
+/**
+ * 进入转场：根据用户选择的 [TransitionStyle] 决定页面进入动画。
+ *
+ * 方向语义由 [movingForward] 决定，返回转场只是把方向反过来，避免维护两份对称的动画表。
+ */
+private fun AnimatedContentTransitionScope<*>.transitionSpec(
+    styleId: String,
+): ContentTransform = pageTransform(
+    style = TransitionStyle.fromId(styleId),
+    movingForward = true,
+)
+
+/**
+ * 返回转场：方向与进入相反。
+ *
+ * 预测性返回（`predictivePopTransitionSpec`）也复用本样式：
+ * 手势驱动的进度由 spring 实时跟随，与普通返回保持视觉一致。
+ */
+private fun AnimatedContentTransitionScope<*>.popTransitionSpec(
+    styleId: String,
+): ContentTransform = pageTransform(
+    style = TransitionStyle.fromId(styleId),
+    movingForward = false,
+)
+
+/** 按样式组装一对「进入 + 退出」动画。 */
+private fun pageTransform(
+    style: TransitionStyle,
+    movingForward: Boolean,
+): ContentTransform = when (style) {
+    TransitionStyle.Standard -> slideTransform(movingForward)
+    TransitionStyle.Fade -> fadeTransform()
+    TransitionStyle.Scale -> scaleTransform()
+}
+
+/** 标准：新页整屏横向滑入，旧页反向微移，形成层次感。 */
+private fun slideTransform(movingForward: Boolean): ContentTransform {
+    val enterOffsetX: (Int) -> Int = { full -> if (movingForward) full else -full / 4 }
+    val exitOffsetX: (Int) -> Int = { full -> if (movingForward) -full / 4 else full }
+    val enter = slideInHorizontally(pageMotion(), initialOffsetX = enterOffsetX) +
+        fadeIn(pageMotion())
+    val exit = slideOutHorizontally(pageMotion(), targetOffsetX = exitOffsetX) +
+        fadeOut(pageMotion())
+    return enter togetherWith exit
+}
+
+/** 淡入淡出：无位移，最轻的过渡。 */
+private fun fadeTransform(): ContentTransform =
+    fadeIn(pageMotion()) togetherWith fadeOut(pageMotion())
+
+/** 缩放：从小放大进入，退出时缩回。 */
+private fun scaleTransform(): ContentTransform {
+    val enter = scaleIn(pageMotion(), initialScale = SCALE_FROM) + fadeIn(pageMotion())
+    val exit = scaleOut(pageMotion(), targetScale = SCALE_FROM) + fadeOut(pageMotion())
+    return enter togetherWith exit
 }

@@ -3,6 +3,8 @@ package com.liomix.mikomi.feature.search
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.liomix.mikomi.core.model.RankRegion
+import com.liomix.mikomi.data.anime.AniRpbRepository
 import com.liomix.mikomi.data.anime.SearchRepository
 import com.liomix.mikomi.data.user.UserDataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,8 +26,8 @@ import kotlinx.coroutines.launch
  *
  * 三条数据线彼此独立：
  * - 搜索历史：DataStore 实时观察；
- * - 热门推荐：进页面拉取一次，失败可重试；
- * - 输入联想：防抖 280ms。
+ * - 日漫 / 国漫热播榜：AniRpb 直连，两个 Tab 各自加载、各自重试；
+ * - 输入联想：防抖 280ms，仍走 Bangumi。
  *
  * 结果列表由下一级的结果页（`feature.search.result`）自己加载，
  * 这里只负责提交时记录历史，导航交给 Route 层。
@@ -34,6 +36,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     private val searchRepository: SearchRepository,
+    private val aniRpbRepository: AniRpbRepository,
     private val userDataRepository: UserDataRepository,
 ) : ViewModel() {
 
@@ -46,7 +49,8 @@ class SearchViewModel @Inject constructor(
     init {
         observeHistory()
         observeSuggestions()
-        loadTrending()
+        loadHotRanking(SearchHotTab.JAPANESE)
+        loadHotRanking(SearchHotTab.CHINESE)
     }
 
     private fun observeHistory() {
@@ -87,19 +91,39 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    private fun loadTrending() {
+    /** 加载指定热播榜；失败保留该 Tab 的旧数据并切换为可重试错误态。 */
+    private fun loadHotRanking(tab: SearchHotTab) {
         viewModelScope.launch {
-            _uiState.update { it.copy(trendingState = LoadState.Loading) }
+            updateHotState(tab, LoadState.Loading)
             try {
-                val items = searchRepository.fetchTrending()
-                _uiState.update {
-                    it.copy(trending = items, trendingState = LoadState.Success)
+                val items = aniRpbRepository.fetchHotRanking(tab.region())
+                _uiState.update { state ->
+                    when (tab) {
+                        SearchHotTab.JAPANESE -> state.copy(
+                            japaneseHot = items,
+                            japaneseHotState = LoadState.Success,
+                        )
+
+                        SearchHotTab.CHINESE -> state.copy(
+                            chineseHot = items,
+                            chineseHotState = LoadState.Success,
+                        )
+                    }
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Log.w(TAG, "Load trending failed", e)
-                _uiState.update { it.copy(trendingState = LoadState.Error) }
+                Log.w(TAG, "Load ${tab.name} hot ranking failed", e)
+                updateHotState(tab, LoadState.Error)
+            }
+        }
+    }
+
+    private fun updateHotState(tab: SearchHotTab, state: LoadState) {
+        _uiState.update { current ->
+            when (tab) {
+                SearchHotTab.JAPANESE -> current.copy(japaneseHotState = state)
+                SearchHotTab.CHINESE -> current.copy(chineseHotState = state)
             }
         }
     }
@@ -115,7 +139,15 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    /** 清空输入：回到浏览态（历史 + 热门）。 */
+    /** 切换日漫 / 国漫热播榜。 */
+    fun onHotTabChange(tab: SearchHotTab) {
+        _uiState.update { it.copy(hotTab = tab) }
+    }
+
+    /** 重试指定热播榜。 */
+    fun retryHot(tab: SearchHotTab = _uiState.value.hotTab) = loadHotRanking(tab)
+
+    /** 清空输入：回到浏览态（历史 + 热播榜）。 */
     fun clearQuery() {
         queryFlow.value = ""
         _uiState.update {
@@ -158,9 +190,6 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    /** 重试热门推荐。 */
-    fun retryTrending() = loadTrending()
-
     fun removeHistory(keyword: String) {
         viewModelScope.launch {
             runCatching { userDataRepository.removeSearchHistory(keyword) }
@@ -173,6 +202,11 @@ class SearchViewModel @Inject constructor(
             runCatching { userDataRepository.clearSearchHistory() }
                 .onFailure { Log.w(TAG, "Clear search history failed", it) }
         }
+    }
+
+    private fun SearchHotTab.region(): RankRegion = when (this) {
+        SearchHotTab.JAPANESE -> RankRegion.JAPANESE
+        SearchHotTab.CHINESE -> RankRegion.CHINESE
     }
 
     private companion object {

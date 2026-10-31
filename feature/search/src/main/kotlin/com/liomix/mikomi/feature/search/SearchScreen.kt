@@ -12,11 +12,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import com.liomix.mikomi.core.model.AniRpbHotItem
 
 /**
  * 搜索页（无状态）。
  *
- * 只负责「输入」：历史 + 热门 / 实时联想两种浏览态；
+ * 只负责「输入」：历史 + 热播榜 / 实时联想两种浏览态；
  * 提交后由调用方跳转到搜索结果页（搜索页的第二级页面）。
  */
 @Composable
@@ -28,8 +29,9 @@ fun SearchScreen(
     onBack: () -> Unit,
     onRemoveHistory: (String) -> Unit,
     onClearHistory: () -> Unit,
-    onAnimeClick: (String) -> Unit,
-    onRetryTrending: () -> Unit,
+    onHotTabChange: (SearchHotTab) -> Unit,
+    onHotItemClick: (AniRpbHotItem) -> Unit,
+    onRetryHot: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -68,8 +70,12 @@ fun SearchScreen(
                         },
                         onRemoveHistory = onRemoveHistory,
                         onClearHistory = onClearHistory,
-                        onAnimeClick = onAnimeClick,
-                        onRetryTrending = onRetryTrending,
+                        onHotTabChange = onHotTabChange,
+                        onHotItemClick = { item ->
+                            onHotItemClick(item)
+                            keyboardController?.hide()
+                        },
+                        onRetryHot = onRetryHot,
                     )
 
                     SearchPhase.SUGGEST -> SearchSuggestionList(

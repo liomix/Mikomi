@@ -1,5 +1,6 @@
 package com.liomix.mikomi.data.anime.di
 
+import com.liomix.mikomi.data.anime.AniRpbRepository
 import com.liomix.mikomi.data.anime.AnimeCommentRepository
 import com.liomix.mikomi.data.anime.AnimeCreditsRepository
 import com.liomix.mikomi.data.anime.AnimeIdMapper
@@ -8,6 +9,7 @@ import com.liomix.mikomi.data.anime.HomeRepository
 import com.liomix.mikomi.data.anime.RankRepository
 import com.liomix.mikomi.data.anime.SearchRepository
 import com.liomix.mikomi.data.anime.ScheduleRepository
+import com.liomix.mikomi.data.anime.internal.AniRpbRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.AnimeCommentRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.AnimeCreditsRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.AnimeIdMapperImpl
@@ -35,6 +37,9 @@ object AnimeApiModule {
 @Module
 @InstallIn(SingletonComponent::class)
 internal abstract class AnimeDataModule {
+
+    @Binds
+    internal abstract fun bindAniRpbRepository(impl: AniRpbRepositoryImpl): AniRpbRepository
 
     @Binds
     internal abstract fun bindAnimeRepository(impl: AnimeRepositoryImpl): AnimeRepository

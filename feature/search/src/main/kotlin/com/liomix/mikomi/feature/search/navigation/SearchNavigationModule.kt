@@ -25,7 +25,6 @@ object SearchNavigationModule {
             SearchRoute(
                 onBackClick = { navigator.goBack() },
                 onSearch = { keyword -> navigator.goTo(SearchResultDestination(keyword)) },
-                onAnimeClick = { animeId -> navigator.goTo(DetailDestination(animeId)) },
             )
         }
         entry<SearchResultDestination> { destination ->

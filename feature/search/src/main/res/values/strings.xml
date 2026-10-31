@@ -10,8 +10,12 @@
     <string name="search_history_expand">展开</string>
     <string name="search_history_collapse">收起</string>
 
-    <string name="search_trending">热门推荐</string>
-    <string name="search_trending_empty">暂无热门内容</string>
+    <string name="search_hot_ranking">热播榜</string>
+    <string name="search_hot_japanese">日漫</string>
+    <string name="search_hot_chinese">国漫</string>
+    <string name="search_hot_empty">暂无热播内容</string>
+    <string name="search_hot_episodes">更新至 %1$d 集</string>
+    <string name="search_hot_play_count">%1$s 播放</string>
 
     <string name="search_no_suggestion">没有匹配的联想结果</string>
     <string name="search_suggestion_retry_hint">继续输入可重新加载</string>

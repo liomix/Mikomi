@@ -8,6 +8,14 @@ android {
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+
+    packaging {
+        jniLibs {
+            // libzhuque.so 会 dlopen 同目录的 libaddressing_ffi.so；使用传统解压安装
+            // 可以保证原生库位于可被动态链接器找到的 lib 目录。
+            useLegacyPackaging = true
+        }
+    }
 }
 
 dependencies {

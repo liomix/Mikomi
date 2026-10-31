@@ -4,6 +4,10 @@ plugins {
 
 android {
     namespace = "com.liomix.mikomi.data.anime"
+
+    defaultConfig {
+        consumerProguardFiles("consumer-rules.pro")
+    }
 }
 
 dependencies {

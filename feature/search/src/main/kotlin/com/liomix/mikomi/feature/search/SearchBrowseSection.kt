@@ -3,8 +3,8 @@ package com.liomix.mikomi.feature.search
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -58,10 +58,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.ui.component.AnimeCoverImage
 import com.liomix.mikomi.core.ui.component.ScrollingText
 import com.liomix.mikomi.core.ui.component.SkeletonBox
+import com.liomix.mikomi.core.ui.component.Tag
+import com.liomix.mikomi.core.ui.component.TagRow
 import java.util.Locale
 
 /** 历史未展开时最多显示的 tag 数。 */
@@ -71,18 +73,17 @@ private const val HISTORY_COLLAPSED_COUNT = 8
 private val CHIP_MIN_HEIGHT = 36.dp
 private val CHIP_MAX_WIDTH = 180.dp
 
-/** 热门榜展示条数。 */
-private const val TRENDING_LIMIT = 10
+/** 热播榜展示条数。 */
+private const val HOT_LIMIT = 10
 
-/** 热门榜骨架屏条数。 */
-private const val TRENDING_SKELETON_COUNT = 6
+/** 热播榜骨架屏条数。 */
+private const val HOT_SKELETON_COUNT = 6
 
 /**
- * 浏览态内容：搜索历史（可折叠）+ 热门推荐。
+ * 浏览态内容：搜索历史（可折叠）+ AniRpb 日漫 / 国漫热播榜。
  *
- * 两部分共用一个 [LazyColumn]，避免嵌套滚动；历史为空时只显示热门推荐。
- * 热门推荐以整块圆角卡片呈现（排名数字 + 封面 + 标题 + 评分/年份），
- * 只在首次进入时做一次淡入上移，滚动回看不重复播动画。
+ * 两部分共用一个 [LazyColumn]，避免嵌套滚动；历史为空时只显示热播榜。
+ * 榜单卡片以排名数字 + 封面 + 标题 + 更新文案/集数/评分/播放量呈现。
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -91,13 +92,14 @@ internal fun SearchBrowseSection(
     onHistoryClick: (String) -> Unit,
     onRemoveHistory: (String) -> Unit,
     onClearHistory: () -> Unit,
-    onAnimeClick: (String) -> Unit,
-    onRetryTrending: () -> Unit,
+    onHotTabChange: (SearchHotTab) -> Unit,
+    onHotItemClick: (AniRpbHotItem) -> Unit,
+    onRetryHot: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var historyExpanded by rememberSaveable { mutableStateOf(false) }
     // 每次进入浏览态都从顶部开始：否则从结果页返回时，
-    // 会把上次的滚动位置（可能停在热门榜中段）恢复回来，导致搜索历史标题被顶出屏幕。
+    // 会把上次的滚动位置（可能停在榜单中段）恢复回来，导致搜索历史标题被顶出屏幕。
     val listState = remember { LazyListState() }
 
     LazyColumn(
@@ -135,31 +137,39 @@ internal fun SearchBrowseSection(
             }
         }
 
-        item(key = "trending_header") {
+        item(key = "hot_header") {
             SectionHeader(
                 icon = Icons.Outlined.Whatshot,
-                title = stringResource(R.string.search_trending),
+                title = stringResource(R.string.search_hot_ranking),
             )
         }
 
-        item(key = "trending_content") {
-            when (state.trendingState) {
+        item(key = "hot_tabs") {
+            HotTabs(
+                selected = state.hotTab,
+                onSelect = onHotTabChange,
+            )
+        }
+
+        // key 随 Tab 变化，切换时让新榜单重新播一次淡入上移。
+        item(key = "hot_content_${state.hotTab.name}") {
+            when (state.currentHotState) {
                 LoadState.Idle,
                 LoadState.Loading,
-                -> TrendingSkeletonCard()
+                -> HotSkeletonCard()
 
                 LoadState.Error -> RetryCard(
                     message = stringResource(R.string.search_load_failed),
-                    onRetry = onRetryTrending,
+                    onRetry = onRetryHot,
                 )
 
                 LoadState.Success -> {
-                    if (state.trending.isEmpty()) {
-                        HintCard(text = stringResource(R.string.search_trending_empty))
+                    if (state.currentHot.isEmpty()) {
+                        HintCard(text = stringResource(R.string.search_hot_empty))
                     } else {
-                        TrendingCard(
-                            trending = state.trending.take(TRENDING_LIMIT),
-                            onAnimeClick = onAnimeClick,
+                        HotRankingCard(
+                            items = state.currentHot.take(HOT_LIMIT),
+                            onItemClick = onHotItemClick,
                         )
                     }
                 }
@@ -198,6 +208,34 @@ private fun SectionHeader(
         Spacer(modifier = Modifier.weight(1f))
         action?.invoke()
     }
+}
+
+/** 日漫 / 国漫热播榜切换。 */
+@Composable
+private fun HotTabs(
+    selected: SearchHotTab,
+    onSelect: (SearchHotTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TagRow(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+    ) {
+        SearchHotTab.entries.forEach { tab ->
+            Tag(
+                text = stringResource(tab.labelRes()),
+                selected = tab == selected,
+                onClick = { onSelect(tab) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+private fun SearchHotTab.labelRes(): Int = when (this) {
+    SearchHotTab.JAPANESE -> R.string.search_hot_japanese
+    SearchHotTab.CHINESE -> R.string.search_hot_chinese
 }
 
 /** 历史关键词标签：横向流式排列，超过阈值可展开/收起（高度变化带缓动）。 */
@@ -305,11 +343,11 @@ private fun ExpandTag(
     }
 }
 
-/** 热门推荐卡片：一次淡入上移，避免滚动回看时反复播动画。 */
+/** 热播榜卡片：一次淡入上移，避免滚动回看时反复播动画。 */
 @Composable
-private fun TrendingCard(
-    trending: List<Anime>,
-    onAnimeClick: (String) -> Unit,
+private fun HotRankingCard(
+    items: List<AniRpbHotItem>,
+    onItemClick: (AniRpbHotItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var revealed by remember { mutableStateOf(false) }
@@ -317,12 +355,12 @@ private fun TrendingCard(
     val alpha by animateFloatAsState(
         targetValue = if (revealed) 1f else 0f,
         animationSpec = tween(durationMillis = 260),
-        label = "trendingAlpha",
+        label = "hotAlpha",
     )
     val offsetY by animateFloatAsState(
         targetValue = if (revealed) 0f else 16f,
         animationSpec = tween(durationMillis = 260),
-        label = "trendingOffset",
+        label = "hotOffset",
     )
 
     BillboardSurface(
@@ -331,11 +369,10 @@ private fun TrendingCard(
             translationY = offsetY
         },
     ) {
-        trending.forEachIndexed { index, anime ->
-            TrendingRow(
-                rank = index + 1,
-                anime = anime,
-                onClick = { onAnimeClick(anime.id) },
+        items.forEach { item ->
+            HotRow(
+                item = item,
+                onClick = { onItemClick(item) },
             )
         }
     }
@@ -360,11 +397,10 @@ private fun BillboardSurface(
     }
 }
 
-/** 榜单行：大号排名 + 封面缩略图 + 标题 + 评分/年份。 */
+/** 热播榜行：名次 + 封面 + 标题 + 更新文案 + 集数/评分/播放量。 */
 @Composable
-private fun TrendingRow(
-    rank: Int,
-    anime: Anime,
+private fun HotRow(
+    item: AniRpbHotItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -378,81 +414,115 @@ private fun TrendingRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = rank.toString().padStart(2, '0'),
+            text = item.rank.toString().padStart(2, '0'),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = rankColor(rank),
+            color = rankColor(item.rank),
             modifier = Modifier.width(28.dp),
         )
         Spacer(modifier = Modifier.width(8.dp))
         AnimeCoverImage(
-            url = anime.coverUrl,
-            contentDescription = anime.title,
-            modifier = Modifier.width(36.dp),
+            url = item.coverUrl,
+            contentDescription = item.title,
+            modifier = Modifier.width(40.dp),
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             ScrollingText(
-                text = anime.title,
+                text = item.title,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                 modifier = Modifier.fillMaxWidth(),
             )
-            val year = anime.airDate?.take(4)?.takeIf { it.isNotBlank() }
-            if (anime.rating != null || year != null) {
+            if (item.updateText.isNotBlank()) {
                 Spacer(modifier = Modifier.height(3.dp))
-                TrendingMeta(rating = anime.rating, year = year)
+                Text(
+                    text = item.updateText,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (item.currentEpisodes > 0 || item.score != null || item.playCount > 0) {
+                Spacer(modifier = Modifier.height(3.dp))
+                HotMeta(item = item)
             }
         }
     }
 }
 
-/** 评分 · 年份。 */
+/** 集数 · 评分 · 播放量。 */
 @Composable
-private fun TrendingMeta(
-    rating: Double?,
-    year: String?,
+private fun HotMeta(
+    item: AniRpbHotItem,
     modifier: Modifier = Modifier,
 ) {
+    val metaColor = MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (rating != null) {
+        var hasPrevious = false
+        if (item.currentEpisodes > 0) {
+            Text(
+                text = stringResource(R.string.search_hot_episodes, item.currentEpisodes),
+                style = MaterialTheme.typography.labelSmall,
+                color = metaColor,
+                maxLines = 1,
+            )
+            hasPrevious = true
+        }
+        if (item.score != null) {
+            if (hasPrevious) MetaSeparator(color = metaColor)
             Icon(
                 imageVector = Icons.Filled.Star,
                 contentDescription = null,
                 tint = RatingColor,
-                modifier = Modifier.size(12.dp),
+                modifier = Modifier.size(11.dp),
             )
-            Spacer(modifier = Modifier.width(3.dp))
+            Spacer(modifier = Modifier.width(2.dp))
             Text(
-                text = String.format(Locale.ROOT, "%.1f", rating),
+                text = String.format(Locale.ROOT, "%.1f", item.score),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = metaColor,
+                maxLines = 1,
             )
+            hasPrevious = true
         }
-        if (rating != null && year != null) {
+        if (item.playCount > 0) {
+            if (hasPrevious) MetaSeparator(color = metaColor)
             Text(
-                text = " · ",
+                text = stringResource(R.string.search_hot_play_count, formatPlayCount(item.playCount)),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (year != null) {
-            Text(
-                text = year,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = metaColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
 }
 
+@Composable
+private fun MetaSeparator(color: Color) {
+    Text(
+        text = " · ",
+        style = MaterialTheme.typography.labelSmall,
+        color = color,
+    )
+}
+
+/** 播放量按中文习惯缩短，避免右侧挤掉集数与评分。 */
+private fun formatPlayCount(count: Long): String = when {
+    count >= 100_000_000 -> String.format(Locale.ROOT, "%.1f亿", count / 100_000_000.0)
+    count >= 10_000 -> String.format(Locale.ROOT, "%.1f万", count / 10_000.0)
+    else -> count.toString()
+}
+
 /** 榜单骨架屏：与真实行同构（数字块 + 封面块 + 两行文本）。 */
 @Composable
-private fun TrendingSkeletonCard(modifier: Modifier = Modifier) {
+private fun HotSkeletonCard(modifier: Modifier = Modifier) {
     BillboardSurface(modifier = modifier) {
-        repeat(TRENDING_SKELETON_COUNT) {
+        repeat(HOT_SKELETON_COUNT) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

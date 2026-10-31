@@ -2,8 +2,6 @@ package com.liomix.mikomi.data.anime.mapper
 
 import com.liomix.mikomi.core.database.entity.AnimeEntity
 import com.liomix.mikomi.core.database.entity.RankEntity
-import com.liomix.mikomi.core.database.entity.ScheduleEntity
-import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListAiringScheduleDto
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListMediaDto
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListTitleDto
 
@@ -21,8 +19,6 @@ internal fun stripHtml(html: String): String = html
     .replace(HTML_BR_REGEX, " ")
     .replace(HTML_TAG_REGEX, "")
     .trim()
-
-private const val MILLIS_PER_SECOND = 1_000L
 
 internal fun AniListMediaDto.toEntity(): AnimeEntity = AnimeEntity(
     id = "$ANILIST_ID_PREFIX$id",
@@ -54,20 +50,6 @@ internal const val GENRES_SEPARATOR = "·"
 internal fun AniListTitleDto?.displayTitle(): String =
     this?.nativeTitle ?: this?.english ?: this?.romaji ?: ""
 
-/** 放送计划 → 时间表实体；media 缺失的残留条目返回 null，由调用方丢弃。 */
-internal fun AniListAiringScheduleDto.toScheduleEntity(): ScheduleEntity? {
-    val media = media ?: return null
-    return ScheduleEntity(
-        id = "$ANILIST_ID_PREFIX${media.id}:$episode",
-        animeId = "$ANILIST_ID_PREFIX${media.id}",
-        title = media.title.displayTitle(),
-        coverUrl = media.coverImage?.large ?: media.coverImage?.medium,
-        synopsis = media.description?.let(::stripHtml),
-        rating = media.averageScore?.toDouble()?.div(ANILIST_SCORE_DIVISOR),
-        airingAtMillis = airingAt * MILLIS_PER_SECOND,
-        episode = episode,
-    )
-}
 
 /** 主键前缀，与 Bangumi 等数据源的 id 空间隔离，避免落同一张表时碰撞。 */
 internal const val ANILIST_ID_PREFIX = "anilist:"

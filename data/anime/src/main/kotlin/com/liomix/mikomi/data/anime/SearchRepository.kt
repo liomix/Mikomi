@@ -11,10 +11,12 @@ data class SearchPage(
 )
 
 /**
- * 搜索数据门面：关键词搜索 + 输入联想 + 热门推荐。
+ * 搜索数据门面：关键词搜索 + 输入联想。
  *
  * 结果只保留动画条目（Bangumi type = 2），书籍 / 游戏 / 三次元等一律剔除；
  * 不落库（时效性强、用户不一定点开），直接以领域模型返回给 UI。
+ *
+ * 搜索页热播榜不走这里，直接使用 AniRpbRepository。
  */
 interface SearchRepository {
 
@@ -35,12 +37,8 @@ interface SearchRepository {
         limit: Int = SUGGEST_LIMIT,
     ): List<Anime>
 
-    /** 热门推荐（Bangumi 趋势榜），用于搜索页空态引导。 */
-    suspend fun fetchTrending(limit: Int = TRENDING_LIMIT): List<Anime>
-
     companion object {
         const val SEARCH_PAGE_SIZE = 24
         const val SUGGEST_LIMIT = 10
-        const val TRENDING_LIMIT = 10
     }
 }

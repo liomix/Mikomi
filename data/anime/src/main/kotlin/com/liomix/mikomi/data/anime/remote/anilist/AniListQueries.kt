@@ -95,37 +95,4 @@ internal object AniListQueries {
         }
     """.trimIndent()
 
-    /**
-     * 每周放送时间表：放送时间（Unix 秒）落在 [weekStart, weekEnd) 窗口内的全部条目，
-     * media 实际可能缺失（条目已从库中删除），由 mapper 过滤。
-     */
-    val AIRING_SCHEDULE = """
-        query (${'$'}weekStart: Int, ${'$'}weekEnd: Int, ${'$'}page: Int, ${'$'}perPage: Int) {
-          Page(page: ${'$'}page, perPage: ${'$'}perPage) {
-            pageInfo {
-              hasNextPage
-            }
-            airingSchedules(airingAt_greater: ${'$'}weekStart, airingAt_lesser: ${'$'}weekEnd) {
-              airingAt
-              episode
-              media {
-                id
-                title {
-                  romaji
-                  english
-                  native
-                }
-                coverImage {
-                  large
-                  medium
-                }
-                averageScore
-                popularity
-                description
-                status
-              }
-            }
-          }
-        }
-    """.trimIndent()
 }

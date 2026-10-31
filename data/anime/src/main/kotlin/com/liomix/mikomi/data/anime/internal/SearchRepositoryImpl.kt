@@ -6,7 +6,6 @@ import com.liomix.mikomi.data.anime.SearchPage
 import com.liomix.mikomi.data.anime.SearchRepository
 import com.liomix.mikomi.data.anime.mapper.toDomain
 import com.liomix.mikomi.data.anime.remote.bangumi.BangumiApi
-import com.liomix.mikomi.data.anime.remote.bangumi.BangumiTrendApi
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchFilter
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchRequest
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSubjectDto
@@ -16,7 +15,6 @@ import kotlinx.coroutines.withContext
 
 internal class SearchRepositoryImpl @Inject constructor(
     private val bangumiApi: BangumiApi,
-    private val bangumiTrendApi: BangumiTrendApi,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : SearchRepository {
 
@@ -60,14 +58,6 @@ internal class SearchRepositoryImpl @Inject constructor(
             offset = 0,
         ).data
             .filterAnime()
-            .map { it.toDomain() }
-    }
-
-    override suspend fun fetchTrending(limit: Int): List<Anime> = withContext(ioDispatcher) {
-        bangumiTrendApi.fetchTrending(type = TYPE_ANIME, limit = limit, offset = 0)
-            .data
-            // 同搜索：兜底剔除非动画条目。
-            .filter { it.subject.type == TYPE_ANIME }
             .map { it.toDomain() }
     }
 

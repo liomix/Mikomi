@@ -18,7 +18,7 @@ object Migrations {
         }
     }
 
-    /** 2 → 3：新增 schedule 表（AniList 每周放送时间表）。 */
+    /** 2 → 3：新增 schedule 表（时间表缓存）。 */
     val MIGRATION_2_3 = object : Migration(2, 3) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL(

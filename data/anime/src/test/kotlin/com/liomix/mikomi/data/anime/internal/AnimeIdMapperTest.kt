@@ -8,6 +8,7 @@ import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListMediaDto
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListPage
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListTitleDto
 import com.liomix.mikomi.data.anime.remote.bangumi.BangumiApi
+import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiCharacterDto
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchRequest
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchResponse
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSubjectDto
@@ -67,6 +68,9 @@ class AnimeIdMapperTest {
         ): BangumiSearchResponse = BangumiSearchResponse(data = searchResult, total = searchResult.size)
 
         override suspend fun getSubject(id: Int): BangumiSubjectDto = requireNotNull(subject)
+
+        override suspend fun fetchSubjectCharacters(subjectId: Int): List<BangumiCharacterDto> =
+            emptyList()
     }
 
     private class FakeAniListApi(

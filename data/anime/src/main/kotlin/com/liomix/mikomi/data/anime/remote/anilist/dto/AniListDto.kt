@@ -26,16 +26,7 @@ data class AniListData(
 @Serializable
 data class AniListPage(
     val media: List<AniListMediaDto> = emptyList(),
-    val airingSchedules: List<AniListAiringScheduleDto> = emptyList(),
     val pageInfo: AniListPageInfo? = null,
-)
-
-/** AniList 放送计划：某番剧某集的放送时间（Unix 秒）；media 实际可能缺失。 */
-@Serializable
-data class AniListAiringScheduleDto(
-    val airingAt: Long,
-    val episode: Int,
-    val media: AniListMediaDto? = null,
 )
 
 @Serializable

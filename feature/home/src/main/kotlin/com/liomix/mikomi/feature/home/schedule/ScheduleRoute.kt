@@ -9,7 +9,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun ScheduleRoute(
     onBackClick: () -> Unit,
-    onAnimeClick: (String) -> Unit,
+    onAnimeTitleClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ScheduleViewModel = hiltViewModel(),
 ) {
@@ -17,7 +17,7 @@ fun ScheduleRoute(
     ScheduleScreen(
         uiState = uiState,
         onBackClick = onBackClick,
-        onAnimeClick = onAnimeClick,
+        onAnimeTitleClick = onAnimeTitleClick,
         onRetryClick = viewModel::refresh,
         modifier = modifier,
     )

@@ -16,6 +16,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.network.NetworkHeaders
+import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 
@@ -24,6 +26,11 @@ private const val MAX_RETRY = 3
 
 /** 封面圆角：列表卡用 8dp，详情页封面用 14dp；飞行时两者之间插值。 */
 private val COVER_CORNER_RADIUS = 8.dp
+
+/** 部分图片 CDN（AniRpb 的 meituan 图床）会拒绝非浏览器 User-Agent。 */
+private val BROWSER_HEADERS = NetworkHeaders.Builder().apply {
+    set("User-Agent", "Mozilla/5.0")
+}.build()
 
 /**
  * 番剧封面图（网络图统一走 Coil）。
@@ -34,6 +41,8 @@ private val COVER_CORNER_RADIUS = 8.dp
  *   组合实现（相同 model 的请求不会自动重发）。
  * - [heroKey] 非空时参与「封面飞行」（Hero）：列表封面飞向详情页封面，
  *   两侧必须传同一个 key（番剧 id）。
+ * - [browserUserAgent] 为 AniRpb 等对 User-Agent 有要求的图片源附加浏览器 UA；
+ *   测试台的 ImageLoader 使用同款 `Mozilla/5.0`，可避免部分封面被 CDN 拒绝。
  */
 @Composable
 fun AnimeCoverImage(
@@ -41,17 +50,21 @@ fun AnimeCoverImage(
     contentDescription: String?,
     modifier: Modifier = Modifier,
     heroKey: String? = null,
+    browserUserAgent: Boolean = false,
 ) {
     val context = LocalContext.current
     val placeholderColor = MaterialTheme.colorScheme.surfaceContainerHigh
     var retryHash by remember(url) { mutableIntStateOf(0) }
 
     // memoryCacheKey 固定为 url：重试不影响缓存命中，成功过的图不再走网络。
-    val request = remember(url, context) {
+    val request = remember(url, context, browserUserAgent) {
         ImageRequest.Builder(context)
             .data(url)
             .crossfade(true)
             .memoryCacheKey(url)
+            .apply {
+                if (browserUserAgent) httpHeaders(BROWSER_HEADERS)
+            }
             .build()
     }
 
@@ -79,3 +92,4 @@ fun AnimeCoverImage(
         )
     }
 }
+

@@ -64,6 +64,9 @@ internal fun ScheduleEntity.toScheduleEntry(): ScheduleEntry = ScheduleEntry(
     ),
     airingAtMillis = airingAtMillis,
     episode = episode,
+    episodeText = episodeText,
+    updateText = updateText,
+    channelId = channelId,
 )
 
 internal fun EpisodeEntity.toDomain(): Episode = Episode(

@@ -425,6 +425,7 @@ private fun HotRow(
             url = item.coverUrl,
             contentDescription = item.title,
             modifier = Modifier.width(40.dp),
+            browserUserAgent = true,
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -624,3 +625,4 @@ internal val RatingColor = Color(0xFFFFB300)
 private val GoldColor = Color(0xFFF2B705)
 private val SilverColor = Color(0xFF9AA3AD)
 private val BronzeColor = Color(0xFFC07A3E)
+

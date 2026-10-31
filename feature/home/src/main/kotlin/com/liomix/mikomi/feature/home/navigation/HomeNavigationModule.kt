@@ -8,6 +8,7 @@ import com.liomix.mikomi.core.navigation.ProfileDestination
 import com.liomix.mikomi.core.navigation.RankDestination
 import com.liomix.mikomi.core.navigation.ScheduleDestination
 import com.liomix.mikomi.core.navigation.SearchDestination
+import com.liomix.mikomi.core.navigation.SearchResultDestination
 import com.liomix.mikomi.feature.home.HomeQuickAction
 import com.liomix.mikomi.feature.home.HomeRoute
 import com.liomix.mikomi.feature.home.rank.RankRoute
@@ -43,7 +44,8 @@ object HomeNavigationModule {
         entry<ScheduleDestination> {
             ScheduleRoute(
                 onBackClick = { navigator.goBack() },
-                onAnimeClick = { animeId -> navigator.goTo(DetailDestination(animeId)) },
+                // AniRpb 的 video id 与详情页 id 空间不同，先按标题进入现有搜索结果。
+                onAnimeTitleClick = { title -> navigator.goTo(SearchResultDestination(title)) },
             )
         }
         entry<RankDestination> {

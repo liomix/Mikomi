@@ -64,12 +64,12 @@ data class HistoryEntity(
 )
 
 /**
- * 时间表：AniList 每周放送计划。非规范化存储展示所需字段，
+ * 时间表：AniRpb 每周更新表。非规范化存储展示所需字段，
  * 不与 anime 表关联（anime 表会被首页刷新按前缀清理）。
  */
 @Entity(tableName = "schedule")
 data class ScheduleEntity(
-    /** 主键：anilist id + 集数，同一番剧每周多条放送记录共存。 */
+    /** 主键：数据源 + 视频 id + 日期 + 时段 + 集数，同一番剧每周多条更新记录共存。 */
     @PrimaryKey val id: String,
     val animeId: String,
     val title: String,
@@ -78,6 +78,12 @@ data class ScheduleEntity(
     val rating: Double? = null,
     val airingAtMillis: Long,
     val episode: Int,
+    /** 服务端集数文案，例如 `更新至第4集`。 */
+    @ColumnInfo(defaultValue = "") val episodeText: String = "",
+    /** 服务端现成更新文案，例如 `4#周五00:58更`。 */
+    @ColumnInfo(defaultValue = "") val updateText: String = "",
+    /** AniRpb 频道 id。 */
+    @ColumnInfo(defaultValue = "") val channelId: String = "",
 )
 
 /**

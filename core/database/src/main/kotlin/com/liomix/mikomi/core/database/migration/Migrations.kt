@@ -91,4 +91,13 @@ object Migrations {
             db.execSQL("ALTER TABLE anime ADD COLUMN homeRank INTEGER NOT NULL DEFAULT 0")
         }
     }
+
+    /** 7 → 8：schedule 表新增 AniRpb 集数/更新文案/频道字段。 */
+    val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE schedule ADD COLUMN episodeText TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE schedule ADD COLUMN updateText TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE schedule ADD COLUMN channelId TEXT NOT NULL DEFAULT ''")
+        }
+    }
 }

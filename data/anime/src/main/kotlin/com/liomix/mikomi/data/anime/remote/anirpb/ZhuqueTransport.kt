@@ -121,6 +121,20 @@ internal class ZhuqueTransport(context: Context) {
             .toString(),
     )
 
+    /** 指定日期的更新表（calendar.videos）。 */
+    fun calendar(
+        playDate: String,
+        pageIndex: Int = 1,
+        pageSize: Int = 50,
+    ): JSONObject = semantic(
+        op = OP_CALENDAR_VIDEOS,
+        paramsJson = JSONObject()
+            .put("playDate", playDate)
+            .put("pageIndex", pageIndex)
+            .put("pageSize", pageSize)
+            .toString(),
+    )
+
     /**
      * 发送一个语义请求并返回包装对象：
      * `{op, frameStatus, tokenMatch, body}`，其中 `body` 是业务 JSON 字符串。
@@ -359,6 +373,7 @@ internal class ZhuqueTransport(context: Context) {
 
         const val OP_TYPE_LIST_ACTIVE = "type.listActive"
         const val OP_HOME_LOAD = "home.load"
+        const val OP_CALENDAR_VIDEOS = "calendar.videos"
 
         /** 与官方 RdicReplaySafeOps 对齐；home.load 不在集合里，必须为 false。 */
         val REPLAY_SAFE_OPS = setOf(
@@ -399,4 +414,3 @@ internal class ZhuqueTransport(context: Context) {
         const val HEX_CHARS = "0123456789abcdef"
     }
 }
-

@@ -74,7 +74,7 @@ sealed interface ScheduleUiState {
 }
 
 /**
- * 时间表：二级页面（周一~周日七天番剧列表），数据来自 AniList 每周放送计划。
+ * 时间表：二级页面（周一~周日七天番剧列表），数据来自 AniRpb 每周更新表。
  *
  * - 顶部 [CenterAlignedTopAppBar]，返回交给上层导航；
  * - 七天用 [ScrollableTabRow] 选中，[HorizontalPager] 左右滑动切换，二者联动，
@@ -87,7 +87,7 @@ sealed interface ScheduleUiState {
 fun ScheduleScreen(
     uiState: ScheduleUiState,
     onBackClick: () -> Unit,
-    onAnimeClick: (String) -> Unit,
+    onAnimeTitleClick: (String) -> Unit,
     onRetryClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -131,7 +131,7 @@ fun ScheduleScreen(
 
             is ScheduleUiState.Success -> ScheduleContent(
                 days = uiState.days,
-                onAnimeClick = onAnimeClick,
+                onAnimeTitleClick = onAnimeTitleClick,
                 modifier = Modifier.padding(innerPadding),
             )
         }
@@ -141,7 +141,7 @@ fun ScheduleScreen(
 @Composable
 private fun ScheduleContent(
     days: List<List<ScheduleEntry>>,
-    onAnimeClick: (String) -> Unit,
+    onAnimeTitleClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // 默认定位到今天；Tab 高亮直接取 Pager 当前页，双向联动无需额外状态。
@@ -188,7 +188,7 @@ private fun ScheduleContent(
             DayList(
                 entries = days[page],
                 isToday = page == todayIndex,
-                onAnimeClick = onAnimeClick,
+                onAnimeTitleClick = onAnimeTitleClick,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -200,7 +200,7 @@ private fun ScheduleContent(
 private fun DayList(
     entries: List<ScheduleEntry>,
     isToday: Boolean,
-    onAnimeClick: (String) -> Unit,
+    onAnimeTitleClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (entries.isEmpty()) {
@@ -232,7 +232,7 @@ private fun DayList(
         ) { entry ->
             ScheduleAnimeRow(
                 entry = entry,
-                onClick = { onAnimeClick(entry.anime.id) },
+                onClick = { onAnimeTitleClick(entry.anime.title) },
             )
         }
     }
@@ -245,6 +245,16 @@ private fun ScheduleAnimeRow(
     modifier: Modifier = Modifier,
 ) {
     val anime = entry.anime
+    val fallbackEpisode = if (entry.episode > 0) {
+        stringResource(R.string.schedule_episode, entry.episode)
+    } else {
+        ""
+    }
+    val episodeLabel = entry.episodeText.ifBlank { fallbackEpisode }
+    val scheduleLabel = entry.updateText.ifBlank {
+        if (entry.airingAtMillis > 0) formatAiringTime(entry.airingAtMillis) else ""
+    }
+
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
@@ -260,6 +270,7 @@ private fun ScheduleAnimeRow(
                 url = anime.coverUrl,
                 contentDescription = anime.title,
                 modifier = Modifier.size(width = 64.dp, height = 96.dp),
+                browserUserAgent = true,
             )
 
             Column(
@@ -271,20 +282,30 @@ private fun ScheduleAnimeRow(
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.schedule_episode, entry.episode),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = formatAiringTime(entry.airingAtMillis),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                if (episodeLabel.isNotBlank() || scheduleLabel.isNotBlank()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (episodeLabel.isNotBlank()) {
+                            Text(
+                                text = episodeLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        if (scheduleLabel.isNotBlank()) {
+                            Text(
+                                text = scheduleLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (entry.updateText.isNotBlank()) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                            )
+                        }
+                    }
                 }
                 Text(
                     text = anime.synopsis ?: stringResource(R.string.schedule_no_synopsis),
@@ -295,7 +316,8 @@ private fun ScheduleAnimeRow(
                 )
             }
 
-            RatingDot(rating = anime.rating)
+            // AniRpb 更新表没有评分字段；不要显示一个无意义的「—」圆点。
+            anime.rating?.let { RatingDot(rating = it) }
         }
     }
 }
@@ -402,3 +424,4 @@ private fun ScheduleSkeleton(
         }
     }
 }
+

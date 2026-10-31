@@ -1,6 +1,7 @@
 package com.liomix.mikomi.data.anime
 
 import com.liomix.mikomi.core.model.AniRpbHotItem
+import com.liomix.mikomi.core.model.AniRpbScheduleItem
 import com.liomix.mikomi.core.model.RankRegion
 
 /**
@@ -18,4 +19,12 @@ interface AniRpbRepository {
      * 由 UI 显示可重试错误态。
      */
     suspend fun fetchHotRanking(region: RankRegion): List<AniRpbHotItem>
+
+    /**
+     * 拉取指定日期的更新表（`calendar.videos`）。
+     *
+     * [playDate] 为本地日期 `yyyy-MM-dd`；返回值保留服务端下发的 `updateDesc`，
+     * 不在数据层自行拼装更新文案。
+     */
+    suspend fun fetchCalendar(playDate: String): List<AniRpbScheduleItem>
 }

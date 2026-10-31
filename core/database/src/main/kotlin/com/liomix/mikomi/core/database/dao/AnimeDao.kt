@@ -74,6 +74,17 @@ interface ScheduleDao {
             "OR airingAtMillis >= :windowEndMs",
     )
     suspend fun deleteOutsideWindow(windowStartMs: Long, windowEndMs: Long)
+
+    /** 删除非当前数据源遗留的时间表行（例如从 AniList 切换到 AniRpb）。 */
+    @Query("DELETE FROM schedule WHERE id NOT LIKE :prefix || '%'")
+    suspend fun deleteNotFromSource(prefix: String)
+
+    /** 删除某数据源在指定时间窗口内的行，便于按天整体替换。 */
+    @Query(
+        "DELETE FROM schedule WHERE id LIKE :prefix || '%' " +
+            "AND airingAtMillis >= :windowStartMs AND airingAtMillis < :windowEndMs",
+    )
+    suspend fun deleteBySourceAndWindow(prefix: String, windowStartMs: Long, windowEndMs: Long)
 }
 
 @Dao

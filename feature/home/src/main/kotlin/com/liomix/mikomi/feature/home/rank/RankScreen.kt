@@ -48,12 +48,13 @@ import kotlinx.coroutines.launch
  *
  * - 顶栏右侧刷新：刷新进行中替换为进度环并禁用重复点击；
  * - 分类标签是静态资源，任何状态下都真实渲染，只有下方的卡片列表需要骨架屏；
- * - 榜单卡片为「封面满铺 + 向右洗进灰白底」，左侧斜体名次，右侧单行标题；
+ * - 卡片列表在「加载中」与「一个数据都没有」时都保持骨架屏，不切空态；
+ * - 榜单卡片为「封面整块满铺」，左侧斜体名次，右侧单行标题（文字自带描影）；
  * - 错误态的重试与顶栏刷新是同一条链路，统一走 [onRefreshClick]。
  *
  * 无状态：数据与刷新策略由上层 [RankRoute] 通过 ViewModel 提供。
  *
- * @param uiState 页面状态（加载 / 数据 / 空 / 错误）。
+ * @param uiState 页面状态（加载 / 数据 / 错误）。
  * @param isRefreshing 是否正在刷新，驱动顶栏刷新按钮的表现。
  * @param onBackClick 顶栏返回。
  * @param onRefreshClick 刷新（顶栏按钮与错误态重试共用同一入口）。
@@ -184,7 +185,7 @@ private fun RankTabs(
     }
 }
 
-/** 状态分发：只有卡片列表会在加载 / 空态时退化为骨架屏。 */
+/** 状态分发：加载中与空数据都是骨架屏，只有刷新失败才切错误态。 */
 @Composable
 private fun RankBody(
     uiState: RankUiState,
@@ -194,9 +195,7 @@ private fun RankBody(
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
-        RankUiState.Loading,
-        RankUiState.Empty,
-        -> RankCardSkeletonList(modifier = modifier)
+        RankUiState.Loading -> RankCardSkeletonList(modifier = modifier)
 
         RankUiState.Error -> ErrorState(
             message = stringResource(R.string.rank_error),
@@ -258,18 +257,29 @@ private fun RankList(
     }
 }
 
-/** 卡片骨架列表：整卡 shimmer，数量取一屏可见量级。 */
+/**
+ * 卡片骨架列表：整卡 shimmer。
+ *
+ * 用 [LazyColumn] 而不是固定 [Column]：空数据时会长时间停留在这个状态，
+ * 小屏上多出来的骨架必须被裁在可见区域内，不能画到导航栏下面去。
+ * 数量取一屏可见量级，多出来的部分滚动时才出现。
+ */
 @Composable
 private fun RankCardSkeletonList(
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            start = 12.dp,
+            end = 12.dp,
+            top = 8.dp,
+            bottom = WindowInsets.navigationBars.asPaddingValues()
+                .calculateBottomPadding() + 96.dp,
+        ),
         verticalArrangement = Arrangement.spacedBy(RankCardSpacing),
     ) {
-        repeat(SkeletonCardCount) {
+        items(count = SkeletonCardCount) {
             SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -292,8 +302,8 @@ private val RefreshIndicatorSize = 20.dp
 /** 顶栏刷新进度环的线宽。 */
 private val RefreshIndicatorStroke = 2.dp
 
-/** 骨架列表的卡片数量。 */
-private const val SkeletonCardCount = 6
+/** 骨架列表的卡片数量（多于一屏，保证任何屏幕高度都填满）。 */
+private const val SkeletonCardCount = 8
 
 /** 榜单条目的复用类型（全部条目视觉一致）。 */
 private const val RankCardContentType = "rank_entry"

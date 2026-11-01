@@ -56,9 +56,10 @@ class RankViewModel @Inject constructor(
                 japanese = japanese,
             )
 
-            refreshing -> RankUiState.Loading
-            failed -> RankUiState.Error
-            else -> RankUiState.Empty
+            // 空数据没有独立的「空态」：一直停在骨架屏，看起来就是还在加载。
+            // 只有「刷新失败且已不在重试」才切错误态，让重试入口有地方可放。
+            failed && !refreshing -> RankUiState.Error
+            else -> RankUiState.Loading
         }
     }.stateIn(
         scope = viewModelScope,
@@ -110,7 +111,12 @@ class RankViewModel @Inject constructor(
     }
 }
 
-/** 加载状态：骨架 / 数据 / 空 / 错误。 */
+/**
+ * 加载状态：骨架 / 数据 / 错误。
+ *
+ * 没有「空态」：一个数据都没有时保持 [Loading]，界面就是继续加载的骨架屏。
+ * 空数据本身不代表可展示的信息，把页面切成一块空占位只会让人以为坏了。
+ */
 sealed interface RankUiState {
     data object Loading : RankUiState
 
@@ -118,8 +124,6 @@ sealed interface RankUiState {
         val chinese: List<RankEntry>,
         val japanese: List<RankEntry>,
     ) : RankUiState
-
-    data object Empty : RankUiState
 
     data object Error : RankUiState
 }

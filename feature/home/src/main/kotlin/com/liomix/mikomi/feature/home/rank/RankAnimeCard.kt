@@ -1,7 +1,6 @@
 package com.liomix.mikomi.feature.home.rank
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,7 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeJoin
@@ -40,17 +38,22 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.liomix.mikomi.core.model.RankEntry
 import com.liomix.mikomi.core.ui.component.ScrollingText
+import com.liomix.mikomi.core.ui.component.SkeletonBox
 
 /**
- * 排名卡片：封面铺底 + 名次 + 标题（灰白卡片）。
+ * 排名卡片：封面铺底 + 名次 + 标题。
  *
  * 卡片是「横条」（宽高比 2.4:1），而封面几乎都是 2:3 竖图：铺满后纵向只剩约
  * 28% 可见。所以裁切位置比比例更关键——把锚点抬到上部（[CoverCropAlignment]），
- * 保住人物头部而不是切到腰身。封面之上叠一层向右加深的浅色遮罩，
- * 右半洗成干净的灰白底，深色标题才站得住。
+ * 保住人物头部而不是切到腰身。
  *
- * 卡片底色为灰白：封面在右半洗进浅色底，深色标题压在干净面上；
- * 遮罩与渐变都提到顶层，避免每张卡片重组时重复分配。
+ * 卡片只由「封面 + 文字」构成，不铺底色、不叠任何遮罩：多铺一层兜底色，
+ * 图片没就绪时会先闪出一块深灰，看起来像卡片坏了。加载态交给列表骨架屏
+ * （`RankCardSkeletonList`），卡片本身保持空白等图。文字靠
+ * [RankTitleShadow] / [RankNumberShadow] 的深色描影压在画面上。
+ *
+ * 缺封面（数据里没有图）的条目也按「还没加载出来」处理：整条退化成同尺寸骨架，
+ * 不留一张空白卡——亮字压在页面背景上等于什么都没有，看起来更像坏了。
  */
 @Composable
 internal fun RankAnimeCard(
@@ -61,15 +64,27 @@ internal fun RankAnimeCard(
 ) {
     val anime = entry.anime
     val isTopRank = rank <= TopRankHighlight
+    val coverUrl = anime.coverUrl
+
+    if (coverUrl.isNullOrBlank()) {
+        SkeletonBox(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(RankCardHeight),
+            shape = RoundedCornerShape(RankCardCorner),
+        )
+        return
+    }
 
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(RankCardCorner),
-        color = RankCardBase,
+        // 卡片本身不铺底色：有封面时是整张封面，无封面时留空交给页面骨架屏。
+        color = Color.Transparent,
         contentColor = RankCardContent,
         border = BorderStroke(
             width = 1.dp,
-            // 前三名用描边色勾一圈：亮金属直接当边框在灰白底上几乎看不见。
+            // 前三名用描边色勾一圈：压在封面上时金属色本身就够亮，描边只做收边。
             color = rankOutline(rank)?.copy(alpha = 0.55f) ?: RankBorderColor,
         ),
         shadowElevation = if (isTopRank) TopRankShadow else 0.dp,
@@ -78,20 +93,10 @@ internal fun RankAnimeCard(
             .height(RankCardHeight),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // 无封面时的灰白底：先铺一层，图片加载成功后再盖上去。
-            CoverFallbackBackdrop(modifier = Modifier.fillMaxSize())
-
             // 横条满铺：竖图裁成宽幅时锚定上部（人物头部多在上 1/3），不做模糊。
             CoverBackdrop(
-                model = anime.coverUrl,
+                url = coverUrl,
                 modifier = Modifier.fillMaxSize(),
-            )
-
-            // 右半洗进灰白底色，深色标题压在干净的浅面上。
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(RankCardScrim),
             )
 
             Row(
@@ -113,6 +118,7 @@ internal fun RankAnimeCard(
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = RankCardContent,
+                        shadow = RankTitleShadow,
                     ),
                     modifier = Modifier.weight(1f),
                     userScrollEnabled = false,
@@ -125,10 +131,10 @@ internal fun RankAnimeCard(
 /**
  * 名次数字。
  *
- * 前三名用的是亮金属色（金 / 银 / 铜），这类颜色是为深色底设计的：压在灰白卡上
- * 对比度只有 1.0~2.4:1，直接填色等于看不见。所以给它们垫一层同字形的深色描边
- * （见 [RankNumberOutline]），靠轮廓把字形勾出来——颜色保持高亮，字还读得清。
- * 第 4 名起是中性灰，本身对比度够（4.3:1），不需要描边。
+ * 前三名用金 / 银 / 铜这类高亮金属色：压在封面上够醒目，但遇到浅色封面
+ * （天空、雪地）会糊进背景，所以给它们垫一层同字形的深色描边
+ * （见 [RankNumberOutline]），靠轮廓把字形勾出来。第 4 名起用亮灰，
+ * 靠 [RankNumberShadow] 的深色描影即可。
  */
 @Composable
 private fun RankNumber(
@@ -175,20 +181,21 @@ private fun RankNumber(
 /**
  * 封面底图：整块铺满并按 [CoverCropAlignment] 裁切，不做任何模糊。
  *
- * 只画图不画占位：图片未就绪时露出下层的 [CoverFallbackBackdrop] 灰白渐变，
- * 加载完成后 crossfade 盖上，避免先闪一块占位色再跳图。
+ * 只画图、不画占位：图片未就绪时这一层为空，露出页面背景；
+ * 卡片级的加载态由列表的骨架屏（`RankCardSkeletonList`）负责。
+ * 入参是必填的 url —— 空封面的条目在 [RankAnimeCard] 入口就被拦成骨架了。
  */
 @Composable
 private fun CoverBackdrop(
-    model: Any?,
+    url: String,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val request = remember(model, context) {
+    val request = remember(url, context) {
         ImageRequest.Builder(context)
-            .data(model)
+            .data(url)
             .crossfade(true)
-            .memoryCacheKey(model as? String)
+            .memoryCacheKey(url)
             .build()
     }
 
@@ -198,24 +205,6 @@ private fun CoverBackdrop(
         contentScale = ContentScale.Crop,
         alignment = CoverCropAlignment,
         modifier = modifier,
-    )
-}
-
-/**
- * 无封面时的底：灰白斜向渐变。
- *
- * 卡片底色是灰白，缺图时直接留空会显得「卡片根本没内容」，
- * 这里用左上更亮、右下沉一档的灰白渐变做出细微体积感，
- * 既不刺眼，也和「有封面」时的观感保持同一套明度。
- */
-@Composable
-private fun CoverFallbackBackdrop(
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .background(RankCardBase)
-            .background(RankCardFallbackGradient),
     )
 }
 
@@ -235,52 +224,26 @@ private fun rankOutline(rank: Int): Color? = when (rank) {
     else -> null
 }
 
-/**
- * 卡片底色：灰白。
- *
- * 封面只占左侧，右侧要过渡到「干净的浅底」才能让深色标题站得住，
- * 所以底色取略带冷调的灰白，而不是纯白（纯白在深色页面上会发刺）。
- */
-private val RankCardBase = Color(0xFFECEEF1)
-
-/** 卡片正文色：压在灰白底上的深色文字。 */
-private val RankCardContent = Color(0xFF1B1D20)
-
-/** 缺图时的灰白斜向渐变（常量，避免每张卡片重组时重新分配）。 */
-private val RankCardFallbackGradient = Brush.linearGradient(
-    colors = listOf(
-        Color(0xFFF6F7F9),
-        Color(0xFFECEEF1),
-        Color(0xFFDEE1E5),
-    ),
-)
+/** 卡片正文色：压在封面上的亮色文字。 */
+private val RankCardContent = Color(0xFFF5F7FA)
 
 /**
- * 卡片上的水平提亮遮罩：左侧几乎透明（露出封面），向右逐步叠上灰白。
+ * 标题文字的深色描影。
  *
- * 关键在**末档不封顶**（0.72 而不是 1.0）：完全盖住的话右端会变成一块平的色板，
- * 看起来像「后面没内容」；留 28% 的封面纹理透出来，画面就一路延续到卡片末尾。
- * 0.72 叠在任意封面上得到的亮度，都足够让 [RankCardContent] 达到 10:1 以上对比度。
+ * 卡片上不再铺提亮遮罩，标题直接压在封面上：亮底（草地、天空）会把亮字吃掉，
+ * 所以垫一层黑色描影勾出轮廓（与名次数字同一套做法），比加一层白雾干净。
  */
-private val RankCardScrim = Brush.horizontalGradient(
-    colorStops = arrayOf(
-        // 最左留一层极淡的白纱：名次压在封面上时也有个底，不至于糊在画面里。
-        0f to RankCardBase.copy(alpha = 0.14f),
-        // 中段几乎不遮，让封面完整露出来。
-        0.26f to RankCardBase.copy(alpha = 0.08f),
-        0.55f to RankCardBase.copy(alpha = 0.44f),
-        // 末尾止步于 0.72：底色被提亮到能压深色标题，但封面纹理仍然透出来，
-        // 不会变成一块平的色板（也不封死成纯灰白）。
-        0.78f to RankCardBase.copy(alpha = 0.66f),
-        1f to RankCardBase.copy(alpha = 0.72f),
-    ),
-)
-
-/** 名次文字的浅色描影：压在封面或灰白底上都能勾住轮廓，但不抢眼。 */
-private val RankNumberShadow = Shadow(
-    color = Color.White.copy(alpha = 0.85f),
-    offset = Offset(0f, 2f),
+private val RankTitleShadow = Shadow(
+    color = Color.Black.copy(alpha = 0.8f),
+    offset = Offset(0f, 1.5f),
     blurRadius = 8f,
+)
+
+/** 名次文字的深色描影：亮底封面（草地、天空）上靠它勾住轮廓。 */
+private val RankNumberShadow = Shadow(
+    color = Color.Black.copy(alpha = 0.65f),
+    offset = Offset(0f, 2f),
+    blurRadius = 9f,
 )
 
 /** 卡片高度：固定 112dp 的横条，一屏能看到约 5 张，不与封面比例挂钩。 */
@@ -339,15 +302,15 @@ private val TripleDigitFontSize = 26.sp
 /**
  * 名次配色：高亮金属色（金 / 银 / 铜）。
  *
- * 这三个色是「深色底专用」的亮度：#FFD700 对纯黑 15:1，但压在灰白卡上只有 1.2:1；
- * 银色 #E8E8E8 更是接近白（1.05:1）。所以前三名必须配深色描边，见 [RankNumber]。
+ * 银色取偏冷的浅金属灰而不是近白：近白压在浅色封面（天空、雪地）上几乎
+ * 消失，这里压深一档，靠 [RankNumberOutline] 的勾边在两边都站得住。
  */
 private val RankGold = Color(0xFFFFD700)
-private val RankSilver = Color(0xFFE8E8E8)
+private val RankSilver = Color(0xFFC9D3DE)
 private val RankBronze = Color(0xFFD98719)
 
-/** 第 4 名起的统一冷灰（本身对比度够，不描边）。 */
-private val RankCoolGray = Color(0xFF66707D)
+/** 第 4 名起的统一亮灰（靠 [RankNumberShadow] 在亮底上勾轮廓）。 */
+private val RankCoolGray = Color(0xFFE9EDF2)
 
 /** 前三名的描边色：各自取一枚比填色深很多的同色系，勾边不抢色。 */
 private val RankGoldOutline = Color(0xFF4A3700)
@@ -369,5 +332,5 @@ private fun rememberRankNumberOutline(): Stroke {
     }
 }
 
-/** 非前三名卡片的细边框。 */
-private val RankBorderColor = Color(0xFF1B1D20).copy(alpha = 0.10f)
+/** 非前三名卡片的细边框：压在封面上，用浅色描一圈区分相邻卡片。 */
+private val RankBorderColor = Color.White.copy(alpha = 0.14f)

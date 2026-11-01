@@ -96,15 +96,17 @@ internal class AniRpbRepositoryImpl @Inject constructor(
     }
 
     private fun decodeResponse(op: String, response: JSONObject): JSONObject {
+        // 帧状态非 200 时服务端仍会带一小段 body（错误 JSON），一并打出来才能定位原因。
+        val rawBody = response.optString("body")
         val frameStatus = response.optInt("frameStatus", -1)
         if (frameStatus != HTTP_OK) {
-            throw IOException("AniRpb $op frameStatus=$frameStatus")
+            val snippet = rawBody.take(MAX_ERROR_BODY_CHARS)
+            throw IOException("AniRpb $op frameStatus=$frameStatus body=$snippet")
         }
         if (!response.optBoolean("tokenMatch", false)) {
             throw IOException("AniRpb $op token mismatch")
         }
 
-        val rawBody = response.optString("body")
         if (rawBody.isBlank()) {
             throw IOException("AniRpb $op returned an empty body")
         }
@@ -255,6 +257,9 @@ internal class AniRpbRepositoryImpl @Inject constructor(
         const val FIRST_PAGE = 1
         const val MAX_CALENDAR_PAGES = 4
         const val HTTP_PREFIX_LENGTH = 7
+
+        /** 错误日志里保留的 body 长度上限，避免把整包 JSON 写进日志。 */
+        const val MAX_ERROR_BODY_CHARS = 200
 
         val EPISODE_NUMBER_REGEX = Regex("(\\d+)")
 

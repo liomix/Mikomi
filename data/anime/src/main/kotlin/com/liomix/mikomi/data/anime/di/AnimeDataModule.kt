@@ -1,5 +1,6 @@
 package com.liomix.mikomi.data.anime.di
 
+import com.liomix.mikomi.data.anime.AniCykRepository
 import com.liomix.mikomi.data.anime.AniRpbRepository
 import com.liomix.mikomi.data.anime.AnimeCommentRepository
 import com.liomix.mikomi.data.anime.AnimeCreditsRepository
@@ -9,6 +10,7 @@ import com.liomix.mikomi.data.anime.HomeRepository
 import com.liomix.mikomi.data.anime.RankRepository
 import com.liomix.mikomi.data.anime.SearchRepository
 import com.liomix.mikomi.data.anime.ScheduleRepository
+import com.liomix.mikomi.data.anime.internal.AniCykRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.AniRpbRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.AnimeCommentRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.AnimeCreditsRepositoryImpl
@@ -19,11 +21,17 @@ import com.liomix.mikomi.data.anime.internal.RankRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.SearchRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.ScheduleRepositoryImpl
 import com.liomix.mikomi.data.anime.remote.AnimeApi
+import com.liomix.mikomi.data.anime.schedule.AniCykScheduleSource
+import com.liomix.mikomi.data.anime.schedule.AniRpbScheduleSource
+import com.liomix.mikomi.data.anime.schedule.AnimeIdentityRegistry
+import com.liomix.mikomi.data.anime.schedule.AnimeIdentityRegistryImpl
+import com.liomix.mikomi.data.anime.schedule.ScheduleSource
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import dagger.multibindings.IntoSet
 import retrofit2.Retrofit
 
 @Module
@@ -40,6 +48,9 @@ internal abstract class AnimeDataModule {
 
     @Binds
     internal abstract fun bindAniRpbRepository(impl: AniRpbRepositoryImpl): AniRpbRepository
+
+    @Binds
+    internal abstract fun bindAniCykRepository(impl: AniCykRepositoryImpl): AniCykRepository
 
     @Binds
     internal abstract fun bindAnimeRepository(impl: AnimeRepositoryImpl): AnimeRepository
@@ -64,4 +75,18 @@ internal abstract class AnimeDataModule {
 
     @Binds
     internal abstract fun bindAnimeIdMapper(impl: AnimeIdMapperImpl): AnimeIdMapper
+
+    @Binds
+    internal abstract fun bindAnimeIdentityRegistry(
+        impl: AnimeIdentityRegistryImpl,
+    ): AnimeIdentityRegistry
+
+    /** 时间表数据源集合：AniCyk 优先、AniRpb 兜底，由编排层按 priority 排序。 */
+    @Binds
+    @IntoSet
+    internal abstract fun bindAniCykScheduleSource(source: AniCykScheduleSource): ScheduleSource
+
+    @Binds
+    @IntoSet
+    internal abstract fun bindAniRpbScheduleSource(source: AniRpbScheduleSource): ScheduleSource
 }

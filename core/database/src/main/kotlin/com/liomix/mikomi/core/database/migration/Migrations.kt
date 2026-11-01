@@ -112,4 +112,110 @@ object Migrations {
             db.execSQL("ALTER TABLE rank_entry ADD COLUMN position INTEGER NOT NULL DEFAULT 0")
         }
     }
+
+    /**
+     * 9 → 10：时间表改为多源合并 —— schedule 表补齐身份/精度/来源列，
+     * 并新增分源缓存、身份映射、冲突复核三组表。
+     *
+     * 旧行只有 AniRpb 数据，`precision` 按「有时刻则 EXACT」回填；`sourceId` 统一标
+     * `anirpb`，`canonicalKey` / `airTimeDate` / `airTime` 先留空，首次刷新会整体重写。
+     */
+    val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE schedule ADD COLUMN canonicalKey TEXT NOT NULL DEFAULT ''")
+            // 默认值必须与实体声明一致（''），否则 Room 校验迁移后表结构会失败；
+            // 旧行统一回填 anirpb，再进入多源合并流程。
+            db.execSQL("ALTER TABLE schedule ADD COLUMN sourceId TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE schedule ADD COLUMN airTimeDate TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE schedule ADD COLUMN airTime TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE schedule ADD COLUMN precision TEXT NOT NULL DEFAULT 'UNKNOWN'")
+            db.execSQL("ALTER TABLE schedule ADD COLUMN inferred INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE schedule ADD COLUMN detailLink TEXT NOT NULL DEFAULT ''")
+
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `schedule_source` (
+                    `sourceId` TEXT NOT NULL,
+                    `displayName` TEXT NOT NULL,
+                    `priority` INTEGER NOT NULL,
+                    `version` INTEGER NOT NULL DEFAULT 0,
+                    `itemCount` INTEGER NOT NULL DEFAULT 0,
+                    `fetchedAtMs` INTEGER NOT NULL DEFAULT 0,
+                    `anchorStartIndex` INTEGER NOT NULL DEFAULT 0,
+                    `lastStatus` TEXT NOT NULL DEFAULT 'UNKNOWN',
+                    PRIMARY KEY(`sourceId`)
+                )
+                """.trimIndent(),
+            )
+
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `schedule_source_entry` (
+                    `sourceId` TEXT NOT NULL,
+                    `entryId` TEXT NOT NULL,
+                    `sourceVersion` INTEGER NOT NULL DEFAULT 0,
+                    `canonicalKey` TEXT NOT NULL DEFAULT '',
+                    `title` TEXT NOT NULL,
+                    `coverUrl` TEXT,
+                    `synopsis` TEXT,
+                    `airTimeDate` TEXT NOT NULL DEFAULT '',
+                    `airTime` TEXT NOT NULL DEFAULT '',
+                    `precision` TEXT NOT NULL DEFAULT 'UNKNOWN',
+                    `episode` INTEGER NOT NULL DEFAULT 0,
+                    `episodeText` TEXT NOT NULL DEFAULT '',
+                    `updateText` TEXT NOT NULL DEFAULT '',
+                    `detailLink` TEXT NOT NULL DEFAULT '',
+                    `channelId` TEXT NOT NULL DEFAULT '',
+                    `fetchedAtMs` INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(`sourceId`, `entryId`)
+                )
+                """.trimIndent(),
+            )
+
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `anime_identity` (
+                    `canonicalKey` TEXT NOT NULL,
+                    `primaryTitle` TEXT NOT NULL,
+                    `aliases` TEXT NOT NULL DEFAULT '',
+                    `externalIds` TEXT NOT NULL DEFAULT '',
+                    `matchState` TEXT NOT NULL DEFAULT 'AUTO',
+                    `updatedAt` INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(`canonicalKey`)
+                )
+                """.trimIndent(),
+            )
+
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `schedule_conflict` (
+                    `id` TEXT NOT NULL,
+                    `canonicalKey` TEXT NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `type` TEXT NOT NULL,
+                    `baseSourceId` TEXT NOT NULL,
+                    `baseDate` TEXT NOT NULL,
+                    `baseTime` TEXT NOT NULL,
+                    `candidateSourceId` TEXT NOT NULL,
+                    `candidateDate` TEXT NOT NULL,
+                    `candidateTime` TEXT NOT NULL,
+                    `createdAt` INTEGER NOT NULL,
+                    PRIMARY KEY(`id`)
+                )
+                """.trimIndent(),
+            )
+
+            // 旧行补上来源与放送日期；时刻无法从 airingAtMillis 反推（+08 时区下当天
+            // 00:00 的毫秒数并不整除一天），统一按「仅日期」处理，首次刷新会整体重写。
+            db.execSQL("UPDATE schedule SET sourceId = 'anirpb'")
+            db.execSQL(
+                """
+                UPDATE schedule SET
+                    airTimeDate = strftime('%Y-%m-%d', airingAtMillis / 1000, 'unixepoch', 'localtime'),
+                    airTime = '',
+                    precision = 'DATE_ONLY'
+                """.trimIndent(),
+            )
+        }
+    }
 }

@@ -4,11 +4,14 @@ import android.content.Context
 import androidx.room.Room
 import com.liomix.mikomi.core.database.MikomiDatabase
 import com.liomix.mikomi.core.database.dao.AnimeDao
+import com.liomix.mikomi.core.database.dao.AnimeIdentityDao
 import com.liomix.mikomi.core.database.dao.EpisodeDao
 import com.liomix.mikomi.core.database.dao.FavoriteDao
 import com.liomix.mikomi.core.database.dao.HistoryDao
 import com.liomix.mikomi.core.database.dao.RankDao
+import com.liomix.mikomi.core.database.dao.ScheduleConflictDao
 import com.liomix.mikomi.core.database.dao.ScheduleDao
+import com.liomix.mikomi.core.database.dao.ScheduleSourceDao
 import com.liomix.mikomi.core.database.migration.Migrations
 import dagger.Module
 import dagger.Provides
@@ -34,6 +37,7 @@ object DatabaseModule {
                 Migrations.MIGRATION_6_7,
                 Migrations.MIGRATION_7_8,
                 Migrations.MIGRATION_8_9,
+                Migrations.MIGRATION_9_10,
             )
             .build()
 
@@ -54,4 +58,14 @@ object DatabaseModule {
 
     @Provides
     fun provideRankDao(db: MikomiDatabase): RankDao = db.rankDao()
+
+    @Provides
+    fun provideScheduleSourceDao(db: MikomiDatabase): ScheduleSourceDao = db.scheduleSourceDao()
+
+    @Provides
+    fun provideAnimeIdentityDao(db: MikomiDatabase): AnimeIdentityDao = db.animeIdentityDao()
+
+    @Provides
+    fun provideScheduleConflictDao(db: MikomiDatabase): ScheduleConflictDao =
+        db.scheduleConflictDao()
 }

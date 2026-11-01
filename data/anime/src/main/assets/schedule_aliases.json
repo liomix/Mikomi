@@ -1,0 +1,30 @@
+[
+  {
+    "_readme": "运营维护的跨源别名 / 外部 id 映射。canonicalKey 留空时按 primaryTitle 归一化生成；externalIds 支持 bangumi / mal / anilist。修改后需重启进程生效。",
+    "canonicalKey": "ext:bangumi:400602",
+    "primaryTitle": "葬送的芙莉莲",
+    "aliases": [
+      "Frieren",
+      "葬送のフリーレン",
+      "Frieren: Beyond Journey's End",
+      "葬送的芙莉莲 第二季"
+    ],
+    "externalIds": {
+      "bangumi": "400602",
+      "mal": "52991",
+      "anilist": "154587"
+    }
+  },
+  {
+    "canonicalKey": "title:blackclover",
+    "primaryTitle": "黑色五叶草",
+    "aliases": [
+      "ブラッククローバー",
+      "Black Clover",
+      "黑色五叶草 第二季"
+    ],
+    "externalIds": {
+      "bangumi": "1950"
+    }
+  }
+]

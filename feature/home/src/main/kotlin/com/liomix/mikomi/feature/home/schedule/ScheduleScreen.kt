@@ -1,10 +1,10 @@
 package com.liomix.mikomi.feature.home.schedule
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,25 +27,28 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.model.AirTime
+import com.liomix.mikomi.core.model.AirTimePrecision
 import com.liomix.mikomi.core.model.ScheduleEntry
 import com.liomix.mikomi.core.ui.component.AnimeCoverImage
 import com.liomix.mikomi.core.ui.component.EmptyState
 import com.liomix.mikomi.core.ui.component.ErrorState
 import com.liomix.mikomi.core.ui.component.ScrollingText
 import com.liomix.mikomi.core.ui.component.SkeletonBox
+import com.liomix.mikomi.core.ui.component.Tag
+import com.liomix.mikomi.core.ui.component.TagRow
 import com.liomix.mikomi.feature.home.R
 import java.util.Calendar
 import java.util.Locale
@@ -62,23 +65,30 @@ private val WEEKDAYS = listOf(
     R.string.schedule_sunday,
 )
 
-/** 加载状态：骨架 / 数据 / 空 / 错误。 */
-sealed interface ScheduleUiState {
-    data object Loading : ScheduleUiState
+/** 今天是哪一天时，标签上的星期字替换为「今」。 */
+private val TODAY_LABEL = R.string.schedule_today
 
-    data class Success(val days: List<List<ScheduleEntry>>) : ScheduleUiState
+/** ISO 日期总长度（`yyyy-MM-dd`）。 */
+private const val DATE_LENGTH = 10
 
-    data object Empty : ScheduleUiState
+/** 「月-日」在 ISO 日期中的起始下标（跳过 `yyyy-`）。 */
+private const val DATE_MONTH_DAY_START = 5
 
-    data object Error : ScheduleUiState
-}
+/** 一周的天数：日历标签栏与骨架屏共用。 */
+private const val DAYS_IN_WEEK = 7
+
+/** 日历标签栏容器圆角：比容器内边距（4dp）多 18dp，与两行标签圆角同心。 */
+private val TAB_ROW_CORNER_RADIUS = 22.dp
+
+/** 加载状态：骨架 / 数据 / 空 / 错误见 [ScheduleUiState]（随 ViewModel 定义）。 */
 
 /**
- * 时间表：二级页面（周一~周日七天番剧列表），数据来自 AniRpb 每周更新表。
+ * 时间表：二级页面（周一~周日七天番剧列表），数据来自多源合并后的本周时间表。
  *
  * - 顶部 [CenterAlignedTopAppBar]，返回交给上层导航；
- * - 七天用 [ScrollableTabRow] 选中，[HorizontalPager] 左右滑动切换，二者联动，
- *   默认定位到今天；
+ * - 七天用 [TagRow] 日历标签栏选中（星期 + 月-日，今天显示「今」），
+ *   [HorizontalPager] 左右滑动切换，二者联动，默认定位到今天；
+ * - 放送时间按三态精度展示：精确时刻 / 约 HH:mm（低优先级源推断）/ 时间待定 / 待公布；
  * - 加载 / 数据 / 空态 / 错误由 [ScheduleUiState] 驱动，错误态可通过
  *   [onRetryClick] 重新拉取。
  */
@@ -131,6 +141,7 @@ fun ScheduleScreen(
 
             is ScheduleUiState.Success -> ScheduleContent(
                 days = uiState.days,
+                dates = uiState.dates,
                 onAnimeTitleClick = onAnimeTitleClick,
                 modifier = Modifier.padding(innerPadding),
             )
@@ -141,6 +152,7 @@ fun ScheduleScreen(
 @Composable
 private fun ScheduleContent(
     days: List<List<ScheduleEntry>>,
+    dates: List<String>,
     onAnimeTitleClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -154,32 +166,17 @@ private fun ScheduleContent(
     val selectedDay = pagerState.currentPage
 
     Column(modifier = modifier.fillMaxSize()) {
-        ScrollableTabRow(
-            selectedTabIndex = selectedDay,
-            edgePadding = 12.dp,
-            containerColor = MaterialTheme.colorScheme.surface,
-            divider = {},
-        ) {
-            days.indices.forEach { index ->
-                Tab(
-                    selected = selectedDay == index,
-                    onClick = {
-                        coroutineScope.launch { pagerState.animateScrollToPage(index) }
-                    },
-                    text = {
-                        Text(
-                            text = stringResource(WEEKDAYS[index % WEEKDAYS.size]),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = if (selectedDay == index) {
-                                FontWeight.SemiBold
-                            } else {
-                                FontWeight.Normal
-                            },
-                        )
-                    },
-                )
-            }
-        }
+        DayTabBar(
+            dates = dates,
+            selectedIndex = selectedDay,
+            todayIndex = todayIndex,
+            onSelect = { index ->
+                coroutineScope.launch { pagerState.animateScrollToPage(index) }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+        )
 
         HorizontalPager(
             state = pagerState,
@@ -194,6 +191,44 @@ private fun ScheduleContent(
         }
     }
 }
+
+/**
+ * 周日历标签栏：上用星期（今天显示「今」），下用「月-日」。
+ *
+ * 复用通用标签组件 [TagRow]/[Tag] 的两行形态：选中时整块被主题色淡底包裹，
+ * 不画下划线指示器；横向等分七格，无需滚动。
+ */
+@Composable
+private fun DayTabBar(
+    dates: List<String>,
+    selectedIndex: Int,
+    todayIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TagRow(
+        modifier = modifier,
+        // 整行铺满的七等分卡片，胶囊容器在宽屏上会显得过于圆，改用大圆角矩形。
+        shape = RoundedCornerShape(TAB_ROW_CORNER_RADIUS),
+    ) {
+        dates.indices.forEach { index ->
+            val isToday = index == todayIndex
+            Tag(
+                text = stringResource(
+                    if (isToday) TODAY_LABEL else WEEKDAYS[index % WEEKDAYS.size],
+                ),
+                supportingText = dates[index].let(::monthDayLabel).takeIf { it.isNotBlank() },
+                selected = index == selectedIndex,
+                onClick = { onSelect(index) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/** ISO 日期（2026-11-01）→ 月-日（11-01），作为周标签的副标题。 */
+private fun monthDayLabel(date: String): String =
+    if (date.length >= DATE_LENGTH) date.substring(DATE_MONTH_DAY_START) else date
 
 /** 单日番剧列表：左封面 + 右标题/放送信息/简介。 */
 @Composable
@@ -218,16 +253,16 @@ private fun DayList(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            top = 12.dp,
+            start = 12.dp,
+            end = 12.dp,
+            top = 8.dp,
             bottom = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 24.dp,
         ),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         items(
             items = entries,
-            key = { "${it.anime.id}:${it.episode}" },
+            key = { "${it.canonicalKey}:${it.airTime.date}:${it.episode}" },
             contentType = { "schedule_entry" },
         ) { entry ->
             ScheduleAnimeRow(
@@ -251,9 +286,8 @@ private fun ScheduleAnimeRow(
         ""
     }
     val episodeLabel = entry.episodeText.ifBlank { fallbackEpisode }
-    val scheduleLabel = entry.updateText.ifBlank {
-        if (entry.airingAtMillis > 0) formatAiringTime(entry.airingAtMillis) else ""
-    }
+    // 放送信息优先用 base 源的现成文案；没有文案时按三态精度展示。
+    val scheduleLabel = entry.updateText.ifBlank { airTimeLabel(entry.airTime) }
 
     Surface(
         onClick = onClick,
@@ -262,14 +296,15 @@ private fun ScheduleAnimeRow(
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(start = 8.dp, top = 8.dp, end = 12.dp, bottom = 8.dp),
+            // 信息区顶部与封面顶部对齐（不再整体垂直居中）。
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             AnimeCoverImage(
                 url = anime.coverUrl,
                 contentDescription = anime.title,
-                modifier = Modifier.size(width = 64.dp, height = 96.dp),
+                modifier = Modifier.size(width = 80.dp, height = 120.dp),
                 browserUserAgent = true,
             )
 
@@ -298,7 +333,7 @@ private fun ScheduleAnimeRow(
                             Text(
                                 text = scheduleLabel,
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (entry.updateText.isNotBlank()) {
+                                color = if (entry.airTime.hasExactTime) {
                                     MaterialTheme.colorScheme.primary
                                 } else {
                                     MaterialTheme.colorScheme.onSurfaceVariant
@@ -317,21 +352,33 @@ private fun ScheduleAnimeRow(
             }
 
             // AniRpb 更新表没有评分字段；不要显示一个无意义的「—」圆点。
-            anime.rating?.let { RatingDot(rating = it) }
+            // 评分圆点仍按封面垂直居中，避免顶到标题行。
+            anime.rating?.let { rating ->
+                RatingDot(
+                    rating = rating,
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                )
+            }
         }
     }
 }
 
-/** 放送时刻（本地时区 HH:mm）。 */
-private fun formatAiringTime(millis: Long): String {
-    val calendar = Calendar.getInstance()
-    calendar.timeInMillis = millis
-    return String.format(
-        Locale.ROOT,
-        "%02d:%02d",
-        calendar.get(Calendar.HOUR_OF_DAY),
-        calendar.get(Calendar.MINUTE),
-    )
+/** 放送时间按三态精度展示：精确时刻 / 约 HH:mm（低优先级源推断）/ 时间待定 / 待公布。 */
+@Composable
+private fun airTimeLabel(airTime: AirTime): String = when {
+    airTime.hasExactTime -> {
+        val time = airTime.time.orEmpty()
+        if (airTime.inferred) {
+            stringResource(R.string.schedule_time_approx, time)
+        } else {
+            time
+        }
+    }
+
+    airTime.precision == AirTimePrecision.DATE_ONLY ->
+        stringResource(R.string.schedule_time_pending)
+
+    else -> stringResource(R.string.schedule_time_tbd)
 }
 
 /** 今天是本周第几天（周一=0）。Calendar 的 DAY_OF_WEEK 周日=1。 */
@@ -372,34 +419,52 @@ private fun ScheduleSkeleton(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
+        // 标签栏骨架：与真实标签栏同高同圆角（七等分卡片），避免数据到达时跳动。
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .clip(RoundedCornerShape(TAB_ROW_CORNER_RADIUS))
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = 4.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            repeat(4) {
-                SkeletonBox(
-                    modifier = Modifier.size(width = 44.dp, height = 14.dp),
-                    shape = RoundedCornerShape(7.dp),
-                )
+            repeat(DAYS_IN_WEEK) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    SkeletonBox(
+                        modifier = Modifier.size(width = 16.dp, height = 16.dp),
+                        shape = RoundedCornerShape(5.dp),
+                    )
+                    SkeletonBox(
+                        modifier = Modifier
+                            .padding(top = 6.dp)
+                            .size(width = 30.dp, height = 10.dp),
+                        shape = RoundedCornerShape(5.dp),
+                    )
+                }
             }
         }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             repeat(6) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     SkeletonBox(
-                        modifier = Modifier.size(width = 64.dp, height = 96.dp),
+                        modifier = Modifier.size(width = 80.dp, height = 120.dp),
                         shape = RoundedCornerShape(8.dp),
                     )
                     Column(

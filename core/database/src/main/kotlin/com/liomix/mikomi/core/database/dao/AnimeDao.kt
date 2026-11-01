@@ -4,9 +4,13 @@ import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
 import com.liomix.mikomi.core.database.entity.AnimeEntity
+import com.liomix.mikomi.core.database.entity.AnimeIdentityEntity
 import com.liomix.mikomi.core.database.entity.EpisodeEntity
 import com.liomix.mikomi.core.database.entity.RankEntity
+import com.liomix.mikomi.core.database.entity.ScheduleConflictEntity
 import com.liomix.mikomi.core.database.entity.ScheduleEntity
+import com.liomix.mikomi.core.database.entity.ScheduleSourceEntity
+import com.liomix.mikomi.core.database.entity.ScheduleSourceEntryEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -62,29 +66,75 @@ interface EpisodeDao {
 
 @Dao
 interface ScheduleDao {
-    @Query("SELECT * FROM schedule ORDER BY airingAtMillis")
+    @Query("SELECT * FROM schedule ORDER BY airingAtMillis, canonicalKey, id")
     fun observeSchedule(): Flow<List<ScheduleEntity>>
 
     @Upsert
     suspend fun upsertAll(entries: List<ScheduleEntity>)
 
-    /** 删除放送时间在窗口外的过期数据（时间表只保留当前周）。 */
-    @Query(
-        "DELETE FROM schedule WHERE airingAtMillis < :windowStartMs " +
-            "OR airingAtMillis >= :windowEndMs",
-    )
-    suspend fun deleteOutsideWindow(windowStartMs: Long, windowEndMs: Long)
+    /** 合并结果整体替换：多源合并是幂等的，全量替换可避免残留上一轮的行。 */
+    @Query("DELETE FROM schedule")
+    suspend fun deleteAll()
+}
 
-    /** 删除非当前数据源遗留的时间表行（例如从 AniList 切换到 AniRpb）。 */
-    @Query("DELETE FROM schedule WHERE id NOT LIKE :prefix || '%'")
-    suspend fun deleteNotFromSource(prefix: String)
+@Dao
+interface ScheduleSourceDao {
+    @Query("SELECT * FROM schedule_source ORDER BY priority ASC, sourceId ASC")
+    fun observeSources(): Flow<List<ScheduleSourceEntity>>
 
-    /** 删除某数据源在指定时间窗口内的行，便于按天整体替换。 */
+    @Query("SELECT * FROM schedule_source ORDER BY priority ASC, sourceId ASC")
+    suspend fun sources(): List<ScheduleSourceEntity>
+
+    @Query("SELECT * FROM schedule_source WHERE sourceId = :sourceId")
+    suspend fun find(sourceId: String): ScheduleSourceEntity?
+
+    @Upsert
+    suspend fun upsertAll(sources: List<ScheduleSourceEntity>)
+
+    @Query("SELECT * FROM schedule_source_entry WHERE sourceId = :sourceId")
+    suspend fun entriesOf(sourceId: String): List<ScheduleSourceEntryEntity>
+
+    @Upsert
+    suspend fun upsertEntries(entries: List<ScheduleSourceEntryEntity>)
+
+    @Query("DELETE FROM schedule_source_entry WHERE sourceId = :sourceId")
+    suspend fun deleteEntriesOf(sourceId: String)
+
+    /** 丢弃版本号落后于源当前版本的缓存（源成功刷新后清理历史行）。 */
+    @Query("DELETE FROM schedule_source_entry WHERE sourceId = :sourceId AND sourceVersion != :version")
+    suspend fun deleteStaleEntries(sourceId: String, version: Int)
+}
+
+@Dao
+interface AnimeIdentityDao {
+    @Query("SELECT * FROM anime_identity")
+    suspend fun all(): List<AnimeIdentityEntity>
+
+    @Query("SELECT * FROM anime_identity WHERE canonicalKey = :canonicalKey")
+    suspend fun find(canonicalKey: String): AnimeIdentityEntity?
+
+    @Upsert
+    suspend fun upsertAll(identities: List<AnimeIdentityEntity>)
+}
+
+@Dao
+interface ScheduleConflictDao {
+    @Upsert
+    suspend fun upsertAll(conflicts: List<ScheduleConflictEntity>)
+
+    @Query("SELECT * FROM schedule_conflict ORDER BY createdAt DESC LIMIT :limit")
+    suspend fun recent(limit: Int): List<ScheduleConflictEntity>
+
+    /** 冲突总数（UI 不展示，供监控与运营复核面板观察趋势）。 */
+    @Query("SELECT COUNT(*) FROM schedule_conflict")
+    fun observeCount(): Flow<Int>
+
+    /** 只保留最近 [keep] 条，避免复核队列无限增长。 */
     @Query(
-        "DELETE FROM schedule WHERE id LIKE :prefix || '%' " +
-            "AND airingAtMillis >= :windowStartMs AND airingAtMillis < :windowEndMs",
+        "DELETE FROM schedule_conflict WHERE id NOT IN " +
+            "(SELECT id FROM schedule_conflict ORDER BY createdAt DESC LIMIT :keep)",
     )
-    suspend fun deleteBySourceAndWindow(prefix: String, windowStartMs: Long, windowEndMs: Long)
+    suspend fun trim(keep: Int)
 }
 
 @Dao

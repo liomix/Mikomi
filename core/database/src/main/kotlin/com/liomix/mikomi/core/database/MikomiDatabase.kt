@@ -3,17 +3,24 @@ package com.liomix.mikomi.core.database
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.liomix.mikomi.core.database.dao.AnimeDao
+import com.liomix.mikomi.core.database.dao.AnimeIdentityDao
 import com.liomix.mikomi.core.database.dao.EpisodeDao
 import com.liomix.mikomi.core.database.dao.FavoriteDao
 import com.liomix.mikomi.core.database.dao.HistoryDao
 import com.liomix.mikomi.core.database.dao.RankDao
+import com.liomix.mikomi.core.database.dao.ScheduleConflictDao
 import com.liomix.mikomi.core.database.dao.ScheduleDao
+import com.liomix.mikomi.core.database.dao.ScheduleSourceDao
 import com.liomix.mikomi.core.database.entity.AnimeEntity
+import com.liomix.mikomi.core.database.entity.AnimeIdentityEntity
 import com.liomix.mikomi.core.database.entity.EpisodeEntity
 import com.liomix.mikomi.core.database.entity.FavoriteEntity
 import com.liomix.mikomi.core.database.entity.HistoryEntity
 import com.liomix.mikomi.core.database.entity.RankEntity
+import com.liomix.mikomi.core.database.entity.ScheduleConflictEntity
 import com.liomix.mikomi.core.database.entity.ScheduleEntity
+import com.liomix.mikomi.core.database.entity.ScheduleSourceEntity
+import com.liomix.mikomi.core.database.entity.ScheduleSourceEntryEntity
 
 @Database(
     entities = [
@@ -23,8 +30,12 @@ import com.liomix.mikomi.core.database.entity.ScheduleEntity
         HistoryEntity::class,
         ScheduleEntity::class,
         RankEntity::class,
+        ScheduleSourceEntity::class,
+        ScheduleSourceEntryEntity::class,
+        AnimeIdentityEntity::class,
+        ScheduleConflictEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 abstract class MikomiDatabase : RoomDatabase() {
@@ -34,4 +45,7 @@ abstract class MikomiDatabase : RoomDatabase() {
     abstract fun historyDao(): HistoryDao
     abstract fun scheduleDao(): ScheduleDao
     abstract fun rankDao(): RankDao
+    abstract fun scheduleSourceDao(): ScheduleSourceDao
+    abstract fun animeIdentityDao(): AnimeIdentityDao
+    abstract fun scheduleConflictDao(): ScheduleConflictDao
 }

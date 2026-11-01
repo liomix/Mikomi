@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    明文流量白名单：只有次元库（AniCyk）的四个主 API 节点走 HTTP，其余请求一律要求 HTTPS。
+    节点 IP 写死在 AniCykClient 里，若服务端换节点，这里必须同步，否则该源会直接不可用
+    （时间表会自动降级到 AniRpb，不会白屏）。
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">47.103.33.207</domain>
+        <domain includeSubdomains="false">47.93.60.215</domain>
+        <domain includeSubdomains="false">39.106.100.156</domain>
+        <domain includeSubdomains="false">8.134.159.218</domain>
+    </domain-config>
+</network-security-config>

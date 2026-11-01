@@ -8,7 +8,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -26,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.Role
@@ -37,8 +40,27 @@ import kotlin.math.roundToInt
 /** 标签高度，同时就是它的触控高度（满足 48dp 最小触控目标）。 */
 private val TagHeight = 48.dp
 
+/** 两行标签（主标签 + 副标题）的高度：容纳一行主标签与一行副标题。 */
+private val TagTwoLineHeight = 56.dp
+
 /** 标签文字左右内边距。 */
 private val TagHorizontalPadding = 18.dp
+
+/** 两行标签的左右内边距：成组等分排列时（如七格日历）需要更紧凑。 */
+private val TagTwoLineHorizontalPadding = 6.dp
+
+/** 单行标签形状：胶囊。 */
+private val TagShape = RoundedCornerShape(percent = 50)
+
+/**
+ * 两行标签形状：圆角矩形。
+ *
+ * 等分排布时单个标签宽高接近，胶囊会退化成椭圆，包裹感反而变差，因此换成圆角矩形。
+ */
+private val TagTwoLineShape = RoundedCornerShape(18.dp)
+
+/** 标签栏容器的默认形状：胶囊。 */
+private val TagRowShape = RoundedCornerShape(percent = 50)
 
 /** 外层胶囊容器的内边距：选中标签与外层之间留出的白色间隙。 */
 private val TagRowPadding = 4.dp
@@ -73,9 +95,13 @@ private const val PressedScale = 0.96f
  * }
  * ```
  *
+ * 传入 [supportingText] 时切换为**两行形态**（如日历的「三 / 10-28」）：主标签在上、
+ * 副标题在下，两者同步着色与字重，选中态是整块被主题色淡底包裹（不用下划线指示器）。
+ *
  * @param text 标签文案（由调用方 `stringResource` 解析后传入，组件层不依赖业务资源）。
  * @param selected 是否处于选中态。
  * @param onClick 点击回调（语义按 Tab 上报）。
+ * @param supportingText 第二行副标题；为 null 时保持单行形态。
  */
 @Composable
 fun Tag(
@@ -83,9 +109,11 @@ fun Tag(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    supportingText: String? = null,
 ) {
     val colors = MaterialTheme.colorScheme
-    val shape = RoundedCornerShape(percent = 50)
+    val twoLine = supportingText != null
+    val shape = if (twoLine) TagTwoLineShape else TagShape
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
 
@@ -118,10 +146,11 @@ fun Tag(
     val textWeight = FontWeight(
         (normalWeight + (selectedWeight - normalWeight) * selectionProgress).roundToInt(),
     )
+    val supportingColor = lerp(colors.onSurfaceVariant, colors.primary, selectionProgress)
 
     Surface(
         modifier = modifier
-            .height(TagHeight)
+            .height(if (twoLine) TagTwoLineHeight else TagHeight)
             .graphicsLayer {
                 val selectedScale = UnselectedScale + (1f - UnselectedScale) * selectionProgress
                 val scale = selectedScale * (1f - (1f - PressedScale) * pressProgress)
@@ -143,16 +172,45 @@ fun Tag(
         Box(
             modifier = Modifier
                 .fillMaxHeight()
-                .padding(horizontal = TagHorizontalPadding),
+                .padding(
+                    horizontal = if (twoLine) {
+                        TagTwoLineHorizontalPadding
+                    } else {
+                        TagHorizontalPadding
+                    },
+                ),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = textWeight,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (supportingText == null) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = textWeight,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            } else {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = textWeight,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = supportingText,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = textWeight,
+                        color = supportingColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 }
@@ -163,16 +221,18 @@ fun Tag(
  * 外层容器只负责背景、圆角与内边距，具体选项由调用方通过 Slot 传入，
  * 便于同一组标签承载任意数量、任意文案。
  *
+ * @param shape 容器形状；默认胶囊，整行铺满、等分多列时可传入圆角矩形（如周日历标签栏）。
  * @param content 标签选项，通常为若干 [Tag]。
  */
 @Composable
 fun TagRow(
     modifier: Modifier = Modifier,
+    shape: Shape = TagRowShape,
     content: @Composable RowScope.() -> Unit,
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(percent = 50),
+        shape = shape,
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         shadowElevation = 2.dp,

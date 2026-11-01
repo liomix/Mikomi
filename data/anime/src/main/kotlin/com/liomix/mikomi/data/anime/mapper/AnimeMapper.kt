@@ -4,6 +4,7 @@ import com.liomix.mikomi.core.database.entity.AnimeEntity
 import com.liomix.mikomi.core.database.entity.EpisodeEntity
 import com.liomix.mikomi.core.database.entity.RankEntity
 import com.liomix.mikomi.core.database.entity.ScheduleEntity
+import com.liomix.mikomi.core.model.AirTime
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.AnimeStatus
 import com.liomix.mikomi.core.model.Episode
@@ -62,11 +63,20 @@ internal fun ScheduleEntity.toScheduleEntry(): ScheduleEntry = ScheduleEntry(
         synopsis = synopsis,
         rating = rating,
     ),
+    airTime = AirTime(
+        date = airTimeDate.takeIf { it.isNotBlank() },
+        time = airTime.takeIf { it.isNotBlank() },
+        precision = precision.toAirTimePrecision(),
+        inferred = inferred,
+    ),
     airingAtMillis = airingAtMillis,
     episode = episode,
     episodeText = episodeText,
     updateText = updateText,
     channelId = channelId,
+    detailLink = detailLink,
+    canonicalKey = canonicalKey,
+    sourceId = sourceId,
 )
 
 internal fun EpisodeEntity.toDomain(): Episode = Episode(

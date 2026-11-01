@@ -1,6 +1,7 @@
 package com.liomix.mikomi.data.anime.internal
 
 import android.content.Context
+import android.util.Log
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
 import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.model.AniRpbScheduleItem
@@ -11,6 +12,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -37,15 +39,63 @@ internal class AniRpbRepositoryImpl @Inject constructor(
 
     override suspend fun fetchHotRanking(region: RankRegion): List<AniRpbHotItem> =
         withContext(ioDispatcher) {
+            requestMutex.withLock { fetchHotLocked(resolveChannelId(region)) }
+        }
+
+    override suspend fun fetchRanking(region: RankRegion, limit: Int): List<AniRpbHotItem> =
+        withContext(ioDispatcher) {
             requestMutex.withLock {
                 val categoryId = resolveChannelId(region)
-                val data = decodeResponse(
-                    op = OP_HOME_LOAD,
-                    response = transport.hotRanking(categoryId = categoryId, pageSize = PAGE_SIZE),
-                )
-                parseHotItems(data)
+                val ranked = try {
+                    fetchRankPages(categoryId, limit)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // 整榜接口不可用时退回首页 hot 模块：短榜胜过空榜。
+                    Log.w(TAG, "AniRpb video.categoryList 整榜失败，回退 home.load 热播榜", e)
+                    emptyList()
+                }
+                ranked.ifEmpty { fetchHotLocked(categoryId).take(limit) }
             }
         }
+
+    /** `home.load` 的 hot 模块（首屏热播榜，条数由服务端模块决定）。 */
+    private fun fetchHotLocked(categoryId: String): List<AniRpbHotItem> {
+        val data = decodeResponse(
+            op = OP_HOME_LOAD,
+            response = transport.hotRanking(categoryId = categoryId, pageSize = PAGE_SIZE),
+        )
+        return parseHotItems(data)
+    }
+
+    /**
+     * 整榜分页：攒够 [limit] 条、服务端没有下一页、或达到页数上限时停。
+     *
+     * 服务端对 `pageSize` 的实际上限可能低于请求值，所以不能假设「一页就够」；
+     * 每页都读 `pageinfo.pages`，翻完就收，不做无用请求。
+     */
+    private fun fetchRankPages(categoryId: String, limit: Int): List<AniRpbHotItem> {
+        val items = mutableListOf<AniRpbHotItem>()
+        var page = FIRST_PAGE
+        while (items.size < limit && page <= MAX_RANK_PAGES) {
+            val data = decodeResponse(
+                op = OP_VIDEO_CATEGORY_LIST,
+                response = transport.ranking(
+                    categoryId = categoryId,
+                    pageIndex = page,
+                    pageSize = RANK_PAGE_SIZE,
+                ),
+            )
+            val pageItems = parseRankingItems(data)
+            if (pageItems.isEmpty()) break
+            items += pageItems
+            val pages = data.optJSONObject("pageinfo")?.optInt("pages", 0) ?: 0
+            if (pages in 1..page) break
+            page++
+        }
+        // id 缺失时用标题兜底：否则 distinctBy 会把所有空 id 的条目并成一条。
+        return items.distinctBy { it.id.ifBlank { it.title } }.take(limit)
+    }
 
     override suspend fun fetchCalendar(playDate: String): List<AniRpbScheduleItem> =
         withContext(ioDispatcher) {
@@ -72,13 +122,30 @@ internal class AniRpbRepositoryImpl @Inject constructor(
             }
         }
 
+    /**
+     * 解析产地对应的频道（categoryId）。
+     *
+     * `type.listActive` 是 `replay_safe` 类 op，服务端在签名引导未完成时会直接回
+     * `op dormant (no signSecret; bootstrap first)`。频道 id 只是**入参**，不该因为
+     * 拿不到动态列表就把所有 AniRpb 能力（榜单 / 时间表 / 搜索）一起拖死：
+     * 解析失败时退回实测常量，请求本身仍会照常发出，能用的 op 继续能用。
+     * 失败结果不入缓存，下一次请求会重新尝试动态解析。
+     */
     private fun resolveChannelId(region: RankRegion): String {
         channelIds[region]?.let { return it }
 
-        val data = decodeResponse(
-            op = OP_TYPE_LIST_ACTIVE,
-            response = transport.channels(),
-        )
+        val data = try {
+            decodeResponse(
+                op = OP_TYPE_LIST_ACTIVE,
+                response = transport.channels(),
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "type.listActive 失败，退回内置频道 id（region=$region）", e)
+            return region.fallbackChannelId()
+        }
+
         val types = data.optJSONArray("types") ?: JSONArray()
         for (index in 0 until types.length()) {
             val type = types.optJSONObject(index) ?: continue
@@ -136,34 +203,41 @@ internal class AniRpbRepositoryImpl @Inject constructor(
         }
         val module = hotModule
             ?: throw IOException("AniRpb home.load response has no hot module")
-        val items = module.optJSONArray("items") ?: return emptyList()
+        return parseVideoArray(module.optJSONArray("items") ?: return emptyList())
+    }
 
-        return buildList {
-            for (index in 0 until items.length()) {
-                val item = items.optJSONObject(index) ?: continue
-                val title = item.optString("title").trim()
-                if (title.isEmpty()) continue
+    /** 整榜报文：`data.videos`（`video.categoryList` / 搜索用 `items` 兜底）。 */
+    private fun parseRankingItems(data: JSONObject): List<AniRpbHotItem> {
+        val videos = data.optJSONArray("videos") ?: data.optJSONArray("items") ?: return emptyList()
+        return parseVideoArray(videos)
+    }
 
-                val coverUrl = normalizeImageUrl(
-                    item.optString("coverUrl").ifBlank { item.optString("posterUrl") },
-                )
+    /** 榜单条目解析：热播榜与整榜的字段完全一致，共用一份实现。 */
+    private fun parseVideoArray(items: JSONArray): List<AniRpbHotItem> = buildList {
+        for (index in 0 until items.length()) {
+            val item = items.optJSONObject(index) ?: continue
+            val title = item.optString("title").trim()
+            if (title.isEmpty()) continue
 
-                add(
-                    AniRpbHotItem(
-                        id = item.optString("id"),
-                        rank = size + 1,
-                        title = title,
-                        coverUrl = coverUrl,
-                        updateText = firstNonBlank(
-                            item.optString("customText"),
-                            item.optString("updateSchedule"),
-                        ).decodeHtmlEntities(),
-                        currentEpisodes = item.optInt("currentEpisodes", 0).coerceAtLeast(0),
-                        score = item.optScore(),
-                        playCount = item.optLong("playCount", 0L).coerceAtLeast(0L),
-                    ),
-                )
-            }
+            val coverUrl = normalizeImageUrl(
+                item.optString("coverUrl").ifBlank { item.optString("posterUrl") },
+            )
+
+            add(
+                AniRpbHotItem(
+                    id = item.optString("id"),
+                    rank = size + 1,
+                    title = title,
+                    coverUrl = coverUrl,
+                    updateText = firstNonBlank(
+                        item.optString("customText"),
+                        item.optString("updateSchedule"),
+                    ).decodeHtmlEntities(),
+                    currentEpisodes = item.optInt("currentEpisodes", 0).coerceAtLeast(0),
+                    score = item.optScore(),
+                    playCount = item.optLong("playCount", 0L).coerceAtLeast(0L),
+                ),
+            )
         }
     }
 
@@ -242,8 +316,11 @@ internal class AniRpbRepositoryImpl @Inject constructor(
     }
 
     private companion object {
+        const val TAG = "AniRpbRepository"
+
         const val OP_TYPE_LIST_ACTIVE = "type.listActive"
         const val OP_HOME_LOAD = "home.load"
+        const val OP_VIDEO_CATEGORY_LIST = "video.categoryList"
         const val OP_CALENDAR_VIDEOS = "calendar.videos"
 
         const val HOT_MODULE_KEY = "hot"
@@ -254,6 +331,12 @@ internal class AniRpbRepositoryImpl @Inject constructor(
         const val API_CODE_OK_ALT = 0
         const val PAGE_SIZE = 20
         const val CALENDAR_PAGE_SIZE = 20
+
+        /** 整榜单页条数：服务端可能按更小的上限裁剪，靠翻页补足。 */
+        const val RANK_PAGE_SIZE = 100
+
+        /** 整榜翻页上限（100 条 × 10 页远大于目标，纯属防御）。 */
+        const val MAX_RANK_PAGES = 10
         const val FIRST_PAGE = 1
         const val MAX_CALENDAR_PAGES = 4
         const val HTTP_PREFIX_LENGTH = 7

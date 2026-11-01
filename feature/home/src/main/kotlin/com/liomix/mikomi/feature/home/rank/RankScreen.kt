@@ -44,11 +44,11 @@ import com.liomix.mikomi.feature.home.R
 import kotlinx.coroutines.launch
 
 /**
- * 排行榜：首页快捷入口的二级页面（AniRpb 国漫 / 日漫热播榜）。
+ * 排行榜：首页快捷入口的二级页面（AniRpb 日漫 / 国漫整榜，每榜 100 条）。
  *
  * - 顶栏右侧刷新：刷新进行中替换为进度环并禁用重复点击；
  * - 分类标签是静态资源，任何状态下都真实渲染，只有下方的卡片列表需要骨架屏；
- * - 榜单卡片为「封面满铺 + 向右渐进模糊」，左侧斜体名次，右侧单行标题；
+ * - 榜单卡片为「封面满铺 + 向右洗进灰白底」，左侧斜体名次，右侧单行标题；
  * - 错误态的重试与顶栏刷新是同一条链路，统一走 [onRefreshClick]。
  *
  * 无状态：数据与刷新策略由上层 [RankRoute] 通过 ViewModel 提供。
@@ -280,10 +280,10 @@ private fun RankCardSkeletonList(
     }
 }
 
-/** 排行榜分类：国漫 / 日漫，两榜均按服务端热播名次排列。 */
+/** 排行榜分类：日漫 / 国漫（日漫在前），两榜均按服务端整榜名次排列。 */
 private enum class RankType(@param:StringRes val labelRes: Int) {
-    CHINESE(R.string.rank_tab_chinese),
     JAPANESE(R.string.rank_tab_japanese),
+    CHINESE(R.string.rank_tab_chinese),
 }
 
 /** 顶栏刷新进度环的直径。 */

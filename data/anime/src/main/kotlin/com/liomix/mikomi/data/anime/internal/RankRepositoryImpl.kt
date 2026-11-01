@@ -20,10 +20,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 /**
- * 热播榜：AniRpb `home.load` 为唯一数据源（国漫 / 日漫各一个频道）。
+ * 热播榜：AniRpb `video.categoryList`（分类整榜，sort=hottest）为唯一数据源，
+ * 国漫 / 日漫各取 [RANK_LIMIT] 条。
  *
  * AniRpb 的频道 id 在数据层按 `type.listActive` 动态解析，这里只按产地请求榜单；
  * 名次直接沿用服务端返回顺序（[RankEntity.position]），不再按评分重排。
+ * 整榜接口不可用时数据层会回退到 `home.load` 的 hot 模块（条数更少）。
  * 离线优先由 Room SSOT 保证：刷新失败时继续展示本地缓存。
  */
 internal class RankRepositoryImpl @Inject constructor(
@@ -73,11 +75,15 @@ internal class RankRepositoryImpl @Inject constructor(
         }
     }
 
-    /** AniRpb 热播榜：名次取接口返回顺序（第 N 条 = position N-1）。 */
-    private suspend fun fetchRank(region: RankRegion): List<RankEntity> =
-        aniRpbRepository.fetchHotRanking(region).mapIndexed { index, item ->
+    /** AniRpb 整榜：名次取接口返回顺序（第 N 条 = position N-1）。 */
+    private suspend fun fetchRank(region: RankRegion): List<RankEntity> {
+        val items = aniRpbRepository.fetchRanking(region, RANK_LIMIT)
+        // 条数落在日志里：整榜接口被裁剪或回退 home.load 时，这里能直接看出来。
+        Log.i(TAG, "整榜拉取完成 region=$region 条数=${items.size}")
+        return items.mapIndexed { index, item ->
             item.toRankEntity(region.storageValue(), position = index)
         }
+    }
 
     private fun AniRpbHotItem.toRankEntity(region: String, position: Int): RankEntity = RankEntity(
         id = "$ANIRPB_ID_PREFIX$id",
@@ -116,6 +122,9 @@ internal class RankRepositoryImpl @Inject constructor(
 
         /** 主键前缀：AniRpb 视频 id 与 Bangumi / AniList 条目 id 不在同一命名空间。 */
         const val ANIRPB_ID_PREFIX = "anirpb:"
+
+        /** 单榜条数：日漫 / 国漫各 100 条。 */
+        const val RANK_LIMIT = 100
 
         const val TAG = "RankRepository"
     }

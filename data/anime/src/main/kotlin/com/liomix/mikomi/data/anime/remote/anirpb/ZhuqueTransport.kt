@@ -23,6 +23,7 @@ import java.util.TimeZone
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import org.json.JSONArray
 import org.json.JSONObject
 
 /**
@@ -118,6 +119,31 @@ internal class ZhuqueTransport(context: Context) {
             .put("categoryId", categoryId)
             .put("pageIndex", pageIndex)
             .put("pageSize", pageSize)
+            .toString(),
+    )
+
+    /**
+     * 分类整榜（`video.categoryList`）：可翻页的完整榜单。
+     *
+     * 与 `home.load` 的 hot 模块不同，这个接口是频道级列表，带 `pageinfo`
+     * 可以一直翻到榜尾，因此能取到 100 条这样的长榜；`sort` 默认按热度
+     * （`hottest`），与「排行榜」语义一致。
+     */
+    fun ranking(
+        categoryId: String,
+        pageIndex: Int = 1,
+        pageSize: Int = 20,
+        sort: String = RANK_SORT_HOTTEST,
+    ): JSONObject = semantic(
+        op = OP_VIDEO_CATEGORY_LIST,
+        paramsJson = JSONObject()
+            .put("pageIndex", pageIndex)
+            .put("pageSize", pageSize)
+            .put("categoryId", categoryId)
+            .put("filters", JSONArray())
+            .put("sort", sort)
+            .put("billing", "")
+            .put("seriesMerge", 0)
             .toString(),
     )
 
@@ -373,7 +399,11 @@ internal class ZhuqueTransport(context: Context) {
 
         const val OP_TYPE_LIST_ACTIVE = "type.listActive"
         const val OP_HOME_LOAD = "home.load"
+        const val OP_VIDEO_CATEGORY_LIST = "video.categoryList"
         const val OP_CALENDAR_VIDEOS = "calendar.videos"
+
+        /** 整榜排序：热度（可选 latest / hottest / score / discuss）。 */
+        const val RANK_SORT_HOTTEST = "hottest"
 
         /** 与官方 RdicReplaySafeOps 对齐；home.load 不在集合里，必须为 false。 */
         val REPLAY_SAFE_OPS = setOf(

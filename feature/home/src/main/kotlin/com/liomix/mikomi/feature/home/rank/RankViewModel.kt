@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * 排行榜 ViewModel：国漫 / 日漫两份 AniRpb 热播榜。
+ * 排行榜 ViewModel：日漫 / 国漫两份 AniRpb 整榜（各 100 条）。
  *
  * 离线优先：本地已有数据时优先展示，刷新失败不覆盖为错误态。
  */

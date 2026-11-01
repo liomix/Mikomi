@@ -25,24 +25,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.liomix.mikomi.core.model.RankEntry
-import com.liomix.mikomi.core.ui.component.ProgressiveBlurBackdrop
 import com.liomix.mikomi.core.ui.component.ScrollingText
 
 /**
- * 排名卡片：模糊封面铺底 + 名次 + 标题（灰白卡片）。
+ * 排名卡片：封面铺底 + 名次 + 标题（灰白卡片）。
  *
  * 卡片是「横条」（宽高比 2.4:1），而封面几乎都是 2:3 竖图：铺满后纵向只剩约
  * 28% 可见。所以裁切位置比比例更关键——把锚点抬到上部（[CoverCropAlignment]），
- * 保住人物头部而不是切到腰身。背景再做「左清晰 → 右模糊」的过渡，
- * 右侧模糊层始终有封面颜色延展，再向右洗进灰白底色，不出现黑尾。
+ * 保住人物头部而不是切到腰身。封面之上叠一层向右加深的浅色遮罩，
+ * 右半洗成干净的灰白底，深色标题才站得住。
  *
  * 卡片底色为灰白：封面在右半洗进浅色底，深色标题压在干净面上；
  * 遮罩与渐变都提到顶层，避免每张卡片重组时重复分配。
@@ -73,14 +78,13 @@ internal fun RankAnimeCard(
             .height(RankCardHeight),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // 横条满铺：竖图裁成宽幅时锚定上部（人物头部多在上 1/3），
-            // 左侧保留清晰画面、右侧过渡到模糊，右端始终有封面颜色，不会出现黑尾。
-            ProgressiveBlurBackdrop(
+            // 无封面时的灰白底：先铺一层，图片加载成功后再盖上去。
+            CoverFallbackBackdrop(modifier = Modifier.fillMaxSize())
+
+            // 横条满铺：竖图裁成宽幅时锚定上部（人物头部多在上 1/3），不做模糊。
+            CoverBackdrop(
                 model = anime.coverUrl,
                 modifier = Modifier.fillMaxSize(),
-                blurRadius = BackgroundBlurRadius,
-                alignment = CoverCropAlignment,
-                placeholder = { CoverFallbackBackdrop() },
             )
 
             // 右半洗进灰白底色，深色标题压在干净的浅面上。
@@ -138,7 +142,7 @@ private fun RankNumber(
         fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Black,
         fontStyle = FontStyle.Italic,
-        fontSize = if (rank >= DoubleDigitThreshold) DoubleDigitFontSize else SingleDigitFontSize,
+        fontSize = rankFontSize(rank),
     )
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
@@ -166,6 +170,35 @@ private fun RankNumber(
             },
         )
     }
+}
+
+/**
+ * 封面底图：整块铺满并按 [CoverCropAlignment] 裁切，不做任何模糊。
+ *
+ * 只画图不画占位：图片未就绪时露出下层的 [CoverFallbackBackdrop] 灰白渐变，
+ * 加载完成后 crossfade 盖上，避免先闪一块占位色再跳图。
+ */
+@Composable
+private fun CoverBackdrop(
+    model: Any?,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val request = remember(model, context) {
+        ImageRequest.Builder(context)
+            .data(model)
+            .crossfade(true)
+            .memoryCacheKey(model as? String)
+            .build()
+    }
+
+    AsyncImage(
+        model = request,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        alignment = CoverCropAlignment,
+        modifier = modifier,
+    )
 }
 
 /**
@@ -223,20 +256,20 @@ private val RankCardFallbackGradient = Brush.linearGradient(
 )
 
 /**
- * 卡片上的水平提亮遮罩：左侧几乎透明（露出封面与模糊层），向右逐步叠上灰白。
+ * 卡片上的水平提亮遮罩：左侧几乎透明（露出封面），向右逐步叠上灰白。
  *
  * 关键在**末档不封顶**（0.72 而不是 1.0）：完全盖住的话右端会变成一块平的色板，
- * 看起来像「后面没内容」；留 28% 的模糊纹理透出来，模糊画面就一路延续到卡片末尾。
+ * 看起来像「后面没内容」；留 28% 的封面纹理透出来，画面就一路延续到卡片末尾。
  * 0.72 叠在任意封面上得到的亮度，都足够让 [RankCardContent] 达到 10:1 以上对比度。
  */
 private val RankCardScrim = Brush.horizontalGradient(
     colorStops = arrayOf(
-        // 最左留一层极淡的白纱：名次压在清晰封面上时也有个底，不至于糊在画面里。
+        // 最左留一层极淡的白纱：名次压在封面上时也有个底，不至于糊在画面里。
         0f to RankCardBase.copy(alpha = 0.14f),
-        // 中段几乎不遮，让封面的模糊纹理完整露出来。
+        // 中段几乎不遮，让封面完整露出来。
         0.26f to RankCardBase.copy(alpha = 0.08f),
         0.55f to RankCardBase.copy(alpha = 0.44f),
-        // 末尾止步于 0.72：底色被提亮到能压深色标题，但模糊纹理仍然透出来，
+        // 末尾止步于 0.72：底色被提亮到能压深色标题，但封面纹理仍然透出来，
         // 不会变成一块平的色板（也不封死成纯灰白）。
         0.78f to RankCardBase.copy(alpha = 0.66f),
         1f to RankCardBase.copy(alpha = 0.72f),
@@ -267,9 +300,6 @@ internal val RankCardSpacing = 8.dp
  */
 private val CoverCropAlignment = BiasAlignment(horizontalBias = 0f, verticalBias = -0.45f)
 
-/** 背景模糊半径：右侧糊成色块即可，不需要糊成一团。 */
-private val BackgroundBlurRadius = 16.dp
-
 /** 左侧名次区域的固定宽度，保证个位数与两位数都居中对齐。 */
 private val RankNumberWidth = 54.dp
 
@@ -286,12 +316,25 @@ private val TopRankShadow = 4.dp
 /** 前三名高亮名次的最大名次。 */
 private const val TopRankHighlight = 3
 
-/** 名次进入两位数的最小值（此时字号收一档）。 */
+/** 名次进入两位数 / 三位数的最小值（此时字号收一档）。 */
 private const val DoubleDigitThreshold = 10
+private const val TripleDigitThreshold = 100
 
-/** 个位数与两位数名次的字号。 */
+/**
+ * 名次字号：位数越多收得越小。
+ *
+ * 名次区宽度固定为 [RankNumberWidth]，`100` 用两位数那档（34sp）会顶出边界，
+ * 所以三位数单独再收一档。
+ */
+private fun rankFontSize(rank: Int): TextUnit = when {
+    rank >= TripleDigitThreshold -> TripleDigitFontSize
+    rank >= DoubleDigitThreshold -> DoubleDigitFontSize
+    else -> SingleDigitFontSize
+}
+
 private val SingleDigitFontSize = 42.sp
 private val DoubleDigitFontSize = 34.sp
+private val TripleDigitFontSize = 26.sp
 
 /**
  * 名次配色：高亮金属色（金 / 银 / 铜）。

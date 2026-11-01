@@ -65,7 +65,6 @@ fun ThemeRoute(
         pageTransitionStyleId = pageTransitionStyleId,
         toast = toast,
         onSelectColorScheme = viewModel::selectColorScheme,
-        onToggleDarkMode = viewModel::setDarkMode,
         onSelectAppIcon = viewModel::selectAppIcon,
         onSelectTransitionStyle = viewModel::selectTransitionStyle,
         onSelectPageTransitionStyle = viewModel::selectPageTransitionStyle,

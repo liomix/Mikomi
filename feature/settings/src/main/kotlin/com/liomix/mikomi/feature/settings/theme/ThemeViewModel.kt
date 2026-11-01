@@ -131,20 +131,6 @@ class ThemeViewModel @Inject constructor(
         }
     }
 
-    /** 切换夜间模式：开 → 深色，关 → 浅色（不再跟随系统）。 */
-    fun setDarkMode(enabled: Boolean) {
-        val mode = if (enabled) THEME_DARK else THEME_LIGHT
-        viewModelScope.launch {
-            try {
-                userDataRepository.setTheme(mode)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.w(TAG, "Set theme mode failed, mode=$mode", e)
-            }
-        }
-    }
-
     /**
      * 切换桌面图标：先让系统启用对应 alias，成功后再落库。
      *

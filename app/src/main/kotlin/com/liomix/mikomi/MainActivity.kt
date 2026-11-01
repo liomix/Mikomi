@@ -2,6 +2,7 @@ package com.liomix.mikomi
 
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -10,9 +11,14 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
+import com.liomix.mikomi.core.designsystem.theme.NightModeTransitionHost
 import com.liomix.mikomi.core.model.UserPreferences
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.ImmersionBridge
@@ -21,6 +27,7 @@ import com.liomix.mikomi.data.user.UserDataRepository
 import com.liomix.mikomi.navigation.MikomiNavHost
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -57,12 +64,21 @@ class MainActivity : ComponentActivity() {
             val preferences by userDataRepository.observeUserPreferences()
                 .collectAsStateWithLifecycle(initialValue = UserPreferences())
 
+            // 乐观切换：点击即刻生效，不必等 DataStore 落盘 + Flow 回读（那一段大约 10~30ms，
+            // 正是「点下去先顿一下才扩散」的来源）。DataStore 追平后自动放弃覆盖值。
+            var optimisticTheme by remember { mutableStateOf<String?>(null) }
+            LaunchedEffect(preferences.theme) {
+                if (optimisticTheme == preferences.theme) optimisticTheme = null
+            }
+            val themeMode = optimisticTheme ?: preferences.theme
+
             // system 跟随系统深色模式；light / dark 由设置页的夜间模式开关固化。
-            val darkTheme = when (preferences.theme) {
+            val darkTheme = when (themeMode) {
                 "dark" -> true
                 "light" -> false
                 else -> isSystemInDarkTheme()
             }
+            val scope = rememberCoroutineScope()
 
             MikomiTheme(
                 darkTheme = darkTheme,
@@ -74,14 +90,35 @@ class MainActivity : ComponentActivity() {
                     window?.setBackgroundDrawable(ColorDrawable(windowBackground.toArgb()))
                 }
 
-                MikomiNavHost(
-                    navigator = navigator,
-                    entryProviderInstallers = entryProviderInstallers,
-                    immersionBridge = immersionBridge,
-                    heroStyleId = preferences.transitionStyle,
-                    pageStyleId = preferences.pageTransitionStyle,
-                )
+                // 日夜切换宿主必须包住**整个**内容：揭示动画裁的是窗口级内容（含系统栏区域），
+                // 只有包在根部才拿得到整窗截图、也才能让裁剪覆盖到全屏。
+                NightModeTransitionHost(
+                    isDarkMode = darkTheme,
+                    onToggleDarkMode = { dark ->
+                        val mode = if (dark) "dark" else "light"
+                        optimisticTheme = mode
+                        scope.launch {
+                            try {
+                                userDataRepository.setTheme(mode)
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Persist theme failed, mode=$mode", e)
+                            }
+                        }
+                    },
+                ) {
+                    MikomiNavHost(
+                        navigator = navigator,
+                        entryProviderInstallers = entryProviderInstallers,
+                        immersionBridge = immersionBridge,
+                        heroStyleId = preferences.transitionStyle,
+                        pageStyleId = preferences.pageTransitionStyle,
+                    )
+                }
             }
         }
+    }
+
+    private companion object {
+        const val TAG = "MainActivity"
     }
 }

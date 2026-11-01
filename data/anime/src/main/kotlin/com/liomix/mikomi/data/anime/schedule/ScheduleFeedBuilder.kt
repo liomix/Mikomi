@@ -8,10 +8,16 @@ import com.liomix.mikomi.core.model.AirTime
  * - 日期源（AniRpb）：用本次抓到的日期覆盖，未抓到的日期用该源上次成功的缓存补位；
  * - 日历源（AniCyk）：按锚点把「第 N 天」换算成本周真实日期，越出本周的条目丢弃
  *   （时间表就是一周视图，不往下周溢出）。
+ *
+ * 两条路径都会先过 [ScheduleContentFilter]：已完结的番不物化（[Built.droppedFinished]）。
  */
 internal object ScheduleFeedBuilder {
 
-    data class Built(val feed: ScheduleFeed, val droppedOutOfWeek: Int = 0)
+    data class Built(
+        val feed: ScheduleFeed,
+        val droppedOutOfWeek: Int = 0,
+        val droppedFinished: Int = 0,
+    )
 
     fun dated(
         payload: SourcePayload.Dated,
@@ -27,7 +33,8 @@ internal object ScheduleFeedBuilder {
             val date = item.airTime.date ?: return@filter false
             date in week.dates && date !in freshDates
         }
-        val merged = (fresh + fillers)
+        val (finished, ongoing) = (fresh + fillers).partition(ScheduleContentFilter::isFinished)
+        val merged = ongoing
             .distinctBy { it.entryId }
             .sortedWith(FEED_ORDER)
         return Built(
@@ -37,6 +44,7 @@ internal object ScheduleFeedBuilder {
                 priority = source.priority,
                 items = merged,
             ),
+            droppedFinished = finished.size,
         )
     }
 
@@ -48,13 +56,16 @@ internal object ScheduleFeedBuilder {
     ): Built {
         val items = mutableListOf<ScheduleFeedItem>()
         var dropped = 0
+        var finished = 0
         payload.days.forEach { day ->
             val date = week.dateAt(startIndex + day.index)
             if (date == null) {
                 dropped += day.items.size
                 return@forEach
             }
-            day.items.forEach { item ->
+            val ongoing = day.items.filterNot(ScheduleContentFilter::isFinished)
+            finished += day.items.size - ongoing.size
+            ongoing.forEach { item ->
                 items += item.copy(
                     entryId = "${item.entryId}|$date",
                     airTime = AirTime.of(date = date, time = item.airTime.time),
@@ -69,6 +80,7 @@ internal object ScheduleFeedBuilder {
                 items = items.distinctBy { it.entryId }.sortedWith(FEED_ORDER),
             ),
             droppedOutOfWeek = dropped,
+            droppedFinished = finished,
         )
     }
 

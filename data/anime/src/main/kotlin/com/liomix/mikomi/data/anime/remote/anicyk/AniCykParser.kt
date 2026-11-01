@@ -47,7 +47,13 @@ internal object AniCykParser {
     fun parseEpisode(chapter: String): Int =
         EPISODE_NUMBER.find(chapter)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
 
-    /** `https://www.lmm85.com/detail/8220.html` → `8220`；缺失时退回链接本身。 */
+    /**
+     * 详情页链接 → 站点内 id；解析不出时退回链接本身。
+     *
+     * 两条线路的路径格式不同，但都以 `<数字>.html` 结尾：
+     * 超清 `https://www.lmm85.com/detail/8220.html` → `8220`；
+     * 樱花 `https://www.yinhuadm.cc/v/29505.html` → `29505`。
+     */
     fun parseDetailId(link: String): String {
         val trimmed = link.trim()
         DETAIL_ID.find(trimmed)?.groupValues?.getOrNull(1)?.let { return it }
@@ -72,6 +78,6 @@ internal object AniCykParser {
     private val CLOCK_WITH_ICON = Regex("⏰\\s*(\\d{1,2}):(\\d{2})")
     private val CLOCK_PLAIN = Regex("(?<!\\d)(\\d{1,2}):(\\d{2})(?!\\d)")
     private val EPISODE_NUMBER = Regex("(\\d+)")
-    private val DETAIL_ID = Regex("/detail/(\\d+)\\.html")
+    private val DETAIL_ID = Regex("(\\d+)\\.html")
     private val MULTI_SPACE = Regex("\\s+")
 }

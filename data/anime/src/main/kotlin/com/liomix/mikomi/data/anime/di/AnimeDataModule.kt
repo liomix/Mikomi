@@ -81,7 +81,13 @@ internal abstract class AnimeDataModule {
         impl: AnimeIdentityRegistryImpl,
     ): AnimeIdentityRegistry
 
-    /** 时间表数据源集合：AniCyk 优先、AniRpb 兜底，由编排层按 priority 排序。 */
+    /**
+     * 时间表数据源集合，由编排层按 priority 排序：次元库(1) → AniRpb(2)。
+     *
+     * 次元库内部还有「超清 / 樱花」两条线路（两家不同上游站点的片库）。它们不是平级源，
+     * 而是在 [AniCykScheduleSource] 里合成一份日历：超清为主、樱花只补超清没有的番。
+     * 因此这里只注册一个次元库源，优先级与 patch 行为同单线路时一致。
+     */
     @Binds
     @IntoSet
     internal abstract fun bindAniCykScheduleSource(source: AniCykScheduleSource): ScheduleSource

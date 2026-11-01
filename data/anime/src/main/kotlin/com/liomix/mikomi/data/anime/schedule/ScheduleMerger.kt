@@ -1,18 +1,29 @@
 package com.liomix.mikomi.data.anime.schedule
 
 import com.liomix.mikomi.core.model.AirTime
-import com.liomix.mikomi.core.model.AirTimePrecision
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** 合并策略开关。 */
+/**
+ * 合并 / 补全策略开关。
+ *
+ * 前两项是**字段补全**策略，由 [ScheduleFieldCompleter] 消费；后两项是**判重**策略，
+ * 由 [ScheduleMerger] 消费。
+ */
 internal data class ScheduleMergeConfig(
     /**
-     * 命中重复后是否走 patch（只补缺失的具体时刻）。
+     * 命中重复后是否走 patch（只补 base 缺失的字段，不覆盖已有值）。
      *
      * 关掉即退回「纯去重」：重复条目直接丢弃，不产生任何字段补全。
      */
     val patchMissingTime: Boolean = true,
+    /**
+     * 是否用低优先级源补 base 缺失的**简介**。
+     *
+     * 时间表的 base 源（AniCyk）不提供简介，低优先级源（AniRpb）有；
+     * 只填空缺、不覆盖，取不到就保持为空（UI 显示「暂无简介」）。
+     */
+    val patchMissingSynopsis: Boolean = true,
     /** 判重的日期容差（天）：跨源时区 / 日界差异会导致同一条更新差一天。 */
     val dayWindow: Int = 1,
     /** 判重的集数容差：各源集数文案口径不同，差 1 集内视为同一条。 */
@@ -56,6 +67,30 @@ internal data class ScheduleConflict(
     val candidateTime: String,
 )
 
+/**
+ * 冲突记录的唯一构造入口。
+ *
+ * 合并阶段的冲突（集数 / 标题）与补全阶段的冲突（时刻 / 日期）都从这里生成，
+ * 保证复核队列里两种来源的记录形状一致。
+ */
+internal fun scheduleConflictFor(
+    target: FieldPatchTarget,
+    type: ScheduleConflictType,
+    candidateSourceId: String,
+    candidateAirTime: AirTime,
+    title: String = target.title,
+): ScheduleConflict = ScheduleConflict(
+    canonicalKey = target.canonicalKey,
+    title = title,
+    type = type,
+    baseSourceId = target.sourceId,
+    baseDate = target.airTime.date.orEmpty(),
+    baseTime = target.airTime.time.orEmpty(),
+    candidateSourceId = candidateSourceId,
+    candidateDate = candidateAirTime.date.orEmpty(),
+    candidateTime = candidateAirTime.time.orEmpty(),
+)
+
 internal data class ScheduleMergeOutcome(
     val rows: List<MergedScheduleRow>,
     /** 基准源 id。 */
@@ -76,10 +111,11 @@ internal data class ScheduleMergeOutcome(
  * 全部保留；后续源逐条以 canonical 身份键（外部 id → 映射表 → 归一化标题 + 别名）
  * 判重，命中则丢、未命中则追加。首源挂掉时 base 自动落到次优先级源，逻辑不变。
  *
- * **第二阶段（字段补充）**：命中的重复条目走 patch —— 只用低优先级源补 base 缺失的
- * **具体播出时刻**，其余字段一律以 base 为准。EXACT 永不被覆盖；base 为
- * UNKNOWN / DATE_ONLY 时，仅当对方是 EXACT 且日期一致才采纳，并标 `inferred`。
- * 日期/时刻对不上时保留 base 并记冲突，落日志与复核队列。
+ * **第二阶段（字段补充）**：命中的重复条目交给 [ScheduleFieldCompleter.fillFromDuplicate]
+ * —— 只用低优先级源补 base 缺失的**具体播出时刻**与**简介**，其余字段一律以 base 为准。
+ * EXACT 永不被覆盖；base 为 UNKNOWN / DATE_ONLY 时，仅当对方是 EXACT 且日期一致才采纳时刻，
+ * 并标 `inferred`。日期/时刻对不上时保留 base 并记冲突，落日志与复核队列。
+ * 补全规则全部集中在 [ScheduleFieldCompleter]，本类只负责「身份 + 判重 + 排序」。
  *
  * 判重键是「canonical 身份 + 播出日期窗口」：同一部番一周内更新多天（例如周日加更）
  * 属于不同条目，只有落在同一天（±[ScheduleMergeConfig.dayWindow]）才算同一条更新。
@@ -87,6 +123,7 @@ internal data class ScheduleMergeOutcome(
 @Singleton
 internal class ScheduleMerger @Inject constructor(
     private val identityRegistry: AnimeIdentityRegistry,
+    private val fieldCompleter: ScheduleFieldCompleter,
     private val config: ScheduleMergeConfig,
 ) {
 
@@ -131,7 +168,7 @@ internal class ScheduleMerger @Inject constructor(
                                 candidateAirTime = item.airTime,
                             )
                         }
-                        patch(exact, item, conflicts)
+                        fieldCompleter.fillFromDuplicate(exact, item, conflicts)
                     }
 
                     auto != null -> {
@@ -142,9 +179,8 @@ internal class ScheduleMerger @Inject constructor(
                             candidateAirTime = item.airTime,
                             title = "${auto.title} / ${item.title}",
                         )
-                        patch(auto, item, conflicts)
+                        fieldCompleter.fillFromDuplicate(auto, item, conflicts)
                     }
-
                     else -> rows += MutableRow.of(feed.sourceId, item, identity)
                 }
             }
@@ -170,58 +206,6 @@ internal class ScheduleMerger @Inject constructor(
         )
     }
 
-    /**
-     * 重复条目处理：只补 base 缺失的具体时刻。
-     *
-     * `patchMissingTime = false` 时直接返回（等同于纯去重）。
-     */
-    private fun patch(
-        target: MutableRow,
-        item: ScheduleFeedItem,
-        conflicts: MutableList<ScheduleConflict>,
-    ) {
-        if (!config.patchMissingTime) return
-
-        val base = target.airTime
-        val incoming = item.airTime
-
-        // EXACT 永不被覆盖；只有时刻互相矛盾时留一条监控记录。
-        if (base.precision == AirTimePrecision.EXACT) {
-            if (incoming.precision == AirTimePrecision.EXACT &&
-                base.time != null &&
-                incoming.time != null &&
-                base.time != incoming.time &&
-                base.date == incoming.date
-            ) {
-                conflicts += target.conflict(
-                    type = ScheduleConflictType.TIME_MISMATCH,
-                    candidateSourceId = item.sourceId,
-                    candidateAirTime = incoming,
-                )
-            }
-            return
-        }
-
-        // 低优先级源也只有日期时，没有可补的信息。
-        if (incoming.precision != AirTimePrecision.EXACT) return
-
-        val incomingTime = incoming.time ?: return
-
-        // 日期不一致时保留 base，记冲突（不猜测谁对）。
-        if (base.date != null && incoming.date != null && base.date != incoming.date) {
-            conflicts += target.conflict(
-                type = ScheduleConflictType.DATE_MISMATCH,
-                candidateSourceId = item.sourceId,
-                candidateAirTime = incoming,
-            )
-            return
-        }
-
-        val date = base.date ?: incoming.date ?: return
-        target.airTime = AirTime.exact(date = date, time = incomingTime, inferred = true)
-        target.airingAtMillis = ScheduleWeek.toMillis(date, incomingTime)
-    }
-
     /** 按 canonical 键聚合本次见过的标题变体，交给身份表沉淀为别名。 */
     private fun buildIdentityGroups(rows: List<MutableRow>): List<IdentityGroup> =
         rows.groupBy { it.canonicalKey }.mapNotNull { (canonicalKey, group) ->
@@ -236,16 +220,22 @@ internal class ScheduleMerger @Inject constructor(
             )
         }
 
-    /** 合并过程中的可变行；只在 [merge] 内部使用。 */
+    /**
+     * 合并过程中的可变行；只在 [merge] 内部使用。
+     *
+     * 实现 [FieldPatchTarget] 是为了让补全逻辑留在 [ScheduleFieldCompleter] 里，
+     * 又不必把这个私有结构暴露出去。
+     */
     private data class MutableRow(
-        val canonicalKey: String,
-        val sourceId: String,
+        override val canonicalKey: String,
+        override val sourceId: String,
         val entryId: String,
-        val title: String,
+        override val title: String,
         val coverUrl: String?,
-        val synopsis: String?,
-        var airTime: AirTime,
-        var airingAtMillis: Long,
+        /** 可被 patch 补全（base 源没有简介时采纳低优先级源的值）。 */
+        override var synopsis: String?,
+        override var airTime: AirTime,
+        override var airingAtMillis: Long,
         val episode: Int,
         val episodeText: String,
         val updateText: String,
@@ -256,7 +246,7 @@ internal class ScheduleMerger @Inject constructor(
         val externalIds: Map<String, String>,
         /** 该行见过的所有原始标题（含自动匹配到的变体），用于沉淀别名。 */
         val titles: MutableSet<String>,
-    ) {
+    ) : FieldPatchTarget {
 
         fun isSameIdentity(identity: ResolvedIdentity): Boolean =
             canonicalKey == identity.canonicalKey
@@ -313,16 +303,12 @@ internal class ScheduleMerger @Inject constructor(
             candidateSourceId: String,
             candidateAirTime: AirTime,
             title: String = this.title,
-        ): ScheduleConflict = ScheduleConflict(
-            canonicalKey = canonicalKey,
-            title = title,
+        ): ScheduleConflict = scheduleConflictFor(
+            target = this,
             type = type,
-            baseSourceId = sourceId,
-            baseDate = airTime.date.orEmpty(),
-            baseTime = airTime.time.orEmpty(),
             candidateSourceId = candidateSourceId,
-            candidateDate = candidateAirTime.date.orEmpty(),
-            candidateTime = candidateAirTime.time.orEmpty(),
+            candidateAirTime = candidateAirTime,
+            title = title,
         )
 
         fun toRow(): MergedScheduleRow = MergedScheduleRow(

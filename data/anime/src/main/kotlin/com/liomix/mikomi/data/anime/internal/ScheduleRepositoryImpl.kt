@@ -18,12 +18,14 @@ import com.liomix.mikomi.data.anime.mapper.toFeedItem
 import com.liomix.mikomi.data.anime.mapper.toScheduleEntry
 import com.liomix.mikomi.data.anime.schedule.AnimeIdentityRegistry
 import com.liomix.mikomi.data.anime.schedule.ScheduleConflict
+import com.liomix.mikomi.data.anime.schedule.ScheduleContentFilter
 import com.liomix.mikomi.data.anime.schedule.ScheduleDateAnchor
 import com.liomix.mikomi.data.anime.schedule.ScheduleFeed
 import com.liomix.mikomi.data.anime.schedule.ScheduleFeedBuilder
 import com.liomix.mikomi.data.anime.schedule.ScheduleMerger
 import com.liomix.mikomi.data.anime.schedule.ScheduleMergeOutcome
 import com.liomix.mikomi.data.anime.schedule.ScheduleSource
+import com.liomix.mikomi.data.anime.schedule.ScheduleFieldCompleter
 import com.liomix.mikomi.data.anime.schedule.ScheduleWeek
 import com.liomix.mikomi.data.anime.schedule.SourcePayload
 import com.liomix.mikomi.data.anime.schedule.TitleNormalizer
@@ -48,9 +50,13 @@ import kotlinx.coroutines.withContext
  * 一次刷新分四步：
  * 1. **并行拉取**：所有已注册源同时抓取，失败或空数据标记不可用并跳过；
  * 2. **物化**：日期源直接落日期，日历源（AniCyk）先用日期源做锚点校准，再换算成真实日期；
+ *    这一步顺带过内容过滤（已完结的番、只保留具体时刻的更新文案）；
  * 3. **合并**：按 priority 升序，第一个可用源为 base（全保留），后续源逐条 canonical 判重，
- *    命中走 patch（只补缺失时刻）、未命中追加；
+ *    命中交给 [ScheduleFieldCompleter] 补字段、未命中追加；
  * 4. **落库**：合并结果整体替换 `schedule` 表，分源缓存按版本号覆盖，冲突进复核队列。
+ *
+ * 字段补全的规则全部在 [ScheduleFieldCompleter]：合并内的跨源 patch 与合并后的本地库
+ * 补简介，两个入口同一套「只填空缺、不覆盖」策略。
  *
  * 全部源失败时抛异常并保留旧数据；全部源返回空数据时清空本周（确实是空周）。
  */
@@ -58,6 +64,7 @@ internal class ScheduleRepositoryImpl @Inject constructor(
     private val sources: Set<@JvmSuppressWildcards ScheduleSource>,
     private val identityRegistry: AnimeIdentityRegistry,
     private val merger: ScheduleMerger,
+    private val fieldCompleter: ScheduleFieldCompleter,
     private val scheduleDao: ScheduleDao,
     private val sourceDao: ScheduleSourceDao,
     private val conflictDao: ScheduleConflictDao,
@@ -71,8 +78,17 @@ internal class ScheduleRepositoryImpl @Inject constructor(
         scheduleDao.observeSchedule().map { list ->
             // 只展示本周：离线跨周时上一周的行还躺在库里，直接展示会让「今天」错位。
             val week = ScheduleWeek.current()
-            list.map { it.toScheduleEntry() }
-                .filter { entry -> entry.airTime.date == null || entry.airTime.date in week.dates }
+            list.mapNotNull { entity ->
+                // 兜底再滤一次已完结：本次刷新全失败时会保留旧数据，库里可能还躺着
+                // 完结条目（新规则只在物化阶段生效），读的时候也不要展示。
+                if (ScheduleContentFilter.isFinishedText(entity.episodeText) ||
+                    ScheduleContentFilter.isFinishedText(entity.updateText)
+                ) {
+                    return@mapNotNull null
+                }
+                val entry = entity.toScheduleEntry()
+                entry.takeIf { it.airTime.date == null || it.airTime.date in week.dates }
+            }
         }
 
     override fun observeProvenance(): Flow<ScheduleProvenance> =
@@ -121,9 +137,11 @@ internal class ScheduleRepositoryImpl @Inject constructor(
         }
 
         val outcome = merger.merge(feeds)
+        // 第二阶段之后再用本地番剧库补一轮简介（base 源没有简介字段，取不到就留空）。
+        val rows = fieldCompleter.completeFromLibrary(outcome.rows)
         database.withTransaction {
             scheduleDao.deleteAll()
-            scheduleDao.upsertAll(outcome.rows.map { it.toEntity() })
+            scheduleDao.upsertAll(rows.map { it.toEntity() })
             sourceDao.upsertAll(metas.values.toList())
             if (outcome.conflicts.isNotEmpty()) {
                 conflictDao.upsertAll(outcome.conflicts.map { it.toEntity(now) })
@@ -160,6 +178,7 @@ internal class ScheduleRepositoryImpl @Inject constructor(
                             // 即使本次抓到的是空集，也要让缓存有机会补位（单日全失败的情形）。
                             val cached = sourceDao.entriesOf(result.source.id).map { it.toFeedItem() }
                             val built = ScheduleFeedBuilder.dated(payload, result.source, cached, week)
+                            logDroppedFinished(result.source, built.droppedFinished)
                             if (built.feed.isEmpty) {
                                 metas[result.source.id] = result.source
                                     .meta(existingMetas[result.source.id], STATUS_EMPTY, now)
@@ -232,7 +251,8 @@ internal class ScheduleRepositoryImpl @Inject constructor(
             TAG,
             "日历锚定 ${source.id}：start=${anchor.startIndex} " +
                 "confidence=${String.format(Locale.US, "%.2f", anchor.confidence)} " +
-                "calibrated=${anchor.calibrated} droppedOutOfWeek=${built.droppedOutOfWeek}",
+                "calibrated=${anchor.calibrated} droppedOutOfWeek=${built.droppedOutOfWeek} " +
+                "droppedFinished=${built.droppedFinished}",
         )
         if (built.feed.isEmpty) return null
         return BuiltCalendar(feed = built.feed, anchor = anchor.startIndex)
@@ -254,6 +274,12 @@ internal class ScheduleRepositoryImpl @Inject constructor(
                 }
             }
         }.awaitAll()
+    }
+
+    /** 完结条目在物化阶段就被丢掉，只记一条日志，便于排查「某部番怎么不见了」。 */
+    private fun logDroppedFinished(source: ScheduleSource, droppedFinished: Int) {
+        if (droppedFinished <= 0) return
+        Log.i(TAG, "时间表过滤已完结：${source.id} 丢弃 $droppedFinished 条")
     }
 
     private suspend fun persistCache(feed: ScheduleFeed, version: Int, now: Long) {

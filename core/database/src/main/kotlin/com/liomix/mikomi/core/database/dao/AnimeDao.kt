@@ -51,9 +51,24 @@ interface AnimeDao {
     @Query("DELETE FROM anime WHERE id LIKE :prefix1 || '%' OR id LIKE :prefix2 || '%'")
     suspend fun deleteByPrefixes(prefix1: String, prefix2: String)
 
+    /**
+     * 本地番剧库里的「标题 + 简介」，供时间表补全简介。
+     *
+     * 只取有简介的行：时间表的 base 源不提供简介，用本地已缓存的番剧数据兜底，
+     * 命中就补、没命中就留空（调用方不再额外请求网络）。
+     */
+    @Query("SELECT title, synopsis FROM anime WHERE synopsis IS NOT NULL AND synopsis != ''")
+    suspend fun titlesWithSynopsis(): List<AnimeTitleSynopsis>
+
     @Upsert
     suspend fun upsertAll(anime: List<AnimeEntity>)
 }
+
+/** [AnimeDao.titlesWithSynopsis] 的投影：只取补简介需要的两列。 */
+data class AnimeTitleSynopsis(
+    val title: String,
+    val synopsis: String,
+)
 
 @Dao
 interface EpisodeDao {

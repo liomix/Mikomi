@@ -55,16 +55,29 @@ internal class AniRpbScheduleSource @Inject constructor(
         )
     }
 
+    /**
+     * AniRpb 条目 → 时间表条目。
+     *
+     * 时刻有两处来源：结构化字段 `updateTime`，以及更新文案里的 `4#周三21:00更`。
+     * 后者原先被整段当成展示文案，导致「21:00」这种具体时刻只出现在文案里、进不了
+     * [AirTime]，base 缺时刻时也白丢一条可补的数据。现在统一走 [ScheduleContentFilter]：
+     * 时刻取 `updateTime`，缺失时后退到文案里的时刻；展示文案只留时刻，冗余的
+     * 集数/星期/后缀丢掉（完结文案原样保留，交给物化阶段整条过滤）。
+     */
     private fun AniRpbScheduleItem.toFeedItem(playDate: String): ScheduleFeedItem = ScheduleFeedItem(
         sourceId = id,
         entryId = "$videoId|$playDate|$updateTime|$episode",
         title = title,
         coverUrl = coverUrl,
         synopsis = synopsis,
-        airTime = AirTime.of(date = playDate, time = updateTime.takeIf { it.isNotBlank() }),
+        airTime = AirTime.of(
+            date = playDate,
+            time = ScheduleContentFilter.parseClock(updateTime)
+                ?: ScheduleContentFilter.parseClock(updateText),
+        ),
         episode = episode,
         episodeText = episodeText,
-        updateText = updateText,
+        updateText = ScheduleContentFilter.filterUpdateText(updateText),
         channelId = channelId,
     )
 

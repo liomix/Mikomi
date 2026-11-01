@@ -180,7 +180,7 @@ internal interface ScheduleSource {
     suspend fun fetch(week: ScheduleWeek): SourcePayload
 
     companion object {
-        /** AniCyk：日历信息密度更高（含具体时刻），作为首选。 */
+        /** AniCyk：日历信息密度最高（含具体时刻），作为首选。内部已合并超清/樱花两条线路。 */
         const val PRIORITY_ANICYK = 1
 
         /** AniRpb：官方更新表，日期明确，作为次选与日期校准基准。 */

@@ -11,7 +11,10 @@ data class ScheduleEntry(
     val episode: Int,
     /** 服务端集数文案，例如 `更新至第4集`；为空时展示层回退到 [episode]。 */
     val episodeText: String = "",
-    /** 服务端现成更新文案，例如 `4#周五00:58更`。 */
+    /**
+     * 更新文案（已按时间表过滤规则收敛）：含具体时刻时只保留 `HH:mm`（`4#周三21:00更` →
+     * `21:00`），否则为空串，展示层回退 [airTime] 的三态文案。
+     */
     val updateText: String = "",
     /** AniRpb 频道 id（用于后续详情/播放链路映射）。 */
     val channelId: String = "",

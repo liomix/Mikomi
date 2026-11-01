@@ -10,6 +10,7 @@ import com.liomix.mikomi.core.model.AnimeStatus
 import com.liomix.mikomi.core.model.Episode
 import com.liomix.mikomi.core.model.ScheduleEntry
 import com.liomix.mikomi.data.anime.remote.dto.AnimeDto
+import com.liomix.mikomi.data.anime.schedule.ScheduleContentFilter
 
 internal fun AnimeDto.toEntity(): AnimeEntity = AnimeEntity(
     id = id,
@@ -72,7 +73,9 @@ internal fun ScheduleEntity.toScheduleEntry(): ScheduleEntry = ScheduleEntry(
     airingAtMillis = airingAtMillis,
     episode = episode,
     episodeText = episodeText,
-    updateText = updateText,
+    // 兜底再过一遍过滤规则：升级前落库的行还留着 `4#周三21:00更` 原文，读的时候统一收敛成
+    // 「只有具体时刻」，不必等下一次刷新（规则幂等）。
+    updateText = ScheduleContentFilter.filterUpdateText(updateText),
     channelId = channelId,
     detailLink = detailLink,
     canonicalKey = canonicalKey,

@@ -82,7 +82,10 @@ data class ScheduleEntity(
     val episode: Int,
     /** 服务端集数文案，例如 `更新至第4集`。 */
     @ColumnInfo(defaultValue = "") val episodeText: String = "",
-    /** 服务端现成更新文案，例如 `4#周五00:58更`。 */
+    /**
+     * 更新文案，落库前已过时间表过滤规则：含具体时刻时只留 `HH:mm`（`4#周三21:00更` →
+     * `21:00`），否则为空串（由 `airTime` 的三态精度表达）。
+     */
     @ColumnInfo(defaultValue = "") val updateText: String = "",
     /** AniRpb 频道 id。 */
     @ColumnInfo(defaultValue = "") val channelId: String = "",

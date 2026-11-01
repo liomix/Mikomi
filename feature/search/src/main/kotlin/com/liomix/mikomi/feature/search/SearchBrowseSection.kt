@@ -433,6 +433,7 @@ private fun HotRow(
                 text = item.title,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                 modifier = Modifier.fillMaxWidth(),
+                enabled = false,
             )
             if (item.updateText.isNotBlank()) {
                 Spacer(modifier = Modifier.height(3.dp))

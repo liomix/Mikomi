@@ -316,6 +316,7 @@ private fun ScheduleAnimeRow(
                     text = anime.title,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     modifier = Modifier.fillMaxWidth(),
+                    enabled = false,
                 )
                 if (episodeLabel.isNotBlank() || scheduleLabel.isNotBlank()) {
                     Row(

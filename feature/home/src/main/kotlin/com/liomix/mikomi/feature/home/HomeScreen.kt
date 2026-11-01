@@ -224,6 +224,18 @@ private fun HomeContent(
         }
     }
 
+    // 轮播图滚出屏幕后停止自动翻页。
+    // 自动翻页会切换封面图 → 触发新的图片请求与解码；用户正在滚列表时，
+    // 这等于让一个不可见的组件在后台抢解码线程和带宽，是滚动掉帧的常见来源。
+    // derivedStateOf 只在 true/false 翻转时通知，滚动过程本身不会引起重组。
+    val bannerVisible by remember {
+        derivedStateOf {
+            gridState.layoutInfo.visibleItemsInfo.any {
+                it.key == "banner" || it.key == "bannerSkeleton"
+            }
+        }
+    }
+
     // 下拉刷新：刷新轮播图与内容区（同一数据源，refreshHome 重拉第一页并回写本地）。
     HomePullToRefresh(
         isRefreshing = isRefreshing,
@@ -256,6 +268,7 @@ private fun HomeContent(
                 HomeBanner(
                     banners = banners,
                     onBannerClick = onAnimeClick,
+                    autoPlay = bannerVisible,
                 )
             }
         }

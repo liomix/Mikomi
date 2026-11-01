@@ -43,6 +43,8 @@ private val BROWSER_HEADERS = NetworkHeaders.Builder().apply {
  *   两侧必须传同一个 key（番剧 id）。
  * - [browserUserAgent] 为 AniRpb 等对 User-Agent 有要求的图片源附加浏览器 UA；
  *   测试台的 ImageLoader 使用同款 `Mozilla/5.0`，可避免部分封面被 CDN 拒绝。
+ * - [crossfade] 懒列表里务必传 false：Coil 的淡入会给每张图叠一层 alpha 混合，
+ *   快速滚动时一屏 10 张同时过渡，是明确的每帧绘制开销；静止页面可保留。
  */
 @Composable
 fun AnimeCoverImage(
@@ -51,16 +53,21 @@ fun AnimeCoverImage(
     modifier: Modifier = Modifier,
     heroKey: String? = null,
     browserUserAgent: Boolean = false,
+    crossfade: Boolean = true,
 ) {
     val context = LocalContext.current
     val placeholderColor = MaterialTheme.colorScheme.surfaceContainerHigh
     var retryHash by remember(url) { mutableIntStateOf(0) }
 
+    // ColorPainter 必须 remember：每次重组 new 实例会让 AsyncImage 误判占位图换了，
+    // 网格滚动时等于「每帧 × 可见格子数」的额外对象分配与比对。
+    val placeholderPainter = remember(placeholderColor) { ColorPainter(placeholderColor) }
+
     // memoryCacheKey 固定为 url：重试不影响缓存命中，成功过的图不再走网络。
-    val request = remember(url, context, browserUserAgent) {
+    val request = remember(url, context, browserUserAgent, crossfade) {
         ImageRequest.Builder(context)
             .data(url)
-            .crossfade(true)
+            .crossfade(crossfade)
             .memoryCacheKey(url)
             .apply {
                 if (browserUserAgent) httpHeaders(BROWSER_HEADERS)
@@ -84,8 +91,8 @@ fun AnimeCoverImage(
                     radius = COVER_CORNER_RADIUS,
                 ),
             contentScale = ContentScale.Crop,
-            placeholder = ColorPainter(placeholderColor),
-            error = ColorPainter(placeholderColor),
+            placeholder = placeholderPainter,
+            error = placeholderPainter,
             onError = {
                 if (retryHash < MAX_RETRY) retryHash++
             },

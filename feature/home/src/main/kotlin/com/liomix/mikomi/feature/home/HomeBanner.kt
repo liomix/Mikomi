@@ -76,6 +76,7 @@ fun HomeBanner(
     banners: List<Anime>,
     onBannerClick: (String) -> Unit,
     modifier: Modifier = Modifier,
+    autoPlay: Boolean = true,
 ) {
     if (banners.isEmpty()) return
 
@@ -91,8 +92,10 @@ fun HomeBanner(
 
     // 自动播放：每次 settledPage 变化（含手势结束）都会重启计时，
     // 用户操作后 4s 内不会再被自动翻页打断。
-    LaunchedEffect(banners.size, pagerState.settledPage) {
-        if (banners.size <= 1) return@LaunchedEffect
+    // [autoPlay] 为 false（轮播滚出屏幕）时直接不启动：翻页会切图 → 新图请求与解码，
+    // 在用户滚动列表时属于纯抢占。
+    LaunchedEffect(banners.size, pagerState.settledPage, autoPlay) {
+        if (banners.size <= 1 || !autoPlay) return@LaunchedEffect
         delay(AUTO_SCROLL_INTERVAL_MS)
         if (!pagerState.isScrollInProgress) {
             pagerState.scrollToPage(pagerState.settledPage + 1)

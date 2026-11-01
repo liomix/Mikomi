@@ -112,9 +112,11 @@ internal fun RankAnimeCard(
 
                 Spacer(modifier = Modifier.width(NumberToTitleGap))
 
-                // 关闭手动拖动，避免标题抢占 HorizontalPager 的左右切页手势。
+                // 关闭手动拖动，避免标题抢占 HorizontalPager 的左右切页手势；
+                // 网格内多卡同时跑 marquee 会拖慢滚动，走静态省略。
                 ScrollingText(
                     text = anime.title,
+                    enabled = false,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = RankCardContent,

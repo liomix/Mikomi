@@ -38,6 +38,10 @@ import kotlinx.coroutines.delay
  * - 未溢出时零动画开销（懒列表大量 item 不空转）；
  * - [userScrollEnabled] 为 false 时关闭手动拖动，仅保留自动滚动，
  *   避免在 HorizontalPager 等横向容器里抢占外层滑动手势。
+ * - [enabled] 为 false 时退化为**静态单行省略**（`Ellipsis`），不启动任何协程/动画。
+ *   懒列表里的 item 必须传 false：marquee 每次 `animateScrollTo` 都会改动
+ *   [ScrollState]，导致该行每帧重新 layout + draw，一屏 8~10 个卡片同时跑时
+ *   会持续抢占主线程，表现为「上下滑动不如原生列表跟手」。
  */
 @Composable
 fun ScrollingText(
@@ -45,7 +49,20 @@ fun ScrollingText(
     modifier: Modifier = Modifier,
     style: TextStyle = LocalTextStyle.current,
     userScrollEnabled: Boolean = true,
+    enabled: Boolean = true,
 ) {
+    // 列表场景：静态省略，零动画开销（与 Telegram 列表标题一致）。
+    if (!enabled) {
+        Text(
+            text = text,
+            style = style,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = modifier,
+        )
+        return
+    }
+
     val scrollState = rememberScrollState()
 
     // 记录容器宽（布局后才有意义），用于溢出判定。

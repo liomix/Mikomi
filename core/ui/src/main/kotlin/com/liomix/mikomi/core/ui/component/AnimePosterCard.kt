@@ -35,12 +35,17 @@ fun AnimePosterCard(
             url = anime.coverUrl,
             contentDescription = anime.title,
             heroKey = anime.id,
+            // 网格滚动时关掉淡入：一屏多图同时过渡会叠出大量 alpha 混合。
+            crossfade = false,
         )
         Spacer(modifier = Modifier.height(6.dp))
         ScrollingText(
             text = anime.title,
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.fillMaxWidth(),
+            // 网格里一屏可见 6~10 张卡，标题跑 marquee 会让每行每帧重新 layout，
+            // 滑动时明显抢走跟手感。列表项统一走静态单行省略。
+            enabled = false,
         )
     }
 }

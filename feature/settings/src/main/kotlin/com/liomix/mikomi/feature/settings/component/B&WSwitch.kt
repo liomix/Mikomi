@@ -4,6 +4,9 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.Bitmap
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -13,8 +16,9 @@ import android.view.View
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -45,19 +49,20 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
-import androidx.compose.ui.graphics.PathOperation
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
@@ -65,12 +70,16 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.airbnb.lottie.LottieComposition
+import com.airbnb.lottie.LottieDrawable
+import com.airbnb.lottie.RenderMode
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.liomix.mikomi.feature.settings.R
 import kotlin.coroutines.resume
-import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.roundToInt
-import kotlin.math.sin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -79,16 +88,14 @@ import kotlinx.coroutines.withTimeoutOrNull
 /**
  * 切换行上报给宿主的图标状态。
  *
- * [progress] / [tint] 是**绘制时**才求值的 lambda（内部读 Animatable 与动画状态），
- * 这样揭示层能跟图标保持同一进度，又不必每帧触发一次重组。
+ * [draw] 是**绘制时**才执行的 lambda（内部读动画进度与颜色），
+ * 这样揭示层能把同一枚图标重画到旧画面之上，且始终与本体逐帧一致。
  */
 internal class NightModeIconState(
     /** 图标在根窗口中的矩形：中心即揭示原点，最小边即图标直径。 */
     val boundsInRoot: Rect,
-    /** 太阳 → 月牙的形变进度（0 = 太阳，1 = 月牙）。 */
-    val progress: () -> Float,
-    /** 图标当前颜色（揭示结束时在旧 / 新主题色之间过渡）。 */
-    val tint: () -> Color,
+    /** 把图标画到任意 [DrawScope]：参数为画布、图标中心、图标边长。 */
+    val draw: (DrawScope, Offset, Float) -> Unit,
 )
 
 /**
@@ -99,7 +106,7 @@ internal class NightModeIconState(
 class DarkModeToggleController internal constructor(
     /** 触发一次带圆形揭示动画的模式切换。 */
     internal val toggle: () -> Unit,
-    /** 上报图标位置 / 尺寸 / 形变进度，供揭示层复用。 */
+    /** 上报图标位置 / 尺寸 / 绘制指令，供揭示层复用。 */
     internal val updateIcon: (NightModeIconState) -> Unit,
 )
 
@@ -139,8 +146,7 @@ fun DarkModeRevealHost(
     var hostLeftInRoot by remember { mutableStateOf(Offset.Zero) }
     var iconCenterInRoot by remember { mutableStateOf(Offset.Zero) }
     var iconUnit by remember { mutableStateOf(0f) }
-    var iconProgress by remember { mutableStateOf<() -> Float>({ 0f }) }
-    var iconTint by remember { mutableStateOf<() -> Color>({ Color.Unspecified }) }
+    var iconDraw by remember { mutableStateOf<(DrawScope, Offset, Float) -> Unit>({ _, _, _ -> }) }
 
     val toggle: () -> Unit = {
         // 抓帧是异步的，用 busy 同步上锁，避免连点时抓到同一帧或切两次主题。
@@ -187,8 +193,7 @@ fun DarkModeRevealHost(
             updateIcon = { icon ->
                 iconCenterInRoot = icon.boundsInRoot.center
                 iconUnit = icon.boundsInRoot.minDimension
-                iconProgress = icon.progress
-                iconTint = icon.tint
+                iconDraw = icon.draw
             },
         )
     }
@@ -239,12 +244,7 @@ fun DarkModeRevealHost(
                                 clipPath(Path().apply { addOval(circle) }) { drawImage(shot) }
                                 // 旧画面此时压在真图标上面，补画一枚同进度、同色的图标，
                                 // 让太阳在「旧画面缩回图标」的全过程中都看得见（Telegram 叠的是 48dp 图标视图）。
-                                drawSunMoonLayers(
-                                    progress = iconProgress(),
-                                    tint = iconTint(),
-                                    center = origin,
-                                    unit = iconUnit,
-                                )
+                                iconDraw(this, origin, iconUnit)
                             }
                         },
                 )
@@ -315,10 +315,10 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
 /**
  * 日 / 夜切换行（复刻 Telegram 聊天设置页的「Night Mode」一行）。
  *
- * 布局取自 Telegram `TextCell`：行高 50dp、图标 28dp 且左边距 21dp、
- * 文字从 58dp 起、整行蓝色。图标是自绘的「太阳 → 月牙」变形动画
- * （36 帧 / 600ms，与 Telegram 的 `sun_outline.json` 同一时间轴）：
- * 8 条射线先微微弹出再缩回圆内，圆被一个滑入的圆咬成月牙。
+ * 布局取自 Telegram `TextCell`：行高 50dp、图标 28dp 且左边距 21dp、文字从 58dp 起、整行蓝色。
+ * 图标直接播放 Telegram 的 `sun_outline.json`（36 帧 @60fps，600ms）：
+ * 月牙 + 两颗星 → 形变成圆盘 → 8 条射线淡入并转正，进度线性推进即可，
+ * 帧间缓动由 Lottie 关键帧自带的贝塞尔控制点负责，与 Telegram 逐帧一致。
  *
  * @param onClick 未包在 [DarkModeRevealHost] 内时的兜底点击（可选）。
  */
@@ -330,17 +330,29 @@ fun BAndWSwitch(
 ) {
     val controller = LocalDarkModeToggleController.current
 
-    // 0 = 太阳（日间），1 = 月牙（夜间）。切换时从当前进度继续，不回跳。
-    val morph = remember { Animatable(if (isDarkMode) 1f else 0f) }
-    LaunchedEffect(isDarkMode) {
-        morph.animateTo(
-            targetValue = if (isDarkMode) 1f else 0f,
-            animationSpec = tween(
-                durationMillis = SUN_MOON_DURATION_MILLIS,
-                easing = MorphEasing,
-            ),
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.sun_outline))
+    val renderer = remember(composition) { composition?.let(::LottieIconRenderer) }
+
+    LaunchedEffect(composition) {
+        Log.w(
+            REVEAL_LOG_TAG,
+            "lottie composition: loaded=${composition != null} " +
+                "duration=${composition?.duration} frames=${composition?.startFrame}..${composition?.endFrame}",
         )
     }
+
+    // Lottie 首帧是月牙（夜），末帧是太阳（日），与 isDarkMode 相反。
+    // 时长直接取合成时长（600ms），保证与 Telegram 的播放速度一致。
+    val durationMillis = remember(composition) {
+        composition?.duration?.toInt()?.takeIf { it > 0 } ?: DEFAULT_ICON_MORPH_MILLIS
+    }
+    val frame by animateFloatAsState(
+        targetValue = if (isDarkMode) 0f else 1f,
+        animationSpec = tween(durationMillis = durationMillis, easing = LinearEasing),
+        label = "nightModeLottieProgress",
+    )
+    // 揭示层在布局回调里捕获 lambda，颜色必须通过 State 读取才不会滞留在旧值。
+    val tintState = rememberUpdatedState(MaterialTheme.colorScheme.primary)
 
     // Telegram 在揭示结束后用 350ms 把图标色从旧主题色混到新主题色。
     val tint by animateColorAsState(
@@ -359,20 +371,35 @@ fun BAndWSwitch(
             .padding(start = ToggleRowStartPadding, end = ToggleRowEndPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SunMoonMorphIcon(
-            progress = morph.value,
-            tint = tint,
+        LottieAnimation(
+            composition = composition,
+            progress = { frame },
             modifier = Modifier
                 .size(IconSize)
+                // json 里的描边是纯白，必须自己上色：离屏后盖一层 tint（SrcIn 只保留 alpha）。
+                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                .drawWithContent {
+                    drawContent()
+                    drawRect(color = tint, blendMode = BlendMode.SrcIn)
+                }
                 .onGloballyPositioned { coordinates ->
                     controller?.updateIcon(
                         NightModeIconState(
                             boundsInRoot = coordinates.boundsInRoot(),
-                            progress = { morph.value },
-                            tint = { tint },
+                            draw = { scope, center, unit ->
+                                // 绘制时读 State，进度与颜色永远是最新的那一帧。
+                                renderer?.drawIcon(
+                                    scope = scope,
+                                    center = center,
+                                    unit = unit,
+                                    progress = frame,
+                                    tint = tintState.value,
+                                )
+                            },
                         ),
                     )
                 },
+            contentScale = ContentScale.Fit,
         )
         Spacer(modifier = Modifier.width(IconToTextGap))
         Text(
@@ -386,109 +413,61 @@ fun BAndWSwitch(
 }
 
 /**
- * 太阳 ↔ 月牙变形图标（自绘）。
+ * 把 Lottie 合成的某一帧画到 [scope] 上。
  *
- * 时间轴对齐 Telegram 的 `sun_outline.json`（36 帧 @60fps）：
- * - 0 → 14%：射线由 1 鼓到 1.2 倍；
- * - 14% → 36%：射线缩回圆内；
- * - 8% → 55%：一个圆从右侧滑进来，把圆盘咬成月牙，同时整体轻微缩放到 93% 再回弹；
- * - 成形过程中整体转 -38°，让月牙缺口落在右上，符合常见的月亮形态。
+ * 描边色在 json 里是纯白，因此统一用一层 `ColorFilter.tint` 染色：
+ * 这样 Lottie 内部走硬件渲染也能正确上色（`LottieDrawable` 自带的 colorFilter 只在软件渲染下生效）。
  */
-@Composable
-private fun SunMoonMorphIcon(
-    progress: Float,
-    tint: Color,
-    modifier: Modifier = Modifier,
-) {
-    Canvas(modifier = modifier) {
-        if (size.minDimension <= 0f) return@Canvas
-        drawSunMoonLayers(
-            progress = progress,
-            tint = tint,
-            center = Offset(size.width / 2f, size.height / 2f),
-            unit = size.minDimension,
-        )
+@Stable
+private class LottieIconRenderer(composition: LottieComposition) {
+
+    // 必须走软件渲染：默认的硬件模式会把内容录进 RenderNode，
+    // 手动 draw() 时进度变化不会让 RenderNode 重新录制，画出来就是空白。
+    private val drawable = LottieDrawable().apply {
+        setRenderMode(RenderMode.SOFTWARE)
+        setComposition(composition)
     }
-}
 
-/**
- * 把「太阳 → 月牙」画到任意画布上：图标本体与揭示层（夜 → 日时盖在旧画面之上的那枚图标）
- * 共用同一份绘制指令，保证两处形状/进度完全一致。
- *
- * @param center 图标中心
- * @param unit 图标边长（所有尺寸都是它的倍数）
- */
-private fun DrawScope.drawSunMoonLayers(
-    progress: Float,
-    tint: Color,
-    center: Offset,
-    unit: Float,
-) {
-    if (unit <= 0f) return
+    /** 整层上色用的画笔：SrcIn 只保留离屏图层的 alpha，颜色换成主题色。 */
+    private val tintRectPaint = Paint().apply {
+        xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+    }
 
-    val bodyRadius = unit * BODY_RADIUS_RATIO
-    val outline = Stroke(
-        width = unit * STROKE_RATIO,
-        cap = StrokeCap.Round,
-        join = StrokeJoin.Round,
-    )
+    private var logged = false
 
-    val moon = smoothStep(0.08f, 0.55f, progress)
-    val rayGrow = smoothStep(0f, 0.14f, progress)
-    val rayShrink = smoothStep(0.14f, 0.36f, progress)
-    val rayExtent = (1f + RAY_GROW_BONUS * rayGrow) * (1f - rayShrink)
-    // 先缩到 93% 再回弹：Lottie 里月牙层的 scale 关键帧就是这个节奏。
-    val bodyScale = 1f - BODY_SHRINK * sin(moon * Math.PI.toFloat())
+    fun drawIcon(
+        scope: DrawScope,
+        center: Offset,
+        unit: Float,
+        progress: Float,
+        tint: Color,
+    ) {
+        if (unit <= 0f) return
+        val side = unit.roundToInt()
+        if (side <= 0) return
 
-    // 月牙比圆盘画得大：太阳的视觉尺寸有一圈射线撑着（外沿约 0.79×边长），
-    // 月牙却只有被咬剩下的那瓣，同半径下看起来只有太阳的一半。放大到 [MOON_RADIUS_BOOST] 倍
-    // 让两者的「视觉重量」相称（圆盘直径 0.40×边长 → 月牙 0.64×边长）。
-    val moonRadius = bodyRadius * (1f + MOON_RADIUS_BOOST * moon)
+        val left = center.x - unit / 2f
+        val top = center.y - unit / 2f
 
-    rotate(degrees = MOON_ROTATION_DEGREES * moon, pivot = center) {
-        scale(scaleX = bodyScale, scaleY = bodyScale, pivot = center) {
-            if (rayExtent > RAY_MIN_EXTENT) {
-                val rayStart = bodyRadius * RAY_INNER_RATIO
-                val rayEnd = rayStart + bodyRadius * RAY_LENGTH_RATIO * rayExtent
-                repeat(RAY_COUNT) { index ->
-                    val angle = Math.toRadians((index * (360 / RAY_COUNT)).toDouble())
-                    val cosA = cos(angle).toFloat()
-                    val sinA = sin(angle).toFloat()
-                    drawLine(
-                        color = tint,
-                        start = Offset(
-                            x = center.x + cosA * rayStart,
-                            y = center.y + sinA * rayStart,
-                        ),
-                        end = Offset(
-                            x = center.x + cosA * rayEnd,
-                            y = center.y + sinA * rayEnd,
-                        ),
-                        strokeWidth = outline.width,
-                        cap = StrokeCap.Round,
-                    )
-                }
-            }
+        drawable.setBounds(0, 0, side, side)
+        drawable.progress = progress.coerceIn(0f, 1f)
 
-            // 圆盘 → 月牙：咬口圆从右外侧滑进来（moon = 0 时与圆盘不相交）。
-            val body = Path().apply { addOval(Rect(center = center, radius = moonRadius)) }
-            val bite = Path().apply {
-                addOval(
-                    Rect(
-                        center = Offset(
-                            x = center.x + moonRadius * mix(BITE_START, BITE_END, moon),
-                            y = center.y,
-                        ),
-                        radius = moonRadius * BITE_RADIUS_RATIO,
-                    ),
-                )
-            }
-            val crescent = if (moon > 0.001f) {
-                Path.combine(PathOperation.Difference, body, bite)
-            } else {
-                body
-            }
-            drawPath(path = crescent, color = tint, style = outline)
+        if (!logged) {
+            logged = true
+            Log.w(REVEAL_LOG_TAG, "lottie draw: side=$side progress=$progress")
+        }
+
+        scope.drawIntoCanvas { canvas ->
+            val native = canvas.nativeCanvas
+            native.save()
+            native.translate(left, top)
+            // 离屏一层，画完 Lottie 后整层按 tint 的 alpha 上色（json 描边是纯白）。
+            val layer = native.saveLayer(0f, 0f, unit, unit, null)
+            drawable.draw(native)
+            tintRectPaint.color = tint.toArgb()
+            native.drawRect(0f, 0f, unit, unit, tintRectPaint)
+            native.restoreToCount(layer)
+            native.restore()
         }
     }
 }
@@ -511,17 +490,6 @@ private fun maxRevealRadius(width: Float, height: Float, origin: Offset): Float 
     return hypot(dx, dy)
 }
 
-/** 平滑插值（smoothstep），用于把线性进度映射成自然的形变节奏。 */
-private fun smoothStep(start: Float, end: Float, value: Float): Float {
-    if (end <= start) return if (value >= end) 1f else 0f
-    val t = ((value - start) / (end - start)).coerceIn(0f, 1f)
-    return t * t * (3f - 2f * t)
-}
-
-/** 线性插值。 */
-private fun mix(start: Float, end: Float, fraction: Float): Float =
-    start + (end - start) * fraction
-
 /** 揭示动画的日志标签。 */
 private const val REVEAL_LOG_TAG = "NightModeReveal"
 
@@ -541,54 +509,11 @@ private val ToggleRowHeight = 50.dp
 private val IconToTextGap = 9.dp
 
 /**
- * 图标图形的基准半径（占控件边长的比例）。
+ * 合成加载完成前的兜底形变时长。
  *
- * 太阳外沿 = 0.20 × (1 + 1.45 + 0.52) ≈ 控件边长的 79%，
- * 在 28dp 行内留出呼吸空间（原先 0.24 会顶满整个方框，视觉上偏大）。
+ * `sun_outline.json` 是 36 帧 @60fps = 600ms，这里只是 composition 还没解析好时的占位值。
  */
-private const val BODY_RADIUS_RATIO = 0.20f
-
-/** 描边宽度占比（28dp 图标下约 2.1dp）。 */
-private const val STROKE_RATIO = 0.075f
-
-/**
- * 月牙相对圆盘的放大倍数（moon = 1 时生效）。
- *
- * 太阳的外沿被射线撑到 0.79×边长，月牙只是一瓣被咬剩的主体，同半径下视觉上小一半，
- * 因此单独放大到 1.6 倍：月牙直径 0.64×边长（约 17.9dp），与太阳（约 22dp）相称。
- */
-private const val MOON_RADIUS_BOOST = 0.6f
-
-/** 射线数量：8 条，每 45° 一条。 */
-private const val RAY_COUNT = 8
-
-/** 射线的内端半径（相对圆盘半径）。 */
-private const val RAY_INNER_RATIO = 1.45f
-
-/** 射线长度（相对圆盘半径）。 */
-private const val RAY_LENGTH_RATIO = 0.52f
-
-/** 射线鼓起时的额外长度（1 → 1.2 倍）。 */
-private const val RAY_GROW_BONUS = 0.2f
-
-/** 射线短于这个比例就不再画，避免留下一个圆点。 */
-private const val RAY_MIN_EXTENT = 0.02f
-
-/** 月牙成形时整体收缩的幅度。 */
-private const val BODY_SHRINK = 0.07f
-
-/** 咬口圆的半径（相对圆盘半径）。 */
-private const val BITE_RADIUS_RATIO = 0.86f
-
-/** 咬口圆起止位置：从圆盘右外侧滑到略微重叠。 */
-private const val BITE_START = 2.4f
-private const val BITE_END = 0.72f
-
-/** 月牙成形时的旋转角度：缺口朝右上。 */
-private const val MOON_ROTATION_DEGREES = -38f
-
-/** 太阳 ↔ 月牙的形变时长：36 帧 @60fps。 */
-private const val SUN_MOON_DURATION_MILLIS = 600
+private const val DEFAULT_ICON_MORPH_MILLIS = 600
 
 /** 图标颜色的过渡时长（Telegram 揭示结束后 350ms 混色）。 */
 private const val ICON_TINT_MILLIS = 350
@@ -601,9 +526,6 @@ private const val MIN_VISIBLE_RADIUS = 0.5f
 
 /** 揭示缓动：easeInOutQuad，与 Telegram 的 `Easings.easeInOutQuad` 一致。 */
 private val RevealEasing = CubicBezierEasing(0.455f, 0.03f, 0.515f, 0.955f)
-
-/** 形变缓动：起步快、收尾稳，接近 Lottie 关键帧的观感。 */
-private val MorphEasing = CubicBezierEasing(0.3f, 0f, 0.25f, 1f)
 
 /** 等待主题切换的超时（超出后继续，避免停在遮罩上）。 */
 private const val THEME_CHANGE_TIMEOUT_MILLIS = 250L

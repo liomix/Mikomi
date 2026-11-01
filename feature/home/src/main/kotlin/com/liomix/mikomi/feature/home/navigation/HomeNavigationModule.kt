@@ -51,7 +51,8 @@ object HomeNavigationModule {
         entry<RankDestination> {
             RankRoute(
                 onBackClick = { navigator.goBack() },
-                onAnimeClick = { animeId -> navigator.goTo(DetailDestination(animeId)) },
+                // 榜单只取 AniRpb，其 video id 与详情页 id 空间不同，先按标题进入现有搜索结果。
+                onAnimeTitleClick = { title -> navigator.goTo(SearchResultDestination(title)) },
             )
         }
     }

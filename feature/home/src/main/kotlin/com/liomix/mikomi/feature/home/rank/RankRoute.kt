@@ -8,11 +8,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * 排行榜 Route（有状态）：收集榜单与刷新状态，刷新入口统一收敛到 ViewModel。
+ *
+ * 回调按标题而不是 id：榜单来自 AniRpb，其视频 id 与详情页的条目 id 空间不同。
  */
 @Composable
 fun RankRoute(
     onBackClick: () -> Unit,
-    onAnimeClick: (String) -> Unit,
+    onAnimeTitleClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: RankViewModel = hiltViewModel(),
 ) {
@@ -23,7 +25,7 @@ fun RankRoute(
         isRefreshing = isRefreshing,
         onBackClick = onBackClick,
         onRefreshClick = viewModel::refreshByUser,
-        onAnimeClick = onAnimeClick,
+        onAnimeTitleClick = onAnimeTitleClick,
         modifier = modifier,
     )
 }

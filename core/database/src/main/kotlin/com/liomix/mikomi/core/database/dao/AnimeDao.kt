@@ -89,9 +89,14 @@ interface ScheduleDao {
 
 @Dao
 interface RankDao {
-    /** 指定产地的榜单（评分降序；无评分条目排最后）。 */
+    /**
+     * 指定产地的榜单：按数据源返回顺序（[RankEntity.position] 升序）。
+     *
+     * 不能用评分排序：AniRpb 热播榜是服务端热度序，按评分重排会让卡片名次与榜单不符。
+     * `id` 作为稳定次序兜底（同一批位次相同的历史数据也不会来回漂移）。
+     */
     @Query(
-        "SELECT * FROM rank_entry WHERE region = :region ORDER BY rating DESC",
+        "SELECT * FROM rank_entry WHERE region = :region ORDER BY position ASC, id ASC",
     )
     fun observeByRegion(region: String): Flow<List<RankEntity>>
 

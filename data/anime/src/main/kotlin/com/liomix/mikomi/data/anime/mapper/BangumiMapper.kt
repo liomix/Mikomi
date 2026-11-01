@@ -1,7 +1,6 @@
 package com.liomix.mikomi.data.anime.mapper
 
 import com.liomix.mikomi.core.database.entity.AnimeEntity
-import com.liomix.mikomi.core.database.entity.RankEntity
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.AnimeStatus
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSubjectDto
@@ -107,22 +106,6 @@ internal fun extractChineseSummary(text: String): String? {
         .trim()
         .takeIf { it.isNotEmpty() }
 }
-
-/** 榜单实体：[region] 为产地标签（cn / jp），类型标签取 meta_tags 去噪后展示。 */
-internal fun BangumiSubjectDto.toRankEntity(region: String): RankEntity = RankEntity(
-    id = "$BANGUMI_ID_PREFIX$id",
-    region = region,
-    title = displayName,
-    coverUrl = images?.large ?: images?.common ?: images?.medium,
-    synopsis = summary,
-    rating = rating?.score,
-    status = "unknown",
-    popularity = rating?.total ?: 0,
-    genres = metaTags
-        .filterNot { it in GENRE_NOISE }
-        .take(GENRE_DISPLAY_LIMIT)
-        .joinToString(GENRES_SEPARATOR),
-)
 
 /** 标准标签中的产地/媒介噪音（榜单已按产地分列，无需重复展示）。 */
 private val GENRE_NOISE = setOf(

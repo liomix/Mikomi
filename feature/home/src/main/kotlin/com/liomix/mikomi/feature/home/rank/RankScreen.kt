@@ -44,7 +44,7 @@ import com.liomix.mikomi.feature.home.R
 import kotlinx.coroutines.launch
 
 /**
- * 排行榜：首页快捷入口的二级页面（国漫 / 日漫综合评分榜）。
+ * 排行榜：首页快捷入口的二级页面（AniRpb 国漫 / 日漫热播榜）。
  *
  * - 顶栏右侧刷新：刷新进行中替换为进度环并禁用重复点击；
  * - 分类标签是静态资源，任何状态下都真实渲染，只有下方的卡片列表需要骨架屏；
@@ -57,7 +57,7 @@ import kotlinx.coroutines.launch
  * @param isRefreshing 是否正在刷新，驱动顶栏刷新按钮的表现。
  * @param onBackClick 顶栏返回。
  * @param onRefreshClick 刷新（顶栏按钮与错误态重试共用同一入口）。
- * @param onAnimeClick 点击榜单条目进入详情。
+ * @param onAnimeTitleClick 点击榜单条目按标题搜索（AniRpb 视频 id 无法直连详情）。
  */
 @Composable
 fun RankScreen(
@@ -65,7 +65,7 @@ fun RankScreen(
     isRefreshing: Boolean,
     onBackClick: () -> Unit,
     onRefreshClick: () -> Unit,
-    onAnimeClick: (String) -> Unit,
+    onAnimeTitleClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // 标签与分页在加载期间同样存在，翻页状态因此提到状态分发之外。
@@ -97,7 +97,7 @@ fun RankScreen(
             RankBody(
                 uiState = uiState,
                 pagerState = pagerState,
-                onAnimeClick = onAnimeClick,
+                onAnimeTitleClick = onAnimeTitleClick,
                 onRefreshClick = onRefreshClick,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -189,7 +189,7 @@ private fun RankTabs(
 private fun RankBody(
     uiState: RankUiState,
     pagerState: PagerState,
-    onAnimeClick: (String) -> Unit,
+    onAnimeTitleClick: (String) -> Unit,
     onRefreshClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -213,7 +213,7 @@ private fun RankBody(
                     RankType.CHINESE -> uiState.chinese
                     RankType.JAPANESE -> uiState.japanese
                 },
-                onAnimeClick = onAnimeClick,
+                onAnimeTitleClick = onAnimeTitleClick,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -224,7 +224,7 @@ private fun RankBody(
 @Composable
 private fun RankList(
     entries: List<RankEntry>,
-    onAnimeClick: (String) -> Unit,
+    onAnimeTitleClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (entries.isEmpty()) {
@@ -252,7 +252,7 @@ private fun RankList(
             RankAnimeCard(
                 entry = entry,
                 rank = index + 1,
-                onClick = { onAnimeClick(entry.anime.id) },
+                onClick = { onAnimeTitleClick(entry.anime.title) },
             )
         }
     }
@@ -280,7 +280,7 @@ private fun RankCardSkeletonList(
     }
 }
 
-/** 排行榜分类：国漫 / 日漫，两榜均按综合评分降序。 */
+/** 排行榜分类：国漫 / 日漫，两榜均按服务端热播名次排列。 */
 private enum class RankType(@param:StringRes val labelRes: Int) {
     CHINESE(R.string.rank_tab_chinese),
     JAPANESE(R.string.rank_tab_japanese),

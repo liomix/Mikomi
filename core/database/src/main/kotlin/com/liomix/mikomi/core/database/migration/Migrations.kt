@@ -100,4 +100,16 @@ object Migrations {
             db.execSQL("ALTER TABLE schedule ADD COLUMN channelId TEXT NOT NULL DEFAULT ''")
         }
     }
+
+    /**
+     * 8 → 9：rank_entry 表新增 position 列（保留 AniRpb 榜单返回顺序）。
+     *
+     * 旧榜单是 Bangumi / AniList 的评分排序，本就按 rating 展示；统一落 0 后
+     * 首次刷新会被 AniRpb 重写成真实位次。
+     */
+    val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE rank_entry ADD COLUMN position INTEGER NOT NULL DEFAULT 0")
+        }
+    }
 }

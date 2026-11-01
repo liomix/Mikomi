@@ -87,12 +87,12 @@ data class ScheduleEntity(
 )
 
 /**
- * 综合评分榜：国漫 / 日漫两榜。非规范化存储展示所需字段，
+ * 热播榜：国漫 / 日漫两榜，数据来自 AniRpb。非规范化存储展示所需字段，
  * 不与 anime 表关联（anime 表会被首页刷新按前缀清理）。
  */
 @Entity(tableName = "rank_entry")
 data class RankEntity(
-    /** 主键：anilist id（带前缀），与 anime 表 id 空间一致。 */
+    /** 主键：数据源 id（带前缀），与 anime 表 id 空间隔离。 */
     @PrimaryKey val id: String,
     /** 产地：cn（国漫）/ jp（日漫），见 data 层 RankRepository 常量。 */
     val region: String,
@@ -104,4 +104,11 @@ data class RankEntity(
     val popularity: Int = 0,
     /** 展示用类型标签，多值以 `·` 连接存储。 */
     val genres: String = "",
+    /**
+     * 服务端名次（从 0 开始的返回顺序，越小越靠前）。
+     *
+     * 榜单顺序来自数据源本身而不是评分：按评分重排会让卡片名次与服务端榜单不一致，
+     * 所以这里显式落位次，查询按本列升序。
+     */
+    @ColumnInfo(defaultValue = "0") val position: Int = 0,
 )

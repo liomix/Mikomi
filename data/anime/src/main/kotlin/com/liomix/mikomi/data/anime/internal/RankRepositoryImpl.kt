@@ -6,36 +6,28 @@ import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
 import com.liomix.mikomi.core.database.MikomiDatabase
 import com.liomix.mikomi.core.database.dao.RankDao
 import com.liomix.mikomi.core.database.entity.RankEntity
+import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.model.RankEntry
 import com.liomix.mikomi.core.model.RankRegion
+import com.liomix.mikomi.data.anime.AniRpbRepository
 import com.liomix.mikomi.data.anime.RankRepository
-import com.liomix.mikomi.data.anime.mapper.GENRES_SEPARATOR
 import com.liomix.mikomi.data.anime.mapper.toDomain
-import com.liomix.mikomi.data.anime.mapper.toRankEntity
-import com.liomix.mikomi.data.anime.remote.anilist.AniListApi
-import com.liomix.mikomi.data.anime.remote.anilist.AniListQueries
-import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListGraphqlRequest
-import com.liomix.mikomi.data.anime.remote.bangumi.BangumiApi
-import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchFilter
-import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchRequest
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 
 /**
- * 综合评分榜：Bangumi 主（标签过滤产地 + 综合评分降序），失败降级 AniList。
+ * 热播榜：AniRpb `home.load` 为唯一数据源（国漫 / 日漫各一个频道）。
  *
- * Bangumi 条目带中文名（name_cn）与站内综合评分（rating.score），是榜单的首选源；
- * 降级路径沿用 AniList countryOfOrigin 查询。离线优先由 Room SSOT 保证。
+ * AniRpb 的频道 id 在数据层按 `type.listActive` 动态解析，这里只按产地请求榜单；
+ * 名次直接沿用服务端返回顺序（[RankEntity.position]），不再按评分重排。
+ * 离线优先由 Room SSOT 保证：刷新失败时继续展示本地缓存。
  */
 internal class RankRepositoryImpl @Inject constructor(
-    private val bangumiApi: BangumiApi,
-    private val anilistApi: AniListApi,
+    private val aniRpbRepository: AniRpbRepository,
     private val rankDao: RankDao,
     private val database: MikomiDatabase,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
@@ -47,119 +39,74 @@ internal class RankRepositoryImpl @Inject constructor(
         }
 
     override suspend fun refreshRank(): Unit = withContext(ioDispatcher) {
-        val chinese = fetchRank(RankRegion.CHINESE)
-        val japanese = fetchRank(RankRegion.JAPANESE)
+        val entitiesByRegion = mutableMapOf<RankRegion, List<RankEntity>>()
+        var successCount = 0
+        var lastFailure: Exception? = null
+
+        for (region in RankRegion.entries) {
+            try {
+                entitiesByRegion[region] = fetchRank(region)
+                successCount++
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Fetch AniRpb rank failed, region=$region", e)
+                lastFailure = e
+            }
+        }
+
+        // 两榜都失败才向 UI 报错；单榜失败时保留该榜本地缓存。
+        if (successCount == 0) {
+            lastFailure?.let { throw it }
+            return@withContext
+        }
 
         // 空结果不等于「榜上确实没有条目」，更可能是限额 / 空响应。
-        // 整表 clearAll 后再写入空列表会把用户已看到的榜单抹掉（界面退化成骨架屏），
-        // 所以这里按产地逐个替换：哪一榜拿到数据才更新哪一榜。
-        if (chinese.isEmpty() && japanese.isEmpty()) return@withContext
-
+        // 按产地逐个替换：哪一榜拿到数据才更新哪一榜，不把已展示的榜单抹成骨架屏。
         // 两榜在同一事务里替换，Room Flow 只发射一次，刷新过程中不会闪空数据。
         database.withTransaction {
-            if (chinese.isNotEmpty()) {
-                rankDao.deleteByRegion(RankRegion.CHINESE.storageValue())
-                rankDao.upsertAll(chinese)
-            }
-            if (japanese.isNotEmpty()) {
-                rankDao.deleteByRegion(RankRegion.JAPANESE.storageValue())
-                rankDao.upsertAll(japanese)
+            entitiesByRegion.forEach { (region, entities) ->
+                if (entities.isEmpty()) return@forEach
+                rankDao.deleteByRegion(region.storageValue())
+                rankDao.upsertAll(entities)
             }
         }
     }
 
-    /** Bangumi 主、失败降级 AniList（与首页同策略）。 */
+    /** AniRpb 热播榜：名次取接口返回顺序（第 N 条 = position N-1）。 */
     private suspend fun fetchRank(region: RankRegion): List<RankEntity> =
-        try {
-            fetchBangumiRank(region)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w(TAG, "Bangumi rank failed, fallback to AniList, region=$region", e)
-            fetchAniListRank(region)
+        aniRpbRepository.fetchHotRanking(region).mapIndexed { index, item ->
+            item.toRankEntity(region.storageValue(), position = index)
         }
 
-    /**
-     * Bangumi 评分榜：`tag` 过滤产地（国产动画 / 日本），
-     * `rank > 0` 只保留进过站内排名的条目（剔除几人评分的虚高分），
-     * `sort=score` 按综合评分降序。
-     */
-    private suspend fun fetchBangumiRank(region: RankRegion): List<RankEntity> {
-        val entities = mutableListOf<RankEntity>()
-        var offset = 0
-        var page = 0
-        while (page < MAX_PAGES) {
-            val response = bangumiApi.search(
-                request = BangumiSearchRequest(
-                    keyword = "",
-                    sort = SORT_BY_SCORE,
-                    filter = BangumiSearchFilter(
-                        tag = listOf(region.tagName()),
-                        rank = listOf(RANK_POSITIVE),
-                    ),
-                ),
-                limit = PAGE_SIZE,
-                offset = offset,
-            )
-            entities += response.data.map { it.toRankEntity(region.storageValue()) }
-            offset += response.data.size
-            if (response.data.isEmpty() || offset >= response.total) break
-            page++
-        }
-        return entities
-    }
-
-    /** AniList 降级：按产地（countryOfOrigin）取评分榜。 */
-    private suspend fun fetchAniListRank(region: RankRegion): List<RankEntity> {
-        val entities = mutableListOf<RankEntity>()
-        var page = FIRST_PAGE
-        while (page <= MAX_PAGES) {
-            val response = anilistApi.execute(
-                AniListGraphqlRequest(
-                    query = AniListQueries.RANK_BY_SCORE,
-                    variables = buildJsonObject {
-                        put("page", page)
-                        put("perPage", PAGE_SIZE)
-                        put("country", region.countryCode())
-                    },
-                ),
-            )
-            val pageData = response.data?.page
-            if (pageData == null) {
-                Log.w(TAG, "AniList rank response missing Page data, region=$region")
-                break
-            }
-            entities += pageData.media.map { it.toRankEntity(region.storageValue()) }
-            if (pageData.pageInfo?.hasNextPage != true) break
-            page++
-        }
-        return entities
-    }
-
-    private fun RankEntity.toRankEntry(): RankEntry = RankEntry(
-        anime = toDomain(),
-        region = when (region) {
-            REGION_CHINESE -> RankRegion.CHINESE
-            else -> RankRegion.JAPANESE
-        },
-        genres = genres.split(GENRES_SEPARATOR).filter { it.isNotBlank() },
+    private fun AniRpbHotItem.toRankEntity(region: String, position: Int): RankEntity = RankEntity(
+        id = "$ANIRPB_ID_PREFIX$id",
+        region = region,
+        title = title,
+        coverUrl = coverUrl,
+        // AniRpb 只提供评分与更新文案，没有简介 / 类型标签，留空由 UI 自行降级。
+        synopsis = null,
+        rating = score,
+        status = "unknown",
+        genres = "",
+        position = position,
     )
+
+    private fun RankEntity.toRankEntry(): RankEntry {
+        val anime = toDomain()
+        return RankEntry(
+            anime = anime,
+            region = when (region) {
+                REGION_CHINESE -> RankRegion.CHINESE
+                else -> RankRegion.JAPANESE
+            },
+            genres = anime.genres,
+        )
+    }
 
     private fun RankRegion.storageValue(): String = when (this) {
         RankRegion.CHINESE -> REGION_CHINESE
         RankRegion.JAPANESE -> REGION_JAPANESE
-    }
-
-    /** Bangumi 产地标签（实测：国产动画 743 条 / 日本 1000+ 条，均为有效过滤）。 */
-    private fun RankRegion.tagName(): String = when (this) {
-        RankRegion.CHINESE -> TAG_CHINESE
-        RankRegion.JAPANESE -> TAG_JAPANESE
-    }
-
-    /** AniList CountryCode。 */
-    private fun RankRegion.countryCode(): String = when (this) {
-        RankRegion.CHINESE -> "CN"
-        RankRegion.JAPANESE -> "JP"
     }
 
     private companion object {
@@ -167,17 +114,9 @@ internal class RankRepositoryImpl @Inject constructor(
         const val REGION_CHINESE = "cn"
         const val REGION_JAPANESE = "jp"
 
-        /** Bangumi 产地标签。 */
-        const val TAG_CHINESE = "国产动画"
-        const val TAG_JAPANESE = "日本"
+        /** 主键前缀：AniRpb 视频 id 与 Bangumi / AniList 条目 id 不在同一命名空间。 */
+        const val ANIRPB_ID_PREFIX = "anirpb:"
 
-        /** Bangumi 排名过滤表达式：仅保留有站内排名的条目。 */
-        const val RANK_POSITIVE = ">0"
-        const val SORT_BY_SCORE = "score"
-
-        const val FIRST_PAGE = 1
-        const val MAX_PAGES = 2
-        const val PAGE_SIZE = 25
         const val TAG = "RankRepository"
     }
 }

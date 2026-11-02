@@ -161,4 +161,24 @@ data class PlayerUiState(
         EpisodeOrder.ASCENDING -> episodes.sortedBy { it.number }
         EpisodeOrder.DESCENDING -> episodes.sortedByDescending { it.number }
     }
+
+    /**
+     * 上一集。
+     *
+     * 按**集号**而不是当前展示顺序算：用户在倒序下点「上一集」，
+     * 期望的是第 3 集而不是列表里的下一张卡。没有上一集时为 null（按钮置灰）。
+     */
+    val previousEpisode: EpisodeItem?
+        get() = neighbor(-1)
+
+    /** 下一集；是否可用见 [nextEpisode]。 */
+    val nextEpisode: EpisodeItem?
+        get() = neighbor(1)
+
+    private fun neighbor(direction: Int): EpisodeItem? {
+        val currentId = currentEpisode?.id ?: return null
+        val ordered = episodes.sortedBy { it.number }
+        val index = ordered.indexOfFirst { it.id == currentId }
+        return if (index < 0) null else ordered.getOrNull(index + direction)
+    }
 }

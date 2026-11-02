@@ -22,8 +22,8 @@ object PlayerNavigationModule {
                 animeId = key.animeId,
                 episodeId = key.episodeId,
                 onBackClick = { navigator.goBack() },
-                // TODO: 横屏全屏播放（锁定方向 + 隐藏系统栏）后续单独实现。
-                onFullscreenClick = {},
+                // 全屏是播放页自己的视图状态（同 window 换约束），不经过导航：
+                // 新开目的地会换 window，播放器的 Surface 必须重建，切一次黑一帧。
             )
         }
     }

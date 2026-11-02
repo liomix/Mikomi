@@ -60,6 +60,20 @@ class PlayerViewModel @Inject constructor() : ViewModel() {
         _uiState.update { it.copy(currentEpisode = episode) }
     }
 
+    /** 上一集；已在首集时什么都不做（按钮那边已经置灰，这里兜一层）。 */
+    fun onPreviousEpisode() {
+        stepEpisode { it.previousEpisode }
+    }
+
+    /** 下一集；已在末集时什么都不做。 */
+    fun onNextEpisode() {
+        stepEpisode { it.nextEpisode }
+    }
+
+    private fun stepEpisode(pick: (PlayerUiState) -> EpisodeItem?) {
+        _uiState.update { state -> pick(state)?.let { state.copy(currentEpisode = it) } ?: state }
+    }
+
     fun onDanmakuToggle() {
         _uiState.update { it.copy(danmakuEnabled = !it.danmakuEnabled) }
     }

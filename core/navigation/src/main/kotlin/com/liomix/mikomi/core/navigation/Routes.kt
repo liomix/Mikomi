@@ -34,6 +34,10 @@ data object SettingsDestination : NavKey
 @Serializable
 data object ThemeDestination : NavKey
 
+/** 编辑资料二级页面（我的页「编辑信息」进入）。 */
+@Serializable
+data object EditorDestination : NavKey
+
 /** 网络设置二级页面（设置页的第二页）。 */
 @Serializable
 data object NetworkDestination : NavKey

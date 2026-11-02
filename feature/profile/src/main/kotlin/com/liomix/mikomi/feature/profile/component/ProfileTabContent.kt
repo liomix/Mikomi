@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /** 首屏占位行数：2 行 × 3 列 = 6 个占位格。 */
@@ -60,7 +61,8 @@ internal class ProfileTabContentState {
 internal fun rememberProfileTabContentState(): ProfileTabContentState = remember { ProfileTabContentState() }
 
 /**
- * 标签内容区（历史 / 收藏）：一张固定高度的白色卡片，内部是自己可滚动的媒体网格。
+ * 标签内容区（历史 / 收藏）：一张固定高度的卡片（底色/分隔线/骨架色由调用方给），
+ * 内部是自己可滚动的媒体网格。
  *
  * 布局要点：
  * - 高度由调用方给定（= 视口剩余空间），卡片本身不随内容增长；
@@ -71,8 +73,10 @@ internal fun rememberProfileTabContentState(): ProfileTabContentState = remember
 @Composable
 internal fun ProfileTabContent(
     state: ProfileTabContentState,
-    palette: ProfilePalette,
     listState: LazyListState,
+    cardColor: Color,
+    dividerColor: Color,
+    skeletonColor: Color,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -80,7 +84,7 @@ internal fun ProfileTabContent(
             .fillMaxWidth()
             .padding(horizontal = CARD_HORIZONTAL_PADDING)
             .clip(RoundedCornerShape(CARD_CORNER))
-            .background(palette.card),
+            .background(cardColor),
     ) {
         LazyColumn(
             state = listState,
@@ -89,14 +93,18 @@ internal fun ProfileTabContent(
             // 最后一行滚到底时正好贴住卡片下沿（圆角裁切）。
         ) {
             items(count = state.rows, key = { index -> "media-row-$index" }) { index ->
-                MediaRow(palette = palette, isFirst = index == 0)
+                MediaRow(
+                    dividerColor = dividerColor,
+                    skeletonColor = skeletonColor,
+                    isFirst = index == 0,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun MediaRow(palette: ProfilePalette, isFirst: Boolean) {
+private fun MediaRow(dividerColor: Color, skeletonColor: Color, isFirst: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -105,7 +113,7 @@ private fun MediaRow(palette: ProfilePalette, isFirst: Boolean) {
                 val step = size.width / 3f
                 for (i in 1..2) {
                     drawLine(
-                        color = palette.divider,
+                        color = dividerColor,
                         start = Offset(step * i, 0f),
                         end = Offset(step * i, size.height),
                         strokeWidth = 1.dp.toPx(),
@@ -114,7 +122,7 @@ private fun MediaRow(palette: ProfilePalette, isFirst: Boolean) {
                 // 首行上方不画横线，其余行画一条，和 Telegram 的媒体网格一致。
                 if (!isFirst) {
                     drawLine(
-                        color = palette.divider,
+                        color = dividerColor,
                         start = Offset(0f, 0f),
                         end = Offset(size.width, 0f),
                         strokeWidth = 1.dp.toPx(),
@@ -134,7 +142,7 @@ private fun MediaRow(palette: ProfilePalette, isFirst: Boolean) {
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(10.dp))
-                        .background(palette.skeleton),
+                        .background(skeletonColor),
                 )
             }
         }

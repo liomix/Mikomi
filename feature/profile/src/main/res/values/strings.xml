@@ -11,4 +11,20 @@
     <string name="profile_tab_favorite">收藏</string>
     <string name="profile_empty_history">暂无观看历史</string>
     <string name="profile_empty_favorite">暂无收藏</string>
+    <!-- 编辑资料页 -->
+    <string name="profile_editor_title">编辑资料</string>
+    <string name="profile_editor_back">返回</string>
+    <string name="profile_editor_save">保存</string>
+    <string name="profile_editor_avatar">头像</string>
+    <string name="profile_editor_avatar_change">更换头像</string>
+    <string name="profile_editor_handle_label">Miko 号</string>
+    <string name="profile_editor_handle_placeholder">设置你的 Miko 号</string>
+    <string name="profile_editor_handle_hint">朋友可以通过它找到你</string>
+    <string name="profile_editor_name_label">昵称</string>
+    <string name="profile_editor_name_placeholder">给自己起个名字</string>
+    <string name="profile_editor_name_hint">会显示在主页与评论里</string>
+    <string name="profile_editor_bio_label">简介</string>
+    <string name="profile_editor_bio_placeholder">简单介绍一下自己</string>
+    <string name="profile_editor_bio_hint">最多 70 字</string>
+    <string name="profile_editor_id_hint">Miko 号是你在 Mikomi 的唯一标识，30 天内只能修改一次。</string>
 </resources>

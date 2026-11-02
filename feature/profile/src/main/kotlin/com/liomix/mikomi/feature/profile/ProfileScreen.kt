@@ -39,8 +39,10 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -82,9 +84,7 @@ import androidx.compose.ui.unit.sp
 import com.liomix.mikomi.core.ui.component.MikomiNavBarBottomSpace
 import com.liomix.mikomi.core.ui.component.Tab
 import com.liomix.mikomi.core.ui.component.TabBar
-import com.liomix.mikomi.feature.profile.component.ProfilePalette
 import com.liomix.mikomi.feature.profile.component.ProfileTabContent
-import com.liomix.mikomi.feature.profile.component.rememberProfilePalette
 import com.liomix.mikomi.feature.profile.component.rememberProfileTabContentState
 import kotlin.math.roundToInt
 import kotlinx.coroutines.coroutineScope
@@ -439,8 +439,10 @@ fun ProfileScreen(
 
             ProfileTabContent(
                 state = contentState,
-                palette = palette,
                 listState = contentListState,
+                cardColor = palette.card,
+                dividerColor = palette.divider,
+                skeletonColor = palette.skeleton,
                 modifier = Modifier
                     // 吃掉剩余高度：任意折叠进度下卡片下沿都贴着屏幕底，不会露背景。
                     .weight(1f)
@@ -926,3 +928,52 @@ private fun ProfileTabs(
         }
     }
 }
+
+/* ---------------------------------------------------------------- 配色 */
+
+/**
+ * 个人页配色：全部取自应用自己的主题（`MaterialTheme.colorScheme`），
+ * 换主题色（蓝 / 粉 / 绿 / 紫）、切日夜都会自动跟着变。
+ *
+ * 角色映射：
+ * - [background] 页面底色 → `background`
+ * - [card] 卡片 / 胶囊底 → `surface`
+ * - [title] / [value] 主文字 → `onSurface`
+ * - [secondary] 次要文字（简介）→ `onSurfaceVariant`
+ * - [tertiary] 弱化文字（未选中标签、空态）→ `onSurfaceVariant` 再淡一档
+ * - [divider] 网格分隔线 → `outlineVariant` 淡化
+ * - [skeleton] 占位骨架格 → `surfaceContainerHighest` 淡化
+ * - [accent] 选中态文字 / 图标 → `primary`
+ * - [accentContainer] 选中胶囊底 → `primaryContainer`
+ */
+private data class ProfilePalette(
+    val background: Color,
+    val card: Color,
+    val title: Color,
+    val value: Color,
+    val secondary: Color,
+    val tertiary: Color,
+    val divider: Color,
+    val skeleton: Color,
+    val accent: Color,
+    val accentContainer: Color,
+)
+
+@Composable
+private fun rememberProfilePalette(): ProfilePalette {
+    val scheme = MaterialTheme.colorScheme
+    return remember(scheme) { scheme.toProfilePalette() }
+}
+
+private fun ColorScheme.toProfilePalette(): ProfilePalette = ProfilePalette(
+    background = background,
+    card = surface,
+    title = onSurface,
+    value = onSurface,
+    secondary = onSurfaceVariant,
+    tertiary = onSurfaceVariant.copy(alpha = 0.78f),
+    divider = outlineVariant.copy(alpha = 0.55f),
+    skeleton = surfaceContainerHighest.copy(alpha = 0.6f),
+    accent = primary,
+    accentContainer = primaryContainer,
+)

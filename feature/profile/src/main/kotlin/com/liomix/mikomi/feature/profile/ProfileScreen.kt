@@ -87,6 +87,8 @@ import com.liomix.mikomi.feature.profile.component.ProfileTabContent
 import com.liomix.mikomi.feature.profile.component.rememberProfilePalette
 import com.liomix.mikomi.feature.profile.component.rememberProfileTabContentState
 import kotlin.math.roundToInt
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 /**
  * 个人资料页（对齐 Telegram 13 的「我的」页）。
@@ -144,6 +146,10 @@ fun ProfileScreen(
     // 头部占位只在上膛后被撑开：拖拽段里内容不跟着动，免得圆还没长大下面先空一条。
     val pullLayout: () -> Float = { pullPx * snapState.value }
 
+    // 撑满之后还能再往下拉一点点：只把照片往下拉长（橡皮筋），松手弹回，给半屏一点"动感"。
+    var stretchPx by remember { mutableFloatStateOf(0f) }
+    val maxStretchPx = with(density) { MaxStretch.toPx() }
+
     var selectedTab by remember { mutableIntStateOf(0) }
     val contentState = rememberProfileTabContentState()
     val contentListState = rememberLazyListState()
@@ -179,10 +185,20 @@ fun ProfileScreen(
         snapshotFlow { contentListState.isScrollInProgress }
             .collect { scrolling ->
                 if (!scrolling) {
-                    if (armed || pullPx > 0f) {
+                    if (armed || pullPx > 0f || stretchPx > 0f) {
                         armed = false
-                        if (pullPx > 0f) {
-                            animate(pullPx, 0f, animationSpec = tween(SnapMillis)) { v, _ -> pullPx = v }
+                        // 并发收：橡皮筋和下拉量一起回到 0，头像不会在放大态多停一截。
+                        coroutineScope {
+                            if (stretchPx > 0f) {
+                                launch {
+                                    animate(stretchPx, 0f, animationSpec = StretchSpring) { v, _ -> stretchPx = v }
+                                }
+                            }
+                            if (pullPx > 0f) {
+                                launch {
+                                    animate(pullPx, 0f, animationSpec = tween(SnapMillis)) { v, _ -> pullPx = v }
+                                }
+                            }
                         }
                     }
                     settleCollapse()
@@ -197,15 +213,30 @@ fun ProfileScreen(
             /** 松手收起：解除上膛，下拉量归零（snap 由 animateFloatAsState 自己回落）。 */
             private suspend fun release() {
                 armed = false
-                if (pullPx > 0f) {
-                    animate(pullPx, 0f, animationSpec = tween(SnapMillis)) { v, _ -> pullPx = v }
+                // 两条动画必须并发：pullPx 决定头像大小，排在 stretch 后面收会让头像
+                // 在 148dp 上多停三四百毫秒（"大头停一会儿再缩回去"）。
+                coroutineScope {
+                    if (stretchPx > 0f) {
+                        launch {
+                            animate(stretchPx, 0f, animationSpec = StretchSpring) { v, _ -> stretchPx = v }
+                        }
+                    }
+                    if (pullPx > 0f) {
+                        launch {
+                            animate(pullPx, 0f, animationSpec = tween(SnapMillis)) { v, _ -> pullPx = v }
+                        }
+                    }
                 }
             }
 
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 if (available.y >= 0f) return Offset.Zero
-                // 已撑开：这段手势全部吃掉，等松手再统一收起，避免边开边缩。
-                if (armed) return Offset(0f, available.y)
+                // 已撑开：先把手拉出来的那点橡皮筋收回去，其余手势吃掉，等松手统一收起。
+                if (armed) {
+                    val used = (-available.y).coerceAtMost(stretchPx)
+                    if (used > 0f) stretchPx -= used
+                    return Offset(0f, available.y)
+                }
 
                 var left = -available.y
                 // 1) 先收回下拉（圆缩回去）
@@ -233,7 +264,14 @@ fun ProfileScreen(
                 source: NestedScrollSource,
             ): Offset {
                 if (available.y <= 0f) return Offset.Zero
-                if (armed) return Offset(0f, available.y)
+                if (armed) {
+                    // 已在撑满态：继续下拉只是把照片拉长一点（阻尼 0.35，最多 64dp）
+                    val room = maxStretchPx - stretchPx
+                    if (room > 0f) {
+                        stretchPx = (stretchPx + available.y * StretchDamping).coerceAtMost(maxStretchPx)
+                    }
+                    return Offset(0f, available.y)
+                }
 
                 var left = available.y
                 // 1) 先把折叠的头部放平
@@ -318,7 +356,8 @@ fun ProfileScreen(
         // 于是撑满态只剩「照片 + 昵称 + 简介」，下面的标签/内容不会被挡住。
         val cardsHeightPx: () -> Float = { actionCardHeightPx * (1f - snapState.value) }
         val photoBottomPx: () -> Float = {
-            barHeightPx + headerHeightPx - collapsePx + pullLayout() + cardsHeightPx() + photoInsetPx
+            barHeightPx + headerHeightPx - collapsePx + pullLayout() + cardsHeightPx() +
+                photoInsetPx + stretchPx
         }
 
         // 照片层画在**内容层之下**：下拉撑开时它会盖住动作卡所在的整块区域，
@@ -350,8 +389,8 @@ fun ProfileScreen(
                     .layout { measurable, constraints ->
                         // 折叠收缩 + 下拉拉长：两个方向共用同一块头部占位，
                         // 下拉时下面的动作卡/标签/卡片被整体推下去。
-                        val h = (headerHeightPx - collapsePx + pullLayout())
-                            .coerceIn(0f, headerHeightPx + pullThresholdPx)
+                        val h = (headerHeightPx - collapsePx + pullLayout() + stretchPx)
+                            .coerceIn(0f, headerHeightPx + pullThresholdPx + maxStretchPx)
                             .roundToInt()
                         val placeable = measurable.measure(
                             Constraints.fixed(constraints.maxWidth, h),
@@ -491,6 +530,15 @@ private const val SnapMillis = 260
 
 /** 松手后头部归位的弹簧：只落到「完全收起」或「完全展开」两端。 */
 private val CollapseSpring = spring<Float>(dampingRatio = 0.9f, stiffness = 520f)
+
+/** 撑满后还能再往下拉出的最大距离（照片被拉长的上限）。 */
+private val MaxStretch = 64.dp
+
+/** 这一段的下拉阻尼：手指走 1px，照片只长 0.35px，越拉越沉。 */
+private const val StretchDamping = 0.35f
+
+/** 橡皮筋回弹：略欠阻尼，松手会轻轻弹一下。 */
+private val StretchSpring = spring<Float>(dampingRatio = 0.72f, stiffness = 420f)
 
 /** 下拉阻尼：手指走 1px，头像只长 0.85px。 */
 private const val PullDamping = 0.85f

@@ -47,13 +47,81 @@
     <string name="settings_proxy_about_section">关于</string>
     <string name="settings_proxy_about_body">镜像只替换请求的域名，接口路径与参数保持原样。日后自建反向代理时，把地址换成自己的即可，无需改动任何代码。</string>
 
-    <!-- 数据源插件 -->
-    <string name="settings_plugin_title">数据源插件</string>
+    <!-- 插件源（视频来源的 JSON 规则） -->
+    <string name="settings_plugin_title">插件源</string>
     <string name="settings_plugin_back">返回</string>
-    <string name="settings_plugin_section">已安装</string>
+    <string name="settings_plugin_add">添加插件源</string>
+    <string name="settings_plugin_section">已安装 %1$d 个</string>
     <string name="settings_plugin_version">v%1$s</string>
-    <string name="settings_plugin_empty">还没有安装插件</string>
-    <string name="settings_plugin_placeholder_note">插件安装、更新与仓库订阅暂未开放，这里先只做占位；开关目前只在页面内生效，不会写盘。</string>
+    <string name="settings_plugin_update_available">可更新</string>
+    <string name="settings_plugin_empty">还没有插件源</string>
+    <string name="settings_plugin_more">%1$s 的更多操作</string>
+    <string name="settings_plugin_edit">编辑规则</string>
+    <string name="settings_plugin_test">测试</string>
+    <string name="settings_plugin_share">分享</string>
+    <string name="settings_plugin_remove">删除</string>
+
+    <!-- 插件源：规则仓库 -->
+    <string name="settings_plugin_repo_section">规则仓库</string>
+    <string name="settings_plugin_repo_address">仓库地址</string>
+    <string name="settings_plugin_repo_mirror">加速方式</string>
+    <string name="settings_plugin_repo_mirror_title">规则仓库加速</string>
+    <string name="settings_plugin_mirror_ghproxy">gh-proxy</string>
+    <string name="settings_plugin_mirror_ghproxy_desc">默认镜像</string>
+    <string name="settings_plugin_mirror_ghfast">ghfast</string>
+    <string name="settings_plugin_mirror_ghfast_desc">备用镜像</string>
+    <string name="settings_plugin_mirror_gitcode">GitCode</string>
+    <string name="settings_plugin_mirror_gitcode_desc">国内镜像</string>
+    <string name="settings_plugin_mirror_direct">直连</string>
+    <string name="settings_plugin_mirror_direct_desc">直接访问 GitHub</string>
+    <string name="settings_plugin_repo_edit_title">仓库地址</string>
+    <string name="settings_plugin_repo_edit_invalid">需要以 http:// 或 https:// 开头</string>
+    <string name="settings_plugin_save">保存</string>
+    <string name="settings_plugin_cancel">取消</string>
+
+    <!-- 插件源：添加方式 -->
+    <string name="settings_plugin_add_sheet_title">添加插件源</string>
+    <string name="settings_plugin_add_catalog">浏览规则仓库</string>
+    <string name="settings_plugin_add_clipboard">从剪贴板导入</string>
+    <string name="settings_plugin_add_file">从文件导入</string>
+    <string name="settings_plugin_add_create">新建插件源</string>
+    <string name="settings_plugin_pending">插件源导入尚未接入</string>
+    <string name="settings_plugin_pending_edit">规则编辑器尚未接入</string>
+    <string name="settings_plugin_pending_test">规则测试尚未接入</string>
+    <string name="settings_plugin_pending_share">分享尚未接入</string>
+
+    <!-- 插件商店 -->
+    <string name="settings_store_title">插件商店</string>
+    <string name="settings_store_back">返回</string>
+    <string name="settings_store_refresh">刷新目录</string>
+    <string name="settings_store_search_hint">搜索插件或作者</string>
+    <string name="settings_store_search_clear">清除搜索</string>
+    <string name="settings_store_sort">排序方式</string>
+    <string name="settings_store_sort_recent">最近更新</string>
+    <string name="settings_store_sort_name">名称</string>
+    <string name="settings_store_filter_all">全部 %1$d</string>
+    <string name="settings_store_filter_installed">已安装 %1$d</string>
+    <string name="settings_store_filter_updatable">可更新 %1$d</string>
+    <string name="settings_store_install">安装</string>
+    <string name="settings_store_update">更新</string>
+    <string name="settings_store_installing">安装中</string>
+    <string name="settings_store_updating">更新中</string>
+    <string name="settings_store_installed">已安装</string>
+    <string name="settings_store_version">v%1$s</string>
+    <string name="settings_store_anti_crawler">含反爬</string>
+    <string name="settings_store_meta_both">作者 · %1$s · 更新于 %2$s</string>
+    <string name="settings_store_meta_author">作者 · %1$s</string>
+    <string name="settings_store_meta_date">更新于 %1$s</string>
+    <string name="settings_store_stale">刷新失败，正在显示上次获取的列表</string>
+    <string name="settings_store_error_title">无法访问规则仓库</string>
+    <string name="settings_store_error_desc">已依次尝试 gh-proxy、ghfast、GitCode 与直连。原因：%1$s</string>
+    <string name="settings_store_retry">重试</string>
+    <string name="settings_store_empty_title">仓库里还没有规则</string>
+    <string name="settings_store_empty_desc">这个仓库的 index.json 是空的</string>
+    <string name="settings_store_no_match_title">没有符合条件的规则</string>
+    <string name="settings_store_clear_filter">清除筛选</string>
+    <string name="settings_store_toast_installed">已安装 %1$s</string>
+    <string name="settings_store_toast_failed">%1$s 安装失败：%2$s</string>
 
     <!-- 设置首页 -->
     <string name="settings_title">设置</string>
@@ -64,6 +132,6 @@
     <string name="settings_entry_theme_desc">主题颜色、深浅模式、应用图标与动态效果</string>
     <string name="settings_entry_proxy">Bangumi 代理</string>
     <string name="settings_entry_proxy_desc">连接方式与镜像地址</string>
-    <string name="settings_entry_plugins">数据源插件</string>
-    <string name="settings_entry_plugins_desc">启用或停用番剧与视频源插件</string>
+    <string name="settings_entry_plugins">插件源</string>
+    <string name="settings_entry_plugins_desc">以 JSON 规则描述的视频来源，决定播放时去哪里找片</string>
 </resources>

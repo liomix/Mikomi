@@ -46,6 +46,10 @@ data object ProxyDestination : NavKey
 @Serializable
 data object PluginDestination : NavKey
 
+/** 插件商店二级页面（插件源页「浏览规则仓库」进入）。 */
+@Serializable
+data object PluginStoreDestination : NavKey
+
 /** 时间表二级页面（首页快捷入口跳转）。 */
 @Serializable
 data object ScheduleDestination : NavKey

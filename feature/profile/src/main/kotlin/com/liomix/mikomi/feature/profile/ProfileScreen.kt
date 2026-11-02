@@ -1,8 +1,10 @@
 package com.liomix.mikomi.feature.profile
 
 import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,22 +31,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,8 +56,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -63,12 +68,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -105,6 +112,7 @@ fun ProfileScreen(
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
     onEditInfo: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {},
 ) {
     val palette = rememberProfilePalette()
     val density = LocalDensity.current
@@ -117,6 +125,24 @@ fun ProfileScreen(
 
     var collapsePx by remember { mutableFloatStateOf(0f) }
     val collapseFraction: () -> Float = { (collapsePx / maxCollapsePx).coerceIn(0f, 1f) }
+
+    // 下拉两段式（对应 Telegram 的 expandProgress + expandAnimator）：
+    // 1) 拖拽段：头像**保持圆形**，从 96dp 一路长到 148dp，拖到临界点就"上膛"；
+    // 2) 上膛后：长震一下，再由 snap 用 260ms 把圆撑成满宽照片（盖住动作卡，约半屏）。
+    var pullPx by remember { mutableFloatStateOf(0f) }
+    var armed by remember { mutableStateOf(false) }
+    val pullThresholdPx = with(density) { PullThreshold.toPx() }
+    val dragFraction: () -> Float = { (pullPx / pullThresholdPx).coerceIn(0f, 1f) }
+
+    // armed 一变就自动跑展开/收起动画；这个值只在布局/绘制阶段读，不逐帧重组。
+    val snapState = animateFloatAsState(
+        targetValue = if (armed) 1f else 0f,
+        animationSpec = tween(durationMillis = SnapMillis, easing = FastOutSlowInEasing),
+        label = "profileSnap",
+    )
+    val snap: () -> Float = { snapState.value }
+    // 头部占位只在上膛后被撑开：拖拽段里内容不跟着动，免得圆还没长大下面先空一条。
+    val pullLayout: () -> Float = { pullPx * snapState.value }
 
     var selectedTab by remember { mutableIntStateOf(0) }
     val contentState = rememberProfileTabContentState()
@@ -132,16 +158,73 @@ fun ProfileScreen(
         }.collect { atEnd -> if (atEnd) contentState.loadMore() }
     }
 
-    // 手势接力：上滑先把头部收满，再交给卡片内部列表；下滑时列表到顶后把剩余量还给头部。
-    val collapseConnection = remember(maxCollapsePx) {
+    // 上膛那一下长震：先震、再撑满（Telegram 在 expandProgress >= 0.33 时做的是同一件事）。
+    val haptics = LocalHapticFeedback.current
+    LaunchedEffect(armed) {
+        if (armed) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+    }
+
+    // 兜底回弹：慢慢松手时系统不派发 fling，下拉量会停在原地。
+    // 一旦卡片内列表不再处于滚动状态（松手且惯性结束），就把下拉量弹回 0。
+    // 松手后头部只有两个落点：过半就完全收进顶栏，否则完全回到原位——
+    // 不允许停在半路。慢慢松手时系统不派发 fling，全靠这条兜底。
+    val settleCollapse: suspend () -> Unit = {
+        val target = if (collapsePx > maxCollapsePx / 2f) maxCollapsePx else 0f
+        if (collapsePx != target) {
+            animate(collapsePx, target, animationSpec = CollapseSpring) { v, _ -> collapsePx = v }
+        }
+    }
+
+    LaunchedEffect(contentListState) {
+        snapshotFlow { contentListState.isScrollInProgress }
+            .collect { scrolling ->
+                if (!scrolling) {
+                    if (armed || pullPx > 0f) {
+                        armed = false
+                        if (pullPx > 0f) {
+                            animate(pullPx, 0f, animationSpec = tween(SnapMillis)) { v, _ -> pullPx = v }
+                        }
+                    }
+                    settleCollapse()
+                }
+            }
+    }
+
+    // 手势接力：上滑先收回下拉展开、再收头部，最后交给卡片内部列表；
+    // 下滑时列表到顶后先把头部放平，再继续往下拉——拉过临界点就自动撑满。
+    val collapseConnection = remember(maxCollapsePx, pullThresholdPx) {
         object : NestedScrollConnection {
+            /** 松手收起：解除上膛，下拉量归零（snap 由 animateFloatAsState 自己回落）。 */
+            private suspend fun release() {
+                armed = false
+                if (pullPx > 0f) {
+                    animate(pullPx, 0f, animationSpec = tween(SnapMillis)) { v, _ -> pullPx = v }
+                }
+            }
+
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 if (available.y >= 0f) return Offset.Zero
-                val room = maxCollapsePx - collapsePx
-                if (room <= 0f) return Offset.Zero
-                val used = (-available.y).coerceAtMost(room)
-                collapsePx += used
-                return Offset(0f, -used)
+                // 已撑开：这段手势全部吃掉，等松手再统一收起，避免边开边缩。
+                if (armed) return Offset(0f, available.y)
+
+                var left = -available.y
+                // 1) 先收回下拉（圆缩回去）
+                if (pullPx > 0f) {
+                    val used = left.coerceAtMost(pullPx)
+                    pullPx -= used
+                    left -= used
+                }
+                // 2) 再折叠头部
+                if (left > 0f) {
+                    val room = maxCollapsePx - collapsePx
+                    if (room > 0f) {
+                        val used = left.coerceAtMost(room)
+                        collapsePx += used
+                        left -= used
+                    }
+                }
+                // left 是没吃掉的量，消费量 = available.y + left（负值 = 向上）
+                return Offset(0f, available.y + left)
             }
 
             override fun onPostScroll(
@@ -149,14 +232,31 @@ fun ProfileScreen(
                 available: Offset,
                 source: NestedScrollSource,
             ): Offset {
-                if (available.y <= 0f || collapsePx <= 0f) return Offset.Zero
-                val used = available.y.coerceAtMost(collapsePx)
-                collapsePx -= used
-                return Offset(0f, used)
+                if (available.y <= 0f) return Offset.Zero
+                if (armed) return Offset(0f, available.y)
+
+                var left = available.y
+                // 1) 先把折叠的头部放平
+                if (collapsePx > 0f) {
+                    val used = left.coerceAtMost(collapsePx)
+                    collapsePx -= used
+                    left -= used
+                }
+                // 2) 头部放平后继续下拉 → 圆继续变大；到临界点就上膛
+                if (left > 0f && collapsePx <= 0f) {
+                    pullPx = (pullPx + left * PullDamping).coerceAtMost(pullThresholdPx)
+                    if (pullPx >= pullThresholdPx) armed = true
+                }
+                // 全部吃掉，避免列表越界回弹与下拉互相打架。
+                return Offset(0f, available.y)
             }
 
             override suspend fun onPreFling(available: Velocity): Velocity {
-                if (available.y >= 0f || collapsePx >= maxCollapsePx) return Velocity.Zero
+                if (armed || available.y >= 0f || pullPx > 0f) {
+                    release()
+                    return Velocity(0f, available.y)
+                }
+                if (collapsePx >= maxCollapsePx) return Velocity.Zero
                 animate(
                     initialValue = collapsePx,
                     targetValue = maxCollapsePx,
@@ -166,20 +266,32 @@ fun ProfileScreen(
             }
 
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                if (available.y <= 0f || collapsePx <= 0f) return Velocity.Zero
-                animate(
-                    initialValue = collapsePx,
-                    targetValue = 0f,
-                    initialVelocity = available.y,
-                ) { value, _ -> collapsePx = value }
+                if (armed) {
+                    release()
+                    return Velocity(0f, available.y)
+                }
+                if (available.y > 0f && collapsePx > 0f) {
+                    animate(
+                        initialValue = collapsePx,
+                        targetValue = 0f,
+                        initialVelocity = available.y,
+                    ) { value, _ -> collapsePx = value }
+                }
+                release()
                 return Velocity(0f, available.y)
             }
         }
     }
 
-    // 没有外层滚动容器，所以直接拖头部区域也能收起。
+    // 没有外层滚动容器，所以直接拖头部区域也能收起 / 下拉。
     val headerDragState = rememberDraggableState { delta ->
-        collapsePx = (collapsePx - delta).coerceIn(0f, maxCollapsePx)
+        if (armed) return@rememberDraggableState
+        if (delta > 0f && collapsePx <= 0f) {
+            pullPx = (pullPx + delta * PullDamping).coerceIn(0f, pullThresholdPx)
+            if (pullPx >= pullThresholdPx) armed = true
+        } else {
+            collapsePx = (collapsePx - delta).coerceIn(0f, maxCollapsePx)
+        }
     }
 
     BoxWithConstraints(
@@ -198,6 +310,33 @@ fun ProfileScreen(
             .asPaddingValues()
             .calculateBottomPadding()
         val contentBottomSpace = navBarInset + MikomiNavBarBottomSpace + ContentBottomGap
+        val barHeightPx = with(density) { barHeight.toPx() }
+        val actionCardHeightPx = with(density) { ActionCardHeight.toPx() }
+        val photoInsetPx = with(density) { PhotoBottomInset.toPx() }
+
+        // 上膛后动作卡整体收掉（高度压到 0 + 淡出），标签栏跟着顶上来，
+        // 于是撑满态只剩「照片 + 昵称 + 简介」，下面的标签/内容不会被挡住。
+        val cardsHeightPx: () -> Float = { actionCardHeightPx * (1f - snapState.value) }
+        val photoBottomPx: () -> Float = {
+            barHeightPx + headerHeightPx - collapsePx + pullLayout() + cardsHeightPx() + photoInsetPx
+        }
+
+        // 照片层画在**内容层之下**：下拉撑开时它会盖住动作卡所在的整块区域，
+        // 动作卡再画在照片上（半透明），标签与内容卡片在照片下沿之后。
+        ProfilePhoto(
+            progress = collapseFraction,
+            dragT = dragFraction,
+            snap = snap,
+            photoBottom = photoBottomPx,
+            restCenter = Offset(
+                x = constraints.maxWidth / 2f,
+                y = barHeightPx + with(density) { (HeaderAvatarSize / 2).toPx() },
+            ),
+            collapsedCenter = Offset(
+                x = with(density) { (CollapsedInset + CollapsedAvatarSize / 2).toPx() },
+                y = with(density) { (statusBar + TopBarHeight / 2).toPx() },
+            ),
+        )
 
         Column(
             modifier = Modifier
@@ -209,8 +348,10 @@ fun ProfileScreen(
                     .fillMaxWidth()
                     // 在**布局阶段**读 collapsePx：收缩只触发重排，不触发重组。
                     .layout { measurable, constraints ->
-                        val h = (headerHeightPx - collapsePx)
-                            .coerceIn(0f, headerHeightPx)
+                        // 折叠收缩 + 下拉拉长：两个方向共用同一块头部占位，
+                        // 下拉时下面的动作卡/标签/卡片被整体推下去。
+                        val h = (headerHeightPx - collapsePx + pullLayout())
+                            .coerceIn(0f, headerHeightPx + pullThresholdPx)
                             .roundToInt()
                         val placeable = measurable.measure(
                             Constraints.fixed(constraints.maxWidth, h),
@@ -219,11 +360,28 @@ fun ProfileScreen(
                             placeable.place(0, 0)
                         }
                     }
-                    .draggable(state = headerDragState, orientation = Orientation.Vertical),
+                    .draggable(
+                        state = headerDragState,
+                        orientation = Orientation.Vertical,
+                        onDragStopped = {
+                            armed = false
+                            if (pullPx > 0f) {
+                                animate(pullPx, 0f, animationSpec = tween(SnapMillis)) { v, _ -> pullPx = v }
+                            }
+                            settleCollapse()
+                        },
+                    ),
             )
 
             ActionCardsRow(
                 palette = palette,
+                expand = snap,
+                modifier = Modifier.layout { measurable, constraints ->
+                    // 高度随上膛进度压到 0：标签栏跟着往上顶，撑满态只留照片+名字。
+                    val h = cardsHeightPx().roundToInt().coerceAtLeast(0)
+                    val placeable = measurable.measure(Constraints.fixed(constraints.maxWidth, h))
+                    layout(placeable.width, h) { placeable.place(0, 0) }
+                },
                 onThemeClick = onThemeClick,
                 onEditInfo = onEditInfo,
                 onSettingsClick = onSettingsClick,
@@ -275,22 +433,22 @@ fun ProfileScreen(
         // 头部层必须画在内容层之上，且中间**不能**再夹一层不透明底色：
         // 内容层从顶栏下缘开始布局，本来就不会画到顶栏里，不需要底色遮挡；
         // 之前那层底色（画在头像之后）正好把停进顶栏的头像和昵称盖住了。
-        ProfileHeader(
+        ProfileNameOverlay(
             palette = palette,
             progress = collapseFraction,
-            restCenter = Offset(
-                x = constraints.maxWidth / 2f,
-                y = with(density) { (barHeight + HeaderAvatarSize / 2).toPx() },
-            ),
-            collapsedCenter = Offset(
-                x = with(density) { (CollapsedInset + CollapsedAvatarSize / 2).toPx() },
-                y = with(density) { (statusBar + TopBarHeight / 2).toPx() },
-            ),
-            nameRestCenterY = with(density) { (barHeight + HeaderAvatarSize + 14.dp + 11.dp).toPx() },
+            dragT = dragFraction,
+            snap = snap,
+            photoBottom = photoBottomPx,
+            nameRestCenterY = barHeightPx + with(density) { (HeaderAvatarSize + 14.dp + 11.dp).toPx() },
             nameTargetCenterY = with(density) { (statusBar + TopBarHeight / 2).toPx() },
         )
 
-        ProfileTopBar(palette = palette, height = barHeight, onSettingsClick = onSettingsClick)
+        ProfileTopBar(
+            palette = palette,
+            expand = snap,
+            height = barHeight,
+            onNotificationsClick = onNotificationsClick,
+        )
     }
 }
 
@@ -313,6 +471,30 @@ private val CollapsedBottomGap = 16.dp
 /** 内容卡片下沿与悬浮导航栏上沿之间的间距。 */
 private val ContentBottomGap = 14.dp
 
+/** 动作卡高度，同时决定照片下沿的位置（照片底边 = 卡片下沿）。 */
+private val ActionCardHeight = 54.dp
+
+/** 展开态下名字块底边与照片下沿的距离。 */
+private val NameBottomInset = 16.dp
+
+/** 展开态下动作卡与照片下沿之间的留白（截图里按钮下面还露出一条照片）。 */
+private val PhotoBottomInset = 12.dp
+
+/** 下拉多少行程算"上膛"：过这个点就长震 + 自动撑满半屏。 */
+private val PullThreshold = 84.dp
+
+/** 拖拽段头像能长到的最大圆形直径（继续拉就该撑开了）。 */
+private val MaxCircleSize = 148.dp
+
+/** 上膛后撑开 / 松手收起的时长（Telegram 是 250ms 的 EASE_OUT_QUINT）。 */
+private const val SnapMillis = 260
+
+/** 松手后头部归位的弹簧：只落到「完全收起」或「完全展开」两端。 */
+private val CollapseSpring = spring<Float>(dampingRatio = 0.9f, stiffness = 520f)
+
+/** 下拉阻尼：手指走 1px，头像只长 0.85px。 */
+private const val PullDamping = 0.85f
+
 /** 横向滑动切换标签的触发距离。 */
 private val SwipeThreshold = 72.dp
 
@@ -324,78 +506,187 @@ private const val TabCount = 2
 @Composable
 private fun ProfileTopBar(
     palette: ProfilePalette,
+    expand: () -> Float,
     height: Dp,
-    onSettingsClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
 ) {
+    // 展开后照片盖住顶栏，图标得转白；按 4 档量化，避免逐帧重组。
+    val tintStep = remember { derivedStateOf { (expand() * 4f).roundToInt() / 4f } }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(height),
     ) {
         IconButton(
-            onClick = onSettingsClick,
+            onClick = onNotificationsClick,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = 4.dp, bottom = 4.dp),
         ) {
             Icon(
-                imageVector = Icons.Outlined.Settings,
-                contentDescription = stringResource(R.string.profile_settings_entry),
-                tint = palette.title,
+                imageVector = Icons.Outlined.Email,
+                contentDescription = stringResource(R.string.profile_notifications_entry),
+                tint = lerp(palette.title, Color.White, tintStep.value.coerceIn(0f, 1f)),
                 modifier = Modifier.size(22.dp),
             )
         }
     }
 }
 
-/* ---------------------------------------------------------------- 头部 */
+/* ---------------------------------------------------------------- 照片层 */
 
 /**
- * 头部层：盖在内容层之上。
+ * 照片层：画在内容层**之下**，只有一张图。
  *
- * 头像从「页面中央 96dp」插值到「顶栏左侧 34dp」；名字同步上移到顶栏标题中线，
- * 简介在途中淡出。与 Telegram 一致，头像与名字画在内容之上，内容从下方经过。
+ * 三段几何：
+ * - **收起段**（[progress]）：96dp 圆居中 → 34dp 小圆进顶栏左侧；
+ * - **拖拽段**（[dragT]）：仍是圆，以圆心为中心向四周放大到 148dp；
+ * - **上膛段**（[snap]）：圆 → 满宽矩形，顶边顶到 0（盖住状态栏）、底边到 [photoBottom]。
  */
 @Composable
-private fun ProfileHeader(
-    palette: ProfilePalette,
+private fun ProfilePhoto(
     progress: () -> Float,
+    dragT: () -> Float,
+    snap: () -> Float,
+    photoBottom: () -> Float,
     restCenter: Offset,
     collapsedCenter: Offset,
+) {
+    val density = LocalDensity.current
+    val baseSizePx = with(density) { HeaderAvatarSize.toPx() }
+    val collapsedSizePx = with(density) { CollapsedAvatarSize.toPx() }
+    val maxCircleSizePx = with(density) { MaxCircleSize.toPx() }
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val widthPx = constraints.maxWidth.toFloat()
+
+        // 几何只在布局/绘制阶段求值，不进组合。
+        fun geometry(): AvatarGeometry = avatarGeometry(
+            collapse = progress(),
+            dragT = dragT(),
+            snap = snap(),
+            photoBottom = photoBottom(),
+            baseSize = baseSizePx,
+            collapsedSize = collapsedSizePx,
+            maxCircleSize = maxCircleSizePx,
+            width = widthPx,
+            restCenter = restCenter,
+            collapsedCenter = collapsedCenter,
+        )
+
+        Box(
+            modifier = Modifier
+                .offset {
+                    val g = geometry()
+                    IntOffset(g.left.roundToInt(), g.top.roundToInt())
+                }
+                // 尺寸在布局阶段给：用 graphicsLayer 缩放会把图拉变形，ContentScale.Crop 就失效了。
+                .layout { measurable, _ ->
+                    val g = geometry()
+                    val placeable = measurable.measure(
+                        Constraints.fixed(g.width.roundToInt(), g.height.roundToInt()),
+                    )
+                    layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+                }
+                .graphicsLayer {
+                    shape = RoundedCornerShape((geometry().radius / density.density).dp)
+                    clip = true
+                },
+        ) {
+            ProfileAvatar()
+        }
+    }
+}
+
+/** 头像在某一帧的落位（px）。 */
+private class AvatarGeometry(
+    val left: Float,
+    val top: Float,
+    val width: Float,
+    val height: Float,
+    val radius: Float,
+)
+
+/**
+ * 头像几何：圆 → 满宽矩形。
+ *
+ * - 收起段：96dp 圆（居中、顶边贴顶栏下缘）→ 34dp 小圆（顶栏左侧），线性插值；
+ * - 拖拽段：仍是圆，以圆心为中心向四周均匀放大到 [maxCircleSize]；
+ * - 上膛段：按 `snap` 把圆插值成满宽矩形——顶边到 0（盖住状态栏）、底边到 [photoBottom]、
+ *   圆角收到 0。
+ */
+private fun avatarGeometry(
+    collapse: Float,
+    dragT: Float,
+    snap: Float,
+    photoBottom: Float,
+    baseSize: Float,
+    collapsedSize: Float,
+    maxCircleSize: Float,
+    width: Float,
+    restCenter: Offset,
+    collapsedCenter: Offset,
+): AvatarGeometry {
+    val p = collapse.coerceIn(0f, 1f)
+    val collapsedSide = baseSize + (collapsedSize - baseSize) * p
+    val centerX = restCenter.x + (collapsedCenter.x - restCenter.x) * p
+    val centerY = restCenter.y + (collapsedCenter.y - restCenter.y) * p
+
+    // 拖拽段：圆，向四周均匀放大
+    val d = dragT.coerceIn(0f, 1f)
+    val side = collapsedSide + (maxCircleSize - collapsedSide) * d
+    val circleLeft = centerX - side / 2f
+    val circleTop = centerY - side / 2f
+
+    // 上膛段：圆 → 满宽矩形
+    val s = snap.coerceIn(0f, 1f)
+    return AvatarGeometry(
+        left = circleLeft + (0f - circleLeft) * s,
+        top = circleTop + (0f - circleTop) * s,
+        width = side + (width - side) * s,
+        height = side + (photoBottom - side) * s,
+        radius = (side / 2f) * (1f - s),
+    )
+}
+
+/* ---------------------------------------------------------------- 名字层 */
+
+/**
+ * 名字/简介层：画在照片与内容层**之上**。
+ *
+ * - 收起段：居中版跟着头像上移到顶栏标题中线；
+ * - 拖拽段：头像变大的同时淡出居中版（别让深色字压在头像上）；
+ * - 撑满段：左下角的大号白字淡入，压在照片下沿（对齐 TG 满屏态）。
+ *
+ * 所有 alpha / 位移都在绘制或布局阶段读状态，下拉过程不重组。
+ */
+@Composable
+private fun ProfileNameOverlay(
+    palette: ProfilePalette,
+    progress: () -> Float,
+    dragT: () -> Float,
+    snap: () -> Float,
+    photoBottom: () -> Float,
     nameRestCenterY: Float,
     nameTargetCenterY: Float,
 ) {
     val density = LocalDensity.current
-    val sizePx = with(density) { HeaderAvatarSize.toPx() }
-    val collapsedSizePx = with(density) { CollapsedAvatarSize.toPx() }
+    val nameTop = with(density) { nameRestCenterY.toDp() } - 11.dp
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier
-                .graphicsLayer {
-                    val p = progress()
-                    val cx = restCenter.x + (collapsedCenter.x - restCenter.x) * p
-                    val cy = restCenter.y + (collapsedCenter.y - restCenter.y) * p
-                    val side = sizePx + (collapsedSizePx - sizePx) * p
-                    translationX = cx - side / 2f
-                    translationY = cy - side / 2f
-                    scaleX = side / sizePx
-                    scaleY = side / sizePx
-                    transformOrigin = TransformOrigin(0f, 0f)
-                }
-                .size(HeaderAvatarSize)
-                .clip(CircleShape),
-        ) {
-            ProfileAvatar()
-        }
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val heightPx = constraints.maxHeight.toFloat()
 
+        // 居中版：常态 + 收起态
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .offset(y = with(density) { nameRestCenterY.toDp() } - 11.dp)
+                .offset(y = nameTop)
                 .graphicsLayer {
                     translationY = (nameTargetCenterY - nameRestCenterY) * progress()
+                    alpha = (1f - dragT() * 1.6f).coerceIn(0f, 1f) *
+                        (1f - snap().coerceIn(0f, 1f))
                 },
         ) {
             Text(
@@ -418,6 +709,35 @@ private fun ProfileHeader(
                     .graphicsLayer { alpha = (1f - progress() / 0.4f).coerceIn(0f, 1f) },
             )
         }
+
+        // 展开版：名字贴着照片下沿、靠左
+        Column(
+            horizontalAlignment = Alignment.Start,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 18.dp)
+                .offset {
+                    val bottom = photoBottom() - NameBottomInset.toPx()
+                    IntOffset(0, -(heightPx - bottom).roundToInt())
+                }
+                .graphicsLayer { alpha = snap().coerceIn(0f, 1f) },
+        ) {
+            Text(
+                text = stringResource(R.string.profile_name),
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = stringResource(R.string.profile_bio),
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 13.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -437,14 +757,18 @@ private fun ProfileAvatar() {
 @Composable
 private fun ActionCardsRow(
     palette: ProfilePalette,
+    expand: () -> Float,
     onThemeClick: () -> Unit,
     onEditInfo: () -> Unit,
     onSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(7.dp),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            // 撑满态整排消失：只留昵称与简介。
+            .graphicsLayer { alpha = (1f - expand()).coerceIn(0f, 1f) }
             .padding(horizontal = 14.dp),
     ) {
         ActionCard(
@@ -487,12 +811,11 @@ private fun ActionCard(
         animationSpec = spring(dampingRatio = 0.55f, stiffness = 900f),
         label = "actionCardScale",
     )
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = modifier
-            .height(54.dp)
+            .height(ActionCardHeight)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale

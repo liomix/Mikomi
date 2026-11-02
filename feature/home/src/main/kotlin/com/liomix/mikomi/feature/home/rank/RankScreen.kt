@@ -40,6 +40,7 @@ import com.liomix.mikomi.core.ui.component.ErrorState
 import com.liomix.mikomi.core.ui.component.SkeletonBox
 import com.liomix.mikomi.core.ui.component.Tab
 import com.liomix.mikomi.core.ui.component.TabBar
+import com.liomix.mikomi.core.ui.component.TabItemStyle
 import com.liomix.mikomi.feature.home.R
 import kotlinx.coroutines.launch
 
@@ -170,15 +171,18 @@ private fun RankTabs(
     modifier: Modifier = Modifier,
 ) {
     TabBar(
+        selectedIndex = selectedIndex,
+        onSelect = onSelect,
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp),
+        itemStyle = TabItemStyle.text(),
+        itemSpacing = 0.dp,
     ) {
         RankType.entries.forEachIndexed { index, type ->
             Tab(
+                index = index,
                 text = stringResource(type.labelRes),
-                selected = index == selectedIndex,
-                onClick = { onSelect(index) },
                 modifier = Modifier.weight(1f),
             )
         }

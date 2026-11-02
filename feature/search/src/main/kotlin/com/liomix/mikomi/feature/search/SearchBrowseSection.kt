@@ -64,6 +64,7 @@ import com.liomix.mikomi.core.ui.component.ScrollingText
 import com.liomix.mikomi.core.ui.component.SkeletonBox
 import com.liomix.mikomi.core.ui.component.Tab
 import com.liomix.mikomi.core.ui.component.TabBar
+import com.liomix.mikomi.core.ui.component.TabItemStyle
 import java.util.Locale
 
 /** 历史未展开时最多显示的 tag 数。 */
@@ -218,15 +219,18 @@ private fun HotTabs(
     modifier: Modifier = Modifier,
 ) {
     TabBar(
+        selectedIndex = selected.ordinal,
+        onSelect = { index -> onSelect(SearchHotTab.entries[index]) },
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
+        itemStyle = TabItemStyle.text(),
+        itemSpacing = 0.dp,
     ) {
-        SearchHotTab.entries.forEach { tab ->
+        SearchHotTab.entries.forEachIndexed { index, tab ->
             Tab(
+                index = index,
                 text = stringResource(tab.labelRes()),
-                selected = tab == selected,
-                onClick = { onSelect(tab) },
                 modifier = Modifier.weight(1f),
             )
         }

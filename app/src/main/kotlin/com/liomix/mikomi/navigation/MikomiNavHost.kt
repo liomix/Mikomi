@@ -18,12 +18,12 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
@@ -43,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -52,8 +53,9 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.liomix.mikomi.R
-import com.liomix.mikomi.core.designsystem.component.MikomiNavItem
-import com.liomix.mikomi.core.designsystem.component.MikomiNavigationBar
+import com.liomix.mikomi.core.ui.component.MikomiNavItem
+import com.liomix.mikomi.core.ui.component.MikomiNavBarMargin
+import com.liomix.mikomi.core.ui.component.MikomiNavigationBar
 import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.navigation.AniMapDestination
@@ -96,6 +98,9 @@ private const val ZOOM_FROM = 0.88f
 
 /** 标准转场的退场缩放比：旧页轻微放大后淡出（远离观感，与 Flutter 的 zoom 返回一致）。 */
 private const val ZOOM_OUT_TO = 1.06f
+
+/** 顶级页面左右滑动切换的触发距离。 */
+private val TOP_LEVEL_SWIPE_THRESHOLD = 80.dp
 
 /**
  * 页面转场统一缓动。
@@ -147,6 +152,11 @@ fun MikomiNavHost(
 
     val currentTopLevel = navigator.backStack.lastOrNull { it in topLevelDestinations }
         ?: HomeDestination
+
+    // 左右滑动切换顶级页面的顺序：与底部导航栏从左到右一致。
+    val topLevelOrder: List<NavKey> = remember(navItems) {
+        navItems.mapNotNull { it.key as? NavKey }
+    }
 
     // 栈顶是否落在顶级目的地：进入详情/播放器/时间表等二级页面时栈顶为二级目的地，
     // 底部导航栏随之隐藏；返回顶级目的地后恢复显示。
@@ -223,7 +233,33 @@ fun MikomiNavHost(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            // 顶级页面之间左右滑动切换：竖向手势与子级横向滚动（轮播、分页）都优先，
+            // 只有它们没消费的横向手势才落到这里，因此不会抢详情页/轮播的滑动。
+            .pointerInput(isTopLevel, topLevelOrder, currentTopLevel) {
+                if (!isTopLevel) return@pointerInput
+                var dragged = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { dragged = 0f },
+                    onDragEnd = {
+                        val threshold = TOP_LEVEL_SWIPE_THRESHOLD.toPx()
+                        val index = topLevelOrder.indexOf(currentTopLevel)
+                        if (index >= 0) {
+                            if (dragged <= -threshold) {
+                                topLevelOrder.getOrNull(index + 1)?.let(navigator::selectTopLevel)
+                            }
+                            if (dragged >= threshold) {
+                                topLevelOrder.getOrNull(index - 1)?.let(navigator::selectTopLevel)
+                            }
+                        }
+                        dragged = 0f
+                    },
+                    onHorizontalDrag = { change, amount ->
+                        dragged += amount
+                        change.consume()
+                    },
+                )
+            },
     ) {
         CompositionLocalProvider(LocalHeroFlightController provides heroController) {
             NavDisplay(
@@ -255,7 +291,8 @@ fun MikomiNavHost(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(horizontal = 20.dp, vertical = 12.dp)
+                // 外边距由 core:ui 的常量统一给出，页面按同一份规格给底栏让位。
+                .padding(horizontal = 20.dp, vertical = MikomiNavBarMargin)
                 .widthIn(max = 520.dp),
         ) {
             MikomiNavigationBar(

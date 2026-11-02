@@ -49,6 +49,7 @@ import com.liomix.mikomi.core.ui.component.ScrollingText
 import com.liomix.mikomi.core.ui.component.SkeletonBox
 import com.liomix.mikomi.core.ui.component.Tab
 import com.liomix.mikomi.core.ui.component.TabBar
+import com.liomix.mikomi.core.ui.component.TabItemStyle
 import com.liomix.mikomi.feature.home.R
 import java.util.Calendar
 import java.util.Locale
@@ -207,19 +208,22 @@ private fun DayTabBar(
     modifier: Modifier = Modifier,
 ) {
     TabBar(
+        selectedIndex = selectedIndex,
+        onSelect = onSelect,
         modifier = modifier,
         // 整行铺满的七等分卡片，胶囊容器在宽屏上会显得过于圆，改用大圆角矩形。
         shape = RoundedCornerShape(TAB_ROW_CORNER_RADIUS),
+        itemStyle = TabItemStyle.twoLine(),
+        itemSpacing = 0.dp,
     ) {
         dates.indices.forEach { index ->
             val isToday = index == todayIndex
             Tab(
+                index = index,
                 text = stringResource(
                     if (isToday) TODAY_LABEL else WEEKDAYS[index % WEEKDAYS.size],
                 ),
                 supportingText = dates[index].let(::monthDayLabel).takeIf { it.isNotBlank() },
-                selected = index == selectedIndex,
-                onClick = { onSelect(index) },
                 modifier = Modifier.weight(1f),
             )
         }

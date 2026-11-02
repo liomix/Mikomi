@@ -62,8 +62,8 @@ import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.ui.component.AnimeCoverImage
 import com.liomix.mikomi.core.ui.component.ScrollingText
 import com.liomix.mikomi.core.ui.component.SkeletonBox
-import com.liomix.mikomi.core.ui.component.Tag
-import com.liomix.mikomi.core.ui.component.TagRow
+import com.liomix.mikomi.core.ui.component.Tab
+import com.liomix.mikomi.core.ui.component.TabBar
 import java.util.Locale
 
 /** 历史未展开时最多显示的 tag 数。 */
@@ -217,13 +217,13 @@ private fun HotTabs(
     onSelect: (SearchHotTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    TagRow(
+    TabBar(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
     ) {
         SearchHotTab.entries.forEach { tab ->
-            Tag(
+            Tab(
                 text = stringResource(tab.labelRes()),
                 selected = tab == selected,
                 onClick = { onSelect(tab) },
@@ -260,14 +260,14 @@ private fun HistoryTags(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         visible.forEach { keyword ->
-            HistoryTag(
+            HistoryTab(
                 keyword = keyword,
                 onClick = { onTagClick(keyword) },
                 onLongClick = { onTagLongClick(keyword) },
             )
         }
         if (collapsible) {
-            ExpandTag(expanded = expanded, onClick = onToggleExpand)
+            ExpandTab(expanded = expanded, onClick = onToggleExpand)
         }
     }
 }
@@ -275,7 +275,7 @@ private fun HistoryTags(
 /** 历史关键词 chip：细描边 + 透明底，长词截断，保持一屏内可扫读。 */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun HistoryTag(
+private fun HistoryTab(
     keyword: String,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -309,7 +309,7 @@ private fun HistoryTag(
 
 /** 展开 / 收起 chip：与历史 chip 同款描边，仅文字与箭头用主色区分。 */
 @Composable
-private fun ExpandTag(
+private fun ExpandTab(
     expanded: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,

@@ -564,7 +564,7 @@ private data class ProfileTabItem(val label: String, val icon: ImageVector)
 /**
  * 分段标签：白色胶囊容器 + 选中项下的浅色胶囊。
  *
- * 每项是「图标 + 文字 + 上下各 3dp」，**触控范围与蓝色胶囊完全重合**
+ * 每项是「图标 + 文字 + 左右各 8dp + 上下各 3dp」，**触控范围与蓝色胶囊完全重合**
  * （不补到 48dp 最小触控尺寸，这是本页的特例）：横向间距交给父级 `spacedBy`，
  * 纵向 3dp 放在 clickable 内侧，胶囊高度直接取实测边界，容器上下留白相等。
  * 指示胶囊用弹簧跟随选中项，x / 宽 / 高都按实测边界动画，两项宽度不同也能贴合。
@@ -633,8 +633,9 @@ private fun ProfileTabs(
                                 }
                                 .clip(RoundedCornerShape(percent = 50))
                                 .clickable { onSelect(index) }
-                                // 上下各 3dp 放在 clickable 内侧：触控范围就此等于蓝色胶囊范围
-                                .padding(vertical = 3.dp),
+                                // 内边距全部放在 clickable 内侧：触控范围就此等于蓝色胶囊范围。
+                                // 横向 8dp 让胶囊两侧有点呼吸，纵向 3dp 让胶囊比文字略高。
+                                .padding(horizontal = 8.dp, vertical = 3.dp),
                         ) {
                             Icon(
                                 imageVector = item.icon,

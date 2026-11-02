@@ -47,8 +47,8 @@ import com.liomix.mikomi.core.ui.component.EmptyState
 import com.liomix.mikomi.core.ui.component.ErrorState
 import com.liomix.mikomi.core.ui.component.ScrollingText
 import com.liomix.mikomi.core.ui.component.SkeletonBox
-import com.liomix.mikomi.core.ui.component.Tag
-import com.liomix.mikomi.core.ui.component.TagRow
+import com.liomix.mikomi.core.ui.component.Tab
+import com.liomix.mikomi.core.ui.component.TabBar
 import com.liomix.mikomi.feature.home.R
 import java.util.Calendar
 import java.util.Locale
@@ -86,7 +86,7 @@ private val TAB_ROW_CORNER_RADIUS = 22.dp
  * 时间表：二级页面（周一~周日七天番剧列表），数据来自多源合并后的本周时间表。
  *
  * - 顶部 [CenterAlignedTopAppBar]，返回交给上层导航；
- * - 七天用 [TagRow] 日历标签栏选中（星期 + 月-日，今天显示「今」），
+ * - 七天用 [TabBar] 日历标签栏选中（星期 + 月-日，今天显示「今」），
  *   [HorizontalPager] 左右滑动切换，二者联动，默认定位到今天；
  * - 放送时间按三态精度展示：精确时刻 / 约 HH:mm（低优先级源推断）/ 时间待定 / 待公布；
  * - 加载 / 数据 / 空态 / 错误由 [ScheduleUiState] 驱动，错误态可通过
@@ -195,7 +195,7 @@ private fun ScheduleContent(
 /**
  * 周日历标签栏：上用星期（今天显示「今」），下用「月-日」。
  *
- * 复用通用标签组件 [TagRow]/[Tag] 的两行形态：选中时整块被主题色淡底包裹，
+ * 复用通用标签组件 [TabBar]/[Tab] 的两行形态：选中时整块被主题色淡底包裹，
  * 不画下划线指示器；横向等分七格，无需滚动。
  */
 @Composable
@@ -206,14 +206,14 @@ private fun DayTabBar(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    TagRow(
+    TabBar(
         modifier = modifier,
         // 整行铺满的七等分卡片，胶囊容器在宽屏上会显得过于圆，改用大圆角矩形。
         shape = RoundedCornerShape(TAB_ROW_CORNER_RADIUS),
     ) {
         dates.indices.forEach { index ->
             val isToday = index == todayIndex
-            Tag(
+            Tab(
                 text = stringResource(
                     if (isToday) TODAY_LABEL else WEEKDAYS[index % WEEKDAYS.size],
                 ),

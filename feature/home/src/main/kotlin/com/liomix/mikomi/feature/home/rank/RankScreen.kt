@@ -38,8 +38,8 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.RankEntry
 import com.liomix.mikomi.core.ui.component.ErrorState
 import com.liomix.mikomi.core.ui.component.SkeletonBox
-import com.liomix.mikomi.core.ui.component.Tag
-import com.liomix.mikomi.core.ui.component.TagRow
+import com.liomix.mikomi.core.ui.component.Tab
+import com.liomix.mikomi.core.ui.component.TabBar
 import com.liomix.mikomi.feature.home.R
 import kotlinx.coroutines.launch
 
@@ -169,13 +169,13 @@ private fun RankTabs(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    TagRow(
+    TabBar(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         RankType.entries.forEachIndexed { index, type ->
-            Tag(
+            Tab(
                 text = stringResource(type.labelRes),
                 selected = index == selectedIndex,
                 onClick = { onSelect(index) },

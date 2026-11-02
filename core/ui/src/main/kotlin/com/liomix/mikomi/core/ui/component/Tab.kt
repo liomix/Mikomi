@@ -37,33 +37,33 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
-/** 标签高度，同时就是它的触控高度（满足 48dp 最小触控目标）。 */
-private val TagHeight = 48.dp
+/** 标签页高度，同时就是它的触控高度（满足 48dp 最小触控目标）。 */
+private val TabHeight = 48.dp
 
-/** 两行标签（主标签 + 副标题）的高度：容纳一行主标签与一行副标题。 */
-private val TagTwoLineHeight = 56.dp
+/** 两行标签页（标题 + 副标题）的高度：容纳一行标题与一行副标题。 */
+private val TabTwoLineHeight = 56.dp
 
-/** 标签文字左右内边距。 */
-private val TagHorizontalPadding = 18.dp
+/** 标签页文字左右内边距。 */
+private val TabHorizontalPadding = 18.dp
 
 /** 两行标签的左右内边距：成组等分排列时（如七格日历）需要更紧凑。 */
-private val TagTwoLineHorizontalPadding = 6.dp
+private val TabTwoLineHorizontalPadding = 6.dp
 
 /** 单行标签形状：胶囊。 */
-private val TagShape = RoundedCornerShape(percent = 50)
+private val TabShape = RoundedCornerShape(percent = 50)
 
 /**
  * 两行标签形状：圆角矩形。
  *
  * 等分排布时单个标签宽高接近，胶囊会退化成椭圆，包裹感反而变差，因此换成圆角矩形。
  */
-private val TagTwoLineShape = RoundedCornerShape(18.dp)
+private val TabTwoLineShape = RoundedCornerShape(18.dp)
 
 /** 标签栏容器的默认形状：胶囊。 */
-private val TagRowShape = RoundedCornerShape(percent = 50)
+private val TabBarShape = RoundedCornerShape(percent = 50)
 
-/** 外层胶囊容器的内边距：选中标签与外层之间留出的白色间隙。 */
-private val TagRowPadding = 4.dp
+/** 外层胶囊容器的内边距：选中项与外层之间留出的白色间隙。 */
+private val TabBarPadding = 4.dp
 
 /** 按压反馈的动画时长。 */
 private const val PressAnimMillis = 100
@@ -78,7 +78,7 @@ private const val UnselectedScale = 0.97f
 private const val PressedScale = 0.96f
 
 /**
- * 标签选项（一组里单选一个）。
+ * 单个标签页（一组里单选一个）。
  *
  * 视觉：选中为主色淡底 + 主色半粗文字；未选中为透明底 + 次级文字色。
  *
@@ -87,11 +87,11 @@ private const val PressedScale = 0.96f
  * - 选中项轻微放大、按下时轻微收缩，切换与触摸都有连续反馈；
  * - 所有动画共用同一进度值，避免颜色、字重各自为政产生割裂感。
  *
- * 通常与 [TagRow] 搭配使用：
+ * 通常与 [TabBar] 搭配使用：
  * ```
- * TagRow {
- *     Tag(text = "动态", selected = selected == 0, onClick = { selected = 0 })
- *     Tag(text = "已归档的动态", selected = selected == 1, onClick = { selected = 1 })
+ * TabBar {
+ *     Tab(text = "历史", selected = selected == 0, onClick = { selected = 0 })
+ *     Tab(text = "收藏", selected = selected == 1, onClick = { selected = 1 })
  * }
  * ```
  *
@@ -104,7 +104,7 @@ private const val PressedScale = 0.96f
  * @param supportingText 第二行副标题；为 null 时保持单行形态。
  */
 @Composable
-fun Tag(
+fun Tab(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
@@ -113,7 +113,7 @@ fun Tag(
 ) {
     val colors = MaterialTheme.colorScheme
     val twoLine = supportingText != null
-    val shape = if (twoLine) TagTwoLineShape else TagShape
+    val shape = if (twoLine) TabTwoLineShape else TabShape
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
 
@@ -123,12 +123,12 @@ fun Tag(
             dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = Spring.StiffnessMediumLow,
         ),
-        label = "tagSelection",
+        label = "tabSelection",
     )
     val pressProgress by animateFloatAsState(
         targetValue = if (pressed) 1f else 0f,
         animationSpec = tween(durationMillis = PressAnimMillis),
-        label = "tagPress",
+        label = "tabPress",
     )
 
     val containerColor = lerp(
@@ -150,7 +150,7 @@ fun Tag(
 
     Surface(
         modifier = modifier
-            .height(if (twoLine) TagTwoLineHeight else TagHeight)
+            .height(if (twoLine) TabTwoLineHeight else TabHeight)
             .graphicsLayer {
                 val selectedScale = UnselectedScale + (1f - UnselectedScale) * selectionProgress
                 val scale = selectedScale * (1f - (1f - PressedScale) * pressProgress)
@@ -174,9 +174,9 @@ fun Tag(
                 .fillMaxHeight()
                 .padding(
                     horizontal = if (twoLine) {
-                        TagTwoLineHorizontalPadding
+                        TabTwoLineHorizontalPadding
                     } else {
-                        TagHorizontalPadding
+                        TabHorizontalPadding
                     },
                 ),
             contentAlignment = Alignment.Center,
@@ -216,18 +216,18 @@ fun Tag(
 }
 
 /**
- * 标签容器：白色（跟随 surface）胶囊底，内部横向排列一组 [Tag]。
+ * 标签栏：白色（跟随 surface）胶囊底，内部横向排列一组 [Tab]。
  *
  * 外层容器只负责背景、圆角与内边距，具体选项由调用方通过 Slot 传入，
  * 便于同一组标签承载任意数量、任意文案。
  *
  * @param shape 容器形状；默认胶囊，整行铺满、等分多列时可传入圆角矩形（如周日历标签栏）。
- * @param content 标签选项，通常为若干 [Tag]。
+ * @param content 标签页，通常为若干 [Tab]。
  */
 @Composable
-fun TagRow(
+fun TabBar(
     modifier: Modifier = Modifier,
-    shape: Shape = TagRowShape,
+    shape: Shape = TabBarShape,
     content: @Composable RowScope.() -> Unit,
 ) {
     Surface(
@@ -242,7 +242,7 @@ fun TagRow(
         ),
     ) {
         Row(
-            modifier = Modifier.padding(TagRowPadding).selectableGroup(),
+            modifier = Modifier.padding(TabBarPadding).selectableGroup(),
             verticalAlignment = Alignment.CenterVertically,
             content = content,
         )

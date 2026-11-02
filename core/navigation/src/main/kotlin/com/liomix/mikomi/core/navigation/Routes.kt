@@ -38,9 +38,13 @@ data object ThemeDestination : NavKey
 @Serializable
 data object EditorDestination : NavKey
 
-/** 网络设置二级页面（设置页的第二页）。 */
+/** Bangumi 代理设置二级页面（设置页「数据源」卡片的第一项）。 */
 @Serializable
-data object NetworkDestination : NavKey
+data object ProxyDestination : NavKey
+
+/** 数据源插件设置二级页面（设置页「数据源」卡片的第二项）。 */
+@Serializable
+data object PluginDestination : NavKey
 
 /** 时间表二级页面（首页快捷入口跳转）。 */
 @Serializable

@@ -9,8 +9,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /** 设置卡片圆角。 */
@@ -44,6 +46,31 @@ fun SettingsCard(
     ) {
         Column(modifier = Modifier.fillMaxWidth(), content = content)
     }
+}
+
+/**
+ * 卡片标题。
+ *
+ * 放在卡片内部顶缘，而不是卡片外面另起一段：它与下方各行的左缘（[SectionHorizontalPadding]）
+ * 严格对齐，分组关系一眼可见，也不用再多占一段垂直留白。
+ */
+@Composable
+fun SettingsCardHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier.padding(
+            start = SectionHorizontalPadding,
+            end = SectionHorizontalPadding,
+            top = 20.dp,
+            bottom = 12.dp,
+        ),
+    )
 }
 
 /**

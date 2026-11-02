@@ -2,11 +2,13 @@ package com.liomix.mikomi.feature.settings.navigation
 
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.Navigator
-import com.liomix.mikomi.core.navigation.NetworkDestination
+import com.liomix.mikomi.core.navigation.PluginDestination
+import com.liomix.mikomi.core.navigation.ProxyDestination
 import com.liomix.mikomi.core.navigation.SettingsDestination
 import com.liomix.mikomi.core.navigation.ThemeDestination
 import com.liomix.mikomi.feature.settings.SettingsScreen
-import com.liomix.mikomi.feature.settings.network.NetworkRoute
+import com.liomix.mikomi.feature.settings.plugin.PluginRoute
+import com.liomix.mikomi.feature.settings.proxy.ProxyRoute
 import com.liomix.mikomi.feature.settings.theme.ThemeRoute
 import dagger.Module
 import dagger.Provides
@@ -24,15 +26,19 @@ object SettingsNavigationModule {
         entry<SettingsDestination> {
             SettingsScreen(
                 onOpenTheme = { navigator.goTo(ThemeDestination) },
-                onOpenNetwork = { navigator.goTo(NetworkDestination) },
+                onOpenProxy = { navigator.goTo(ProxyDestination) },
+                onOpenPlugins = { navigator.goTo(PluginDestination) },
                 onBackClick = { navigator.goBack() },
             )
         }
         entry<ThemeDestination> {
             ThemeRoute(onBackClick = { navigator.goBack() })
         }
-        entry<NetworkDestination> {
-            NetworkRoute(onBackClick = { navigator.goBack() })
+        entry<ProxyDestination> {
+            ProxyRoute(onBackClick = { navigator.goBack() })
+        }
+        entry<PluginDestination> {
+            PluginRoute(onBackClick = { navigator.goBack() })
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.liomix.mikomi.feature.settings.network
+package com.liomix.mikomi.feature.settings.proxy
 
 import com.liomix.mikomi.core.model.BangumiApiMode
 
@@ -9,29 +9,29 @@ import com.liomix.mikomi.core.model.BangumiApiMode
  * 必须拿到 2xx 才算通过。只判断「有响应」会把 `404 resource not found` 误报成可用——
  * 公开镜像往往只代理了部分路径，这种假阳性比连不上更坑。
  */
-sealed interface MirrorTestResult {
+sealed interface ProxyTestResult {
 
     /** 尚未测试，或地址/模式改动后失效。 */
-    data object Idle : MirrorTestResult
+    data object Idle : ProxyTestResult
 
     /** 测试进行中。 */
-    data object Testing : MirrorTestResult
+    data object Testing : ProxyTestResult
 
     /** 收到 2xx 响应：镜像可用。 */
-    data class Reachable(val latencyMillis: Long) : MirrorTestResult
+    data class Reachable(val latencyMillis: Long) : ProxyTestResult
 
     /** 连上了，但返回非 2xx：通常说明这个镜像不代理该接口。 */
-    data class HttpError(val statusCode: Int) : MirrorTestResult
+    data class HttpError(val statusCode: Int) : ProxyTestResult
 
     /** 连不上（超时、DNS 失败、证书错误等）。 */
-    data class Failed(val reason: String) : MirrorTestResult
+    data class Failed(val reason: String) : ProxyTestResult
 }
 
-/** 网络设置页的界面状态。 */
-data class NetworkUiState(
+/** Bangumi 代理设置页的界面状态。 */
+data class ProxyUiState(
     val mode: BangumiApiMode = BangumiApiMode.Direct,
     val mirrorUrl: String = "",
-    val mirrorTest: MirrorTestResult = MirrorTestResult.Idle,
+    val mirrorTest: ProxyTestResult = ProxyTestResult.Idle,
 ) {
     /** 是否处于镜像模式（决定地址输入与测试按钮是否可用）。 */
     val isMirrorMode: Boolean get() = mode == BangumiApiMode.Mirror

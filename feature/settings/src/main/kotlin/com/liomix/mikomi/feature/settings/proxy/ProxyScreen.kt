@@ -1,6 +1,5 @@
-package com.liomix.mikomi.feature.settings.network
+package com.liomix.mikomi.feature.settings.proxy
 
-import androidx.annotation.StringRes
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -9,22 +8,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,7 +48,9 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.BangumiApiMode
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.component.SettingsCard
+import com.liomix.mikomi.feature.settings.component.SettingsCardHeader
 import com.liomix.mikomi.feature.settings.component.SettingsCardSection
+import com.liomix.mikomi.feature.settings.component.SettingsTopBar
 
 /** 选项卡片的圆角。 */
 private val OptionShape = RoundedCornerShape(18.dp)
@@ -74,18 +71,18 @@ private const val SelectedBorderAlpha = 0.30f
 private const val UnselectedBorderAlpha = 0.8f
 
 /**
- * 网络设置页。
+ * Bangumi 代理设置页。
  *
  * 两档连接方式：
  * - **直连**：直接访问 `api.bgm.tv` / `next.bgm.tv`；
  * - **镜像代理**：只把域名替换成用户填写的中转地址，路径与参数保持原样。
  *
  * 做成「换域名」而不是「换一套接口」，是为了让业务层与接口路径完全不动，
- * 日后自建反向代理时只需在设置里换地址。本页只描述界面，状态与事件由 `NetworkRoute` 提供。
+ * 日后自建反向代理时只需在设置里换地址。本页只描述界面，状态与事件由 `ProxyRoute` 提供。
  */
 @Composable
-fun NetworkScreen(
-    uiState: NetworkUiState,
+fun ProxyScreen(
+    uiState: ProxyUiState,
     onSelectMode: (BangumiApiMode) -> Unit,
     onMirrorUrlChange: (String) -> Unit,
     onTestConnection: () -> Unit,
@@ -97,7 +94,11 @@ fun NetworkScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        NetworkTopBar(onBackClick = onBackClick)
+        SettingsTopBar(
+            title = stringResource(R.string.settings_proxy_title),
+            backContentDescription = stringResource(R.string.settings_proxy_back),
+            onBackClick = onBackClick,
+        )
 
         Column(
             modifier = Modifier
@@ -109,23 +110,23 @@ fun NetworkScreen(
         ) {
             SettingsCard {
                 SettingsCardSection {
-                    SectionTitle(R.string.settings_network_mode_section)
+                    SettingsCardHeader(stringResource(R.string.settings_proxy_mode_section))
                     Column(
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 20.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         ModeOption(
-                            title = stringResource(R.string.settings_network_mode_direct),
+                            title = stringResource(R.string.settings_proxy_mode_direct),
                             description = stringResource(
-                                R.string.settings_network_mode_direct_desc,
+                                R.string.settings_proxy_mode_direct_desc,
                             ),
                             selected = uiState.mode == BangumiApiMode.Direct,
                             onClick = { onSelectMode(BangumiApiMode.Direct) },
                         )
                         ModeOption(
-                            title = stringResource(R.string.settings_network_mode_mirror),
+                            title = stringResource(R.string.settings_proxy_mode_mirror),
                             description = stringResource(
-                                R.string.settings_network_mode_mirror_desc,
+                                R.string.settings_proxy_mode_mirror_desc,
                             ),
                             selected = uiState.isMirrorMode,
                             onClick = { onSelectMode(BangumiApiMode.Mirror) },
@@ -142,9 +143,9 @@ fun NetworkScreen(
 
             SettingsCard {
                 SettingsCardSection {
-                    SectionTitle(R.string.settings_network_about_section)
+                    SettingsCardHeader(stringResource(R.string.settings_proxy_about_section))
                     Text(
-                        text = stringResource(R.string.settings_network_about_body),
+                        text = stringResource(R.string.settings_proxy_about_body),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
@@ -158,16 +159,16 @@ fun NetworkScreen(
 /** 镜像地址卡片：地址输入 + 连通性测试。直连模式下整块不可编辑。 */
 @Composable
 private fun MirrorAddressCard(
-    uiState: NetworkUiState,
+    uiState: ProxyUiState,
     onMirrorUrlChange: (String) -> Unit,
     onTestConnection: () -> Unit,
 ) {
     val enabled = uiState.isMirrorMode
-    val testing = uiState.mirrorTest == MirrorTestResult.Testing
+    val testing = uiState.mirrorTest == ProxyTestResult.Testing
 
     SettingsCard {
         SettingsCardSection {
-            SectionTitle(R.string.settings_network_mirror_section)
+            SettingsCardHeader(stringResource(R.string.settings_proxy_mirror_section))
 
             OutlinedTextField(
                 value = uiState.mirrorUrl,
@@ -180,7 +181,7 @@ private fun MirrorAddressCard(
                 shape = FieldShape,
                 isError = uiState.showMirrorError,
                 placeholder = {
-                    Text(stringResource(R.string.settings_network_mirror_placeholder))
+                    Text(stringResource(R.string.settings_proxy_mirror_placeholder))
                 },
                 leadingIcon = {
                     Icon(
@@ -194,7 +195,7 @@ private fun MirrorAddressCard(
                             Icon(
                                 imageVector = Icons.Rounded.Close,
                                 contentDescription = stringResource(
-                                    R.string.settings_network_mirror_clear,
+                                    R.string.settings_proxy_mirror_clear,
                                 ),
                             )
                         }
@@ -203,11 +204,11 @@ private fun MirrorAddressCard(
                 supportingText = {
                     Text(
                         when {
-                            !enabled -> stringResource(R.string.settings_network_mirror_disabled)
+                            !enabled -> stringResource(R.string.settings_proxy_mirror_disabled)
                             uiState.showMirrorError ->
-                                stringResource(R.string.settings_network_mirror_invalid)
+                                stringResource(R.string.settings_proxy_mirror_invalid)
 
-                            else -> stringResource(R.string.settings_network_mirror_hint)
+                            else -> stringResource(R.string.settings_proxy_mirror_hint)
                         },
                     )
                 },
@@ -234,9 +235,9 @@ private fun MirrorAddressCard(
                             color = LocalContentColor.current,
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = stringResource(R.string.settings_network_testing))
+                        Text(text = stringResource(R.string.settings_proxy_testing))
                     } else {
-                        Text(text = stringResource(R.string.settings_network_test))
+                        Text(text = stringResource(R.string.settings_proxy_test))
                     }
                 }
                 Spacer(modifier = Modifier.width(14.dp))
@@ -252,28 +253,28 @@ private fun MirrorAddressCard(
 /** 测试结果：成功显示耗时，失败显示原因（过长时省略）。 */
 @Composable
 private fun MirrorTestLabel(
-    result: MirrorTestResult,
+    result: ProxyTestResult,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
     when (result) {
-        MirrorTestResult.Idle, MirrorTestResult.Testing -> Unit
-        is MirrorTestResult.Reachable -> Text(
-            text = stringResource(R.string.settings_network_test_ok, result.latencyMillis),
+        ProxyTestResult.Idle, ProxyTestResult.Testing -> Unit
+        is ProxyTestResult.Reachable -> Text(
+            text = stringResource(R.string.settings_proxy_test_ok, result.latencyMillis),
             style = MaterialTheme.typography.labelLarge,
             color = colors.primary,
             modifier = modifier,
         )
-        is MirrorTestResult.HttpError -> Text(
-            text = stringResource(R.string.settings_network_test_http, result.statusCode),
+        is ProxyTestResult.HttpError -> Text(
+            text = stringResource(R.string.settings_proxy_test_http, result.statusCode),
             style = MaterialTheme.typography.bodySmall,
             color = colors.error,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = modifier,
         )
-        is MirrorTestResult.Failed -> Text(
-            text = stringResource(R.string.settings_network_test_failed, result.reason),
+        is ProxyTestResult.Failed -> Text(
+            text = stringResource(R.string.settings_proxy_test_failed, result.reason),
             style = MaterialTheme.typography.bodySmall,
             color = colors.error,
             maxLines = 2,
@@ -350,45 +351,5 @@ private fun ModeOption(
                 )
             }
         }
-    }
-}
-
-/** 卡片内的小节标题。 */
-@Composable
-private fun SectionTitle(@StringRes titleRes: Int) {
-    Text(
-        text = stringResource(titleRes),
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp),
-    )
-}
-
-/** 顶栏：返回 + 标题。 */
-@Composable
-private fun NetworkTopBar(
-    onBackClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = onBackClick) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.settings_network_back),
-            )
-        }
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = stringResource(R.string.settings_network_title),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-        )
     }
 }

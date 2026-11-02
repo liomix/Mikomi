@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
+import com.liomix.mikomi.data.video.remote.vdoplugin.InvalidVdoPluginRuleException
+import com.liomix.mikomi.data.video.remote.vdoplugin.VdoPluginRepository
 import com.liomix.mikomi.feature.settings.plugin.DEFAULT_RULES_REPO_URL
 import com.liomix.mikomi.feature.settings.plugin.RuleMirror
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,7 +24,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONException
-import org.json.JSONObject
 
 /**
  * 插件商店页的 ViewModel。
@@ -36,14 +37,14 @@ import org.json.JSONObject
  *    而且切完还得回来看是否生效，来回两趟。
  * 2. **有数据时刷新不清空**：旧列表留着，只显示一条细进度；失败也只在顶部提示一行。
  *    商店里最烦的是「一刷新整页变白，然后报错」。
- * 3. **安装 = 下载 + 校验 + 记进内存**：真正下载 `<name>.json` 并读出里面的 version，
- *    用来确认仓库里真有这份规则、且版本与目录一致。**没有落盘**（还没有仓库层），
- *    所以退出应用就没了——接 `PluginSourceRepository` 时把这一步换掉即可。
+ * 3. **安装 = 下载 + 校验 + 落盘**：真正下载 `<name>.json`，交给 `VdoPluginRepository` 写进
+ *    本机规则目录。落盘之后插件源页立刻就能看到这一条——两页读的是同一个仓库的热流。
  */
 @HiltViewModel
 class PluginStoreViewModel @Inject constructor(
     okHttpClient: OkHttpClient,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val repository: VdoPluginRepository,
 ) : ViewModel() {
 
     /**
@@ -56,17 +57,21 @@ class PluginStoreViewModel @Inject constructor(
         .callTimeout(FETCH_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .build()
 
-    private val _uiState = MutableStateFlow(
-        // TODO: 接 PluginSourceRepository 后改为 observe 已安装列表。
-        //  现在沿用插件源页那两份占位规则，好让「已安装 / 可更新」两态在界面上有样本。
-        PluginStoreUiState(installedVersions = SEED_INSTALLED_VERSIONS),
-    )
+    private val _uiState = MutableStateFlow(PluginStoreUiState())
     val uiState: StateFlow<PluginStoreUiState> = _uiState.asStateFlow()
 
     /** 上次成功拉到目录的时间，用于「短时间内重进页面不重复拉」。 */
     private var loadedAtMillis = 0L
 
     init {
+        // 已装版本直接来自规则仓库的热流：在插件源页删掉一条，这里的按钮会自己变回「安装」。
+        viewModelScope.launch {
+            repository.rules.collect { rules ->
+                _uiState.update { state ->
+                    state.copy(installedVersions = rules.associate { it.name to it.version })
+                }
+            }
+        }
         loadCatalog(force = false)
     }
 
@@ -117,6 +122,8 @@ class PluginStoreViewModel @Inject constructor(
             } catch (e: IOException) {
                 failInstall(item.name, e)
             } catch (e: JSONException) {
+                failInstall(item.name, e)
+            } catch (e: InvalidVdoPluginRuleException) {
                 failInstall(item.name, e)
             }
         }
@@ -178,16 +185,14 @@ class PluginStoreViewModel @Inject constructor(
     }
 
     /**
-     * 下载单条规则并返回它的版本号。
+     * 下载单条规则、落盘，并返回它的版本号。
      *
-     * 只校验到「是合法对象且写了 version」这一层：规则正文的字段校验属于安装期的事，
-     * 现在没有仓库层，校验太深也没人消费。
+     * 校验交给仓库：它会检查 JSON 合法、`name` 与 `baseURL` 齐备，不合法就抛异常。
+     * 因此「报成功」时磁盘上一定有一份能用的规则，不会出现「装上了但打开是空白」。
      */
     private suspend fun downloadRule(name: String): String = withContext(ioDispatcher) {
-        val rule = JSONObject(fetchText("$name.json"))
-        val version = rule.optString("version").trim()
-        if (version.isEmpty()) throw JSONException("规则缺少 version 字段")
-        version
+        val json = fetchText("$name.json")
+        repository.install(json).version
     }
 
     private fun parseCatalog(raw: String): List<StoreItem> {
@@ -292,12 +297,6 @@ class PluginStoreViewModel @Inject constructor(
             RuleMirror.GhFast,
             RuleMirror.GitCode,
             RuleMirror.Direct,
-        )
-
-        /** 占位：与插件源页的两条样例规则一致，见构造函数上的 TODO。 */
-        val SEED_INSTALLED_VERSIONS = mapOf(
-            "DM84" to "1.4",
-            "7sefun" to "1.3",
         )
     }
 }

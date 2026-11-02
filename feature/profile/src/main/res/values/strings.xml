@@ -1,6 +1,14 @@
 <resources>
-    <string name="profile_title">我的</string>
-    <string name="profile_subtitle">登录后同步收藏、追番与观看进度</string>
     <string name="profile_theme_entry">主题</string>
     <string name="profile_settings_entry">设置</string>
+
+    <!-- 个人资料页 -->
+    <string name="profile_name">Mikomi</string>
+    <string name="profile_bio">追番、记录，留住每一次心动。</string>
+    <string name="profile_action_edit_info">编辑信息</string>
+    <string name="profile_action_settings">设置</string>
+    <string name="profile_tab_history">历史</string>
+    <string name="profile_tab_favorite">收藏</string>
+    <string name="profile_empty_history">暂无观看历史</string>
+    <string name="profile_empty_favorite">暂无收藏</string>
 </resources>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="player_back">返回</string>
+    <string name="player_play">播放</string>
+    <string name="player_pause">暂停</string>
+    <string name="player_fullscreen">全屏</string>
+    <string name="player_settings">播放器设置</string>
+    <string name="player_surface_placeholder">视频画面占位</string>
+
+    <string name="player_tab_episodes">选集</string>
+    <string name="player_tab_comments">评论</string>
+
+    <string name="player_danmaku">弹幕</string>
+    <string name="player_danmaku_settings">弹幕设置</string>
+    <string name="player_source">切换播放源</string>
+
+    <string name="player_order_asc">正序</string>
+    <string name="player_order_desc">倒序</string>
+    <string name="player_episode_count">共 %1$d 集</string>
+    <string name="player_episode_title">第%1$d集</string>
+    <string name="player_episodes_empty">暂无选集</string>
+
+    <string name="player_source_sheet_title">切换播放源</string>
+    <string name="player_source_sheet_subtitle">%1$s · %2$s</string>
+    <string name="player_source_retry_all">全部重试</string>
+    <string name="player_source_retry_this">重新检测</string>
+    <string name="player_source_retry_item">重新检测 %1$s</string>
+    <string name="player_source_lines">%1$d 条线路</string>
+    <string name="player_source_lines_pickable">%1$d 条线路 · 点线路切换</string>
+    <string name="player_source_current_line">当前线路：%1$s</string>
+    <string name="player_source_checking">正在检测资源…</string>
+    <string name="player_source_no_result">未找到本集资源</string>
+    <string name="player_source_failed">请求失败，重新检测后重试</string>
+    <string name="player_source_empty">还没有可用的播放源</string>
+    <string name="player_source_playing">正在播放的线路</string>
+
+    <string name="player_comments_placeholder">评论功能开发中</string>
+</resources>

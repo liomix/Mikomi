@@ -80,6 +80,13 @@ class PlayerViewModel @Inject constructor(
     /** 每个启用的规则探测出来的东西（命中、线路、失败原因）。切集/换线路都靠它，不重复请求。 */
     private var ruleStates: List<RuleState> = emptyList()
 
+    /**
+     * 已经因为「直链播不动」降级过 WebView 的 `源|集`。
+     *
+     * 不落 UI 状态：它只服务于防循环，界面上一旦开始降级就没有「回去」这一步。
+     */
+    private val webFallbacks = mutableSetOf<String>()
+
     // —— 播放器回写 ——
 
     private val playerListener = object : Player.Listener {
@@ -101,7 +108,8 @@ class PlayerViewModel @Inject constructor(
 
         override fun onPlayerError(error: PlaybackException) {
             Log.w(TAG, "Playback failed: ${error.errorCodeName}", error)
-            // 解码/网络失败通常意味着地址过期或带错了头，交给用户点重试（会重新出流）。
+            // 直链播不动先自己降一级去嗅探（见 fallbackToWeb），实在不行才让用户看到失败。
+            if (fallbackToWeb()) return
             _uiState.update {
                 it.copy(
                     loading = false,
@@ -277,6 +285,47 @@ class PlayerViewModel @Inject constructor(
         reload(keepCurrentEpisode = true)
     }
 
+    /**
+     * WebView 在网络层拦到一条「像视频流」的请求。
+     *
+     * 这是把「显示网页让用户自己点」变成「直接进自己的播放器」的**唯一交接点**：
+     * 站点播放器拿到地址后一定会去 GET 那个 `.m3u8`（跨域 iframe 也一样，
+     * 请求走的是 WebView 自己的网络栈），我们截住它，交给 Media3。
+     *
+     * 三道门：
+     * 1. 必须仍在 Web 形态——切回原生后这里再来消息就是重复的；
+     * 2. `pageKey` 必须等于当前这一集——切集瞬间旧页面还会飞一会儿请求，
+     *    不比对就会把上一集的流接到新一集上；
+     * 3. 出流层复核一遍并补齐请求头（Referer / Cookie / UA），缺了就是 403。
+     */
+    fun onWebSubRequest(
+        pageKey: String,
+        url: String,
+        headers: Map<String, String>,
+        cookie: String?,
+    ) {
+        val state = _uiState.value
+        if (state.mode != PlaybackMode.WEB || pageKey != state.webUrl) return
+        val stream = engine.sniffStream(url, headers, pageKey, cookie) ?: return
+
+        // 立刻切回原生形态：WebView 随之销毁，页面自己的播放器停掉，不会出现两个声音。
+        playJob?.cancel()
+        _uiState.update {
+            it.copy(
+                mode = PlaybackMode.NATIVE,
+                webUrl = null,
+                loading = false,
+                failure = null,
+            )
+        }
+        playback.resetForNewMedia()
+        player.play(
+            url = stream.url,
+            mimeType = stream.kind.mimeType,
+            headers = stream.headers,
+        )
+    }
+
     // —— 主链路 ——
 
     private suspend fun load(animeId: String, startNumber: Int) {
@@ -444,6 +493,36 @@ class PlayerViewModel @Inject constructor(
      * 两个信号一起发会让它「loadUrl 新地址 + reload 上一步」连跳两次，表现为白一下再从头加载。
      * 令牌只留给「同一个地址要重来一次」的重试。
      */
+    /**
+     * 直链播不动时，**原地降一级**到 WebView 嗅探。
+     *
+     * 静态拿到的直链经常「第一次能播、第 N 次 403」——签名过期、缺了站点播放器才会带的那几个头、
+     * 或者 CDN 只认 Referer。这些在静态解析里无解（我们照抄不到站点 JS 现算的参数），
+     * 但站点自己的播放器一定能播：它本来就知道该怎么要地址。
+     *
+     * 所以这里不把「重试」推给用户，而是让 WebView 重走一遍，拦到新地址再交回 Media3。
+     * 同一「源 + 集」只降一次，否则会出现「嗅探 → 原生 → 报错 → 再嗅探」的无声循环。
+     */
+    private fun fallbackToWeb(): Boolean {
+        val state = _uiState.value
+        if (state.mode != PlaybackMode.NATIVE) return false
+        val sourceId = state.selectedSourceId ?: return false
+        val episode = state.currentEpisode ?: return false
+        if (state.episodes.isEmpty()) return false
+        val rule = ruleStates.firstOrNull { it.rule.name == sourceId }?.rule ?: return false
+        if (!webFallbacks.add("$sourceId|${episode.id}")) return false
+
+        Log.i(TAG, "Direct stream failed, falling back to WebView sniffing: $sourceId")
+        enterWebMode(
+            rule = rule,
+            episode = episode,
+            episodes = state.episodes,
+            sourceId = sourceId,
+            roadIndex = currentRoadIndex(sourceId),
+        )
+        return true
+    }
+
     private fun enterWebMode(
         rule: PluginRule,
         episode: EpisodeItem,

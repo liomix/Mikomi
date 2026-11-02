@@ -240,6 +240,52 @@ class VdoPluginEngine @Inject constructor(
         RuleConfig(ruleJson).userAgent.takeIf { it.isNotEmpty() } ?: USER_AGENT
 
     /**
+     * 把 WebView 里拦到的一次子资源请求，变成一条可播的流。
+     *
+     * 这是「不猜 HTML、等页面自己暴露地址」那条路：页面加载起来后，播放器（hls.js / dplayer）
+     * 一定会去 GET 那个 `.m3u8`，`shouldInterceptRequest` 就把它抓住了。
+     * 好处是**跨域 iframe 也拦得到**——主文档的 JS 进不去 iframe，网络层却看得见。
+     *
+     * 关键是把**请求头一并带出来**：拿到的地址离开 WebView 之后由 Media3 去请求，
+     * 两边不共享会话，`Referer` / `Cookie` / `User-Agent` 缺一样就是 403。
+     *
+     * @param pageUrl 播放页地址，请求头里没带 Referer 时拿它兜底。
+     * @param cookie WebView 自己的 Cookie（`CookieManager.getCookie`）。
+     *   它不在 `requestHeaders` 里——Chromium 是在更底层注入的，所以得单独取。
+     * @return 不像视频流时返回 null（调用方应当忽略这次请求）。
+     */
+    fun sniffStream(
+        url: String,
+        requestHeaders: Map<String, String>,
+        pageUrl: String,
+        cookie: String?,
+    ): VdoStream? {
+        if (!VdoStreamSniffer.looksLikeVideo(url, requestHeaders)) return null
+        return VdoStream(
+            url = url,
+            kind = VdoStreamSniffer.kindOf(url),
+            // 嗅探只证明「这个请求发出去了」，没有探测过响应体，这两项不适用。
+            statusCode = 0,
+            byteCount = 0,
+            headers = playbackHeaders(url, pageUrl, requestHeaders, cookie),
+        )
+    }
+
+    /** 嗅探到的流要带的头：优先用**页面自己那次请求**的值，那是最贴近真实播放器的。 */
+    private fun playbackHeaders(
+        url: String,
+        pageUrl: String,
+        requestHeaders: Map<String, String>,
+        cookie: String?,
+    ): Map<String, String> = buildMap {
+        put("User-Agent", requestHeaders["User-Agent"] ?: requestHeaders["user-agent"] ?: USER_AGENT)
+        put("Referer", requestHeaders["Referer"] ?: requestHeaders["referer"] ?: pageUrl)
+        // WebView 的 Cookie 比我们内存 jar 的更准（那才是真正通过鉴权的会话）。
+        (cookie?.takeIf { it.isNotBlank() } ?: cookieJar.headerFor(url))
+            ?.let { put("Cookie", it) }
+    }
+
+    /**
      * 取一个页面。
      *
      * Referer 一定要带：这类站点的搜索结果与播放页普遍校验来源，缺了会给你一张空白页——
@@ -394,11 +440,10 @@ class VdoPluginEngine @Inject constructor(
      * 实测教训：播放页里 `src=` / `url:` 命中的绝大多数是海报、头像、统计脚本，
      * 一个 200 的 png 会让「出流成功」这句谎话说得很像真的。按后缀先筛一遍，
      * 剩下的再交给 [probe] 用 content-type 复核。
+     *
+     * 后缀清单只有一份，在 [VdoStreamSniffer]——嗅探那条路用的是同一套判据。
      */
-    private fun isLikelyVideo(url: String): Boolean {
-        val path = url.substringBefore('?').lowercase()
-        return STATIC_SUFFIXES.none { path.endsWith(it) }
-    }
+    private fun isLikelyVideo(url: String): Boolean = !VdoStreamSniffer.isStaticAsset(url)
 
     /**
      * 还原 JS 字符串里的转义。
@@ -462,11 +507,5 @@ class VdoPluginEngine @Inject constructor(
         /** `<video src=...>` / `<source src=...>`：媒体标签里的地址，可信度仅次于字面量。 */
         val MEDIA_TAG_SRC_REGEX =
             Regex("""<(?:video|source)[^>]*\bsrc\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
-
-        /** 页面零件后缀：海报、头像、样式、脚本、字体、配置。 */
-        val STATIC_SUFFIXES = listOf(
-            ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".bmp",
-            ".css", ".js", ".json", ".xml", ".woff", ".woff2", ".ttf",
-        )
     }
 }

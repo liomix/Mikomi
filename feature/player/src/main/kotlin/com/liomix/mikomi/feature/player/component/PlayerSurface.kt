@@ -186,6 +186,7 @@ internal fun PlayerSurface(
     webUserAgent: String?,
     onRetry: () -> Unit,
     onRequestFullscreen: (Boolean) -> Unit,
+    onWebSubRequest: (pageKey: String, url: String, headers: Map<String, String>, cookie: String?) -> Unit,
     danmakuEnabled: Boolean,
     canPlayPrevious: Boolean,
     canPlayNext: Boolean,
@@ -275,6 +276,7 @@ internal fun PlayerSurface(
                     reloadToken = webReloadToken,
                     userAgent = webUserAgent,
                     onRequestFullscreen = onRequestFullscreen,
+                    onSubRequest = onWebSubRequest,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

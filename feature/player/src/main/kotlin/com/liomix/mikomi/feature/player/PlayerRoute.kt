@@ -92,6 +92,8 @@ fun PlayerRoute(
         onRetryPlayback = viewModel::retryPlayback,
         // 站点播放器自己点了全屏：跟着切（全屏是同一个 window 换约束，不新开页面）。
         onRequestFullscreen = { want -> if (fullscreen != want) fullscreen = want },
+        // WebView 在网络层拦到 `.m3u8` / `Range` 媒体请求：接过来交给原生播放器。
+        onWebSubRequest = viewModel::onWebSubRequest,
         modifier = modifier,
     )
 }

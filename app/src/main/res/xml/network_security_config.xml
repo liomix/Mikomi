@@ -1,16 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    明文流量白名单：只有次元库（AniCyk）的四个主 API 节点走 HTTP，其余请求一律要求 HTTPS。
-    节点 IP 写死在 AniCykClient 里，若服务端换节点，这里必须同步，否则该源会直接不可用
-    （时间表会自动降级到 AniRpb，不会白屏）。
+    明文流量策略：**全局放开**。
+
+    这里不再做域名白名单。插件源（.json）是用户自己导入的，它的站点、它的出流地址、
+    它页面里嵌的 m3u8 全都是运行期才知道的，写死白名单等于「导入的源有一半直接不可用」，
+    而且失败形态是 OkHttp/WebView 抛 IOException，看起来像「规则写错了」，极难排查。
+
+    代价是明确接受的：这个 App 的核心就是消费第三方源，源本身就不保证 HTTPS。
+    应用自身的接口（AniList / Bangumi / 次元库）都走 HTTPS，不受这条影响。
 -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="false" />
-
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">47.103.33.207</domain>
-        <domain includeSubdomains="false">47.93.60.215</domain>
-        <domain includeSubdomains="false">39.106.100.156</domain>
-        <domain includeSubdomains="false">8.134.159.218</domain>
-    </domain-config>
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>

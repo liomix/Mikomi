@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.min
+import com.liomix.mikomi.core.media.MikomiPlayer
 import com.liomix.mikomi.feature.player.component.PlaybackSourceSheet
 import com.liomix.mikomi.feature.player.component.PlayerHost
 import com.liomix.mikomi.feature.player.component.PlayerNavigationBar
@@ -47,6 +48,7 @@ private const val PLAYER_MAX_HEIGHT_RATIO = 0.45f
 @Composable
 fun PlayerScreen(
     state: PlayerUiState,
+    mediaPlayer: MikomiPlayer,
     playback: PlayerPlaybackState,
     fullscreen: Boolean,
     onBackClick: () -> Unit,
@@ -66,6 +68,8 @@ fun PlayerScreen(
     onRetryLine: (sourceId: String, lineId: String) -> Unit,
     onRetryAllSources: () -> Unit,
     onPlayerSettingsClick: () -> Unit,
+    onRetryPlayback: () -> Unit,
+    onRequestFullscreen: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val orderedEpisodes = remember(state.episodes, state.order) { state.sortedEpisodes() }
@@ -134,7 +138,16 @@ fun PlayerScreen(
             compactHeight = playerHeight,
             title = state.animeTitle,
             subtitle = episodeLabel,
+            mediaPlayer = mediaPlayer,
             playback = playback,
+            loading = state.loading,
+            failure = state.failure,
+            mode = state.mode,
+            webUrl = state.webUrl,
+            webReloadToken = state.webReloadToken,
+            webUserAgent = state.webUserAgent,
+            onRetry = onRetryPlayback,
+            onRequestFullscreen = onRequestFullscreen,
             danmakuEnabled = state.danmakuEnabled,
             // 上下集的可用性由状态算，播放器只管置灰：首集/末集按钮不该看起来能点。
             canPlayPrevious = state.previousEpisode != null,

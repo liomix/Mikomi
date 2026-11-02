@@ -42,6 +42,11 @@ private const val LARGE_SCREEN_SMALLEST_WIDTH_DP = 600
 internal fun PlayerWindowEffect(
     playback: PlayerPlaybackState,
     fullscreen: Boolean,
+    /**
+     * `true` 表示画面不归 Media3 管（WebView 形态），此时 Media3 的 `isPlaying` 恒为 false，
+     * 不能拿它当常亮依据，否则看着看着就息屏。
+     */
+    webMode: Boolean = false,
     onExitFullscreen: () -> Unit,
 ) {
     val view = LocalView.current
@@ -107,7 +112,13 @@ internal fun PlayerWindowEffect(
 
     // 常亮只跟「是否在播放」：暂停时该暗就暗，别把一集看完的手机一直点亮着。
     // 用 snapshotFlow 读 isPlaying，避免把每帧可能变化的播放状态读进组合。
-    LaunchedEffect(view, playback) {
+    // WebView 形态下播放由站点播放器掌握，Media3 不在播，只能整体常亮——
+    // 用户在看片，页面在后台跑 JS，这时候息屏比白白亮着更糟。
+    LaunchedEffect(view, playback, webMode) {
+        if (webMode) {
+            view.keepScreenOn = true
+            return@LaunchedEffect
+        }
         snapshotFlow { playback.isPlaying }
             .distinctUntilChanged()
             .collect { playing -> view.keepScreenOn = playing }

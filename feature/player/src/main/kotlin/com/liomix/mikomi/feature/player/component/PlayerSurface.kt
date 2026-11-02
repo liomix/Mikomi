@@ -1,5 +1,6 @@
 package com.liomix.mikomi.feature.player.component
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.FitScreen
 import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.FullscreenExit
@@ -38,6 +40,8 @@ import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -72,9 +76,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
+import com.liomix.mikomi.core.media.MikomiPlayer
+import com.liomix.mikomi.feature.player.PlaybackMode
+import com.liomix.mikomi.feature.player.PlayerFailure
+import com.liomix.mikomi.feature.player.PlayerFailureReason
 import com.liomix.mikomi.feature.player.PlayerPlaybackState
 import com.liomix.mikomi.feature.player.PlayerVideoScale
 import com.liomix.mikomi.feature.player.R
@@ -156,14 +168,24 @@ private val PlaceholderFrame = Brush.linearGradient(
  * 5. **速度只让胶囊自己重组**：`playback.speed` 在 [SpeedChip] 内部读，
  *    改速度不会牵动整条控制行。
  *
- * 还没接 Media3：画面是渐变占位，播放状态来自 [PlayerPlaybackState] 的占位值。
+ * 画面是 `Media3` 的 `PlayerView`（[PlayerVideo]）；加载与失败是压在上面的一层状态，
+ * **不替换**画面那一层——换掉等于把 Surface 销毁重建，每次出错重试都黑一下。
  */
 @Composable
 internal fun PlayerSurface(
     title: String,
     subtitle: String,
     fullscreen: Boolean,
+    mediaPlayer: MikomiPlayer?,
     playback: PlayerPlaybackState,
+    loading: Boolean,
+    failure: PlayerFailure?,
+    mode: PlaybackMode,
+    webUrl: String?,
+    webReloadToken: Int,
+    webUserAgent: String?,
+    onRetry: () -> Unit,
+    onRequestFullscreen: (Boolean) -> Unit,
     danmakuEnabled: Boolean,
     canPlayPrevious: Boolean,
     canPlayNext: Boolean,
@@ -227,24 +249,48 @@ internal fun PlayerSurface(
     Box(
         modifier = modifier
             .background(Color.Black)
-            .pointerInput(Unit) {
-                detectTapGestures { controlsVisible = !controlsVisible }
-            },
+            // WebView 形态下把整块画面的点击让给站点播放器：它有自己的播放键与进度条，
+            // 我们再用「点画面显隐」去抢手势，用户就点不动它了。控制层在该形态下常显。
+            .then(
+                if (mode == PlaybackMode.NATIVE) {
+                    Modifier.pointerInput(Unit) {
+                        detectTapGestures { controlsVisible = !controlsVisible }
+                    }
+                } else {
+                    Modifier
+                },
+            ),
     ) {
-        // 画面占位：接 Media3 时这一步换成 `AndroidView { PlayerView }` 并映射 videoScale，
-        // 其余布局不动。
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(PlaceholderFrame),
-        ) {
-            Text(
-                text = stringResource(R.string.player_surface_placeholder),
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.28f),
-                modifier = Modifier.align(Alignment.Center),
+        // 画面：两种形态二选一。加载/错误只是压在上面的状态层，不替换这一层。
+        when (mode) {
+            PlaybackMode.NATIVE -> PlayerVideo(
+                mediaPlayer = mediaPlayer,
+                videoScale = videoScale,
+                modifier = Modifier.fillMaxSize(),
             )
+
+            PlaybackMode.WEB -> webUrl?.let { url ->
+                PlayerWebView(
+                    url = url,
+                    reloadToken = webReloadToken,
+                    userAgent = webUserAgent,
+                    onRequestFullscreen = onRequestFullscreen,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
+
+        PlayerStatusOverlay(
+            loading = loading,
+            failure = failure,
+            controlsVisible = controlsVisible,
+            onRetry = onRetry,
+            playback = playback,
+            // 缓冲是 Media3 的概念：WebView 形态下 Media3 已停播，它不会再回调，
+            // 转圈会永远留在画面上盖着站点播放器。
+            nativeMode = mode == PlaybackMode.NATIVE,
+            modifier = Modifier.fillMaxSize(),
+        )
 
         Box(
             modifier = Modifier
@@ -256,43 +302,202 @@ internal fun PlayerSurface(
                 subtitle = subtitle,
                 enabled = controlsVisible,
                 insets = topInsets,
+                fullscreen = fullscreen,
+                webMode = mode == PlaybackMode.WEB,
                 onBackClick = onBackClick,
+                onEpisodesClick = onEpisodesClick,
+                onToggleFullscreen = onToggleFullscreen,
                 onPlayerSettingsClick = onPlayerSettingsClick,
                 modifier = Modifier.align(Alignment.TopCenter),
             )
 
-            PlayerBottomControls(
-                playback = playback,
-                fullscreen = fullscreen,
-                enabled = controlsVisible,
-                danmakuEnabled = danmakuEnabled,
-                videoScale = videoScale,
-                speedMenuOpen = speedMenuOpen,
-                scaleMenuOpen = scaleMenuOpen,
-                canPlayPrevious = canPlayPrevious,
-                canPlayNext = canPlayNext,
-                insets = bottomInsets,
-                onScrubbingChange = { scrubbing = it },
-                onSpeedMenuChange = { speedMenuOpen = it },
-                onScaleMenuChange = { scaleMenuOpen = it },
-                onPreviousEpisode = onPreviousEpisode,
-                onNextEpisode = onNextEpisode,
-                onDanmakuToggle = onDanmakuToggle,
-                onDanmakuSettingsClick = onDanmakuSettingsClick,
-                onVideoScaleChange = { videoScale = it },
-                onEpisodesClick = onEpisodesClick,
-                onToggleFullscreen = onToggleFullscreen,
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
+            // 底栏只给原生形态。
+            // WebView 形态下**不留底栏**：站点播放器的控制条就贴在这个位置，
+            // 我们压一条上去，它的进度条和音量键就点不动了（用户会觉得"这网站播放器坏了"）。
+            // 归我们管的「选集 / 全屏」挪到顶栏，那一行本来就是我们的。
+            if (mode == PlaybackMode.NATIVE) {
+                PlayerBottomControls(
+                    playback = playback,
+                    fullscreen = fullscreen,
+                    enabled = controlsVisible,
+                    danmakuEnabled = danmakuEnabled,
+                    videoScale = videoScale,
+                    speedMenuOpen = speedMenuOpen,
+                    scaleMenuOpen = scaleMenuOpen,
+                    canPlayPrevious = canPlayPrevious,
+                    canPlayNext = canPlayNext,
+                    insets = bottomInsets,
+                    onScrubbingChange = { scrubbing = it },
+                    onSpeedMenuChange = { speedMenuOpen = it },
+                    onScaleMenuChange = { scaleMenuOpen = it },
+                    onPreviousEpisode = onPreviousEpisode,
+                    onNextEpisode = onNextEpisode,
+                    onDanmakuToggle = onDanmakuToggle,
+                    onDanmakuSettingsClick = onDanmakuSettingsClick,
+                    onVideoScaleChange = { videoScale = it },
+                    onEpisodesClick = onEpisodesClick,
+                    onToggleFullscreen = onToggleFullscreen,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
         }
     }
 }
 
 /**
- * 顶栏：返回 + 标题 + 当前集 + 右侧更多（播放器设置），背景是向下淡出的黑色遮罩。
+ * 画面本体：`PlayerView` 里装 ExoPlayer。
  *
- * 标题列用 `weight(1f)` 而不是 `fillMaxWidth`：右上角的更多按钮要独占位置，
+ * 三件事必须在这里做：
+ * - `useController = false`——控制层是我们自己的，PlayerView 自带的控制器会盖住底栏，
+ *   还会抢走「点画面显隐」的手势；
+ * - `resizeMode` 跟着 [PlayerVideoScale] 走（填充方式就是它）；
+ * - `onRelease` 里把 player 置空——PlayerView 持有 Surface，不置空会跟着 Activity 泄漏。
+ *
+ * 注意不要给这个 AndroidView 加 `key`，也不要在别处再组合一份：
+ * Surface 一旦重建，观感就是切全屏/出错重试时黑一帧。
+ */
+@Composable
+private fun PlayerVideo(
+    mediaPlayer: MikomiPlayer?,
+    videoScale: PlayerVideoScale,
+    modifier: Modifier = Modifier,
+) {
+    if (mediaPlayer == null) {
+        // 播放器还没建好（极短的一瞬）：先铺与画面同色的底，避免白闪。
+        Box(modifier.background(PlaceholderFrame))
+        return
+    }
+    AndroidView(
+        factory = { context ->
+            PlayerView(context).apply {
+                useController = false
+                player = mediaPlayer.exoPlayer
+            }
+        },
+        update = { view ->
+            view.resizeMode = videoScale.resizeMode
+            if (view.player !== mediaPlayer.exoPlayer) view.player = mediaPlayer.exoPlayer
+        },
+        onRelease = { view -> view.player = null },
+        modifier = modifier,
+    )
+}
+
+/**
+ * 画面上的状态层：正在出流 / 播不出来。
+ *
+ * 只在有话说的时候出现，平时是个空 Box——它盖在画面上，但自己不拦截触摸，
+ * 所以「点一下显隐控制层」照常生效。
+ */
+@Composable
+private fun PlayerStatusOverlay(
+    loading: Boolean,
+    failure: PlayerFailure?,
+    controlsVisible: Boolean,
+    onRetry: () -> Unit,
+    playback: PlayerPlaybackState,
+    nativeMode: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        when {
+            failure != null -> Column(
+                modifier = Modifier.padding(horizontal = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.ErrorOutline,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.size(28.dp),
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = stringResource(failure.reason.messageRes()),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                )
+                failure.detail?.let { detail ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = detail,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.55f),
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Spacer(modifier = Modifier.height(14.dp))
+                Button(onClick = onRetry) {
+                    Text(stringResource(R.string.player_retry))
+                }
+            }
+
+            loading -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(26.dp),
+                    strokeWidth = 2.dp,
+                    color = Color.White,
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = stringResource(R.string.player_resolving),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.72f),
+                )
+            }
+
+            // 缓冲转圈跟着控制层一起淡入淡出：控制层收起时画面干净，不留一个孤零零的圆环。
+            else -> BufferingIndicator(playback = playback, visible = controlsVisible && nativeMode)
+        }
+    }
+}
+
+/** 起播/卡顿时的缓冲提示。单独一个 composable：只有它读 buffering，不牵连整层。 */
+@Composable
+private fun BufferingIndicator(playback: PlayerPlaybackState, visible: Boolean) {
+    if (!visible || !playback.isBuffering) return
+    CircularProgressIndicator(
+        modifier = Modifier.size(26.dp),
+        strokeWidth = 2.dp,
+        color = Color.White.copy(alpha = 0.9f),
+    )
+}
+
+/** 播不出来的原因 → 一句人话。播放页语境：告诉用户下一步能做什么。 */
+@StringRes
+private fun PlayerFailureReason.messageRes(): Int = when (this) {
+    PlayerFailureReason.NoSource -> R.string.player_error_no_source
+    PlayerFailureReason.NoTitle -> R.string.player_error_no_title
+    PlayerFailureReason.NoMatch -> R.string.player_error_no_match
+    PlayerFailureReason.RuleBroken -> R.string.player_error_rule_broken
+    PlayerFailureReason.Network -> R.string.player_error_network
+    PlayerFailureReason.NoEpisodes -> R.string.player_error_no_episodes
+    PlayerFailureReason.NoStream -> R.string.player_error_no_stream
+    PlayerFailureReason.NeedWebView -> R.string.player_error_need_webview
+    PlayerFailureReason.Playback -> R.string.player_error_playback
+}
+
+/** 填充方式 → Media3 的缩放模式。三档一一对应，不做别的推断。 */
+private val PlayerVideoScale.resizeMode: Int
+    get() = when (this) {
+        PlayerVideoScale.AUTO -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+        PlayerVideoScale.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+        PlayerVideoScale.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+    }
+
+/**
+ * 顶栏：返回 + 标题 + 当前集 + 右侧动作。
+ *
+ * 标题列用 `weight(1f)` 而不是 `fillMaxWidth`：右侧动作要独占位置，
  * 长标题只在自己那一段里省略，不会把图标挤出屏幕。
+ *
+ * 右侧动作按形态分两套：
+ * - 原生：只留「更多」（播放器设置），其余动作在底栏；
+ * - WebView：换成「选集 + 全屏」——这两个是**归我们管**的，而播放/进度/音量全部归站点播放器，
+ *   把那套塞进底栏会正好压在它的控制条上。
  */
 @Composable
 private fun PlayerTopOverlay(
@@ -300,7 +505,11 @@ private fun PlayerTopOverlay(
     subtitle: String,
     enabled: Boolean,
     insets: WindowInsets,
+    fullscreen: Boolean,
+    webMode: Boolean,
     onBackClick: () -> Unit,
+    onEpisodesClick: () -> Unit,
+    onToggleFullscreen: () -> Unit,
     onPlayerSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -340,12 +549,31 @@ private fun PlayerTopOverlay(
                 )
             }
         }
-        IconButton(onClick = onPlayerSettingsClick, enabled = enabled) {
-            Icon(
-                imageVector = Icons.Rounded.MoreVert,
-                contentDescription = stringResource(R.string.player_settings),
-                tint = Color.White,
-            )
+        if (webMode) {
+            IconButton(onClick = onEpisodesClick, enabled = enabled) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.PlaylistPlay,
+                    contentDescription = stringResource(R.string.player_episode_picker),
+                    tint = Color.White,
+                )
+            }
+            IconButton(onClick = onToggleFullscreen, enabled = enabled) {
+                Icon(
+                    imageVector = if (fullscreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
+                    contentDescription = stringResource(
+                        if (fullscreen) R.string.player_exit_fullscreen else R.string.player_fullscreen,
+                    ),
+                    tint = Color.White,
+                )
+            }
+        } else {
+            IconButton(onClick = onPlayerSettingsClick, enabled = enabled) {
+                Icon(
+                    imageVector = Icons.Rounded.MoreVert,
+                    contentDescription = stringResource(R.string.player_settings),
+                    tint = Color.White,
+                )
+            }
         }
     }
 }

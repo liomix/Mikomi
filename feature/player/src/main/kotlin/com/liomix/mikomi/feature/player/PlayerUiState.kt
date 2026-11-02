@@ -15,13 +15,13 @@ enum class EpisodeOrder {
 /**
  * 选集卡片的数据。
  *
- * 与领域模型 `Episode` 分开：卡片只需要「集号 + 小标题」，
- * 后续接入 `PlaybackCatalog` 时再把线路、是否有资源等状态并进来。
+ * [id] 是**播放页地址**而不是数据库 id：插件源里「一集」就是某个 URL，
+ * 切集就是拿这个 URL 去出流，中间不需要任何再映射。
  */
 data class EpisodeItem(
     val id: String,
     val number: Int,
-    /** 小标题；只给集数、没有小标题的数据源为 null（卡片退化为只显示集号）。 */
+    /** 小标题；站点只给集数时为 null（卡片退化为只显示集号）。 */
     val subtitle: String? = null,
 )
 
@@ -29,8 +29,7 @@ data class EpisodeItem(
  * 单个源的可用状态。
  *
  * 与 `MediaFetchSession` 的完整 8 态（含 `RateLimited` / `Abandoned`）保持同一个方向，
- * 这里先收敛成 UI 需要的四种：结果上只有「能播 / 还在查 / 查完没有 / 查挂了」四种表现，
- * 细分的限流、放弃在接入真实会话后由时间与错误码推导，不必让 UI 也认识 8 个分支。
+ * 这里先收敛成 UI 需要的四种：结果上只有「能播 / 还在查 / 查完没有 / 查挂了」四种表现。
  */
 enum class SourceAvailability {
     /** 找到本集资源，可切换。 */
@@ -53,10 +52,8 @@ enum class SourceAvailability {
 /**
  * 一条具体线路。
  *
- * 线路是**源内部**的分支：同一个插件源可能同时给出 DM84 与樱花两套供片地址，
- * 它们共享同一个源的解析逻辑，但可用性、清晰度各自独立 ——
- * 常见情况是「源的接口通了，但其中一条线路的 CDN 已经挂了」，
- * 所以状态必须细到线路这一层，不能只记在源上。
+ * 线路是**源内部**的分支：同一份规则的 `chapterRoads` 往往给出好几套供片地址，
+ * 它们共享同一套解析逻辑，但可用性各自独立。所以状态必须细到线路这一层。
  */
 data class PlayerLine(
     val id: String,
@@ -71,14 +68,14 @@ data class PlayerLine(
 }
 
 /**
- * 换源弹窗里的一条源。
+ * 换源弹窗里的一条源（一个插件源 = 一份规则）。
  *
- * 在弹窗里它是**一个 Tab**，[lines] 是这个 Tab 下的内容：
- * - [status] 是**源自身**的状态（插件 JSON 解析、鉴权、域名可达性），与线路无关；
- * - [availability] 才是给用户看的结果，由源状态与线路状态汇总得出，画成 Tab 上的状态点。
+ * [status] 是**源自身**的探测结果（搜索命中与否、页面能不能打开），
+ * [lines] 是它给出的线路（规则的 `chapterRoads`）。
  *
- * `label` 是展示名，不是 ID：弹窗展示的是「用户可以理解的名字」，
- * 真实匹配键（canonicalId）在会话层，不进 UI 状态。
+ * [availability] 是给用户看的结果：源没就绪就直接透出，就绪后按线路汇总。
+ * 注意「还没取到线路」不等于「没有结果」——就绪但线路为空时按源状态呈现，
+ * 否则每个源都会先显示成「无结果」再翻成可用，闪一下很廉价。
  */
 data class PlayerSource(
     val id: String,
@@ -88,19 +85,12 @@ data class PlayerSource(
     /** 当前选中的线路；源刚被发现、用户还没选过时为 null。 */
     val selectedLineId: String? = null,
 ) {
-    /**
-     * 源对用户呈现的可用性。
-     *
-     * 源自己没就绪时直接透出自己的状态（连接口都没通，谈不上线路）；
-     * 源就绪后按线路汇总：只要有一条通了就算这个源能用 —— 用户只关心「能不能播」，
-     * 不会因为同一源里另一条线路挂了就放弃整个源。
-     */
     val availability: SourceAvailability
         get() = when {
             status != SourceAvailability.READY -> status
+            lines.isEmpty() -> status
             lines.any { it.availability == SourceAvailability.READY } -> SourceAvailability.READY
             lines.any { it.availability == SourceAvailability.CHECKING } -> SourceAvailability.CHECKING
-            lines.isEmpty() -> SourceAvailability.NO_RESULT
             lines.any { it.availability == SourceAvailability.FAILED } -> SourceAvailability.FAILED
             else -> SourceAvailability.NO_RESULT
         }
@@ -110,7 +100,7 @@ data class PlayerSource(
 
     /**
      * Tab 内的线路顺序：能播的排前面，随后是还在查的，最后是查完没有/查挂的。
-     * 用稳定排序保证同状态内维持数据源给的先后（那是源自己的偏好顺序）。
+     * 用稳定排序保证同状态内维持源自己给的先后。
      */
     fun sortedLines(): List<PlayerLine> = lines.sortedBy { it.availability.ordinal }
 
@@ -120,11 +110,67 @@ data class PlayerSource(
 }
 
 /**
+ * 这一集用什么播。
+ *
+ * 分两种不是设计选择，是源决定的：
+ * - [NATIVE]：规则不给直链以外的路子，抽出 m3u8/mp4 交给 Media3，进度、倍速、倍速统统归我们管；
+ * - [WEB]：站点自带播放器（规则里 `useNativePlayer` / `useWebview`），地址是 JS 现拼的，
+ *   只能把播放页放进 WebView 让它自己播。KazumiRules 目录里 18 条规则全都是这种。
+ *
+ * 两种形态下控制层的含义不同：WebView 里播放/进度由站点播放器掌握，
+ * 我们只保留「返回 / 选集 / 全屏」，不去假装能拖它的进度条。
+ */
+enum class PlaybackMode {
+    NATIVE,
+    WEB,
+}
+
+/**
+ * 播不出来的原因。
+ *
+ * 比数据层的 `VdoTestReason` 多两种纯 UI 侧的原因（没有启用的源、拿不到番名），
+ * 也因为这里的文案是**播放页语境**（「换个源试试」），不是测试面板语境（「这条规则有 2 项未通过」）。
+ */
+enum class PlayerFailureReason {
+    /** 一个启用的插件源都没有。 */
+    NoSource,
+
+    /** 拿不到番名，没法拿去搜。 */
+    NoTitle,
+
+    /** 所有源都搜不到这部番。 */
+    NoMatch,
+
+    /** 规则本身坏了（JSON / 缺字段 / XPath 写错）。 */
+    RuleBroken,
+
+    /** 连不上：超时、DNS、TLS。 */
+    Network,
+
+    /** 搜到了、进得去，但取不到剧集。 */
+    NoEpisodes,
+
+    /** 播放页里翻不出地址。 */
+    NoStream,
+
+    /** 站点靠 JS 现拼地址，静态页面里没有。 */
+    NeedWebView,
+
+    /** 地址拿到了，但播放器解不了/被拒。 */
+    Playback,
+}
+
+/** 一次失败：原因 + 现场细节（字段名、HTTP 码、错误码），细节只给人排查用。 */
+data class PlayerFailure(
+    val reason: PlayerFailureReason,
+    val detail: String? = null,
+)
+
+/**
  * 播放页 UI 状态。
  *
- * 播放进度、缓冲、播放中这些**由播放层持有**的状态刻意不放在这里：
+ * 播放进度、缓冲、播放中这些**由播放层持有**（`PlayerPlaybackState`），刻意不放在这里：
  * 它们每帧都在变，混进来会让整个页面（包含选集网格）跟着重组。
- * 目前播放器区域还没接 Media3，先用组件内部的占位状态。
  */
 data class PlayerUiState(
     val animeId: String = "",
@@ -138,6 +184,21 @@ data class PlayerUiState(
     /** 换源弹窗是否可见；弹窗只是当前源列表的一个视图，不持有自己的数据。 */
     val sourceSheetVisible: Boolean = false,
     val danmakuEnabled: Boolean = true,
+    /** 正在探测 / 取剧集 / 出流。画面区据此显示转圈。 */
+    val loading: Boolean = false,
+    /** 当前这一集用哪种形态播。 */
+    val mode: PlaybackMode = PlaybackMode.NATIVE,
+    /** WebView 形态要加载的播放页地址；[mode] 为 [PlaybackMode.WEB] 时才有值。 */
+    val webUrl: String? = null,
+    /** 递增即让 WebView 重新加载（重试同一个地址时用）。 */
+    val webReloadToken: Int = 0,
+    /**
+     * WebView 形态用的 UA。规则里写了就用规则的，没写由出流层补桌面 UA——
+     * 不能留空让 WebView 用默认移动 UA，这类站点会把 Android UA 302 到「下载 App」页。
+     */
+    val webUserAgent: String? = null,
+    /** 播不出来的原因；非空时画面区显示错误与重试。 */
+    val failure: PlayerFailure? = null,
 ) {
     /** 当前播放源。 */
     val currentSource: PlayerSource?
@@ -150,8 +211,7 @@ data class PlayerUiState(
     /**
      * 导航条胶囊上的名字：**优先线路名**。
      *
-     * 「插件源 · DM84」这一层信息里，用户记的是线路（DM84、樱花），源名反而抽象；
-     * 线路还没选定时再退回源名。
+     * 用户记的是线路（DM84、樱花），源名反而抽象；线路还没选定时再退回源名。
      */
     val sourceLabel: String
         get() = currentLine?.name ?: currentSource?.name.orEmpty()
@@ -171,9 +231,13 @@ data class PlayerUiState(
     val previousEpisode: EpisodeItem?
         get() = neighbor(-1)
 
-    /** 下一集；是否可用见 [nextEpisode]。 */
+    /** 下一集；没有下一集时为 null。 */
     val nextEpisode: EpisodeItem?
         get() = neighbor(1)
+
+    /** 当前集在 [episodes] 里的下标。换线路时以它为准：不同线路的集号未必对得上。 */
+    val currentEpisodeIndex: Int
+        get() = episodes.indexOfFirst { it.id == currentEpisode?.id }.coerceAtLeast(0)
 
     private fun neighbor(direction: Int): EpisodeItem? {
         val currentId = currentEpisode?.id ?: return null

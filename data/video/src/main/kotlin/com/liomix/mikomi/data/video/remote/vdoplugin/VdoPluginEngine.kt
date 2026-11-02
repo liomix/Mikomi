@@ -64,6 +64,13 @@ data class VdoStream(
     val statusCode: Int,
     /** 采样到的字节数（只读了开头 2KB，够认出是 m3u8 还是 mp4）。 */
     val byteCount: Int,
+    /**
+     * 播放器请求这条流时要带的头：`User-Agent` / `Referer` / `Cookie`。
+     *
+     * 不能省：站点按 Referer 判盗链，按 Cookie 判会话，缺一样就是 403 或一张空列表。
+     * 播放层（Media3）与出流层（OkHttp）不共享会话，所以这里把值拷出来交给它。
+     */
+    val headers: Map<String, String> = emptyMap(),
 )
 
 enum class VdoStreamKind {
@@ -97,16 +104,22 @@ class VdoPluginEngine @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
 
+    /** 会话 Cookie。声明在 [client] 之前：属性初始化按书写顺序跑，反了就拿到 null。 */
+    private val cookieJar = VdoCookieJar()
+
     /**
-     * 引擎专用 client：短超时 + 跟随重定向。
+     * 引擎专用 client：短超时 + 跟随重定向 + 内存 Cookie。
      *
      * 15 秒是「整条请求」的上限：站点大多在墙外，默认超时叠上重定向能拖到半分钟，
      * 而测试面板等的就是这个转圈。
+     *
+     * Cookie 必须留住：搜索页下发的会话要一路带到播放页与流地址，不然出流那一步会被判盗链。
      */
     private val client: OkHttpClient = okHttpClient.newBuilder()
         .callTimeout(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .followRedirects(true)
         .followSslRedirects(true)
+        .cookieJar(cookieJar)
         .build()
 
     /**
@@ -191,8 +204,40 @@ class VdoPluginEngine @Inject constructor(
                 lastFailure = e
             }
         }
-        throw lastFailure ?: VdoPluginException(VdoTestReason.StreamUnreachable, chapterUrl)
+        // 候选全试完还是不行：站点标了 useWebview 的话，几乎可以断定地址是 JS 现拼的
+        // （实测 7sefun 的播放页里只有海报和统计脚本，架构上就没有 m3u8）。
+        // 这时候报「需要 WebView」比报「拉不动」有用得多——用户知道这是源的形态问题，不是网络问题。
+        throw if (rule.useWebview) {
+            VdoPluginException(VdoTestReason.NeedWebView, lastFailure?.detail ?: chapterUrl)
+        } else {
+            lastFailure ?: VdoPluginException(VdoTestReason.StreamUnreachable, chapterUrl)
+        }
     }
+
+    /**
+     * 这份规则是不是「站点自带播放器」的形态。
+     *
+     * 判据是规则里的两个开关：
+     * - `useNativePlayer: true` —— 站点希望用它自己的播放器（我们只能给个 WebView 让它跑）；
+     * - `useWebview: true` —— 地址要渲染后才出现，静态 HTML 里没有。
+     *
+     * 实测整个 KazumiRules 目录（18 条）都是两个都开，也就是说**这些源注定出不了直链**：
+     * 播放页里只有海报和统计脚本。硬去抽地址只会抽到一张 png。
+     * 所以播放侧要按这个判定分流，而不是一律先试拔地址。
+     */
+    fun requiresWebView(ruleJson: String): Boolean =
+        RuleConfig(ruleJson).let { it.useWebview || it.useNativePlayer }
+
+    /**
+     * 交给 WebView 的 UA：规则写了就用规则的，没写就用桌面 UA。
+     *
+     * **不能返回 null**。WebView 的默认 UA 是移动版，而这类站点（实测 7sefun）见到
+     * Android UA 会 302 到 `/app/android.php`，返回一个 4.9KB 的「下载 App」页——
+     * 里面既没有 `player_aaaa` 也没有播放器，WebView 就是一片白。
+     * 桌面 UA 拿到的才是真正的播放页。
+     */
+    fun userAgentOf(ruleJson: String): String =
+        RuleConfig(ruleJson).userAgent.takeIf { it.isNotEmpty() } ?: USER_AGENT
 
     /**
      * 取一个页面。
@@ -234,11 +279,12 @@ class VdoPluginEngine @Inject constructor(
      * 这点数据足够判断类型，又不会为了测试把一整部片子下载下来。
      */
     private suspend fun probe(url: String, referer: String?): VdoStream = withContext(ioDispatcher) {
+        // 头要先算好：既用于这次探测，也原样交给播放器，两边必须完全一致。
+        val headers = streamHeaders(url, referer)
         val request = Request.Builder()
             .url(url)
-            .header("User-Agent", USER_AGENT)
             .header("Range", "bytes=0-$PROBE_BYTES")
-            .apply { referer?.takeIf { it.isNotBlank() }?.let { header("Referer", it) } }
+            .apply { headers.forEach { (name, value) -> header(name, value) } }
             .get()
             .build()
         try {
@@ -251,13 +297,29 @@ class VdoPluginEngine @Inject constructor(
                 val contentType = response.header("Content-Type")?.lowercase().orEmpty()
                 val kind = when {
                     head.trimStart().startsWith("#EXTM3U") || contentType.contains("mpegurl") -> VdoStreamKind.Hls
-                    url.contains(".mp4", ignoreCase = true) || contentType.startsWith("video/") -> VdoStreamKind.Mp4
-                    contentType.contains("html") ->
-                        throw VdoPluginException(VdoTestReason.StreamUnreachable, "返回的是网页，不是视频流")
+                    contentType.startsWith("video/") || url.contains(".mp4", ignoreCase = true) -> VdoStreamKind.Mp4
+                    // 图片、网页、脚本、JSON 都是页面零件（海报、统计、播放器配置），不是流。
+                    // 以前一律当 Other 放过去，结果播放器拿一张 png 去解码：黑屏 + 一个看不懂的解码错误。
+                    contentType.contains("html") ||
+                        contentType.startsWith("image/") ||
+                        contentType.startsWith("text/") ||
+                        contentType.contains("json") ||
+                        contentType.contains("javascript") ||
+                        contentType.contains("xml") ->
+                        throw VdoPluginException(
+                            VdoTestReason.StreamUnreachable,
+                            "返回的是 ${contentType.ifBlank { "非视频内容" }}，不是视频流",
+                        )
 
                     else -> VdoStreamKind.Other
                 }
-                VdoStream(url = url, kind = kind, statusCode = response.code, byteCount = bytes.size)
+                VdoStream(
+                    url = url,
+                    kind = kind,
+                    statusCode = response.code,
+                    byteCount = bytes.size,
+                    headers = headers,
+                )
             }
         } catch (e: CancellationException) {
             throw e
@@ -268,8 +330,20 @@ class VdoPluginEngine @Inject constructor(
         }
     }
 
-    /** 读响应开头固定字节数；服务器不支持 Range 时会一直读，所以自己封顶。 */
-    private fun readHead(body: okhttp3.ResponseBody): ByteArray {
+    /**
+     * 播放器请求这条流时要带的头。
+     *
+     * 三样各有来处：UA 是我们一贯用的桌面 UA（站点按 UA 给不同码率的流）；
+     * Referer 取播放页或 iframe 页（站点靠它判盗链，缺了直接 403）；
+     * Cookie 取当前会话（部分站点要播放页下发的短期票据）。
+     */
+    private fun streamHeaders(url: String, referer: String?): Map<String, String> = buildMap {
+        put("User-Agent", USER_AGENT)
+        referer?.takeIf { it.isNotBlank() }?.let { put("Referer", it) }
+        cookieJar.headerFor(url)?.let { put("Cookie", it) }
+    }
+
+    /** 读响应开头固定字节数；服务器不支持 Range 时会一直读，所以自己封顶。 */    private fun readHead(body: okhttp3.ResponseBody): ByteArray {
         val buffer = ByteArray(PROBE_BYTES)
         var total = 0
         runCatching {
@@ -296,14 +370,34 @@ class VdoPluginEngine @Inject constructor(
      */
     private fun streamCandidates(html: String, baseUrl: String): List<String> = buildList {
         STREAM_LITERAL_REGEX.findAll(html).forEach { match ->
-            VdoRuleSelector.resolve(baseUrl, unescape(match.groupValues[1]))?.let(::add)
+            VdoRuleSelector.resolve(baseUrl, unescape(match.groupValues[1]))
+                ?.takeIf(::isLikelyVideo)
+                ?.let(::add)
+        }
+        // `<video src>` / `<source src>` 是明确的媒体标签，比裸 `src=` 可信得多。
+        MEDIA_TAG_SRC_REGEX.findAll(html).forEach { match ->
+            VdoRuleSelector.resolve(baseUrl, unescape(match.groupValues[1]))
+                ?.takeIf(::isLikelyVideo)
+                ?.let(::add)
         }
         PLAYER_URL_REGEX.findAll(html).forEach { match ->
             val raw = unescape(match.groupValues[1])
             if (raw.contains("://") || raw.contains(".m3u8", ignoreCase = true) || raw.contains(".mp4", ignoreCase = true)) {
-                VdoRuleSelector.resolve(baseUrl, raw)?.let(::add)
+                VdoRuleSelector.resolve(baseUrl, raw)?.takeIf(::isLikelyVideo)?.let(::add)
             }
         }
+    }
+
+    /**
+     * 过滤页面零件。
+     *
+     * 实测教训：播放页里 `src=` / `url:` 命中的绝大多数是海报、头像、统计脚本，
+     * 一个 200 的 png 会让「出流成功」这句谎话说得很像真的。按后缀先筛一遍，
+     * 剩下的再交给 [probe] 用 content-type 复核。
+     */
+    private fun isLikelyVideo(url: String): Boolean {
+        val path = url.substringBefore('?').lowercase()
+        return STATIC_SUFFIXES.none { path.endsWith(it) }
     }
 
     /**
@@ -325,6 +419,9 @@ class VdoPluginEngine @Inject constructor(
 
         val baseUrl: String = root.optString("baseURL").trim()
         val useWebview: Boolean = root.optBoolean("useWebview", false)
+        val useNativePlayer: Boolean = root.optBoolean("useNativePlayer", false)
+        /** 规则自带的 UA；多数为空，表示用我们的默认 UA。 */
+        val userAgent: String = root.optString("userAgent").trim()
         val searchUrl: String = require("searchURL")
         val searchList: String = require("searchList")
         val searchName: String = require("searchName")
@@ -358,8 +455,18 @@ class VdoPluginEngine @Inject constructor(
         val STREAM_LITERAL_REGEX =
             Regex("""["'](https?://[^"'\s]+?\.(?:m3u8|mp4)(?:\?[^"'\s]*)?)["']""", RegexOption.IGNORE_CASE)
 
-        /** 播放器配置里的地址字段：`url: '...'`、`"source": "..."`、`src = '...'`。 */
+        /** 播放器配置里的地址字段：`url: '...'`、`"source": "..."`、`video = '...'`。 */
         val PLAYER_URL_REGEX =
-            Regex("""\b(?:url|source|src|video)\b\s*[:=]\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+            Regex("""\b(?:url|source|video)\b\s*[:=]\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+
+        /** `<video src=...>` / `<source src=...>`：媒体标签里的地址，可信度仅次于字面量。 */
+        val MEDIA_TAG_SRC_REGEX =
+            Regex("""<(?:video|source)[^>]*\bsrc\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+
+        /** 页面零件后缀：海报、头像、样式、脚本、字体、配置。 */
+        val STATIC_SUFFIXES = listOf(
+            ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".bmp",
+            ".css", ".js", ".json", ".xml", ".woff", ".woff2", ".ttf",
+        )
     }
 }

@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import com.liomix.mikomi.core.media.MikomiPlayer
+import com.liomix.mikomi.feature.player.PlaybackMode
+import com.liomix.mikomi.feature.player.PlayerFailure
 import com.liomix.mikomi.feature.player.PlayerPlaybackState
 
 /**
@@ -27,7 +30,16 @@ internal fun PlayerHost(
     compactHeight: Dp,
     title: String,
     subtitle: String,
+    mediaPlayer: MikomiPlayer?,
     playback: PlayerPlaybackState,
+    loading: Boolean,
+    failure: PlayerFailure?,
+    mode: PlaybackMode,
+    webUrl: String?,
+    webReloadToken: Int,
+    webUserAgent: String?,
+    onRetry: () -> Unit,
+    onRequestFullscreen: (Boolean) -> Unit,
     danmakuEnabled: Boolean,
     canPlayPrevious: Boolean,
     canPlayNext: Boolean,
@@ -45,7 +57,16 @@ internal fun PlayerHost(
         title = title,
         subtitle = subtitle,
         fullscreen = fullscreen,
+        mediaPlayer = mediaPlayer,
         playback = playback,
+        loading = loading,
+        failure = failure,
+        mode = mode,
+        webUrl = webUrl,
+        webReloadToken = webReloadToken,
+        webUserAgent = webUserAgent,
+        onRetry = onRetry,
+        onRequestFullscreen = onRequestFullscreen,
         danmakuEnabled = danmakuEnabled,
         canPlayPrevious = canPlayPrevious,
         canPlayNext = canPlayNext,

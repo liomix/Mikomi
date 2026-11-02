@@ -9,7 +9,6 @@
     <string name="player_exit_fullscreen">退出全屏</string>
     <string name="player_settings">播放器设置</string>
     <string name="player_episode_picker">剧集选择</string>
-    <string name="player_surface_placeholder">视频画面占位</string>
 
     <string name="player_speed_value">%1$sx</string>
     <string name="player_speed_current">当前播放速度</string>
@@ -47,4 +46,16 @@
     <string name="player_source_playing">正在播放的线路</string>
 
     <string name="player_comments_placeholder">评论功能开发中</string>
+    <!-- 画面状态层：出流中 / 播不出来 -->
+    <string name="player_resolving">正在获取播放地址…</string>
+    <string name="player_retry">重试</string>
+    <string name="player_error_no_source">没有启用的插件源，先去「设置 · 插件源」打开一个</string>
+    <string name="player_error_no_title">拿不到番名，没法拿去搜索</string>
+    <string name="player_error_no_match">所有插件源都没搜到这部番</string>
+    <string name="player_error_rule_broken">插件源规则无法解析</string>
+    <string name="player_error_network">连不上源站，可能是网络或代理问题</string>
+    <string name="player_error_no_episodes">打开了详情页，但没取到剧集</string>
+    <string name="player_error_no_stream">播放页里找不到播放地址</string>
+    <string name="player_error_need_webview">这个站靠脚本拼播放地址，静态页面里取不到</string>
+    <string name="player_error_playback">播放器无法解码这个地址</string>
 </resources>

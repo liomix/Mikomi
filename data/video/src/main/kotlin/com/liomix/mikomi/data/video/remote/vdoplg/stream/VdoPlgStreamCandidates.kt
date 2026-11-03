@@ -73,8 +73,18 @@ internal object VdoPlgStreamCandidates {
 
     private val IFRAME_REGEX = Regex("""<i?frame[^>]*\bsrc\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
 
+    /**
+     * 引号里带媒体后缀的字符串。
+     *
+     * **不要求 `http(s)://` 开头**：不少站点在播放器配置里写的是相对路径
+     * （`url: "/hls/2024/index.m3u8"`），带协议的那条正则会整条漏掉，最后只能退到 WebView。
+     * 这里捞出来交给 [VdoPlgSelector.resolve] 按播放页地址拼成绝对地址。
+     *
+     * 排除 `blob:` / `data:`：那是 MediaSource 在页面里的句柄，出了浏览器就用不了，
+     * 抓下来只会白探一次。
+     */
     private val STREAM_LITERAL_REGEX =
-        Regex("""["'](https?://[^"'\s]+?\.(?:m3u8|mp4)(?:\?[^"'\s]*)?)["']""", RegexOption.IGNORE_CASE)
+        Regex("""["'](?!blob:|data:)([^"'\s<>]+?\.(?:m3u8|mp4)(?:\?[^"'\s<>]*)?)["']""", RegexOption.IGNORE_CASE)
 
     private val MEDIA_TAG_SRC_REGEX =
         Regex("""<(?:video|source)[^>]*\bsrc\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)

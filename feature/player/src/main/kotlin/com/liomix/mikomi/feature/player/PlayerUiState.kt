@@ -142,14 +142,15 @@ data class PlayerSource(
 }
 
 /**
- * 这一集用什么播。
+ * 画面上此刻是谁在播。
  *
  * 由出流层给出的**计划**决定（`VdoStreamPlan`），不是由规则里的布尔值决定：
- * - [NATIVE]：拿到了直链，交给 Media3，进度、倍速、填充统统归我们管；
- * - [WEB]：拿不到直链，只能把播放页放进 WebView 让站点播放器自己取地址。
+ * - [NATIVE]：Media3 在播，进度、倍速、填充统统归我们管；
+ * - [WEB]：把播放页整个交给站点播放器，播放/进度归它。
  *
- * 两种形态下控制层的含义不同：WebView 里播放/进度由站点播放器掌握，
- * 我们只保留「返回 / 选集 / 全屏」，不去假装能拖它的进度条。
+ * **[WEB] 不是自动兜底，而是用户显式选的**（见 `PlayerViewModel.onPlayInWebPage`）。
+ * 自动兜底那套已经删掉了：出不了流就走「不可见解析 → 失败 + 重试」，
+ * 用户不该因为站点难解析就被丢进一个陌生网站的播放器里。
  */
 enum class PlaybackMode {
     NATIVE,
@@ -217,17 +218,38 @@ data class PlayerUiState(
     val danmakuEnabled: Boolean = true,
     /** 正在探测 / 取剧集 / 出流。画面区据此显示转圈。 */
     val loading: Boolean = false,
-    /** 当前这一集用哪种形态播。 */
+    /** 画面此刻是谁在播。 */
     val mode: PlaybackMode = PlaybackMode.NATIVE,
-    /** WebView 形态要加载的播放页地址；[mode] 为 [PlaybackMode.WEB] 时才有值。 */
+    /** 显式网页播放要加载的播放页地址；[mode] 为 [PlaybackMode.WEB] 时才有值。 */
     val webUrl: String? = null,
     /** 递增即让 WebView 重新加载（重试同一个地址时用）。 */
     val webReloadToken: Int = 0,
     /**
-     * WebView 形态用的 UA。规则里写了就用规则的，没写由出流层补桌面 UA——
+     * 网页形态用的 UA。规则里写了就用规则的，没写由出流层补桌面 UA——
      * 不能留空让 WebView 用默认移动 UA，这类站点会把 Android UA 302 到「下载 App」页。
      */
     val webUserAgent: String? = null,
+    /**
+     * **不可见**解析正在加载的播放页地址。
+     *
+     * 非空即「正在等站点播放器暴露地址」：画面区把这个 WebView 用不透明遮罩盖住，
+     * 用户从头到尾看不到那个页面。它只干一件事——让站点自己的播放器跑起来，
+     * 我们好在网络层把它要的 `.m3u8` 截下来交给 Media3。
+     *
+     * 两种结束方式：拦到流（清空、进 [PlaybackMode.NATIVE]）、
+     * 超时（清空、报 [PlayerFailureReason.NoStream] 并给出重试/用网页播放）。
+     * **没有「等够了就把网页露出来」这条路**——那正是「播放前弹网页」的来源。
+     */
+    val sniffUrl: String? = null,
+    /** 不可见解析那次加载用的 UA（与 [webUserAgent] 同源，只是两个阶段分开存）。 */
+    val sniffUserAgent: String? = null,
+    /**
+     * 失败时能不能给「用网页播放」这个出口。
+     *
+     * 只需要「有播放页地址」——站点播放器可能要人点一下才起播，那一下我们替不了；
+     * 与其把页面硬塞给所有人，不如让真正需要它的人自己选。
+     */
+    val webPageAvailable: Boolean = false,
     /** 播不出来的原因；非空时画面区显示错误与重试。 */
     val failure: PlayerFailure? = null,
 ) {

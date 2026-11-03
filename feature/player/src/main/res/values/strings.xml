@@ -49,6 +49,10 @@
     <!-- 画面状态层：出流中 / 播不出来 -->
     <string name="player_resolving">正在获取播放地址…</string>
     <string name="player_retry">重试</string>
+    <!-- 不可见解析的遮罩：底下页面在跑站点播放器，但永远不给人看 -->
+    <string name="player_web_sniffing">正在解析播放地址…</string>
+    <!-- 失败后的出口：把播放页交给站点播放器（页面就是画面，进度条归它） -->
+    <string name="player_web_play">用网页播放</string>
     <string name="player_error_no_source">没有启用的插件源，先去「设置 · 插件源」打开一个</string>
     <string name="player_error_no_title">拿不到番名，没法拿去搜索</string>
     <string name="player_error_no_match">所有插件源都没搜到这部番</string>

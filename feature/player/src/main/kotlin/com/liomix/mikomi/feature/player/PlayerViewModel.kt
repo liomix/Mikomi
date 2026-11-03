@@ -84,6 +84,13 @@ class PlayerViewModel @Inject constructor(
     private var loadJob: Job? = null
     private var playJob: Job? = null
 
+    /**
+     * 不可见解析的计时器：到点还没嗅到流就判这次解析失败。
+     *
+     * 必须能被取消：切集/换源/中途嗅到流时，旧的那一个还在跑，会把新一次解析提前判死。
+     */
+    private var sniffTimeoutJob: Job? = null
+
     /** 每个启用的规则探测出来的东西（命中、线路、失败原因）。切集/换线路都靠它，不重复请求。 */
     private var ruleStates: List<RuleState> = emptyList()
 
@@ -113,10 +120,22 @@ class PlayerViewModel @Inject constructor(
             playback.onSpeedChanged(playbackParameters.speed)
         }
 
+        /**
+         * 第一帧真的画出来了。
+         *
+         * 这是「解析遮罩可以撤了」的唯一可靠信号：嗅探成功只说明拿到了地址，
+         * 地址到画面之间还隔着一次缓冲与解码。早撤一步就是黑屏。
+         */
+        override fun onRenderedFirstFrame() {
+            if (_uiState.value.sniffUrl == null) return
+            sniffTimeoutJob?.cancel()
+            releaseSniffCover()
+        }
+
         override fun onPlayerError(error: PlaybackException) {
             Log.w(TAG, "Playback failed: ${error.errorCodeName}", error)
-            // 直链播不动先自己降一级去嗅探（见 fallbackToWeb），实在不行才让用户看到失败。
-            if (fallbackToWeb()) return
+            // 直链播不动先自己降一级去嗅探（见 fallbackToSniff），实在不行才让用户看到失败。
+            if (fallbackToSniff()) return
             _uiState.update {
                 it.copy(
                     loading = false,
@@ -155,6 +174,7 @@ class PlayerViewModel @Inject constructor(
         boundAnimeId = animeId
         loadJob?.cancel()
         playJob?.cancel()
+        sniffTimeoutJob?.cancel()
         player.reset()
         playback.resetForNewMedia()
         ruleStates = emptyList()
@@ -250,6 +270,36 @@ class PlayerViewModel @Inject constructor(
     }
 
     /**
+     * 「用网页播放」：把播放页交给页面里的站点播放器，控制权也交给它。
+     *
+     * 这不是默认路径，是**失败之后的显式出口**。站点播放器常常要人点一下才起播，
+     * 那一下我们替不了；与其把页面硬塞给所有人看（这就是「播放前弹网页」），
+     * 不如让真正需要它的人自己点。
+     *
+     * 只在这一集确实有播放页地址时可用（[PlayerUiState.webPageAvailable]）。
+     */
+    fun onPlayInWebPage() {
+        val state = _uiState.value
+        val episode = state.currentEpisode ?: return
+        val rule = ruleStates.firstOrNull { it.rule.name == state.selectedSourceId }?.rule
+        sniffTimeoutJob?.cancel()
+        player.reset()
+        playback.resetForNewMedia()
+        playback.onBufferingChanged(false)
+        _uiState.update {
+            it.copy(
+                mode = PlaybackMode.WEB,
+                webUrl = episode.id,
+                webUserAgent = rule?.let { r -> engine.userAgentOf(r.json) } ?: it.webUserAgent,
+                sniffUrl = null,
+                sniffUserAgent = null,
+                loading = false,
+                failure = null,
+            )
+        }
+    }
+
+    /**
      * 选线路并切播。
      *
      * 只在 UI 里点「线路」时调用；单线路源由整行点击直接落到这里。
@@ -293,34 +343,41 @@ class PlayerViewModel @Inject constructor(
     }
 
     /**
-     * WebView 在网络层拦到一条「像视频流」的请求。
+     * 不可见解析的 WebView 拦到一条视频流。
      *
      * 这是把「显示网页让用户自己点」变成「直接进自己的播放器」的**唯一交接点**：
      * 站点播放器拿到地址后一定会去 GET 那个 `.m3u8`（跨域 iframe 也一样，
      * 请求走的是 WebView 自己的网络栈），我们截住它，交给 Media3。
      *
-     * 三道门：
-     * 1. 必须仍在 Web 形态——切回原生后这里再来消息就是重复的；
-     * 2. `pageKey` 必须等于当前这一集——切集瞬间旧页面还会飞一会儿请求，
+     * 四道门：
+     * 1. 必须仍在等流（[PlayerUiState.sniffUrl] 非空）——已经原生播了就再来消息就是重复的；
+     * 2. 显式网页播放时一律不接手：用户点「用网页播放」就是要站点播放器，抢回来等于按钮点了没反应；
+     * 3. `pageKey` 必须等于当前这一集——切集瞬间旧页面还会飞一会儿请求，
      *    不比对就会把上一集的流接到新一集上；
-     * 3. 出流层复核一遍并补齐请求头（Referer / Cookie / UA），缺了就是 403。
+     * 4. 出流层复核一遍并补齐请求头（Referer / Cookie / UA），缺了就是 403。
      */
     fun onWebSubRequest(
         pageKey: String,
         url: String,
         headers: Map<String, String>,
         cookie: String?,
+        trusted: Boolean = false,
     ) {
         val state = _uiState.value
-        if (state.mode != PlaybackMode.WEB || pageKey != state.webUrl) return
-        val stream = engine.sniffStream(url, headers, pageKey, cookie) ?: return
+        if (state.mode == PlaybackMode.WEB) return
+        if (state.sniffUrl == null || pageKey != state.sniffUrl) return
+        val stream = engine.sniffStream(url, headers, pageKey, cookie, trusted = trusted) ?: return
 
-        // 立刻切回原生形态：WebView 随之销毁，页面自己的播放器停掉，不会出现两个声音。
+        // 解析那一路到此结束，但**先不撤遮罩**：`sniffUrl` 留着，画面还是「正在解析播放地址」。
+        // 出流成功不等于有画面——Media3 从拿到地址到解码出第一帧还有几百毫秒，
+        // 这时候把遮罩撤掉，用户看到的就是「解析中 → 黑一下 → 开始播」，
+        // 中间那一黑会被当成「又偷偷进了网页」。撤遮罩的时机交给 `onRenderedFirstFrame`。
         playJob?.cancel()
+        sniffTimeoutJob?.cancel()
         _uiState.update {
             it.copy(
                 mode = PlaybackMode.NATIVE,
-                webUrl = null,
+                webPageAvailable = true,
                 loading = false,
                 failure = null,
             )
@@ -331,10 +388,42 @@ class PlayerViewModel @Inject constructor(
             mimeType = stream.kind.mimeType,
             headers = stream.headers,
         )
+        // 首帧迟迟不来的兜底：流已经在播（有声音），不该报失败，但遮罩也不能永远盖着。
+        sniffTimeoutJob = viewModelScope.launch {
+            delay(FIRST_FRAME_TIMEOUT_MILLIS)
+            if (_uiState.value.sniffUrl != null) {
+                Log.w(TAG, "First frame not rendered in time, releasing sniff cover")
+                releaseSniffCover()
+            }
+        }
         // 这条线路下次可以直接验证这个地址，省掉一整轮解析。
         lineRefOf(state.selectedSourceId)?.let { line ->
             viewModelScope.launch {
                 rememberBestEffort("sniffed") { planner.rememberSniffed(line, stream) }
+            }
+        }
+    }
+
+    /**
+     * 撤掉解析遮罩：清掉 [PlayerUiState.sniffUrl]，底下那个不可见的 WebView 随之销毁。
+     *
+     * 只在两个时刻调用：第一帧画出来了（正常路径），或首帧超时（兜底）。
+     * **不在嗅探成功那一刻调用**——那时只有地址，没有画面。
+     */
+    private fun releaseSniffCover() {
+        val sourceId = _uiState.value.selectedSourceId
+        sniffTimeoutJob?.cancel()
+        _uiState.update { state ->
+            if (state.sniffUrl == null) {
+                state
+            } else {
+                state.copy(
+                    sniffUrl = null,
+                    sniffUserAgent = null,
+                    sources = sourceId
+                        ?.let { state.sources.markPlaying(it, currentRoadIndex(it), PlaybackMode.NATIVE) }
+                        ?: state.sources,
+                )
             }
         }
     }
@@ -379,7 +468,10 @@ class PlayerViewModel @Inject constructor(
         ruleStates = probeAll(rules, title)
         publishSources()
 
-        val firstPlayable = ruleStates.firstOrNull { it.roads.isNotEmpty() }
+        // 优先播 DM84：它是内置主力源，别的源是备用。全是备用源时按仓库顺序取第一个。
+        val firstPlayable = ruleStates
+            .filter { it.roads.isNotEmpty() }
+            .minByOrNull { sourceRank(it.rule.name) }
         if (firstPlayable == null) {
             fail(ruleStates.firstNotNullOfOrNull { it.failure }.toFailureReason() ?: PlayerFailureReason.NoMatch)
             return
@@ -408,6 +500,7 @@ class PlayerViewModel @Inject constructor(
         val number = _uiState.value.currentEpisode?.number ?: 1
         loadJob?.cancel()
         playJob?.cancel()
+        sniffTimeoutJob?.cancel()
         player.reset()
         playback.resetForNewMedia()
         ruleStates = emptyList()
@@ -417,6 +510,8 @@ class PlayerViewModel @Inject constructor(
                 failure = null,
                 mode = PlaybackMode.NATIVE,
                 webUrl = null,
+                sniffUrl = null,
+                sniffUserAgent = null,
                 // 重试时保留选集与当前集，用户不会看到网格突然空一下。
                 episodes = if (keepCurrentEpisode) it.episodes else emptyList(),
                 currentEpisode = if (keepCurrentEpisode) it.currentEpisode else null,
@@ -496,8 +591,10 @@ class PlayerViewModel @Inject constructor(
             }
 
             if (plan is VdoStreamPlan.Web) {
-                Log.i(TAG, "Render playback page: ${plan.reason}")
-                enterWebMode(state.rule, episode, episodes, sourceId, roadIndex, userAgent = plan.userAgent)
+                // 页面里拿不到直链：开一个**看不见**的 WebView 让站点播放器自己跑，
+                // 拦到流再交回 Media3。用户看到的只有「正在解析」，从头到尾没有网页。
+                Log.i(TAG, "Static resolution failed, sniffing invisibly: ${plan.reason}")
+                beginSniff(state.rule, episode, episodes, sourceId, roadIndex, userAgent = plan.userAgent)
                 return@launch
             }
 
@@ -513,9 +610,11 @@ class PlayerViewModel @Inject constructor(
                     currentEpisode = episode,
                     selectedSourceId = sourceId,
                     sourceSheetVisible = false,
-                    // 从 WebView 形态切回原生时要把 webUrl 清掉，否则画面还挂着上一个网页。
+                    // 从解析/网页形态切回原生时要把页面地址全部清掉，否则画面还挂着上一页。
                     mode = PlaybackMode.NATIVE,
                     webUrl = null,
+                    sniffUrl = null,
+                    sniffUserAgent = null,
                     sources = it.sources.markPlaying(sourceId, roadIndex, PlaybackMode.NATIVE),
                 )
             }
@@ -532,7 +631,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     /**
-     * 直链播不动时，**原地降一级**到 WebView 嗅探。
+     * 直链播不动时，**原地降一级**到不可见嗅探。
      *
      * 静态拿到的直链经常「第一次能播、第 N 次 403」——签名过期、缺了站点播放器才会带的那几个头、
      * 或者 CDN 只认 Referer。这些在静态解析里无解（我们照抄不到站点 JS 现算的参数），
@@ -541,7 +640,7 @@ class PlayerViewModel @Inject constructor(
      * 所以这里不把「重试」推给用户，而是让 WebView 重走一遍，拦到新地址再交回 Media3。
      * 同一「源 + 集」只降一次，否则会出现「嗅探 → 原生 → 报错 → 再嗅探」的无声循环。
      */
-    private fun fallbackToWeb(): Boolean {
+    private fun fallbackToSniff(): Boolean {
         val state = _uiState.value
         if (state.mode != PlaybackMode.NATIVE) return false
         val sourceId = state.selectedSourceId ?: return false
@@ -550,12 +649,12 @@ class PlayerViewModel @Inject constructor(
         val rule = ruleStates.firstOrNull { it.rule.name == sourceId }?.rule ?: return false
         if (!webFallbacks.add("$sourceId|${episode.id}")) return false
 
-        Log.i(TAG, "Direct stream failed, falling back to WebView sniffing: $sourceId")
+        Log.i(TAG, "Direct stream failed, falling back to invisible sniffing: $sourceId")
         // 这次失败说明「这条线路能直链」的判断已经不可靠：记一笔，连续两次就作废缓存。
         lineRefOf(sourceId)?.let { line ->
             viewModelScope.launch { rememberBestEffort("mismatch") { planner.reportMismatch(line) } }
         }
-        enterWebMode(
+        beginSniff(
             rule = rule,
             episode = episode,
             episodes = state.episodes,
@@ -566,15 +665,21 @@ class PlayerViewModel @Inject constructor(
     }
 
     /**
-     * 切到 WebView 形态：把播放页整页交给 WebView，让站点播放器自己播。
+     * 开一次**不可见**的解析：页面在画面区底下真实加载、站点播放器真实起播，但被一层
+     * 不透明遮罩盖住，用户只会看到「正在解析播放地址」。
      *
-     * 此时 Media3 要停：两条路同时出声是最典型的「两个声音」事故。
+     * 为什么不让用户看着那个网页（这正是之前的做法，也就是「播放前弹网页」）：
+     * 站点播放器不是我们的界面，一进来就看见一个陌生网站的播放器，第一反应是
+     * 「这不是我要的播放器」；而它一旦被露出来，我们就再没有机会把画面收回到
+     * Media3（用户已经在用它拖进度了）。
      *
-     * 这里**不递增** `webReloadToken`：换集时 `webUrl` 本身变了，WebView 会因为地址变化自己加载。
+     * Media3 要停：两条路同时出声是最典型的「两个声音」事故。
+     *
+     * 这里**不递增** `webReloadToken`：换集时 `sniffUrl` 本身变了，WebView 会因为地址变化自己加载。
      * 两个信号一起发会让它「loadUrl 新地址 + reload 上一步」连跳两次，表现为白一下再从头加载。
      * 令牌只留给「同一个地址要重来一次」的重试。
      */
-    private fun enterWebMode(
+    private fun beginSniff(
         rule: VdoPlgContent,
         episode: EpisodeItem,
         episodes: List<EpisodeItem>,
@@ -584,25 +689,54 @@ class PlayerViewModel @Inject constructor(
     ) {
         player.reset()
         playback.resetForNewMedia()
-        // 缓冲是 Media3 的语义，WebView 形态下它已停播、不会再回调，留着就是永远转圈。
+        // 缓冲是 Media3 的语义，解析期间它已停播、不会再回调，留着就是永远转圈。
         playback.onBufferingChanged(false)
         _uiState.update {
-            // 同一页再点一次「重试」：地址没变，WebView 不会自己动，得靠令牌催它重新加载。
-            // 换集时地址本身变了，绝不能同时递增令牌——那会连跳两次。
-            val samePage = it.mode == PlaybackMode.WEB && it.webUrl == episode.id
+            val samePage = it.sniffUrl == episode.id
             it.copy(
                 loading = false,
                 failure = null,
-                mode = PlaybackMode.WEB,
-                webUrl = episode.id,
+                mode = PlaybackMode.NATIVE,
+                webUrl = null,
+                sniffUrl = episode.id,
+                sniffUserAgent = userAgent,
                 webReloadToken = if (samePage) it.webReloadToken + 1 else it.webReloadToken,
-                webUserAgent = userAgent,
+                webPageAvailable = true,
                 episodes = episodes,
                 currentEpisode = episode,
                 selectedSourceId = sourceId,
                 sourceSheetVisible = false,
-                sources = it.sources.markPlaying(sourceId, roadIndex, PlaybackMode.WEB),
+                // 形态还没定：直链播不了才会走到这里，能不能收回原生就看这次嗅探。
+                sources = it.sources.markPlaying(sourceId, roadIndex, mode = null),
             )
+        }
+        scheduleSniffTimeout()
+    }
+
+    /**
+     * 解析超时：**报失败，不把网页露出来**。
+     *
+     * 时间给到 12 秒是因为这类播放页要「加载站点 JS → 初始化播放器 → 取地址」三步，
+     * 慢站能拖到 8 秒以上；比这更久基本就是站点播放器在等人点一下，我们替不了。
+     *
+     * 到点后不给网页，只给「重试 / 用网页播放」两个选择：前者重走一遍出流（地址多半过期了），
+     * 后者把页面交出去——那是一个明确的用户决定，不是我们替他做的。
+     */
+    private fun scheduleSniffTimeout() {
+        sniffTimeoutJob?.cancel()
+        sniffTimeoutJob = viewModelScope.launch {
+            delay(SNIFF_TIMEOUT_MILLIS)
+            val state = _uiState.value
+            val pageUrl = state.sniffUrl ?: return@launch
+            Log.i(TAG, "Sniff timed out: $pageUrl")
+            _uiState.update {
+                it.copy(
+                    sniffUrl = null,
+                    sniffUserAgent = null,
+                    loading = false,
+                    failure = PlayerFailure(PlayerFailureReason.NoStream, pageUrl),
+                )
+            }
         }
     }
 
@@ -668,7 +802,9 @@ class PlayerViewModel @Inject constructor(
 
     /** 探测结果 → UI 的源列表。线路 id 用 `规则名:下标`，稳且能反解出道路序号。 */
     private fun publishSources() {
-        val sources = ruleStates.map { state ->
+        // 列表顺序跟着默认优先级走：换源弹窗第一行就是会被自动选中的那个，
+        // 否则用户会看到「播的是 DM84，弹窗第一行却是 7sefun」。
+        val sources = ruleStates.sortedBy { sourceRank(it.rule.name) }.map { state ->
             PlayerSource(
                 id = state.rule.name,
                 name = state.rule.name,
@@ -715,6 +851,18 @@ class PlayerViewModel @Inject constructor(
         val selected = _uiState.value.sources.firstOrNull { it.id == sourceId }?.selectedLineId
         return selected?.substringAfterLast(LINE_ID_SEPARATOR)?.toIntOrNull() ?: 0
     }
+
+    /**
+     * 源的默认优先级：**数字小的先用**。
+     *
+     * 只认一个名字：DM84 是内置的主力源（线路多、命中率高），进播放页时不该先拿
+     * 一个备胎源去撞运气——用户点进来是想看片，不是想看我们轮询。
+     *
+     * 没有匹配的名字一律并列第二，保持仓库给的顺序（用户可拖动排序），
+     * 所以「优先级」不会变成把别的源挤到后面去的理由。
+     */
+    private fun sourceRank(name: String): Int =
+        if (name.equals(PREFERRED_SOURCE_NAME, ignoreCase = true)) 0 else 1
 
     /**
      * 当前源、当前线路的稳定身份；探测还没完成时返回 null。
@@ -794,7 +942,7 @@ class PlayerViewModel @Inject constructor(
     private fun List<PlayerSource>.markPlaying(
         sourceId: String,
         roadIndex: Int,
-        mode: PlaybackMode,
+        mode: PlaybackMode?,
     ): List<PlayerSource> = map {
         if (it.id != sourceId) {
             it
@@ -805,7 +953,11 @@ class PlayerViewModel @Inject constructor(
                 selectedLineId = lineId,
                 lines = it.lines.map { line ->
                     if (line.id == lineId) {
-                        line.copy(availability = SourceAvailability.READY, playbackMode = mode)
+                        line.copy(
+                            availability = SourceAvailability.READY,
+                            // null = 还没播起来（正在解析），别把上一次的结论留着骗人。
+                            playbackMode = mode ?: line.playbackMode,
+                        )
                     } else {
                         line
                     }
@@ -851,6 +1003,31 @@ class PlayerViewModel @Inject constructor(
 
         /** 线路 id 的分隔符：`DM84:0`。用冒号而不是斜杠，反解时不用担心转义。 */
         const val LINE_ID_SEPARATOR = ":"
+
+        /**
+         * 默认优先使用的大源插件源名。
+         *
+         * 按名字认而不是按位置：仓库里的顺序是用户可拖动的，位置会变；
+         * 而「DM84 是主力」这个判断不随用户排序改变。
+         */
+        const val PREFERRED_SOURCE_NAME = "DM84"
+
+        /**
+         * 不可见解析最长等这么久。
+         *
+         * 站点播放页要「加载 JS → 初始化播放器 → 取地址」三步，慢站能拖到 8 秒以上；
+         * 比这更久基本就是播放器在等人点一下，我们替不了——到点报失败，把选择权交回用户。
+         */
+        const val SNIFF_TIMEOUT_MILLIS = 12_000L
+
+        /**
+         * 嗅探交接后等首帧的上限。
+         *
+         * 这时候流已经在播了（很可能已经有声音），再等不到只是这条流解码出画慢，
+         * 所以到点**只撤遮罩、不报失败**——报错反而把正在播的东西盖掉。
+         * 3 秒足够覆盖一次正常的起播缓冲。
+         */
+        const val FIRST_FRAME_TIMEOUT_MILLIS = 3_000L
 
         const val PROBE_CONCURRENCY = 3
         const val RULES_WAIT_MILLIS = 3_000L

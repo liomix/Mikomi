@@ -1,6 +1,7 @@
 package com.liomix.mikomi.feature.player.component
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import android.graphics.Color as AndroidColor
 import android.view.View
 import android.view.ViewGroup
@@ -23,6 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,7 +37,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * WebView 形态的画面：**先当嗅探器，拦不到流才继续当播放器**。
+ * 画面区里那个 WebView：**两种身份，由调用方决定**。
+ *
+ * - **不可见解析**（`muted = true`，被遮罩盖着）：用户看不到页面，它只负责让站点播放器跑起来，
+ *   我们好把播放器要的流截下来交给 Media3。这是主路径。
+ * - **显式网页播放**（用户点了「用网页播放」）：页面就是画面，控制权交给站点播放器。
+ *   这是失败后的出口，不是默认行为。
  *
  * 为什么必须有 WebView：规则里的 `useWebview` 意味着地址是 JS 现拼的。实测 7sefun 的播放页里
  * 只有一句 `<script>var player_aaaa = {"encrypt":2,"url":"..."}</script>`，那串地址要
@@ -47,8 +54,7 @@ import java.util.concurrent.atomic.AtomicReference
  * 这条路的决定性好处是**跨域 iframe 也拦得到**，因为请求走的是同一个 WebView 网络栈，
  * 而主文档的 JS 是进不去 iframe 的。
  *
- * 拦不到（页面要手动点、或者播放器做了特殊封装）就保持现状：用户看到的还是这个页面，
- * 可以用站点自己的播放器看，只是控制权在它那边。这是兜底，不是主路径。
+ * 网络层认不出的（没有后缀、没有 Range 的播放列表）由页面内的 [SNIFF_HOOK_JS] 补上。
  *
  * 几个必须开的设置（少一个就白屏/不自动播/点不动）：
  * - `javaScriptEnabled`：地址和播放器都是 JS 起的；
@@ -69,22 +75,48 @@ internal fun PlayerWebView(
     url: String,
     reloadToken: Int,
     userAgent: String?,
+    /**
+     * 页面还盖着遮罩：照常加载与播放，但**不出声**。
+     *
+     * 不静音的后果很具体：用户看到的是「正在解析」+ 转圈，耳朵里却有片头曲——
+     * 比直接把网页露出来还难解释。撤掉遮罩时解除（见 `WebAudioController.UNMUTE_JS`）。
+     */
+    muted: Boolean,
+    /**
+     * 让 WebView **真的不可见**（解析阶段必须传 true）。
+     *
+     * 为什么不能只靠上层那层 Compose 遮罩：WebView 是真实的 Android View，
+     * 它作为 `AndroidComposeView` 的子 View 在 Compose 内容**之后**绘制——
+     * 也就是任何 Compose 遮罩都盖不住它。页面一加载完，网页就从遮罩底下透出来，
+     * 用户看到的是「黑一下 → 露出播放页 → 才切成原生播放器」。
+     *
+     * 用 `alpha = 0` 而不是 `visibility = INVISIBLE`：后者会让 Chromium 认为页面不可见，
+     * 暂停渲染与计时器，站点播放器就不再发媒体请求，嗅探直接失效。
+     * alpha 为 0 时 View 仍是 VISIBLE，页面照常加载、照常起播，只是一个像素都画不出来。
+     */
+    hidden: Boolean = false,
     onRequestFullscreen: (Boolean) -> Unit,
     /**
-     * 网络层拦到一次「像视频流」的子资源请求。
+     * 拦到一次「像视频流」的请求。
      *
      * 这是这条路上最关键的一个回调：站点播放器拿到地址后一定会去 GET 那个 `.m3u8`，
      * 我们在 WebView 的网络栈里截住它，交给外层换成原生播放器。**跨域 iframe 也拦得到**。
      *
      * @param pageKey 发起这次请求时 WebView 正在显示的播放页地址。外层拿它跟当前集比对，
      *   防止切集瞬间把上一集的流接到新一集上。
+     * @param trusted 这条来自页面 JS 的自报（`<video src>` 或读到 `#EXTM3U` 正文），
+     *   不是网络层按形态猜出来的——地址可能没有后缀，外层不该再用后缀判据把它丢掉。
      */
-    onSubRequest: (pageKey: String, url: String, headers: Map<String, String>, cookie: String?) -> Unit,
+    onSubRequest: (pageKey: String, url: String, headers: Map<String, String>, cookie: String?, trusted: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     var webView by remember { mutableStateOf<WebView?>(null) }
     var pageLoading by remember { mutableStateOf(true) }
+
+    // `onPageFinished` 里要读**当前**的静音状态，但那个回调被 WebView 持有、不会随重组重建，
+    // 所以用 rememberUpdatedState 把最新值带进去（直接捕获 `muted` 会永远停留在首次组合的值）。
+    val mutedNow by rememberUpdatedState(muted)
 
     // 上一次**请求过的**地址。不能用 `WebView.getUrl()` 比：站点自己会 302 / 改 query /
     // 在站内跳转，`getUrl()` 与传进来的地址永远不等，每次重组都会再 `loadUrl` 一次，
@@ -133,6 +165,10 @@ internal fun PlayerWebView(
                     }
                     userAgent?.takeIf { it.isNotBlank() }?.let { settings.userAgentString = it }
                     setBackgroundColor(AndroidColor.BLACK)
+                    // 解析阶段连一帧都不能漏给人看（见 `hidden` 的注释）。
+                    // 不用 `remember`：这张 View 在解析期间整个生命周期都是同一个值。
+                    alpha = if (hidden) 0f else 1f
+                    isEnabled = !hidden
                     webViewClient = object : WebViewClient() {
                         /**
                          * **网络层嗅探**——整条路的关键。
@@ -164,17 +200,27 @@ internal fun PlayerWebView(
                             val owner = pageKey.get()
                             view.post {
                                 if (handedOver.compareAndSet(false, true)) {
-                                    onSubRequest(owner, target, headers, cookie)
+                                    onSubRequest(owner, target, headers, cookie, false)
                                 }
                             }
                             return null
                         }
 
+                        override fun onPageStarted(view: WebView, pageUrl: String?, favicon: Bitmap?) {
+                            // 越早注越好：站点播放器初始化时就会发请求，晚一步那条 fetch 就漏了。
+                            // 新文档里现注一次也不行——`onPageStarted` 时文档常常还没建好，
+                            // 所以下面 `onPageFinished` 会再注一次（脚本自己有幂等标记）。
+                            view.evaluateJavascript(SNIFF_HOOK_JS, null)
+                        }
+
                         override fun onPageFinished(view: WebView, pageUrl: String) {
                             pageLoading = false
+                            // 补齐 `onPageStarted` 没吃到的那次注入，并带上后续 DOM 变化。
+                            view.evaluateJavascript(SNIFF_HOOK_JS, null)
                             // 站点播放器自己的 volume 常常只有 0.2~0.5（桌面版尤其），
                             // 这里进页面把 `<video>` 顶到 100%，并在 play 时再顶一次。
-                            view.evaluateJavascript(WebAudioController.VOLUME_BOOST_JS, null)
+                            // 遮罩还盖着时反过来：先压住声音，等撤下来再顶音量。
+                            view.applyAudioScript(mutedNow)
                         }
                     }
                     webChromeClient = object : WebChromeClient() {
@@ -197,11 +243,31 @@ internal fun PlayerWebView(
                             onRequestFullscreen(false)
                         }
                     }
+                    // 页面自报通道（见 SNIFF_HOOK_JS）：网络层认不出的播放列表靠它补。
+                    // 必须在 loadUrl 之前挂上——页面脚本一加载就可能开始探测。
+                    // 收到后仍按「当前播放页」打标签：切集瞬间旧页面还会飞一会儿回调。
+                    addJavascriptInterface(
+                        WebSniffBridge { reported ->
+                            post {
+                                val owner = pageKey.get()
+                                if (handedOver.compareAndSet(false, true)) {
+                                    val cookie = runCatching {
+                                        CookieManager.getInstance().getCookie(reported)
+                                    }.getOrNull()
+                                    onSubRequest(owner, reported, emptyMap(), cookie, true)
+                                }
+                            }
+                        },
+                        SNIFF_BRIDGE,
+                    )
                     loadUrl(url)
                     webView = this
                 }
             },
             update = { view ->
+                // 显隐跟着状态走：从「用网页播放」退回解析态时要把页面重新藏起来。
+                view.alpha = if (hidden) 0f else 1f
+                view.isEnabled = !hidden
                 // 只在**请求地址**变了（换集）才重新加载；同一地址不打断正在播的页面。
                 if (pageKey.get() != url) {
                     pageKey.set(url)
@@ -213,6 +279,8 @@ internal fun PlayerWebView(
             },
             onRelease = { view ->
                 // 顺序要紧：先从 View 树里摘掉再销毁，否则部分 ROM 会在销毁已附着 WebView 时崩。
+                // 桥必须显式摘掉，`destroy()` 不保证释放它持有的引用。
+                view.removeJavascriptInterface(SNIFF_BRIDGE)
                 // 两个 client 不置空（Kotlin 侧是非空类型），`destroy()` 已经把 WebView 内部状态清掉了。
                 (view.parent as? ViewGroup)?.removeView(view)
                 view.stopLoading()
@@ -228,7 +296,8 @@ internal fun PlayerWebView(
             modifier = Modifier.fillMaxSize(),
         )
 
-        if (pageLoading) {
+        // 解析阶段的转圈由外层遮罩负责：这里再画一个会跟它叠在一起（两个圆环错位）。
+        if (pageLoading && !hidden) {
             CircularProgressIndicator(
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -250,5 +319,28 @@ internal fun PlayerWebView(
         consumedToken = reloadToken
         pageLoading = true
         view.reload()
+    }
+
+    // 遮罩盖上或撤下：跟着切换页面音频。
+    // 页面还在加载时不动——`onPageFinished` 会按那一刻的状态注入，这里再插一手只是多一个定时器。
+    LaunchedEffect(muted) {
+        val view = webView ?: return@LaunchedEffect
+        if (pageLoading) return@LaunchedEffect
+        view.applyAudioScript(muted)
+    }
+}
+
+/**
+ * 按遮罩状态给页面注入音频脚本。
+ *
+ * 解除静音要**两步**：`UNMUTE_JS` 把 `muted` 改回来（每次都必须真的执行），
+ * 再叠 `VOLUME_BOOST_JS` 把站点写小的音量顶满（它自带幂等标记，重复调用无害）。
+ */
+private fun WebView.applyAudioScript(muted: Boolean) {
+    if (muted) {
+        evaluateJavascript(WebAudioController.MUTE_JS, null)
+    } else {
+        evaluateJavascript(WebAudioController.UNMUTE_JS, null)
+        evaluateJavascript(WebAudioController.VOLUME_BOOST_JS, null)
     }
 }

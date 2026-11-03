@@ -40,6 +40,15 @@ object VdoStreamSniffer {
         "adkwai", "prestrain", "/ad/", "adserver", "adsystem",
     )
 
+    /**
+     * 一眼就能认成视频的后缀。
+     *
+     * `.m3u8` 最可信（HLS 的主列表和子列表都用它）；`.mp4` / `.flv` / `.mkv` 是直接的媒体文件——
+     * 这几个后缀不会出现在页面零件上，见到就可以往上传。
+     * 不在这里的后缀（大量 CDN 地址连后缀都没有）只能靠 `Range` 认。
+     */
+    private val VIDEO_SUFFIXES: List<String> = listOf(".m3u8", ".mp4", ".flv", ".mkv")
+
     /** 这个地址是不是静态资源（图片/脚本/样式/字体/文档）。 */
     fun isStaticAsset(url: String): Boolean {
         val path = url.substringBefore('?').substringBefore('#').lowercase()
@@ -69,9 +78,8 @@ object VdoStreamSniffer {
 
         val lower = url.lowercase()
         val path = lower.substringBefore('?').substringBefore('#')
-        // HLS 播放列表：第一层 master 和子列表都以 .m3u8 结尾，最可信。
-        if (path.endsWith(".m3u8")) return true
-        if (path.endsWith(".mp4")) return true
+        // 明确的后缀：HLS 播放列表 + 常见容器。
+        if (VIDEO_SUFFIXES.any { path.endsWith(it) }) return true
 
         // 没有后缀的媒体地址：播放器取片段一定带 `Range: bytes=...`，
         // 而页面零件（js/css/图片）从不带 Range。这是 Dart-Mikomi 用的同一条判据。

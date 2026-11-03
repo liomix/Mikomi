@@ -100,19 +100,15 @@ class VdoPlgStreamPlanner @Inject constructor(
         val cached = capabilityStore.find(request.line)
         val steps = mutableListOf<String>()
 
-        // 上次已经确认「这条线路只能渲染」：直接复用结论，省掉抓页面与解配置的两轮请求。
-        // 只有 plan 走这条捷径——[probeDirect] 是源测试，必须真的跑一遍静态解析。
-        if (allowRender && cached is VdoLineCapability.Rendered) {
-            steps += "CachedRender:hit"
-            return VdoPlanResult(
-                plan = VdoStreamPlan.Web(
-                    pageUrl = request.episodeUrl,
-                    userAgent = engine.userAgentOf(request.ruleJson),
-                    reason = cached.note,
-                ),
-                trace = traceOf(steps),
-            )
-        }
+        // **不做「上次只能渲染，这次直接交网页」的捷径**（曾经有过，已删）。
+        //
+        // 那条捷径省下一次页面抓取，代价却是：只要某条线路失败过一次，它就永远进网页，
+        // 站点后来改好了、我们后来补了新的解析手段，都不会再被尝试到。
+        // 用户看到的就是「点进去永远是网页」，而且怎么重试都没用——结论是落盘的。
+        //
+        // 现在的口径：每次出流都先老老实实跑一遍静态策略（同一页有 [VdoPlgPageFetcher] 缓存，
+        // 多个 resolver 共用一次请求），真拿不到才交给 WebView。
+        // `VdoLineCapability.Rendered` 只保留「这条线路是网页形态」这个事实，用于展示，不再当判决。
 
         val context = VdoPlgResolveRequest(
             rule = rule,

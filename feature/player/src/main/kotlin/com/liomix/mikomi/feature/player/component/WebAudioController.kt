@@ -78,6 +78,76 @@ internal class WebAudioController(context: Context) {
 
     companion object {
         /**
+         * 遮罩期间把页面里的媒体**静音并压住**。
+         *
+         * 为什么需要它：Web 形态先进的是「正在解析播放地址」遮罩，页面在底下照常加载、照常起播
+         * （嗅探靠的就是这个）。但站点播放器一起来就有声音——用户看到的是黑屏转圈，
+         * 耳朵里却有片头曲，这比直接露出网页还难解释。
+         *
+         * 三件事和 [VOLUME_BOOST_JS] 一样必须做对：
+         * - **同源 iframe 递归进去**（跨域 try/catch 掉）；
+         * - **定时 + 监听 play + MutationObserver**：播放器常在起播那一刻自己写 `muted`，
+         *   只在开头设一次会被它改回去；
+         * - **幂等**：重复注入先清旧 timer，不然每重组一次就多一个定时器。
+         */
+        val MUTE_JS: String = """
+            (function () {
+              window.__mikomiMuted = true;
+              var muteIn = function (doc) {
+                try {
+                  var list = doc.querySelectorAll('video,audio');
+                  for (var i = 0; i < list.length; i++) {
+                    try { list[i].muted = true; } catch (e) {}
+                  }
+                  var frames = doc.querySelectorAll('iframe');
+                  for (var i = 0; i < frames.length; i++) {
+                    try { if (frames[i].contentDocument) muteIn(frames[i].contentDocument); } catch (e) {}
+                  }
+                } catch (e) {}
+              };
+              muteIn(document);
+              if (window.__mikomiMuteTimer) clearInterval(window.__mikomiMuteTimer);
+              window.__mikomiMuteTimer = setInterval(function () { muteIn(document); }, 400);
+              document.addEventListener('play', function () { muteIn(document); }, true);
+              if (window.MutationObserver) {
+                new MutationObserver(function () { muteIn(document); }).observe(
+                  document.documentElement, { childList: true, subtree: true }
+                );
+              }
+            })();
+        """.trimIndent()
+
+        /**
+         * 撤掉遮罩时解除我们加上的静音。
+         *
+         * 与 [VOLUME_BOOST_JS] 分开的原因：后者是**幂等注入**（有 `__mikomiVolumeBoost` 标记），
+         * 同一次页面里第二次调用直接 return，拿它来解除静音会失效。
+         * 这里必须每次执行都真的把 `muted` 改回去。
+         */
+        val UNMUTE_JS: String = """
+            (function () {
+              window.__mikomiMuted = false;
+              if (window.__mikomiMuteTimer) {
+                clearInterval(window.__mikomiMuteTimer);
+                window.__mikomiMuteTimer = null;
+              }
+              var unmuteIn = function (doc) {
+                try {
+                  var list = doc.querySelectorAll('video,audio');
+                  for (var i = 0; i < list.length; i++) {
+                    try { list[i].muted = false; } catch (e) {}
+                  }
+                  var frames = doc.querySelectorAll('iframe');
+                  for (var i = 0; i < frames.length; i++) {
+                    try { if (frames[i].contentDocument) unmuteIn(frames[i].contentDocument); } catch (e) {}
+                  }
+                } catch (e) {}
+              };
+              unmuteIn(document);
+            })();
+        """.trimIndent()
+
+        /**
          * 把页面里所有媒体元素的音量顶到 100%。
          *
          * 几个刻意的做法：

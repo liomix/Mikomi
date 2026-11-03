@@ -24,25 +24,31 @@ class VdoPlgStaticHtmlResolver @Inject constructor(
     override val order: Int = 20
 
     override suspend fun resolve(request: VdoPlgResolveRequest): VdoPlgResolveOutcome {
-        val pageHtml = request.pages.html(request.pageUrl, request.rule.baseUrl.ifBlank { null })
-
-        // iframe 拉不下来不算失败：有些站的播放器把地址直接写在主文档里。
-        val frameUrl = VdoPlgStreamCandidates.iframeIn(pageHtml, request.pageUrl)
-        val frameHtml = frameUrl?.let { url ->
-            runCatching { request.pages.html(url, request.pageUrl) }.getOrNull()
+        // 逐层下钻 iframe。这类站的播放页常见「播放页 → 播放器壳 → 第三方播放器」两层，
+        // 只抓第一层会停在壳页上（那里面往往只有一段初始化 JS，没有地址）。
+        //
+        // 上限两层，不是怕麻烦：三层以上基本都是站点自己的 JS 在现算参数，
+        // 钻下去只会多花请求，最后一个字节也翻不出来。页面走 [VdoPlgPageFetcher] 缓存，
+        // 和加密配置那条路共用，不会重复抓同一张页。
+        val pages = mutableListOf(request.pageUrl to pageHtml(request))
+        var depth = 1
+        while (depth <= MAX_FRAME_DEPTH) {
+            val (html, base) = pages.last()
+            val frameUrl = VdoPlgStreamCandidates.iframeIn(html, base) ?: break
+            val frameHtml = runCatching { request.pages.html(frameUrl, base) }.getOrNull() ?: break
+            pages += frameUrl to frameHtml
+            depth++
         }
 
-        val candidates = buildList {
-            addAll(VdoPlgStreamCandidates.from(pageHtml, request.pageUrl))
-            if (frameHtml != null && frameUrl != null) {
-                addAll(VdoPlgStreamCandidates.from(frameHtml, frameUrl))
-            }
-        }.distinct().take(VdoPlgStreamCandidates.MAX_CANDIDATES)
+        val candidates = pages
+            .flatMap { (base, html) -> VdoPlgStreamCandidates.from(html, base) }
+            .distinct()
+            .take(VdoPlgStreamCandidates.MAX_CANDIDATES)
 
         if (candidates.isEmpty()) return VdoPlgResolveOutcome.NotApplicable
 
-        // Referer 用 iframe 的地址：站点判盗链看的是「谁嵌了我」，不是顶层播放页。
-        val referer = frameUrl ?: request.pageUrl
+        // Referer 用**最深那层**的地址：站点判盗链看的是「谁嵌了我」，不是顶层的播放页。
+        val referer = pages.last().first
         for (candidate in candidates) {
             val stream = try {
                 engine.probeStream(candidate, referer)
@@ -52,5 +58,13 @@ class VdoPlgStaticHtmlResolver @Inject constructor(
             return VdoPlgResolveOutcome.Playable(stream)
         }
         return VdoPlgResolveOutcome.NotApplicable
+    }
+
+    private suspend fun pageHtml(request: VdoPlgResolveRequest): String =
+        request.pages.html(request.pageUrl, request.rule.baseUrl.ifBlank { null })
+
+    private companion object {
+        /** 最多再往下钻两层 iframe（含主文档共三层页面）。 */
+        const val MAX_FRAME_DEPTH = 2
     }
 }

@@ -70,7 +70,9 @@ fun PlayerScreen(
     onPlayerSettingsClick: () -> Unit,
     onRetryPlayback: () -> Unit,
     onRequestFullscreen: (Boolean) -> Unit,
-    onWebSubRequest: (pageKey: String, url: String, headers: Map<String, String>, cookie: String?) -> Unit,
+    onWebSubRequest: (pageKey: String, url: String, headers: Map<String, String>, cookie: String?, trusted: Boolean) -> Unit,
+    /** 失败之后的出口：把播放页交给站点播放器（页面就是画面，控制权也交给它）。 */
+    onPlayInWebPage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val orderedEpisodes = remember(state.episodes, state.order) { state.sortedEpisodes() }
@@ -147,9 +149,13 @@ fun PlayerScreen(
             webUrl = state.webUrl,
             webReloadToken = state.webReloadToken,
             webUserAgent = state.webUserAgent,
+            sniffUrl = state.sniffUrl,
+            sniffUserAgent = state.sniffUserAgent,
+            webPageAvailable = state.webPageAvailable,
             onRetry = onRetryPlayback,
             onRequestFullscreen = onRequestFullscreen,
             onWebSubRequest = onWebSubRequest,
+            onPlayInWebPage = onPlayInWebPage,
             danmakuEnabled = state.danmakuEnabled,
             // 上下集的可用性由状态算，播放器只管置灰：首集/末集按钮不该看起来能点。
             canPlayPrevious = state.previousEpisode != null,

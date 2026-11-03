@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -48,6 +49,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -184,9 +186,15 @@ internal fun PlayerSurface(
     webUrl: String?,
     webReloadToken: Int,
     webUserAgent: String?,
+    /** 不可见解析正在加载的播放页；非空即「解析中」，画面被遮罩全盖住。 */
+    sniffUrl: String?,
+    sniffUserAgent: String?,
+    /** 失败时是否给出「用网页播放」这个出口。 */
+    webPageAvailable: Boolean,
     onRetry: () -> Unit,
     onRequestFullscreen: (Boolean) -> Unit,
-    onWebSubRequest: (pageKey: String, url: String, headers: Map<String, String>, cookie: String?) -> Unit,
+    onWebSubRequest: (pageKey: String, url: String, headers: Map<String, String>, cookie: String?, trusted: Boolean) -> Unit,
+    onPlayInWebPage: () -> Unit,
     danmakuEnabled: Boolean,
     canPlayPrevious: Boolean,
     canPlayNext: Boolean,
@@ -247,13 +255,31 @@ internal fun PlayerSurface(
         },
     )
 
+    // 顶栏在两套布局里都要用：原生/解析时它浮在画面上，网页播放时它是独立的一行。
+    // 提成 lambda 是因为参数太长，两处各写一遍容易改漏一处。
+    val topBar: @Composable (Modifier) -> Unit = { barModifier ->
+        PlayerTopOverlay(
+            title = title,
+            subtitle = subtitle,
+            enabled = controlsVisible,
+            insets = topInsets,
+            fullscreen = fullscreen,
+            webMode = mode == PlaybackMode.WEB,
+            onBackClick = onBackClick,
+            onEpisodesClick = onEpisodesClick,
+            onToggleFullscreen = onToggleFullscreen,
+            onPlayerSettingsClick = onPlayerSettingsClick,
+            modifier = barModifier,
+        )
+    }
+
     Box(
         modifier = modifier
             .background(Color.Black)
-            // WebView 形态下把整块画面的点击让给站点播放器：它有自己的播放键与进度条，
+            // 网页形态下把整块画面的点击让给站点播放器：它有自己的播放键与进度条，
             // 我们再用「点画面显隐」去抢手势，用户就点不动它了。控制层在该形态下常显。
             .then(
-                if (mode == PlaybackMode.NATIVE) {
+                if (mode == PlaybackMode.NATIVE && sniffUrl == null) {
                     Modifier.pointerInput(Unit) {
                         detectTapGestures { controlsVisible = !controlsVisible }
                     }
@@ -262,85 +288,115 @@ internal fun PlayerSurface(
                 },
             ),
     ) {
-        // 画面：两种形态二选一。加载/错误只是压在上面的状态层，不替换这一层。
-        when (mode) {
-            PlaybackMode.NATIVE -> PlayerVideo(
+        if (mode == PlaybackMode.WEB && webUrl != null) {
+            // 网页播放：顶栏与网页**分区**，不是叠层。
+            //
+            // 叠层在这里根本行不通：WebView 是真实的 Android View，永远绘制在 Compose 内容
+            // 之上，任何 Compose 控制层都盖不住它——表现就是顶栏看着在、点不到，
+            // 用户进了网页就退不出来。放进 Column 当兄弟节点之后，顶栏位于 WebView 的
+            // 布局区域**之外**，天然不受它影响。
+            Column(modifier = Modifier.fillMaxSize()) {
+                topBar(Modifier.fillMaxWidth())
+                PlayerWebView(
+                    url = webUrl,
+                    reloadToken = webReloadToken,
+                    userAgent = webUserAgent,
+                    muted = false,
+                    hidden = false,
+                    onRequestFullscreen = onRequestFullscreen,
+                    onSubRequest = onWebSubRequest,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                )
+            }
+        } else {
+            // 原生 / 解析：画面满屏，控制层浮在上面。
+            //
+            // `PlayerVideo` 常驻，**不要**把它和下面的 WebView 做成互斥分支。那样嗅探成功的
+            // 那一刻才创建 `PlayerView`，还要等它 attach Surface、解码出第一帧——
+            // 中间是一块纯黑，用户看到的就是「解析中 → 黑一下 → 开始播」。
+            PlayerVideo(
                 mediaPlayer = mediaPlayer,
                 videoScale = videoScale,
                 modifier = Modifier.fillMaxSize(),
             )
 
-            PlaybackMode.WEB -> webUrl?.let { url ->
+            // 解析用 WebView：真的存在、真的加载、站点播放器真的起播，但**一个像素都不画**。
+            //
+            // `hidden` 不是可选的：它是真实的 Android View，绘制在所有 Compose 内容之上，
+            // 不藏起来的话上面那层 SniffCover 根本盖不住它——页面加载完就会从遮罩底下
+            // 透出来，这正是「解析时闪一下播放页」的成因。
+            if (sniffUrl != null) {
                 PlayerWebView(
-                    url = url,
+                    url = sniffUrl,
                     reloadToken = webReloadToken,
-                    userAgent = webUserAgent,
-                    onRequestFullscreen = onRequestFullscreen,
+                    userAgent = sniffUserAgent,
+                    // 盖着就必须静音：否则黑底转圈里已经响起了片头曲。
+                    muted = true,
+                    hidden = true,
+                    // 解析期间**不接**站点的全屏请求：那个 view 挂上来就会顶到遮罩前面，
+                    // 用户莫名其妙进了一个陌生播放器的全屏。真正的全屏等切原生再说。
+                    onRequestFullscreen = {},
                     onSubRequest = onWebSubRequest,
                     modifier = Modifier.fillMaxSize(),
                 )
+                // 遮罩一直盖到第一帧真的画出来为止（见 ViewModel 的 `releaseSniffCover`），
+                // 所以它不会自己消失，也不会漏出一刻网页。
+                SniffCover(modifier = Modifier.fillMaxSize())
             }
-        }
 
-        PlayerStatusOverlay(
-            loading = loading,
-            failure = failure,
-            controlsVisible = controlsVisible,
-            onRetry = onRetry,
-            playback = playback,
-            // 缓冲是 Media3 的概念：WebView 形态下 Media3 已停播，它不会再回调，
-            // 转圈会永远留在画面上盖着站点播放器。
-            nativeMode = mode == PlaybackMode.NATIVE,
-            modifier = Modifier.fillMaxSize(),
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer { alpha = controlsAlpha.value },
-        ) {
-            PlayerTopOverlay(
-                title = title,
-                subtitle = subtitle,
-                enabled = controlsVisible,
-                insets = topInsets,
-                fullscreen = fullscreen,
-                webMode = mode == PlaybackMode.WEB,
-                onBackClick = onBackClick,
-                onEpisodesClick = onEpisodesClick,
-                onToggleFullscreen = onToggleFullscreen,
-                onPlayerSettingsClick = onPlayerSettingsClick,
-                modifier = Modifier.align(Alignment.TopCenter),
+            PlayerStatusOverlay(
+                loading = loading,
+                failure = failure,
+                controlsVisible = controlsVisible,
+                onRetry = onRetry,
+                playback = playback,
+                webPageAvailable = webPageAvailable,
+                onPlayInWebPage = onPlayInWebPage,
+                // 缓冲是 Media3 的概念：网页形态下 Media3 已停播，它不会再回调，
+                // 转圈会永远留在画面上盖着站点播放器。解析期间同理。
+                nativeMode = mode == PlaybackMode.NATIVE && sniffUrl == null,
+                modifier = Modifier.fillMaxSize(),
             )
 
-            // 底栏只给原生形态。
-            // WebView 形态下**不留底栏**：站点播放器的控制条就贴在这个位置，
-            // 我们压一条上去，它的进度条和音量键就点不动了（用户会觉得"这网站播放器坏了"）。
-            // 归我们管的「选集 / 全屏」挪到顶栏，那一行本来就是我们的。
-            if (mode == PlaybackMode.NATIVE) {
-                PlayerBottomControls(
-                    playback = playback,
-                    fullscreen = fullscreen,
-                    enabled = controlsVisible,
-                    danmakuEnabled = danmakuEnabled,
-                    videoScale = videoScale,
-                    speedMenuOpen = speedMenuOpen,
-                    scaleMenuOpen = scaleMenuOpen,
-                    canPlayPrevious = canPlayPrevious,
-                    canPlayNext = canPlayNext,
-                    insets = bottomInsets,
-                    onScrubbingChange = { scrubbing = it },
-                    onSpeedMenuChange = { speedMenuOpen = it },
-                    onScaleMenuChange = { scaleMenuOpen = it },
-                    onPreviousEpisode = onPreviousEpisode,
-                    onNextEpisode = onNextEpisode,
-                    onDanmakuToggle = onDanmakuToggle,
-                    onDanmakuSettingsClick = onDanmakuSettingsClick,
-                    onVideoScaleChange = { videoScale = it },
-                    onEpisodesClick = onEpisodesClick,
-                    onToggleFullscreen = onToggleFullscreen,
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = controlsAlpha.value },
+            ) {
+                topBar(Modifier.align(Alignment.TopCenter))
+
+                // 底栏只给原生形态。
+                // 网页形态下**不留底栏**：站点播放器的控制条就贴在这个位置，
+                // 我们压一条上去，它的进度条和音量键就点不动了（用户会觉得"这网站播放器坏了"）。
+                // 归我们管的「选集 / 全屏」挪到顶栏，那一行本来就是我们的。
+                // 解析期间也不给：还没有画面可控制，摆一排按钮只会让人以为点了没反应。
+                if (mode == PlaybackMode.NATIVE && sniffUrl == null) {
+                    PlayerBottomControls(
+                        playback = playback,
+                        fullscreen = fullscreen,
+                        enabled = controlsVisible,
+                        danmakuEnabled = danmakuEnabled,
+                        videoScale = videoScale,
+                        speedMenuOpen = speedMenuOpen,
+                        scaleMenuOpen = scaleMenuOpen,
+                        canPlayPrevious = canPlayPrevious,
+                        canPlayNext = canPlayNext,
+                        insets = bottomInsets,
+                        onScrubbingChange = { scrubbing = it },
+                        onSpeedMenuChange = { speedMenuOpen = it },
+                        onScaleMenuChange = { scaleMenuOpen = it },
+                        onPreviousEpisode = onPreviousEpisode,
+                        onNextEpisode = onNextEpisode,
+                        onDanmakuToggle = onDanmakuToggle,
+                        onDanmakuSettingsClick = onDanmakuSettingsClick,
+                        onVideoScaleChange = { videoScale = it },
+                        onEpisodesClick = onEpisodesClick,
+                        onToggleFullscreen = onToggleFullscreen,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
             }
         }
     }
@@ -386,6 +442,46 @@ private fun PlayerVideo(
 }
 
 /**
+ * 不可见解析的遮罩。
+ *
+ * 存在的理由：站点播放器**不是我们的界面**。底下那个 WebView 必须真实加载并起播
+ * （嗅探就靠它发出媒体请求），但一进来就看见一个陌生网站的播放器，用户的第一反应是
+ * 「这不是我要的播放器」。所以整块盖住，只留一句「正在解析播放地址」。
+ *
+ * 这一层**不会自己消失**：拦到流 → 整个 WebView 一起被换掉；超时 → 换成失败与重试。
+ * 早先的做法是「等 6 秒自动撤掉露出网页」，那正是「播放前弹网页」的来源，已经删了。
+ *
+ * 必须吃掉点击：不吃的话用户会隔着遮罩点到下面的播放器，画面黑着却有声音，更莫名其妙。
+ */
+@Composable
+private fun SniffCover(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .background(Color.Black)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {},
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(26.dp),
+                strokeWidth = 2.dp,
+                color = Color.White,
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = stringResource(R.string.player_web_sniffing),
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.72f),
+            )
+        }
+    }
+}
+
+/**
  * 画面上的状态层：正在出流 / 播不出来。
  *
  * 只在有话说的时候出现，平时是个空 Box——它盖在画面上，但自己不拦截触摸，
@@ -398,6 +494,8 @@ private fun PlayerStatusOverlay(
     controlsVisible: Boolean,
     onRetry: () -> Unit,
     playback: PlayerPlaybackState,
+    webPageAvailable: Boolean,
+    onPlayInWebPage: () -> Unit,
     nativeMode: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -432,8 +530,18 @@ private fun PlayerStatusOverlay(
                     )
                 }
                 Spacer(modifier = Modifier.height(14.dp))
-                Button(onClick = onRetry) {
-                    Text(stringResource(R.string.player_retry))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Button(onClick = onRetry) {
+                        Text(stringResource(R.string.player_retry))
+                    }
+                    // 「用网页播放」是**退出**主路径的选择，画成次按钮：不抢重试的位置，
+                    // 但必须在失败这一屏给出来——否则那类「要人点一下才起播」的站就完全没路走了。
+                    if (webPageAvailable) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(onClick = onPlayInWebPage) {
+                            Text(stringResource(R.string.player_web_play), color = Color.White.copy(alpha = 0.8f))
+                        }
+                    }
                 }
             }
 

@@ -138,6 +138,9 @@ class VdoPlgEngine @Inject constructor(
      * @param pageUrl 播放页地址，请求头里没带 Referer 时拿它兜底。
      * @param cookie WebView 自己的 Cookie（`CookieManager.getCookie`）。
      *   它不在 `requestHeaders` 里——Chromium 是在更底层注入的，所以得单独取。
+     * @param trusted 这条地址是页面自己**报上来**的（`<video src>` 或读到 `#EXTM3U` 正文），
+     *   不是网络层顺手抓到的请求。这种情况地址可能没有后缀也没有 `Range`，
+     *   但页面已经替我们确认过它就是视频，所以跳过形态判据——只挡广告与静态资源。
      * @return 不像视频流时返回 null（调用方应当忽略这次请求）。
      */
     fun sniffStream(
@@ -145,8 +148,14 @@ class VdoPlgEngine @Inject constructor(
         requestHeaders: Map<String, String>,
         pageUrl: String,
         cookie: String?,
+        trusted: Boolean = false,
     ): VdoStream? {
-        if (!VdoStreamSniffer.looksLikeVideo(url, requestHeaders)) return null
+        val accepted = if (trusted) {
+            !VdoStreamSniffer.isAd(url) && !VdoStreamSniffer.isStaticAsset(url)
+        } else {
+            VdoStreamSniffer.looksLikeVideo(url, requestHeaders)
+        }
+        if (!accepted) return null
         return VdoStream(
             url = url,
             kind = VdoStreamSniffer.kindOf(url),

@@ -12,21 +12,52 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 
 /**
- * 注入页面的样式：把 anitabi 右下角那块「更新日志」悬浮块（`.func-change-logs-fixed`）藏掉。
+ * 注入页面的样式：藏掉地图上我们不需要的一整圈浮层与标记。
  *
- * 它固定在右下角、层级最高，正好压在地图的操作区上，点它还会跳去更新日志页；
- * 对一个只想看地图的场景，这就是一块纯粹的遮挡物。
+ * 分三类，缺一类就会留下「看着像坏了」的残影：
+ * 1. **控件本体**：随机跳转作品、定位到我、配色切换（`-schemes`）、缩放/指南针。
+ * 2. **控件的壳**：`.mapboxgl-ctrl-group` 与四个角容器自带白色圆角底板和内边距。
+ *    只藏按钮时壳还在，屏幕上就是一排空白小方块——这就是「隐藏后出现几个点」的来源。
+ *    这里直接藏 `.mapboxgl-ctrl-group`（mapbox 所有成组控件的统一外壳），
+ *    但不碰四角容器本身、也不碰 `.mapboxgl-ctrl-attrib`：右下角的 mapbox 版权标识
+ *    是协议要求必须保留的，它挂在角容器里、不属于任何 group。
+ * 3. **地图自己画的位置标记**：`.mapboxgl-user-location*` 是定位蓝点/精度圈。
+ *    它不是控件，是 mapbox 在定位激活后画在地图画布上方的一层 DOM，得单独点名。
  *
- * 用 `<style>` 而不是「找到节点再删」：站点是 SPA，那块 DOM 常常在首屏之后才由 JS 插进来，
- * 按节点删会漏；CSS 规则一旦在 `<head>` 里，后插进来的节点同样被命中。
- * 带 id 守卫，重复注入只会有一次。
+ * 用 `<style>` 而不是「找到节点再删」：站点是 SPA，控件由 mapbox 在首屏之后异步插进来，
+ * 按节点删会漏；而且站点 JS 可能持有这些按钮的引用去挂监听，删节点反而让它抛异常。
+ * CSS 规则一旦在 `<head>` 里，后插进来的节点同样被命中。每次注入先摘旧再挂新，
+ * 规则升级后缓存下来的 WebView 也能跟着更新。
  */
-private const val HIDE_CHANGELOG_JS = """
+private const val HIDE_OVERLAY_JS = """
 (function() {
-  if (document.getElementById('mikomi-hide-changelog')) return;
+  // 每次都先摘掉旧版本注入的 style：规则会随版本演进（新版本要藏更多东西），
+  // 靠「有 id 就跳过」会让缓存下来的 WebView 永远停在旧规则上。
+  ['mikomi-hide-changelog', 'mikomi-hide-overlay'].forEach(function(id) {
+    var node = document.getElementById(id);
+    if (node) node.parentNode.removeChild(node);
+  });
   var style = document.createElement('style');
-  style.id = 'mikomi-hide-changelog';
-  style.textContent = '.func-change-logs-fixed{display:none!important}';
+  style.id = 'mikomi-hide-overlay';
+  style.textContent = [
+    '.func-change-logs-fixed',
+    '.mapboxgl-ctrl-group',
+    '.mapboxgl-ctrl-random-to-bangumi',
+    '.mapboxgl-ctrl-geolocate',
+    '.mapboxgl-ctrl-schemes',
+    '.mapboxgl-ctrl-zoom-in',
+    '.mapboxgl-ctrl-zoom-out',
+    '.mapboxgl-ctrl-compass',
+    // mapbox 自己贴的一个空链接触摸区（点中会跳 service.html），看不见但能误触。
+    '.mbgl-service-link',
+    '.mapboxgl-user-location',
+    '.mapboxgl-user-location-dot',
+    '.mapboxgl-user-location-accuracy-circle'
+  ].join(',') + '{display:none!important}' +
+    // 兜底：万一还有没点名的控件壳（站点自定义容器），把底板/阴影/边框一起抹掉，
+    // 空壳就只剩透明像素，不会在画面上留灰色小方块。attribution 保留原样。
+    '.mapboxgl-ctrl:not(.mapboxgl-ctrl-attrib){' +
+      'background:none!important;box-shadow:none!important;border:0!important}';
   (document.head || document.documentElement).appendChild(style);
 })();
 """
@@ -79,7 +110,7 @@ class AniMapWebViewContainer(
             web.loadUrl(initialUrl)
         } else {
             // 缓存页面的样式早就注入过；SPA 偶尔会重建 head，补一次不吃亏。
-            web.evaluateJavascript(HIDE_CHANGELOG_JS, null)
+            web.evaluateJavascript(HIDE_OVERLAY_JS, null)
         }
     }
 
@@ -131,7 +162,7 @@ class AniMapWebViewContainer(
         webChromeClient = WebChromeClient()
         webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView, finishedUrl: String?) {
-                view.evaluateJavascript(HIDE_CHANGELOG_JS, null)
+                view.evaluateJavascript(HIDE_OVERLAY_JS, null)
                 onLoadingChanged(false)
                 // 显式限定到类属性，避免与本匿名类重写的 onPageFinished 方法同名遮蔽，
                 // 否则 Kotlin 会解析成递归调用自身导致 StackOverflow。

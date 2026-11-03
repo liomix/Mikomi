@@ -228,7 +228,12 @@ fun MikomiNavHost(
             // 顶级页面之间左右滑动切换：竖向手势与子级横向滚动（轮播、分页）都优先，
             // 只有它们没消费的横向手势才落到这里，因此不会抢详情页/轮播的滑动。
             .pointerInput(isTopLevel, topLevelOrder, currentTopLevel) {
-                if (!isTopLevel) return@pointerInput
+                // 巡礼页例外：那个页面的主体是真实 WebView（地图），平移要原地收到每一帧
+                // move。而 Compose 的指针事件先于原生子 View 派发——这里一旦判定成横向
+                // 拖动并 consume，WebView 就再也收不到 move，真机表现正是「上下能拖、
+                // 左右只挪一个 touchSlop 就卡住」。横向平移是地图的核心交互，切页只是便利，
+                // 所以巡礼页放弃横滑，要换页点底部导航栏（沉浸中先点底部手势条唤出）。
+                if (!isTopLevel || currentTopLevel == AniMapDestination) return@pointerInput
                 var dragged = 0f
                 detectHorizontalDragGestures(
                     onDragStart = { dragged = 0f },

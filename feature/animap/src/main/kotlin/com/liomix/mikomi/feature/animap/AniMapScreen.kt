@@ -183,11 +183,16 @@ fun AniMapScreen(
 
         if (loading) {
             // 地图加载指示：Material 风格环形进度 + 说明文字，居中显示。
+            //
+            // 这块现在**顶替了站点的启动页**：站点的 `.ui-loading`（浅蓝底 + 地图 SVG）
+            // 已被样式藏掉，而它原本盖住的正是「HTML 到了、地图还没画出来」这段空窗。
+            // 因此这里必须是不透明底色，否则用户会先看到一片半成品画面再突然出图；
+            // 用白色而不是主题色：巡礼页的地图始终是浅色的，夜间模式也不该黑一下再变亮。
             val loadingText = stringResource(R.string.animap_loading)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .align(Alignment.Center)
+                    .background(AniMapLoadingBackground)
                     .semantics(mergeDescendants = true) { contentDescription = loadingText },
                 contentAlignment = Alignment.Center,
             ) {
@@ -266,3 +271,11 @@ fun AniMapScreen(
 
 /** 巡礼页浮层文字色（固定浅色主题的次要文字色，不参与夜间切换）。 */
 private val AniMapOverlayTextColor = Color(0xFF49454F)
+
+/**
+ * 加载遮罩底色：与站点地图底色一致（`#9DDBF1`），不随夜间模式变深。
+ *
+ * 它顶替的是站点那块同色的启动页（`.ui-loading`），作用是把「还没画出来的地图」整块盖住。
+ * 取同一个色值，遮罩撤掉的那一刻不会有底色跳变，看起来就是「地图在上面画出来了」。
+ */
+private val AniMapLoadingBackground = Color(0xFF9DDBF1)

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.graphics.Bitmap
+import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebChromeClient
@@ -30,8 +31,9 @@ import kotlinx.serialization.json.Json
  * 3. **地图自己画的位置标记**：`.mapboxgl-user-location*` 是定位蓝点/精度圈。
  *    它不是控件，是 mapbox 在定位激活后画在地图画布上方的一层 DOM，得单独点名。
  * 4. **站点自己的加载指示**：`.g-progress-box`（左上角青色进度条）、`.ui-loading`
- *    （全屏蓝底启动页，里面是一张 1520px 的地图 SVG）、`.ui-loading-box`（局部占位）。
- *    App 外层已经有一份「地图加载中」的环形提示，站点这几个只会在同一次加载里再闪一遍。
+ *    （全屏浅蓝启动页，里面是一张 1520px 的地图 SVG）、`.ui-loading-box`（局部占位）。
+ *    这三块盖住的正是「HTML 到了、地图还没画出来」的空窗 —— 藏掉它们之后，
+ *    这段等待改由 App 自己的环形提示接住（见 [MAP_READY_JS] 与 `awaitMapReady`）。
  * 5. **地标缩略图放大**：`.window-point-item` 里的 `img.ui-image.cover` 是一行五个的小图，
  *    手机上认不出取景地，按「一行三个」反算宽度放大。
  *
@@ -250,6 +252,69 @@ private const val HIDE_OVERLAY_JS = """
  * 站点那块 loading 浮层从出现到被移除可能只有几百毫秒，单靠 onPageFinished 一定错过。
  */
 private val EARLY_INJECT_DELAYS_MILLIS = longArrayOf(0L, 120L, 320L, 700L)
+
+/**
+ * 判断地图「画到什么程度」的探针，返回 `0` / `1` / `2`。
+ *
+ * `onPageFinished` 只代表 HTML 与资源请求结束，此刻 anitabi 才刚开始拉作品数据、
+ * mapbox 才刚开始画第一帧瓦片 —— 站点原本用那块浅蓝色启动页（`.ui-loading`）盖住这段空白。
+ * 启动页被我们藏掉之后，这里必须自己补上「什么时候算加载完」，否则会先白屏一下。
+ *
+ * - `0` 还不能撤遮罩：地图实例没挂出来 / 画布没尺寸 / 作品数据没到 / 瓦片还没齐；
+ * - `1` 瓦片齐了，但 `map.loaded()` 还没转真（它有过渡动画在跑时一直是 false）；
+ * - `2` 完全就绪，可以立刻撤遮罩。
+ *
+ * 为什么要分 1 和 2：`loaded()` 在某些版本里对「正在进行中的过渡」长期返回 false，
+ * 只认它会出现「图明明画好了、转圈还在」；只认 `areTilesLoaded()` 又会在刚建图、
+ * 一个瓦片都还没请求时误判成功。所以 1 只在起跑一段宽限期之后才算数（见 [MAP_READY_TILES_GRACE_MILLIS]）。
+ */
+private const val MAP_READY_JS = """
+(function() {
+  var app = window.mapApp;
+  if (!app) return 0;
+  var map = app.map;
+  if (!map || typeof map.loaded !== 'function') return 0;
+  var canvas = document.querySelector('.mapboxgl-canvas');
+  if (!canvas || !canvas.clientWidth || !canvas.clientHeight) return 0;
+  // 作品数据没到之前地图上没有任何标记，等于半个空页。
+  // `bangumis` 是每次访问都重算的 getter（Object.values + 排序），
+  // 这里读 `BangumiIds` 这个普通对象，避免 8 次/秒的重复计算。
+  var ids = app.BangumiIds;
+  var hasData = ids ? Object.keys(ids).length > 0 : !!(app.bangumis && app.bangumis.length);
+  if (!hasData) return 0;
+  try {
+    if (map.loaded()) return 2;
+  } catch (e) { }
+  try {
+    if (map.areTilesLoaded && map.areTilesLoaded()) return 1;
+  } catch (e) { }
+  return 0;
+})()
+"""
+
+/**
+ * 等地图画出来的轮询间隔（毫秒）。
+ *
+ * 只在 `onPageFinished` 之后跑，命中一次就停；120ms 对一屏的等待无感，
+ * 又不会像 16ms 那样在主页面上反复跨 JSBridge。
+ */
+private const val MAP_READY_POLL_MILLIS = 120L
+
+/**
+ * 「瓦片齐了」这条弱信号的宽限期（毫秒）：过了这个点还没等到 `loaded()` 就先放行。
+ *
+ * 刚建图时瓦片队列是空的，`areTilesLoaded()` 会瞬间返回 true，
+ * 不加宽限期就会出现「还没开始画就撤了遮罩」。
+ */
+private const val MAP_READY_TILES_GRACE_MILLIS = 2_500L
+
+/**
+ * 等地图的上限（毫秒）：超时就撤掉遮罩。
+ *
+ * 宁可露出一点半成品，也不要让人对着转圈干等 —— 弱网下瓦片可能几分钟才齐，
+ * 但那不是「加载中」，是「地图能用但不好看」。
+ */
+private const val MAP_READY_TIMEOUT_MILLIS = 8_000L
 
 /** 回传的建议条数上限：脚本里的常量与这里保持一致。 */
 private const val SEARCH_HIT_LIMIT = 40
@@ -799,6 +864,14 @@ class AniMapWebViewContainer(
     /** 页面开始加载/加载完成时回调 true/false。 */
     var onLoadingChanged: (Boolean) -> Unit = {}
 
+    /**
+     * 轮询代次：每次导航自增。
+     *
+     * 上一页那次「等地图就绪」的轮询可能还在排队，新导航开始后必须让它作废，
+     * 否则它一命中就会把新页面的加载指示撤掉（或反之，把已经画好的页面重新盖住）。
+     */
+    private var readyGeneration = 0
+
     /** 页面加载完成（onPageFinished）时回调，携带页面当前 URL（可能被站点重定向改写）。 */
     var onPageFinished: (WebView, String?) -> Unit = { _, _ -> }
 
@@ -872,6 +945,10 @@ class AniMapWebViewContainer(
         webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
+                // 每次导航都重新盖住：加载指示的语义是「这一页还没画出来」，
+                // 不是「这一次打开还没完成」，站内跳转/刷新手势同样要等。
+                readyGeneration++
+                onLoadingChanged(true)
                 // 站点那块「加载中」浮层在首屏数据到达后就被从 DOM 上摘掉了：
                 // 等 onPageFinished 时它早就不在，连手动抓 HTML 都抓不到。
                 // 所以从导航一开始就分几轮抢注——文档一旦有了 head 就把规则落下去，
@@ -883,7 +960,10 @@ class AniMapWebViewContainer(
 
             override fun onPageFinished(view: WebView, finishedUrl: String?) {
                 injectOverlayStyle(view)
-                onLoadingChanged(false)
+                // 这里**不再**直接把 loading 置 false：HTML 到齐时地图还是空白的，
+                // 站点原本用那块浅蓝启动页盖住这段时间，启动页被藏掉后得由我们接上，
+                // 否则用户会先看到一片空白再突然出图。
+                awaitMapReady(view)
                 // 显式限定到类属性，避免与本匿名类重写的 onPageFinished 方法同名遮蔽，
                 // 否则 Kotlin 会解析成递归调用自身导致 StackOverflow。
                 this@AniMapWebViewContainer.onPageFinished(view, finishedUrl)
@@ -894,6 +974,55 @@ class AniMapWebViewContainer(
     /** 把隐藏规则注入当前文档；文档还没就绪时脚本自己会退出，交给下一轮重试。 */
     private fun injectOverlayStyle(view: WebView) {
         runCatching { view.evaluateJavascript(HIDE_OVERLAY_JS, null) }
+    }
+
+    /**
+     * 轮询 [MAP_READY_JS]，地图画出来之后再把加载指示撤掉。
+     *
+     * 为什么不在 `onPageFinished` 直接收：那是「文档下载完」，不是「地图能看」。
+     * anitabi 的首页要在 JS 里再拉一次作品数据、等 mapbox 铺完首屏瓦片；
+     * 站点自己用 `.ui-loading` 盖住这段时间，我们把那块藏了，就得自己接住这段空窗。
+     *
+     * 三道保险：`2` 立刻收；`1`（瓦片齐但 loaded() 没转真）过了宽限期就收；
+     * 整体超过 [MAP_READY_TIMEOUT_MILLIS] 强制收 —— 弱网下宁可先露出半成品，
+     * 也不能让人对着转圈等到天荒地老。
+     * 页面已经卸载或又发起新导航时，这一轮静默作废（见 [readyGeneration]）。
+     */
+    private fun awaitMapReady(view: WebView) {
+        val generation = readyGeneration
+        val startedAt = SystemClock.uptimeMillis()
+        val poll = object : Runnable {
+            private val self = this
+            override fun run() {
+                // 容器已卸载 / 已经换了页面：直接作废，别去动现在的 loading。
+                if (view !== webView || generation != readyGeneration) return
+                val elapsed = SystemClock.uptimeMillis() - startedAt
+                if (elapsed >= MAP_READY_TIMEOUT_MILLIS) {
+                    onLoadingChanged(false)
+                    return
+                }
+                val release = {
+                    if (generation == readyGeneration) onLoadingChanged(false)
+                }
+                runCatching {
+                    view.evaluateJavascript(MAP_READY_JS) { raw ->
+                        if (generation != readyGeneration) return@evaluateJavascript
+                        // evaluateJavascript 回的是 JSON：数字就是 "0" / "1" / "2"。
+                        val state = raw?.trim()?.trim('"')?.toIntOrNull() ?: 0
+                        val tilesEnough = elapsed >= MAP_READY_TILES_GRACE_MILLIS
+                        if (state >= 2 || (state == 1 && tilesEnough)) {
+                            release()
+                        } else {
+                            view.postDelayed(self, MAP_READY_POLL_MILLIS)
+                        }
+                    }
+                }.onFailure {
+                    // 求值本身失败（页面正在销毁等）：给一次机会再来，别一次失败就永久转圈。
+                    view.postDelayed(self, MAP_READY_POLL_MILLIS)
+                }
+            }
+        }
+        view.postDelayed(poll, MAP_READY_POLL_MILLIS)
     }
 
     /**

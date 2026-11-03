@@ -3,4 +3,10 @@
     <string name="animap_subtitle">AniMap · 动漫取景地巡礼</string>
     <string name="animap_loading">地图加载中…</string>
     <string name="animap_show_nav_handle">唤出底部导航栏</string>
+    <string name="animap_search_hint">搜索作品、城市</string>
+    <string name="animap_search_clear">清空输入</string>
+    <string name="animap_search_cancel">取消搜索</string>
+    <string name="animap_search_empty">没有找到相关作品</string>
+    <string name="animap_search_points">%1$d 个地标</string>
+    <string name="animap_search_city_hint">城市 · 点击定位</string>
 </resources>

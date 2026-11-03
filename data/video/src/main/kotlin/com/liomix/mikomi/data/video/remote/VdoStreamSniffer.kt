@@ -1,9 +1,9 @@
-package com.liomix.mikomi.data.video.remote.vdoplugin
+package com.liomix.mikomi.data.video.remote
 
 /**
  * 「一次 WebView 子资源请求算不算视频流」的判定。
  *
- * 为什么要有这个类：插件规则里的 `useWebview` 意味着**地址是 JS 现拼的**，静态 HTML 里翻不到
+ * 为什么要有这个类：凡是要把播放页交给站点播放器的线路（`useWebview`），**地址都是 JS 现拼的**，静态 HTML 里翻不到
  * （实测 7sefun：页面里只有 base64 加密串，再跳一层到第三方播放器）。但不管怎么加密，
  * 播放器拿到地址后第一件事一定是去 GET 那个 `.m3u8`——**请求一定会在网络层出现**。
  * 所以与其在 HTML 里猜，不如把页面加载起来，在 `shouldInterceptRequest` 里等它自己暴露。
@@ -11,9 +11,9 @@ package com.liomix.mikomi.data.video.remote.vdoplugin
  * 这条路的决定性好处：**跨域 iframe 也拦得到**。请求走的是同一个 WebView 的网络栈，
  * 主文档的 JS 进不去 iframe，网络层却看得见。
  *
- * 判定本身是纯字符串逻辑、没有状态，所以放在这里给两边共用：
+ * 判定本身是纯字符串逻辑、没有状态，所以放在共用层给所有源复用：
  * 播放层（`PlayerWebView`）用它做**预筛**，把明显不是视频的请求直接丢掉，不要往上传；
- * 出流层（[VdoPluginEngine.sniffStream]）用它复核并组装 [VdoStream]。
+ * 出流层（`VdoPluginEngine.sniffStream` 等）用它复核并组装 [VdoStream]。
  */
 object VdoStreamSniffer {
 
@@ -47,6 +47,17 @@ object VdoStreamSniffer {
     }
 
     /**
+     * 这个地址是不是广告。
+     *
+     * 静态解析那条路也要用它：广告本身也是 mp4/m3u8，探起来 200 + `video/mp4`，
+     * 一切「正常」，播出来却是 15 秒广告。唯一能区分的是域名特征。
+     */
+    fun isAd(url: String): Boolean {
+        val lower = url.lowercase()
+        return AD_MARKERS.any { lower.contains(it) }
+    }
+
+    /**
      * 这次请求像不像视频流。
      *
      * @param url 请求地址（绝对地址，WebView 给的）
@@ -54,9 +65,9 @@ object VdoStreamSniffer {
      *   （很多 CDN 的 mp4 地址连后缀都没有）。
      */
     fun looksLikeVideo(url: String, requestHeaders: Map<String, String>): Boolean {
-        val lower = url.lowercase()
-        if (AD_MARKERS.any { lower.contains(it) }) return false
+        if (isAd(url)) return false
 
+        val lower = url.lowercase()
         val path = lower.substringBefore('?').substringBefore('#')
         // HLS 播放列表：第一层 master 和子列表都以 .m3u8 结尾，最可信。
         if (path.endsWith(".m3u8")) return true

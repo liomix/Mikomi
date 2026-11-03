@@ -4,8 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
-import com.liomix.mikomi.data.video.remote.vdoplugin.InvalidVdoPluginRuleException
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoPluginRepository
+import com.liomix.mikomi.data.video.remote.vdoplugin.rule.InvalidVdoPluginRuleException
+import com.liomix.mikomi.data.video.remote.vdoplugin.store.VdoPluginRepository
 import com.liomix.mikomi.feature.settings.plugin.DEFAULT_RULES_REPO_URL
 import com.liomix.mikomi.feature.settings.plugin.RuleMirror
 import dagger.hilt.android.lifecycle.HiltViewModel

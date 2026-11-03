@@ -2,8 +2,8 @@ package com.liomix.mikomi.feature.settings.plugin
 
 import androidx.annotation.StringRes
 import com.liomix.mikomi.core.model.PluginRule
-import com.liomix.mikomi.data.video.remote.vdoplugin.InvalidVdoPluginRuleException
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoRuleTestReport
+import com.liomix.mikomi.data.video.remote.vdoplugin.rule.InvalidVdoPluginRuleException
+import com.liomix.mikomi.data.video.remote.vdoplugin.rule.VdoRuleTestReport
 import com.liomix.mikomi.feature.settings.R
 
 /**

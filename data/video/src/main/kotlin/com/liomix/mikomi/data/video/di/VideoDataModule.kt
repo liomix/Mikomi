@@ -2,8 +2,8 @@ package com.liomix.mikomi.data.video.di
 
 import com.liomix.mikomi.data.video.VideoRepository
 import com.liomix.mikomi.data.video.internal.VideoRepositoryImpl
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoPluginRepository
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoPluginRepositoryImpl
+import com.liomix.mikomi.data.video.remote.vdoplugin.store.VdoPluginRepository
+import com.liomix.mikomi.data.video.remote.vdoplugin.store.VdoPluginRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

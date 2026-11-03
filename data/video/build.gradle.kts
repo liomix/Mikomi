@@ -6,7 +6,7 @@ android {
     namespace = "com.liomix.mikomi.data.video"
 
     /**
-     * 内置规则（`DM84.json`、`7sefun.json`）与解析代码放在同一个包里的 `rules/` 下，
+     * 内置规则（`DM84.json`、`7sefun.json`）放在插件源包根部的 `rules/` 下，
      * 改规则不用跨模块找文件；这里把这个目录登记成 assets 源集，打包后它们就在 assets 根下，
      * 由 `VdoPluginRepositoryImpl` 首次启动时播种到 `files/vdoplugin/rules/`。
      *

@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.video.remote.vdoplugin
+package com.liomix.mikomi.data.video.remote
 
 import java.util.concurrent.CopyOnWriteArrayList
 import okhttp3.Cookie

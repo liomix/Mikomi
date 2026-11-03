@@ -34,7 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.liomix.mikomi.data.video.remote.vdoplugin.InvalidVdoPluginRuleException
+import com.liomix.mikomi.data.video.remote.vdoplugin.rule.InvalidVdoPluginRuleException
 import com.liomix.mikomi.feature.settings.R
 
 /**

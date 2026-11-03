@@ -1,5 +1,15 @@
-package com.liomix.mikomi.data.video.remote.vdoplugin
+package com.liomix.mikomi.data.video.remote.vdoplugin.rule
 
+import com.liomix.mikomi.data.video.remote.VdoEpisodeRoad
+import com.liomix.mikomi.data.video.remote.VdoFailureReason
+import com.liomix.mikomi.data.video.remote.VdoLineRef
+import com.liomix.mikomi.data.video.remote.VdoSearchHit
+import com.liomix.mikomi.data.video.remote.VdoSourceException
+import com.liomix.mikomi.data.video.remote.VdoStream
+import com.liomix.mikomi.data.video.remote.VdoStreamPlan
+import com.liomix.mikomi.data.video.remote.vdoplugin.VdoPluginEngine
+import com.liomix.mikomi.data.video.remote.vdoplugin.stream.VdoPlanRequest
+import com.liomix.mikomi.data.video.remote.vdoplugin.stream.VdoStreamPlanner
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.cancellation.CancellationException
@@ -28,7 +38,7 @@ sealed interface VdoStageResult {
     data object Passed : VdoStageResult
 
     /** @property detail 现场细节：字段名、HTTP 码、出问题的地址。 */
-    data class Failed(val reason: VdoTestReason, val detail: String? = null) : VdoStageResult
+    data class Failed(val reason: VdoFailureReason, val detail: String? = null) : VdoStageResult
 
     /** 没跑到：前面那步已经失败，或者还没填关键词。 */
     data object Skipped : VdoStageResult
@@ -39,7 +49,7 @@ sealed interface VdoStageResult {
  *
  * 只留「剧集」和「出流」这两件真正要紧的事，外加它们的入口——搜索：
  * 搜索不通，剧集无从谈起；剧集拿不到，出流无从谈起。字段级体检不再单独列出，
- * 缺字段会直接在对应那一步以 [VdoTestReason.RuleBroken] 暴露出来（detail 里就是字段名）。
+ * 缺字段会直接在对应那一步以 [VdoFailureReason.RuleBroken] 暴露出来（detail 里就是字段名）。
  */
 data class VdoRuleTestReport(
     val keyword: String = "",
@@ -75,7 +85,10 @@ data class VdoRuleTestReport(
  * 一次跑完三步，任何一步失败就把原因摊开、后面的步骤标成跳过：
  * - 搜索：`searchURL`（`@keyword` 替换）→ 按 `searchList`/`searchName`/`searchResult` 解析；
  * - 剧集：取第一部片的详情页 → 按 `chapterRoads`/`chapterResult` 取剧集；
- * - 出流：取第一集的播放页 → 翻 iframe 与播放器配置 → 真拉开头 2KB 确认是 HLS/mp4。
+ * - 出流：取第一集的播放页 → 跑**不渲染**的那几级策略（静态解析、加密配置）→ 真拉开头 2KB。
+ *
+ * 出流这一步刻意不跑 WebView 那一级：测试要回答的是「这条规则写得对不对」。
+ * 如果把「反正能交给网页播放」也算通过，那每条规则都会通过，测试就没意义了。
  *
  * 不缓存中间结果、也不复用上一步的 HTTP 响应：这三步在真实播放链路上本来就是三次独立请求，
  * 测试若走了捷径，测出来的就不是用户会遇到的那条路。
@@ -83,6 +96,7 @@ data class VdoRuleTestReport(
 @Singleton
 class VdoPluginRuleVerifier @Inject constructor(
     private val engine: VdoPluginEngine,
+    private val planner: VdoStreamPlanner,
 ) {
 
     /**
@@ -97,7 +111,7 @@ class VdoPluginRuleVerifier @Inject constructor(
             engine.search(ruleJson, keyword)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: VdoPluginException) {
+        } catch (e: VdoSourceException) {
             return VdoRuleTestReport(
                 keyword = keyword,
                 search = VdoStageResult.Failed(e.reason, e.detail),
@@ -106,7 +120,7 @@ class VdoPluginRuleVerifier @Inject constructor(
         if (hits.isEmpty()) {
             return VdoRuleTestReport(
                 keyword = keyword,
-                search = VdoStageResult.Failed(VdoTestReason.NoResults, "searchList"),
+                search = VdoStageResult.Failed(VdoFailureReason.NoResults, "searchList"),
             )
         }
 
@@ -114,7 +128,7 @@ class VdoPluginRuleVerifier @Inject constructor(
             engine.episodes(ruleJson, hits.first().url)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: VdoPluginException) {
+        } catch (e: VdoSourceException) {
             return VdoRuleTestReport(
                 keyword = keyword,
                 search = VdoStageResult.Passed,
@@ -128,15 +142,24 @@ class VdoPluginRuleVerifier @Inject constructor(
                 keyword = keyword,
                 search = VdoStageResult.Passed,
                 searchHits = hits,
-                episodes = VdoStageResult.Failed(VdoTestReason.NoEpisodes, "chapterResult"),
+                episodes = VdoStageResult.Failed(VdoFailureReason.NoEpisodes, "chapterResult"),
             )
         }
 
         val stream = try {
-            engine.stream(ruleJson, firstEpisode.url)
+            val request = VdoPlanRequest(
+                ruleJson = ruleJson,
+                line = VdoLineRef(
+                    sourceName = VdoRuleDocument.parse(ruleJson).name.ifBlank { "rule" },
+                    lineName = roads.first().name,
+                    firstEpisodeUrl = roads.first().episodes.first().url,
+                ),
+                episodeUrl = firstEpisode.url,
+            )
+            (planner.probeDirect(request).plan as VdoStreamPlan.Native).stream
         } catch (e: CancellationException) {
             throw e
-        } catch (e: VdoPluginException) {
+        } catch (e: VdoSourceException) {
             return VdoRuleTestReport(
                 keyword = keyword,
                 search = VdoStageResult.Passed,

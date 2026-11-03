@@ -90,10 +90,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.liomix.mikomi.core.model.PluginRule
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoRuleTestReport
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoStageResult
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoStreamKind
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoTestReason
+import com.liomix.mikomi.data.video.remote.VdoFailureReason
+import com.liomix.mikomi.data.video.remote.VdoStreamKind
+import com.liomix.mikomi.data.video.remote.vdoplugin.rule.VdoRuleTestReport
+import com.liomix.mikomi.data.video.remote.vdoplugin.rule.VdoStageResult
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardHeader
@@ -1007,15 +1007,15 @@ private fun StageRow(
 
 /** 失败原因 → 一句人话。数据层只给枚举，文案留在这里。 */
 @StringRes
-private fun VdoTestReason.labelRes(): Int = when (this) {
-    VdoTestReason.RuleBroken -> R.string.settings_plugin_test_reason_rule_broken
-    VdoTestReason.NetworkError -> R.string.settings_plugin_test_reason_network
-    VdoTestReason.HttpError -> R.string.settings_plugin_test_reason_http
-    VdoTestReason.NoResults -> R.string.settings_plugin_test_reason_no_results
-    VdoTestReason.NoEpisodes -> R.string.settings_plugin_test_reason_no_episodes
-    VdoTestReason.NoStream -> R.string.settings_plugin_test_reason_no_stream
-    VdoTestReason.StreamUnreachable -> R.string.settings_plugin_test_reason_stream_unreachable
-    VdoTestReason.NeedWebView -> R.string.settings_plugin_test_reason_webview
+private fun VdoFailureReason.labelRes(): Int = when (this) {
+    VdoFailureReason.RuleBroken -> R.string.settings_plugin_test_reason_rule_broken
+    VdoFailureReason.NetworkError -> R.string.settings_plugin_test_reason_network
+    VdoFailureReason.HttpError -> R.string.settings_plugin_test_reason_http
+    VdoFailureReason.NoResults -> R.string.settings_plugin_test_reason_no_results
+    VdoFailureReason.NoEpisodes -> R.string.settings_plugin_test_reason_no_episodes
+    VdoFailureReason.NoStream -> R.string.settings_plugin_test_reason_no_stream
+    VdoFailureReason.StreamUnreachable -> R.string.settings_plugin_test_reason_stream_unreachable
+    VdoFailureReason.NeedWebView -> R.string.settings_plugin_test_reason_webview
 }
 
 /** 流类型 → 文案。HLS 与直链的差别，决定了播放器要不要走 HLS 分支。 */

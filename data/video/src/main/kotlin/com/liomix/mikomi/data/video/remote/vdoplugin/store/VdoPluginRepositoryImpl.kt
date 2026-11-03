@@ -1,9 +1,11 @@
-package com.liomix.mikomi.data.video.remote.vdoplugin
+package com.liomix.mikomi.data.video.remote.vdoplugin.store
 
 import android.content.Context
 import android.util.Log
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
 import com.liomix.mikomi.core.model.PluginRule
+import com.liomix.mikomi.data.video.remote.vdoplugin.rule.InvalidVdoPluginRuleException
+import com.liomix.mikomi.data.video.remote.vdoplugin.rule.VdoPluginRuleFormat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
@@ -43,10 +45,10 @@ internal class VdoPluginRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : VdoPluginRepository {
 
-    private val root = File(context.filesDir, PLUGIN_DIR)
-    private val rulesDir = File(root, RULES_DIR)
-    private val stateFile = File(root, STATE_FILE)
-    private val seededMarker = File(root, SEEDED_MARKER)
+    private val root = VdoPluginPaths.root(context)
+    private val rulesDir = File(root, VdoPluginPaths.RULES)
+    private val stateFile = File(root, VdoPluginPaths.STATE_FILE)
+    private val seededMarker = File(root, VdoPluginPaths.SEEDED_MARKER)
     private val assets = context.assets
 
     /** 写操作串行化：两条规则同时被删/改时，state 文件的读改写不会互相覆盖。 */
@@ -266,11 +268,6 @@ internal class VdoPluginRepositoryImpl @Inject constructor(
     private companion object {
         const val TAG = "VdoPluginRepository"
 
-        /** 应用私有目录下的根文件夹名，和包名一样用 vdoplugin，找起来不用猜。 */
-        const val PLUGIN_DIR = "vdoplugin"
-        const val RULES_DIR = "rules"
-        const val STATE_FILE = "state.json"
-        const val SEEDED_MARKER = ".seeded"
         const val JSON_SUFFIX = ".json"
         const val KEY_ORDER = "order"
         const val KEY_DISABLED = "disabled"

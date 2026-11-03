@@ -1,5 +1,7 @@
-package com.liomix.mikomi.data.video.remote.vdoplugin
+package com.liomix.mikomi.data.video.remote.vdoplugin.rule
 
+import com.liomix.mikomi.data.video.remote.VdoFailureReason
+import com.liomix.mikomi.data.video.remote.VdoSourceException
 import javax.xml.xpath.XPathConstants
 import javax.xml.xpath.XPathFactory
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -48,7 +50,7 @@ internal object VdoRuleSelector {
         val nodes = runCatching {
             factory.newXPath().evaluate(trimmed, scope, XPathConstants.NODESET) as org.w3c.dom.NodeList
         }.getOrElse { e ->
-            throw VdoPluginException(VdoTestReason.RuleBroken, trimmed, e)
+            throw VdoSourceException(VdoFailureReason.RuleBroken, trimmed, e)
         }
         return (0 until nodes.length).map(nodes::item)
     }

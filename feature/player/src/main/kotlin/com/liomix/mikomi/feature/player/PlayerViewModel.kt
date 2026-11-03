@@ -11,14 +11,18 @@ import com.liomix.mikomi.core.media.MikomiPlayer
 import com.liomix.mikomi.core.media.MikomiPlayerFactory
 import com.liomix.mikomi.core.model.PluginRule
 import com.liomix.mikomi.data.anime.AnimeRepository
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoEpisode
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoEpisodeRoad
+import com.liomix.mikomi.data.video.remote.VdoEpisode
+import com.liomix.mikomi.data.video.remote.VdoEpisodeRoad
+import com.liomix.mikomi.data.video.remote.VdoFailureReason
+import com.liomix.mikomi.data.video.remote.VdoLineRef
+import com.liomix.mikomi.data.video.remote.VdoSearchHit
+import com.liomix.mikomi.data.video.remote.VdoSourceException
+import com.liomix.mikomi.data.video.remote.VdoStreamKind
+import com.liomix.mikomi.data.video.remote.VdoStreamPlan
 import com.liomix.mikomi.data.video.remote.vdoplugin.VdoPluginEngine
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoPluginException
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoPluginRepository
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoSearchHit
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoStreamKind
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoTestReason
+import com.liomix.mikomi.data.video.remote.vdoplugin.store.VdoPluginRepository
+import com.liomix.mikomi.data.video.remote.vdoplugin.stream.VdoPlanRequest
+import com.liomix.mikomi.data.video.remote.vdoplugin.stream.VdoStreamPlanner
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
@@ -61,6 +65,7 @@ class PlayerViewModel @Inject constructor(
     private val animeRepository: AnimeRepository,
     private val pluginRepository: VdoPluginRepository,
     private val engine: VdoPluginEngine,
+    private val planner: VdoStreamPlanner,
     playerFactory: MikomiPlayerFactory,
 ) : ViewModel(), PlayerCommandSink {
 
@@ -193,7 +198,7 @@ class PlayerViewModel @Inject constructor(
         // 「重试」是重新出流：地址多半过期了（这类站点的播放地址通常只有几十分钟寿命），
         // 对同一个地址再 prepare 一次只会再失败一次。
         val sourceId = state.selectedSourceId ?: return reload()
-        playOn(sourceId, state.currentEpisodeIndex, keepPosition = true)
+        playOn(sourceId, state.currentEpisodeIndex, keepPosition = true, forgetCache = true)
     }
 
     // —— UI 动作 ——
@@ -275,9 +280,9 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /** 单条线路重试：只重出这一条，不动其它线路。 */
+    /** 单条线路重试：只重出这一条，不动其它线路，并且不信上次的能力结论。 */
     fun onRetryLine(sourceId: String, lineId: String) {
-        playOn(sourceId, _uiState.value.currentEpisodeIndex, lineId = lineId, keepPosition = true)
+        playOn(sourceId, _uiState.value.currentEpisodeIndex, lineId = lineId, keepPosition = true, forgetCache = true)
     }
 
     /** 「全部重试」：把启用源整体重跑一遍，当前在播的集数尽量保持。 */
@@ -324,6 +329,10 @@ class PlayerViewModel @Inject constructor(
             mimeType = stream.kind.mimeType,
             headers = stream.headers,
         )
+        // 这条线路下次可以直接验证这个地址，省掉一整轮解析。
+        lineRefOf(state.selectedSourceId)?.let { line ->
+            viewModelScope.launch { planner.rememberSniffed(line, stream) }
+        }
     }
 
     // —— 主链路 ——
@@ -397,18 +406,22 @@ class PlayerViewModel @Inject constructor(
      *
      * @param lineId 目标线路；null 表示沿用当前线路，再没有就用第一条。
      * @param keepPosition 是否保留当前播放进度（换源/换线路为 true，切集为 false）。
+     * @param forgetCache 是否先丢掉这条线路的能力缓存。用户点「重试」时为 true——
+     *   那个动作的意思是「我不信上次的判断」，不清理的话重试只是把同一个结论再验一遍。
      */
     private fun playOn(
         sourceId: String,
         episodeIndex: Int,
         lineId: String? = null,
         keepPosition: Boolean = false,
+        forgetCache: Boolean = false,
     ) {
         playJob?.cancel()
         val resumePosition = if (keepPosition) playback.positionMillis else 0L
         val wasPlaying = playback.isPlaying
 
         playJob = viewModelScope.launch {
+            if (forgetCache) lineRefOf(sourceId)?.let { planner.forget(it) }
             val state = ruleStates.firstOrNull { it.rule.name == sourceId }
             if (state == null || state.roads.isEmpty()) {
                 fail(PlayerFailureReason.NoMatch, sourceId)
@@ -429,32 +442,40 @@ class PlayerViewModel @Inject constructor(
             val index = episodeIndex.coerceIn(0, episodes.lastIndex)
             val episode = episodes[index]
 
-            // 站点自带播放器（规则里 useNativePlayer / useWebview）：地址是 JS 现拼的，
-            // 静态页面里只有海报和统计脚本。直接进 WebView 形态，别浪费两次请求去抽地址。
-            if (engine.requiresWebView(state.rule.json)) {
-                enterWebMode(state.rule, episode, episodes, sourceId, roadIndex)
-                return@launch
-            }
-
-            val stream = try {
-                withTimeoutOrNull(STREAM_TIMEOUT_MILLIS) { engine.stream(state.rule.json, episode.id) }
+            // 出流交给策略链：规则里的 useWebview 只是提示，不再决定走哪条路。
+            // 能直链的线路拿回进度条与倍速，拿不到才退到网页。
+            val request = VdoPlanRequest(
+                ruleJson = state.rule.json,
+                line = VdoLineRef(
+                    sourceName = state.rule.name,
+                    lineName = road.name,
+                    // 身份用**首集**的地址形状：同一条线路上换哪一集，都不该换掉它的身份。
+                    firstEpisodeUrl = road.episodes.firstOrNull()?.url ?: episode.id,
+                ),
+                episodeUrl = episode.id,
+            )
+            val plan = try {
+                withTimeoutOrNull(PLAN_TIMEOUT_MILLIS) { planner.plan(request) }?.plan
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: VdoPluginException) {
-                // 规则没声明 webview、但页面确实是 JS 拼的：现场发现的，退到 WebView 形态兜住。
-                if (e.reason == VdoTestReason.NeedWebView) {
-                    enterWebMode(state.rule, episode, episodes, sourceId, roadIndex)
-                } else {
-                    markLine(sourceId, roadIndex, SourceAvailability.FAILED)
-                    fail(e.reason.toFailureReason(), e.detail)
-                }
+            } catch (e: VdoSourceException) {
+                markLine(sourceId, roadIndex, SourceAvailability.FAILED)
+                fail(e.reason.toFailureReason(), e.detail)
                 return@launch
             }
-            if (stream == null) {
+            if (plan == null) {
                 markLine(sourceId, roadIndex, SourceAvailability.FAILED)
                 fail(PlayerFailureReason.Network, "出流超时")
                 return@launch
             }
+
+            if (plan is VdoStreamPlan.Web) {
+                Log.i(TAG, "Render playback page: ${plan.reason}")
+                enterWebMode(state.rule, episode, episodes, sourceId, roadIndex, userAgent = plan.userAgent)
+                return@launch
+            }
+
+            val stream = (plan as VdoStreamPlan.Native).stream
 
             // 先更新 UI 再出流：选集高亮与线路选中在这一刻就该切换，
             // 等播放器 ready 才变会让用户以为点空了。
@@ -469,7 +490,7 @@ class PlayerViewModel @Inject constructor(
                     // 从 WebView 形态切回原生时要把 webUrl 清掉，否则画面还挂着上一个网页。
                     mode = PlaybackMode.NATIVE,
                     webUrl = null,
-                    sources = it.sources.markPlaying(sourceId, roadIndex),
+                    sources = it.sources.markPlaying(sourceId, roadIndex, PlaybackMode.NATIVE),
                 )
             }
             playback.resetForNewMedia()
@@ -484,15 +505,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 切到 WebView 形态：把播放页整页交给 WebView，让站点播放器自己播。
-     *
-     * 此时 Media3 要停：两条路同时出声是最典型的「两个声音」事故。
-     *
-     * 这里**不递增** `webReloadToken`：换集时 `webUrl` 本身变了，WebView 会因为地址变化自己加载。
-     * 两个信号一起发会让它「loadUrl 新地址 + reload 上一步」连跳两次，表现为白一下再从头加载。
-     * 令牌只留给「同一个地址要重来一次」的重试。
-     */
     /**
      * 直链播不动时，**原地降一级**到 WebView 嗅探。
      *
@@ -513,6 +525,10 @@ class PlayerViewModel @Inject constructor(
         if (!webFallbacks.add("$sourceId|${episode.id}")) return false
 
         Log.i(TAG, "Direct stream failed, falling back to WebView sniffing: $sourceId")
+        // 这次失败说明「这条线路能直链」的判断已经不可靠：记一笔，连续两次就作废缓存。
+        lineRefOf(sourceId)?.let { line ->
+            viewModelScope.launch { planner.reportMismatch(line) }
+        }
         enterWebMode(
             rule = rule,
             episode = episode,
@@ -523,29 +539,43 @@ class PlayerViewModel @Inject constructor(
         return true
     }
 
+    /**
+     * 切到 WebView 形态：把播放页整页交给 WebView，让站点播放器自己播。
+     *
+     * 此时 Media3 要停：两条路同时出声是最典型的「两个声音」事故。
+     *
+     * 这里**不递增** `webReloadToken`：换集时 `webUrl` 本身变了，WebView 会因为地址变化自己加载。
+     * 两个信号一起发会让它「loadUrl 新地址 + reload 上一步」连跳两次，表现为白一下再从头加载。
+     * 令牌只留给「同一个地址要重来一次」的重试。
+     */
     private fun enterWebMode(
         rule: PluginRule,
         episode: EpisodeItem,
         episodes: List<EpisodeItem>,
         sourceId: String,
         roadIndex: Int,
+        userAgent: String = engine.userAgentOf(rule.json),
     ) {
         player.reset()
         playback.resetForNewMedia()
         // 缓冲是 Media3 的语义，WebView 形态下它已停播、不会再回调，留着就是永远转圈。
         playback.onBufferingChanged(false)
         _uiState.update {
+            // 同一页再点一次「重试」：地址没变，WebView 不会自己动，得靠令牌催它重新加载。
+            // 换集时地址本身变了，绝不能同时递增令牌——那会连跳两次。
+            val samePage = it.mode == PlaybackMode.WEB && it.webUrl == episode.id
             it.copy(
                 loading = false,
                 failure = null,
                 mode = PlaybackMode.WEB,
                 webUrl = episode.id,
-                webUserAgent = engine.userAgentOf(rule.json),
+                webReloadToken = if (samePage) it.webReloadToken + 1 else it.webReloadToken,
+                webUserAgent = userAgent,
                 episodes = episodes,
                 currentEpisode = episode,
                 selectedSourceId = sourceId,
                 sourceSheetVisible = false,
-                sources = it.sources.markPlaying(sourceId, roadIndex),
+                sources = it.sources.markPlaying(sourceId, roadIndex, PlaybackMode.WEB),
             )
         }
     }
@@ -586,7 +616,7 @@ class PlayerViewModel @Inject constructor(
         val hits: List<VdoSearchHit>? = withTimeoutOrNull(SEARCH_TIMEOUT_MILLIS) {
             engine.search(rule.json, keyword)
         }
-        if (hits == null) return RuleState(rule, failure = VdoTestReason.NetworkError)
+        if (hits == null) return RuleState(rule, failure = VdoFailureReason.NetworkError)
         if (hits.isEmpty()) return RuleState(rule)
 
         val detailUrl = hits.first().url
@@ -646,6 +676,20 @@ class PlayerViewModel @Inject constructor(
         return selected?.substringAfterLast(LINE_ID_SEPARATOR)?.toIntOrNull() ?: 0
     }
 
+    /**
+     * 当前源、当前线路的稳定身份；探测还没完成时返回 null。
+     *
+     * 所有需要读写能力缓存的地方都走它：线路身份由「源名 + 线路名 + 首集地址形状」三样决定，
+     * 让每个调用点自己拼，早晚会有一个地方漏掉其中一样。
+     */
+    private fun lineRefOf(sourceId: String?): VdoLineRef? {
+        val id = sourceId ?: return null
+        val state = ruleStates.firstOrNull { it.rule.name == id } ?: return null
+        val road = state.roads.getOrNull(currentRoadIndex(id)) ?: return null
+        val firstEpisode = road.episodes.firstOrNull() ?: return null
+        return VdoLineRef(sourceName = id, lineName = road.name, firstEpisodeUrl = firstEpisode.url)
+    }
+
     private fun markLine(sourceId: String, roadIndex: Int, availability: SourceAvailability) {
         _uiState.update { state ->
             state.copy(
@@ -673,8 +717,15 @@ class PlayerViewModel @Inject constructor(
      *
      * 必须一起改源级状态：之前失败过的源 `status` 还是 FAILED，
      * 只把线路改成就绪的话，换源弹窗里它照样显示成「请求失败」——明明正在播。
+     *
+     * @param mode 这条线路这次是怎么播的。写回线路，用户在换源弹窗里就能看到
+     *   「直链 / 网页」——不然「这条线没有进度条」看着像 bug。
      */
-    private fun List<PlayerSource>.markPlaying(sourceId: String, roadIndex: Int): List<PlayerSource> = map {
+    private fun List<PlayerSource>.markPlaying(
+        sourceId: String,
+        roadIndex: Int,
+        mode: PlaybackMode,
+    ): List<PlayerSource> = map {
         if (it.id != sourceId) {
             it
         } else {
@@ -683,7 +734,11 @@ class PlayerViewModel @Inject constructor(
                 status = SourceAvailability.READY,
                 selectedLineId = lineId,
                 lines = it.lines.map { line ->
-                    if (line.id == lineId) line.copy(availability = SourceAvailability.READY) else line
+                    if (line.id == lineId) {
+                        line.copy(availability = SourceAvailability.READY, playbackMode = mode)
+                    } else {
+                        line
+                    }
                 },
             )
         }
@@ -718,7 +773,7 @@ class PlayerViewModel @Inject constructor(
         val rule: PluginRule,
         val hits: List<VdoSearchHit> = emptyList(),
         val roads: List<VdoEpisodeRoad> = emptyList(),
-        val failure: VdoTestReason? = null,
+        val failure: VdoFailureReason? = null,
     )
 
     private companion object {
@@ -732,7 +787,9 @@ class PlayerViewModel @Inject constructor(
         const val DETAIL_TIMEOUT_MILLIS = 12_000L
         const val SEARCH_TIMEOUT_MILLIS = 12_000L
         const val EPISODES_TIMEOUT_MILLIS = 12_000L
-        const val STREAM_TIMEOUT_MILLIS = 20_000L
+
+        /** 出流要串起「抓页面 → 解配置 → 探候选」，比单次请求宽一些。 */
+        const val PLAN_TIMEOUT_MILLIS = 30_000L
         const val PROGRESS_INTERVAL_MILLIS = 200L
     }
 }
@@ -758,14 +815,14 @@ private fun VdoEpisodeRoad.toEpisodeItems(): List<EpisodeItem> =
     episodes.mapIndexed { index, episode -> episode.toEpisodeItem(index) }
 
 /** 出流层的失败原因 → 播放页的原因。两边枚举刻意不复用：文案语境不同。 */
-private fun VdoTestReason?.toFailureReason(): PlayerFailureReason? = when (this) {
+private fun VdoFailureReason?.toFailureReason(): PlayerFailureReason? = when (this) {
     null -> null
-    VdoTestReason.RuleBroken -> PlayerFailureReason.RuleBroken
-    VdoTestReason.NetworkError, VdoTestReason.HttpError -> PlayerFailureReason.Network
-    VdoTestReason.NoResults -> PlayerFailureReason.NoMatch
-    VdoTestReason.NoEpisodes -> PlayerFailureReason.NoEpisodes
-    VdoTestReason.NoStream, VdoTestReason.StreamUnreachable -> PlayerFailureReason.NoStream
-    VdoTestReason.NeedWebView -> PlayerFailureReason.NeedWebView
+    VdoFailureReason.RuleBroken -> PlayerFailureReason.RuleBroken
+    VdoFailureReason.NetworkError, VdoFailureReason.HttpError -> PlayerFailureReason.Network
+    VdoFailureReason.NoResults -> PlayerFailureReason.NoMatch
+    VdoFailureReason.NoEpisodes -> PlayerFailureReason.NoEpisodes
+    VdoFailureReason.NoStream, VdoFailureReason.StreamUnreachable -> PlayerFailureReason.NoStream
+    VdoFailureReason.NeedWebView -> PlayerFailureReason.NeedWebView
 }
 
 /** 流类型 → Media3 的 mimeType。显式给类型，省得 ExoPlayer 靠后缀猜（有些地址没有后缀）。 */

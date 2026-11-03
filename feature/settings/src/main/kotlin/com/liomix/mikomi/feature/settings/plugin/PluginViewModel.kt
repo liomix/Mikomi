@@ -3,11 +3,11 @@ package com.liomix.mikomi.feature.settings.plugin
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.liomix.mikomi.data.video.remote.vdoplugin.InvalidVdoPluginRuleException
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoPluginRepository
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoPluginRuleFormat
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoPluginRuleVerifier
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoRuleTestReport
+import com.liomix.mikomi.data.video.remote.vdoplugin.rule.InvalidVdoPluginRuleException
+import com.liomix.mikomi.data.video.remote.vdoplugin.rule.VdoPluginRuleFormat
+import com.liomix.mikomi.data.video.remote.vdoplugin.rule.VdoPluginRuleVerifier
+import com.liomix.mikomi.data.video.remote.vdoplugin.rule.VdoRuleTestReport
+import com.liomix.mikomi.data.video.remote.vdoplugin.store.VdoPluginRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException

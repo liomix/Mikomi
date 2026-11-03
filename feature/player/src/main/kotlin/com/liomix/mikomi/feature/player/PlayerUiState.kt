@@ -61,6 +61,13 @@ data class PlayerLine(
     val availability: SourceAvailability,
     /** 清晰度标签（`1080P` / `720P`）；线路没上报时为 null。 */
     val quality: String? = null,
+    /**
+     * 这条线路最近一次出流的形态：直链（我们控制进度）还是网页（站点播放器接管）。
+     *
+     * 只有真正播过才知道，所以未播过时为 null。透出来的目的是让用户在换线路时
+     * 能看出「为什么这条没有进度条」——否则那看起来像个 bug。
+     */
+    val playbackMode: PlaybackMode? = null,
 ) {
     /** 只有「查完没有」和「查挂了」值得再点一次；检测中与已就绪都不用。 */
     val isRetryable: Boolean
@@ -112,10 +119,9 @@ data class PlayerSource(
 /**
  * 这一集用什么播。
  *
- * 分两种不是设计选择，是源决定的：
- * - [NATIVE]：规则不给直链以外的路子，抽出 m3u8/mp4 交给 Media3，进度、倍速、倍速统统归我们管；
- * - [WEB]：站点自带播放器（规则里 `useNativePlayer` / `useWebview`），地址是 JS 现拼的，
- *   只能把播放页放进 WebView 让它自己播。KazumiRules 目录里 18 条规则全都是这种。
+ * 由出流层给出的**计划**决定（`VdoStreamPlan`），不是由规则里的布尔值决定：
+ * - [NATIVE]：拿到了直链，交给 Media3，进度、倍速、填充统统归我们管；
+ * - [WEB]：拿不到直链，只能把播放页放进 WebView 让站点播放器自己取地址。
  *
  * 两种形态下控制层的含义不同：WebView 里播放/进度由站点播放器掌握，
  * 我们只保留「返回 / 选集 / 全屏」，不去假装能拖它的进度条。
@@ -128,7 +134,7 @@ enum class PlaybackMode {
 /**
  * 播不出来的原因。
  *
- * 比数据层的 `VdoTestReason` 多两种纯 UI 侧的原因（没有启用的源、拿不到番名），
+ * 比数据层的 `VdoFailureReason` 多两种纯 UI 侧的原因（没有启用的源、拿不到番名），
  * 也因为这里的文案是**播放页语境**（「换个源试试」），不是测试面板语境（「这条规则有 2 项未通过」）。
  */
 enum class PlayerFailureReason {

@@ -1,6 +1,7 @@
-package com.liomix.mikomi.data.video.remote.vdoplugin
+package com.liomix.mikomi.data.video.remote.vdoplugin.store
 
 import com.liomix.mikomi.core.model.PluginRule
+import com.liomix.mikomi.data.video.remote.vdoplugin.rule.InvalidVdoPluginRuleException
 import kotlinx.coroutines.flow.StateFlow
 
 /**

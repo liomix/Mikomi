@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.video.remote.vdoplugin
+package com.liomix.mikomi.data.video.remote.vdoplugin.rule
 
 import com.liomix.mikomi.core.model.PluginRule
 import org.json.JSONException

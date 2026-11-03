@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
+import com.liomix.mikomi.feature.player.PlaybackMode
 import com.liomix.mikomi.feature.player.PlayerLine
 import com.liomix.mikomi.feature.player.PlayerSource
 import com.liomix.mikomi.feature.player.R
@@ -489,6 +490,11 @@ private fun LineRow(
                 Spacer(modifier = Modifier.width(6.dp))
                 QualityTag(quality = quality)
             }
+            val mode = line.playbackMode
+            if (mode != null) {
+                Spacer(modifier = Modifier.width(6.dp))
+                CapabilityTag(mode = mode)
+            }
         }
         if (line.isRetryable) {
             RowAction(
@@ -561,6 +567,37 @@ private fun QualityTag(quality: String) {
             text = quality,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+/**
+ * 出流形态标签：直链 / 网页。
+ *
+ * 刻意用中性色而不是主色：它不是「好/坏」，只是**控制权归属**。
+ * 直链我们能控制进度与倍速；网页交给站点播放器，那条线没有进度条是正常的，不是坏了。
+ * 不标出来的话，用户在两条线路之间来回点，只会觉得我们时好时坏。
+ */
+@Composable
+private fun CapabilityTag(mode: PlaybackMode) {
+    Box(
+        modifier = Modifier
+            .background(
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.10f),
+                shape = RoundedCornerShape(4.dp),
+            )
+            .padding(horizontal = 5.dp, vertical = 1.dp),
+    ) {
+        Text(
+            text = stringResource(
+                when (mode) {
+                    PlaybackMode.NATIVE -> R.string.player_line_capability_direct
+                    PlaybackMode.WEB -> R.string.player_line_capability_web
+                },
+            ),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Medium,
         )
     }

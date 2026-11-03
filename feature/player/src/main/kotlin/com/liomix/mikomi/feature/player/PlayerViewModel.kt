@@ -20,12 +20,14 @@ import com.liomix.mikomi.data.video.VdoSourceException
 import com.liomix.mikomi.data.video.VdoStreamKind
 import com.liomix.mikomi.data.video.VdoStreamPlan
 import com.liomix.mikomi.data.video.remote.vdoplg.VdoPlgEngine
+import com.liomix.mikomi.data.video.remote.vdoplg.rule.InvalidVdoPlgSourceException
 import com.liomix.mikomi.data.video.remote.vdoplg.store.VdoPlgRepository
 import com.liomix.mikomi.data.video.remote.vdoplg.stream.VdoPlgPlanRequest
 import com.liomix.mikomi.data.video.remote.vdoplg.stream.VdoPlgStreamPlanner
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -331,13 +333,35 @@ class PlayerViewModel @Inject constructor(
         )
         // 这条线路下次可以直接验证这个地址，省掉一整轮解析。
         lineRefOf(state.selectedSourceId)?.let { line ->
-            viewModelScope.launch { planner.rememberSniffed(line, stream) }
+            viewModelScope.launch {
+                rememberBestEffort("sniffed") { planner.rememberSniffed(line, stream) }
+            }
         }
     }
 
     // —— 主链路 ——
 
+    /**
+     * 主链路的外层：**兜住一切漏网的异常**。
+     *
+     * 这里不负责业务，只负责「别崩」。协程里未捕获的异常会直接 FATAL——
+     * 用户看到的不是「这集播不了」而是应用消失。网络抖动、插件写错、
+     * 某个没预料到的状态，都应该变成一句可读的失败原因 + 一个能点的重试。
+     */
     private suspend fun load(animeId: String, startNumber: Int) {
+        try {
+            loadInternal(animeId, startNumber)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Load failed: anime=$animeId, start=$startNumber", e)
+            val reason = (e as? VdoSourceException)?.reason?.toFailureReason()
+                ?: PlayerFailureReason.Network
+            fail(reason, e.message)
+        }
+    }
+
+    private suspend fun loadInternal(animeId: String, startNumber: Int) {
         val title = resolveAnimeTitle(animeId)
         if (title.isNullOrEmpty()) {
             // 番名是搜索的唯一输入：拿不到它，后面一步都走不了，如实说明比转圈强。
@@ -420,8 +444,10 @@ class PlayerViewModel @Inject constructor(
         val resumePosition = if (keepPosition) playback.positionMillis else 0L
         val wasPlaying = playback.isPlaying
 
-        playJob = viewModelScope.launch {
-            if (forgetCache) lineRefOf(sourceId)?.let { planner.forget(it) }
+        playJob = viewModelScope.launch(playbackGuard(sourceId)) {
+            if (forgetCache) {
+                lineRefOf(sourceId)?.let { line -> rememberBestEffort("forget") { planner.forget(line) } }
+            }
             val state = ruleStates.firstOrNull { it.rule.name == sourceId }
             if (state == null || state.roads.isEmpty()) {
                 fail(PlayerFailureReason.NoMatch, sourceId)
@@ -527,7 +553,7 @@ class PlayerViewModel @Inject constructor(
         Log.i(TAG, "Direct stream failed, falling back to WebView sniffing: $sourceId")
         // 这次失败说明「这条线路能直链」的判断已经不可靠：记一笔，连续两次就作废缓存。
         lineRefOf(sourceId)?.let { line ->
-            viewModelScope.launch { planner.reportMismatch(line) }
+            viewModelScope.launch { rememberBestEffort("mismatch") { planner.reportMismatch(line) } }
         }
         enterWebMode(
             rule = rule,
@@ -610,19 +636,33 @@ class PlayerViewModel @Inject constructor(
     /**
      * 单个源：搜索 → 取第一条命中的剧集。
      *
-     * 超时不抛异常而是当成「网络失败」：一个源慢不该拖垮整页，其它源还能播。
+     * **这里一个异常都不能放出去**。`probe` 跑在 `viewModelScope` 派生的子协程里，
+     * 漏出去的异常等于主线程 FATAL——一个站点的 TLS 握手失败就能把整页崩掉，
+     * 而同一时刻别的源可能已经找到能播的线路了。所以超时、网络、规则坏一律就地转成
+     * [RuleState.failure]，由 UI 按「这一个源失败」展示。
      */
     private suspend fun probe(rule: VdoPlgContent, keyword: String): RuleState {
-        val hits: List<VdoSearchHit>? = withTimeoutOrNull(SEARCH_TIMEOUT_MILLIS) {
-            engine.search(rule.json, keyword)
+        val hits: List<VdoSearchHit>? = try {
+            withTimeoutOrNull(SEARCH_TIMEOUT_MILLIS) { engine.search(rule.json, keyword) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return RuleState(rule, failure = e.toVdoReason())
         }
+        // 超时与真抛异常同一档：都是「这次没连上」。
         if (hits == null) return RuleState(rule, failure = VdoFailureReason.NetworkError)
         if (hits.isEmpty()) return RuleState(rule)
 
         val detailUrl = hits.first().url
-        val roads: List<VdoEpisodeRoad> = withTimeoutOrNull(EPISODES_TIMEOUT_MILLIS) {
-            engine.episodes(rule.json, detailUrl)
-        }.orEmpty()
+        val roads: List<VdoEpisodeRoad> = try {
+            withTimeoutOrNull(EPISODES_TIMEOUT_MILLIS) { engine.episodes(rule.json, detailUrl) }.orEmpty()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // 搜到了但详情页打不开：这个源本身是通的，只是这一部取不到线路。
+            // 不给 failure——标了会让整条源显示成「请求失败」，可它搜索明明成功了。
+            emptyList()
+        }
         return RuleState(rule = rule, hits = hits, roads = roads)
     }
 
@@ -682,6 +722,36 @@ class PlayerViewModel @Inject constructor(
      * 所有需要读写能力缓存的地方都走它：线路身份由「源名 + 线路名 + 首集地址形状」三样决定，
      * 让每个调用点自己拼，早晚会有一个地方漏掉其中一样。
      */
+    /**
+     * 播放协程的兜底 handler。
+     *
+     * 它接住的是「某个分支漏了 catch」的意外。走到这里还往外抛的话就是 FATAL——
+     * 用户看到的是应用消失，而不是「这一集没播起来」。所以宁可显示一次失败 + 重试入口。
+     *
+     * 只给 [playJob] 用：主链路的兜底在 [load] 里，各自收在自己那一层，别互相掩盖。
+     */
+    private fun playbackGuard(sourceId: String) = CoroutineExceptionHandler { _, e ->
+        Log.w(TAG, "Playback crash contained: source=$sourceId", e)
+        fail(PlayerFailureReason.Playback, e.message)
+    }
+
+    /**
+     * 能力缓存的读写一律走这里：**失败只记日志，不影响这次播放**。
+     *
+     * 缓存只是「下次少走几步」的备忘，写不进去最坏是下一次多解析一轮；
+     * 而让它抛出去，代价是用户在正在播的画面上挨一个崩溃。
+     * 取消要原样往外抛——那不是失败，是调用方主动结束。
+     */
+    private suspend fun rememberBestEffort(what: String, block: suspend () -> Unit) {
+        try {
+            block()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Capability cache write failed: $what", e)
+        }
+    }
+
     private fun lineRefOf(sourceId: String?): VdoLineRef? {
         val id = sourceId ?: return null
         val state = ruleStates.firstOrNull { it.rule.name == id } ?: return null
@@ -815,6 +885,21 @@ private fun VdoEpisodeRoad.toEpisodeItems(): List<EpisodeItem> =
     episodes.mapIndexed { index, episode -> episode.toEpisodeItem(index) }
 
 /** 出流层的失败原因 → 播放页的原因。两边枚举刻意不复用：文案语境不同。 */
+/**
+ * 探测期异常 → 失败原因。只伺候「这个源没跑通」这一层，别拿去包装播放器的错误。
+ *
+ * 规则坏（JSON 残缺、缺字段、XPath 写错）要如实认成 [VdoFailureReason.RuleBroken]：
+ * 那是用户能改的，说成网络问题只会让人反复重试。其余一律按网络算——可重试，
+ * 也比一句「未知错误」有用。
+ */
+private fun Exception.toVdoReason(): VdoFailureReason = when (this) {
+    is VdoSourceException -> reason
+    is InvalidVdoPlgSourceException -> VdoFailureReason.RuleBroken
+    // IOException（TLS / DNS / 连接被对端关掉）与其它意外都归到网络：这一类是可重试的。
+    // 归成 RuleBroken 只会让用户去改一份其实没问题的 json。
+    else -> VdoFailureReason.NetworkError
+}
+
 private fun VdoFailureReason?.toFailureReason(): PlayerFailureReason? = when (this) {
     null -> null
     VdoFailureReason.RuleBroken -> PlayerFailureReason.RuleBroken

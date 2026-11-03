@@ -107,6 +107,21 @@ class VdoPlgVerifier @Inject constructor(
     suspend fun verify(ruleJson: String, keyword: String): VdoPlgTestReport {
         if (keyword.isBlank()) return VdoPlgTestReport()
 
+        // 插件本身读不出来（JSON 残缺、缺 name/baseURL）：三步一步都跑不了。
+        // 这里必须自己接住：让它抛出去，测试面板只会显示「三步都未执行」，
+        // 用户看不出是字段写错了——而这恰恰是编辑器里最容易犯的错。
+        try {
+            VdoPlgDocument.parse(ruleJson)
+        } catch (e: InvalidVdoPlgSourceException) {
+            return VdoPlgTestReport(
+                keyword = keyword,
+                search = VdoPlgStageResult.Failed(
+                    reason = VdoFailureReason.RuleBroken,
+                    detail = e.field ?: e.reason.name,
+                ),
+            )
+        }
+
         val hits = try {
             engine.search(ruleJson, keyword)
         } catch (e: CancellationException) {

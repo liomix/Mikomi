@@ -252,7 +252,7 @@ app/src/main/kotlin/com/liomix/mikomi/
 | 模块 | 关键内容 |
 |------|----------|
 | `data:anime` | `AnimeRepository` / `HomeRepository` / `SearchRepository` / `RankRepository` / `ScheduleRepository` / `AnimeCommentRepository` / `AnimeCreditsRepository` + `internal/` 实现 + `mapper/` + `remote/{anilist,bangumi}` |
-| `data:video` | `VideoRepository`（视频源 / 播放信息） |
+| `data:video` | 共用契约（`VdoStream` / `VdoStreamPlan` / `VdoStreamSniffer` / `VdoCookieJar` / `VdoSourceFamily` …）+ `remote/vdoplg`（插件源：规则格式 / 出流策略链 / 仓库） |
 | `data:user` | `UserDataRepository`（收藏 / 历史 / 偏好） |
 
 `data:anime` 是数据层的核心，采用**接口 + internal 实现**分离：

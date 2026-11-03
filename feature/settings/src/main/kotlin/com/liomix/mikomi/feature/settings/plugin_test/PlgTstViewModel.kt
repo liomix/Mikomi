@@ -62,7 +62,7 @@ class PlgTstViewModel @Inject constructor(
     /** 启用/停用：保留条目，只是不再参与搜索。 */
     fun onToggle(id: String) {
         val rule = _uiState.value.rules.firstOrNull { it.id == id } ?: return
-        viewModelScope.launch { repository.setEnabled(id, !rule.enabled) }
+        launchSafely("toggle $id") { repository.setEnabled(id, !rule.enabled) }
     }
 
     /**
@@ -71,17 +71,17 @@ class PlgTstViewModel @Inject constructor(
      * 已在首位时仓库内部什么都不做，不抛错——UI 侧按行高判断阈值，边界上仍可能多喊一次。
      */
     fun onMoveUp(id: String) {
-        viewModelScope.launch { repository.move(id, -1) }
+        launchSafely("moveUp $id") { repository.move(id, -1) }
     }
 
     /** 下移一格。 */
     fun onMoveDown(id: String) {
-        viewModelScope.launch { repository.move(id, 1) }
+        launchSafely("moveDown $id") { repository.move(id, 1) }
     }
 
     /** 删除：连 `.json` 文件一起删。确认弹窗在 UI 侧，走到这里就是真删。 */
     fun onRemove(id: String) {
-        viewModelScope.launch { repository.remove(id) }
+        launchSafely("remove $id") { repository.remove(id) }
     }
 
     /**
@@ -108,8 +108,8 @@ class PlgTstViewModel @Inject constructor(
      * 转成模型再序列化回去，丢了字段顺序也丢了几行注释性的键。
      */
     fun onShare(id: String) {
-        viewModelScope.launch {
-            val rule = repository.get(id) ?: return@launch
+        launchSafely("share $id") {
+            val rule = repository.get(id) ?: return@launchSafely
             _uiState.update { it.copy(pendingShare = PlgTstShare(rule.name, rule.json)) }
         }
     }
@@ -152,7 +152,16 @@ class PlgTstViewModel @Inject constructor(
             it.copy(test = PlgTstTestState(ruleName = ruleName, keyword = keyword, running = true))
         }
         testJob = viewModelScope.launch {
-            val rule = repository.get(ruleName)
+            val rule = try {
+                repository.get(ruleName)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // 读不到就当没有这份插件：下面会给一份三步未执行的空报告，
+                // 至少面板能正常结束，而不是把应用一起带走。
+                Log.w(TAG, "Read plugin failed: $ruleName", e)
+                null
+            }
             val report: VdoPlgTestReport = if (rule == null) {
                 // 文件被别的页面删了：给一份三步都未执行的空报告，比一句「插件不存在」更有信息量。
                 VdoPlgTestReport(keyword = keyword)
@@ -189,7 +198,16 @@ class PlgTstViewModel @Inject constructor(
         editorJob?.cancel()
         _uiState.update { it.copy(editor = PlgTstEditorState(ruleName = id, loading = true)) }
         editorJob = viewModelScope.launch {
-            val rule = repository.get(id)
+            val rule = try {
+                repository.get(id)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // 读盘失败也要把面板从「加载中」放下来，否则它会一直转圈，
+                // 用户既看不出发生了什么事，也没法关掉重来。
+                Log.w(TAG, "Read plugin failed: $id", e)
+                null
+            }
             _uiState.update { state ->
                 val editor = state.editor ?: return@update state
                 // 读盘期间用户可能已经关掉面板又打开另一条，名字对不上就丢弃这次结果。
@@ -284,6 +302,26 @@ class PlgTstViewModel @Inject constructor(
         editorJob?.cancel()
         editorJob = null
         _uiState.update { it.copy(editor = null) }
+    }
+
+    /**
+     * 仓库读写动作的统一兜底：**失败只记日志，不把整页搞崩**。
+     *
+     * 这些动作要么在读盘要么在写盘（删文件、改 state.json、改权限位），
+     * 磁盘满、文件被别的进程占住、目录被用户清掉都会抛 IOException。
+     * 让它在 viewModelScope 里冒出去就是 FATAL——用户只是点了个开关，应用却没了。
+     * 列表本身来自磁盘热流，失败时界面保持原状即可，不需要额外提示。
+     */
+    private fun launchSafely(what: String, block: suspend () -> Unit) {
+        viewModelScope.launch {
+            try {
+                block()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Plugin action failed: $what", e)
+            }
+        }
     }
 
     private companion object {

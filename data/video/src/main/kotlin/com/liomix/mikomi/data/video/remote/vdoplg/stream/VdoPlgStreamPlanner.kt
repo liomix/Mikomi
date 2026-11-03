@@ -9,6 +9,7 @@ import com.liomix.mikomi.data.video.VdoSourceException
 import com.liomix.mikomi.data.video.VdoStream
 import com.liomix.mikomi.data.video.VdoStreamPlan
 import com.liomix.mikomi.data.video.remote.vdoplg.VdoPlgEngine
+import com.liomix.mikomi.data.video.remote.vdoplg.rule.InvalidVdoPlgSourceException
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgDocument
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -88,7 +89,14 @@ class VdoPlgStreamPlanner @Inject constructor(
     suspend fun capabilityOf(line: VdoLineRef): VdoLineCapability? = capabilityStore.find(line)
 
     private suspend fun execute(request: VdoPlgPlanRequest, allowRender: Boolean): VdoPlanResult {
-        val rule = VdoPlgDocument.parse(request.ruleJson)
+        // 契约是「只抛 VdoSourceException」：调用方（播放页、测试页）也只认这一种。
+        // 格式异常若原样穿出去，那边的 catch 接不住，就变成一次崩溃——
+        // 而它其实只是「这份 json 写坏了」，属于用户能自己修的一类。
+        val rule = try {
+            VdoPlgDocument.parse(request.ruleJson)
+        } catch (e: InvalidVdoPlgSourceException) {
+            throw VdoSourceException(VdoFailureReason.RuleBroken, e.field ?: e.reason.name, e)
+        }
         val cached = capabilityStore.find(request.line)
         val steps = mutableListOf<String>()
 

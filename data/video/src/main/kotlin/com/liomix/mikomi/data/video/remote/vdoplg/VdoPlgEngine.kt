@@ -10,6 +10,7 @@ import com.liomix.mikomi.data.video.VdoSourceException
 import com.liomix.mikomi.data.video.VdoStream
 import com.liomix.mikomi.data.video.VdoStreamKind
 import com.liomix.mikomi.data.video.VdoStreamSniffer
+import com.liomix.mikomi.data.video.remote.vdoplg.rule.InvalidVdoPlgSourceException
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgDocument
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgSelector
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.attr
@@ -116,8 +117,13 @@ class VdoPlgEngine @Inject constructor(
      * 里面既没有 `player_aaaa` 也没有播放器，WebView 就是一片白。
      * 桌面 UA 拿到的才是真正的播放页。
      */
-    fun userAgentOf(ruleJson: String): String =
+    fun userAgentOf(ruleJson: String): String = try {
         VdoPlgDocument.parse(ruleJson).userAgent.takeIf { it.isNotEmpty() } ?: USER_AGENT
+    } catch (e: InvalidVdoPlgSourceException) {
+        // 取 UA 是顺手的事，不值得为一份坏 json 抛出去：回默认桌面 UA 就好。
+        // 真正需要规则内容的地方（搜索/剧集/出流）会各自如实报错。
+        USER_AGENT
+    }
 
     /**
      * 把 WebView 里拦到的一次子资源请求，变成一条可播的流。

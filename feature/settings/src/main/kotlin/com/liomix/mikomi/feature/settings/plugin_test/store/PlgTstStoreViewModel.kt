@@ -125,6 +125,10 @@ class PlgTstStoreViewModel @Inject constructor(
                 failInstall(item.name, e)
             } catch (e: InvalidVdoPlgSourceException) {
                 failInstall(item.name, e)
+            } catch (e: Exception) {
+                // 兜底：分类 catch 漏掉的意外（空指针、状态非法）也只该让这一次安装失败，
+                // 不该把整个商店页带走。按钮的转圈由 failInstall 复位。
+                failInstall(item.name, e)
             }
         }
     }
@@ -165,6 +169,9 @@ class PlgTstStoreViewModel @Inject constructor(
             } catch (e: IOException) {
                 failLoad(e)
             } catch (e: JSONException) {
+                failLoad(e)
+            } catch (e: Exception) {
+                // 同上：目录拉不下来就说一句，别让协程把页面上抛成 FATAL。
                 failLoad(e)
             }
         }

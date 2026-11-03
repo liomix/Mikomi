@@ -91,8 +91,11 @@ data class PlayerSource(
     val id: String,
     val name: String,
     /**
-     * 所属大源。播放页目前只跑插件源，所以默认 [VdoSourceFamily.PLUGIN]；
-     * 等 VdoCyk / VdoRpb 接进来时由数据层显式指定，别在这里写死判断。
+     * 所属大源，换源弹窗的 Tab 按它分组。
+     *
+     * 默认 [VdoSourceFamily.PLUGIN] 是因为**当前播放页只接插件源**：源列表全部由
+     * `VdoPlgRepository` 的插件内容组装而来，没有别的家族产出 `PlayerSource`。
+     * 等 CYK / RPB 接进来时由数据层显式传入，别在这里写死判断。
      */
     val family: VdoSourceFamily = VdoSourceFamily.PLUGIN,
     val status: SourceAvailability = SourceAvailability.READY,

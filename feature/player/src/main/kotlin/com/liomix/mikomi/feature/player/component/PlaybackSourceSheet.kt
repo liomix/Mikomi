@@ -142,6 +142,8 @@ internal fun PlaybackSourceSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // 按大源分组。顺序取枚举声明顺序而不是插入顺序：Tab 的位置不该随探测谁先返回而变。
+    // 只给「真的有源」的大源建 Tab：CYK / RPB 尚未接入、没有任何 PlayerSource 产出，
+    // 不过滤就会先出现两个点不进去的空 Tab。接入后这里一行都不用改。
     val grouped = remember(sources) { sources.groupBy { it.family } }
     val families = remember(grouped) { VdoSourceFamily.entries.filter { grouped.containsKey(it) } }
 

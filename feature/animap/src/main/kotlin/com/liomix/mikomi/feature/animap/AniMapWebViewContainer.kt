@@ -409,7 +409,18 @@ private val SEARCH_JS = """
   function absolute(src) {
     var s = text(src);
     if (!s) return '';
-    if (/^https?:/i.test(s)) return s;
+    // 站点有一部分老数据的 cover 是 http:// 明文地址，Android 默认禁明文，
+    // 原样交给 Coil 会直接失败；统一升成 https（站点自己也做这一步）。
+    if (/^http:\/\//i.test(s)) s = 'https://' + s.slice(7);
+    // 官方 Bangumi 图（lain.bgm.tv）先并到 anitabi 的图床上，路径不变、加 /img 前缀。
+    if (/^(https?:)?\/\/lain\.bgm\.tv/i.test(s)) {
+      s = s.replace(/^(https?:)?\/\/lain\.bgm\.tv/i, 'https://bgm-api.anitabi.cn/img');
+    }
+    // 关键一步：`bgm-api` 是接口域名，直连会被 Cloudflare 挡成 403（浏览器单独打开
+    // 同一张图也打不开，Chrome 报 ERR_BLOCKED_BY_ORB）。站点自己取图时把它换成转存域名
+    // `bgm-tc`（见 af0fb620.js 的 T$），这里跟它保持同一口径。
+    s = s.replace('https://bgm-api.anitabi.cn', 'https://bgm-tc.anitabi.cn');
+    if (/^https:/i.test(s)) return s;
     if (s.indexOf('//') === 0) return 'https:' + s;
     if (s.indexOf('/images/') === 0) return 'https://image-anitabi.magiconch.com/' + s.slice(8);
     if (s.charAt(0) === '/') return 'https://www.anitabi.cn' + s;
@@ -555,7 +566,18 @@ private val LATEST_JS = """
   function absolute(src) {
     var s = text(src);
     if (!s) return '';
-    if (/^https?:/i.test(s)) return s;
+    // 站点有一部分老数据的 cover 是 http:// 明文地址，Android 默认禁明文，
+    // 原样交给 Coil 会直接失败；统一升成 https（站点自己也做这一步）。
+    if (/^http:\/\//i.test(s)) s = 'https://' + s.slice(7);
+    // 官方 Bangumi 图（lain.bgm.tv）先并到 anitabi 的图床上，路径不变、加 /img 前缀。
+    if (/^(https?:)?\/\/lain\.bgm\.tv/i.test(s)) {
+      s = s.replace(/^(https?:)?\/\/lain\.bgm\.tv/i, 'https://bgm-api.anitabi.cn/img');
+    }
+    // 关键一步：`bgm-api` 是接口域名，直连会被 Cloudflare 挡成 403（浏览器单独打开
+    // 同一张图也打不开，Chrome 报 ERR_BLOCKED_BY_ORB）。站点自己取图时把它换成转存域名
+    // `bgm-tc`（见 af0fb620.js 的 T$），这里跟它保持同一口径。
+    s = s.replace('https://bgm-api.anitabi.cn', 'https://bgm-tc.anitabi.cn');
+    if (/^https:/i.test(s)) return s;
     if (s.indexOf('//') === 0) return 'https:' + s;
     if (s.indexOf('/images/') === 0) return 'https://image-anitabi.magiconch.com/' + s.slice(8);
     if (s.charAt(0) === '/') return 'https://www.anitabi.cn' + s;

@@ -4,6 +4,7 @@ import android.content.pm.ApplicationInfo
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -33,8 +35,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -162,10 +168,21 @@ fun AniMapScreen(
         searchLoading = false
     }
 
-    // 搜索态优先吃掉返回键：先收起键盘/搜索，而不是直接离开巡礼页。
-    BackHandler(enabled = searchExpanded) {
+    // 搜索面板的底边（px，相对本 Box）。点空白的判定区域从这里往下，
+    // 不能把建议条目和输入框本身算进去，否则「点条目」会先被当成「点空白」。
+    var searchBarBottomPx by remember { mutableIntStateOf(0) }
+
+    // 搜索态的收起是一件事：三处入口（返回键、点空白、选中条目）必须完全一致，
+    // 尤其要一起清掉 query/hits —— 只关面板不清数据，下次展开会先闪一屏上次的结果。
+    val collapseSearch: () -> Unit = {
         searchExpanded = false
         searchQuery = ""
+        searchHits = emptyList()
+    }
+
+    // 搜索态优先吃掉返回键：先收起键盘/搜索，而不是直接离开巡礼页。
+    BackHandler(enabled = searchExpanded) {
+        collapseSearch()
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -256,6 +273,45 @@ fun AniMapScreen(
             )
         }
 
+        // 点建议框以外的任何地方都能收起搜索。范围从面板底边往下铺满，
+        // 不盖住输入框与建议条目（否则点条目会先被这里吃掉）。
+        //
+        // 关键：这里**不消费**手势，只在 Initial 阶段旁听，判据是「按下到抬起几乎没有位移」。
+        // 遮罩下面就是地图 WebView，一旦像普通 clickable 那样 consume 掉 down，
+        // 搜索态下地图就彻底拖不动了 —— 和当初「横滑切页掐断地图拖动」是同一个坑。
+        // 所以：拖动照旧交给地图，只有轻点才算「点空白」。
+        if (searchExpanded) {
+            val topInset = with(LocalDensity.current) { searchBarBottomPx.toDp() }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = topInset)
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val down = awaitFirstDown(
+                                    requireUnconsumed = false,
+                                    pass = PointerEventPass.Initial,
+                                )
+                                var dragged = false
+                                var up = false
+                                while (!up) {
+                                    val change = awaitPointerEvent(PointerEventPass.Initial)
+                                        .changes.firstOrNull { it.id == down.id } ?: break
+                                    if (!dragged &&
+                                        (change.position - down.position).getDistance() > viewConfiguration.touchSlop
+                                    ) {
+                                        dragged = true
+                                    }
+                                    up = !change.pressed
+                                }
+                                if (!dragged) collapseSearch()
+                            }
+                        }
+                    },
+            )
+        }
+
         // 搜索条最后声明：浮在加载遮罩之上，用户不必等地图画完才能搜。
         AniMapSearchBar(
             expanded = searchExpanded,
@@ -265,12 +321,7 @@ fun AniMapScreen(
             ready = searchReady,
             onQueryChange = { searchQuery = it },
             onExpand = { searchExpanded = true },
-            onCollapse = {
-                searchExpanded = false
-                searchQuery = ""
-                // 收起时清空：下次展开是全新的「最近更新」，不该先闪一屏上次的关键词结果。
-                searchHits = emptyList()
-            },
+            onCollapse = collapseSearch,
             onHitClick = { hit ->
                 // 作品缩放到取景地范围、地标落到具体坐标、城市圈住该城市全部取景点；
                 // 按 id 在页面里现取对象，不重新加载页面。
@@ -281,14 +332,14 @@ fun AniMapScreen(
                         Toast.makeText(context, "地图定位：$result", Toast.LENGTH_SHORT).show()
                     }
                 }
-                searchExpanded = false
-                searchQuery = ""
-                searchHits = emptyList()
+                collapseSearch()
             },
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+                // 记下面板的实际底边：点空白的判定范围要从这里往下，不能盖住建议条目。
+                .onGloballyPositioned { searchBarBottomPx = it.boundsInParent().bottom.toInt() },
         )
     }
 }

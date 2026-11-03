@@ -29,6 +29,11 @@ import kotlinx.serialization.json.Json
  *    是协议要求必须保留的，它挂在角容器里、不属于任何 group。
  * 3. **地图自己画的位置标记**：`.mapboxgl-user-location*` 是定位蓝点/精度圈。
  *    它不是控件，是 mapbox 在定位激活后画在地图画布上方的一层 DOM，得单独点名。
+ * 4. **站点自己的加载指示**：`.g-progress-box`（左上角青色进度条）、`.ui-loading`
+ *    （全屏蓝底启动页，里面是一张 1520px 的地图 SVG）、`.ui-loading-box`（局部占位）。
+ *    App 外层已经有一份「地图加载中」的环形提示，站点这几个只会在同一次加载里再闪一遍。
+ * 5. **地标缩略图放大**：`.window-point-item` 里的 `img.ui-image.cover` 是一行五个的小图，
+ *    手机上认不出取景地，按「一行三个」反算宽度放大。
  *
  * 站点那句「加载中...」**不是 DOM 节点，是 `html:after` 伪元素**（样式表里
  * `html:after{content:"加载中..."}`，`html[no-touch]` 时 `opacity:1` 显形），所以
@@ -84,11 +89,65 @@ private const val HIDE_OVERLAY_JS = """
       'background:none!important;box-shadow:none!important;border:0!important}' +
     // 供脚本动态打标：必须是样式表里的 !important，站点之后再改 inline style 也顶不掉。
     '.mikomi-hidden{display:none!important}' +
+    // 站点自带的加载指示，全部藏掉 —— App 自己有一份「地图加载中」的环形提示，
+    // 站点这几个只会在地图数据到位前后重复闪一下：
+    //   `.g-progress-box` 是左上角那条青色进度条（`position:fixed;top:10px;width:300px`，
+    //   真机实测出现约 3.4s），`.ui-loading` 是全屏蓝底启动页（里面是 1520px 的地图 SVG），
+    //   `.ui-loading-box` 是局部占位容器。
+    '.g-progress-box,.ui-loading,.ui-loading-box{display:none!important}' +
+    // 侧栏内容区的加载占位（`padding:100px 0 1000px` 的灰字，用来把侧栏撑开）。
+    // 这里只抹掉文字、保留占位：直接 display:none 会让侧栏高度跳一下。
+    '.side-loading-box{visibility:hidden!important}' +
+    // 站点底部的地标缩略图（`.window-point-item` 里的 `img.ui-image.cover`）在手机上偏小：
+    // 站点按「一行 5 张」算宽度（`--w:calc((100vw - 70px)/5 - 2px)`，360dp 下约 56px），
+    // 取景地根本认不出来。改成一行 3 张，并把容器宽度用满：
+    // 容器宽 = vw - left(2) - right(48)，每张还带 2px 右边距 → w = (vw - 50) / n - 2，
+    // 三张即 (vw - 56) / 3，360dp 下约 56 -> 101（+80%）。
+    // 高度由 `--h:calc(var(--w) * .8)` 自动跟随，容器高度也按 `--h` 算，不用另调。
+    '.window-points-box{--w:calc((100vw - 56px)/3)!important}' +
     // 站点右上角那个「加载中...」是 **html 伪元素**（样式表里 html:after{content:"加载中..."}，
     // html[no-touch] 时 opacity:1 显示），DOM 里根本没有对应节点 —— 所以文本扫描永远抓不到，
     // 只能按伪元素规则点名。content:none 直接不生成盒子，比 display:none 更干净。
     'html:after,html[no-touch]:after{content:none!important;display:none!important}';
   root.appendChild(style);
+
+  // 地图容器尺寸变了，但 mapbox 没收到通知 —— 站点的同步只挂在 `window.resize` 上，
+  // 而站点自己的侧栏（作品详情）开关是改 DOM 布局，窗口尺寸一点没变。实测：
+  // 打开侧栏 → 点「返回地图」→ `.map-box` 回到 759px 高，canvas 还是侧栏期间那 319px，
+  // 下半屏就是一片底色，底部地标缩略图也跟着不显示（它的可见性按视口内的点算）。
+  // 这里补一个 ResizeObserver：容器真的变了才 `map.resize()`（不是每帧），
+  // 避免把正在跑的飞行动画打断。
+  if (!window.mikomiMapResizeHooked) {
+    window.mikomiMapResizeHooked = true;
+    var mapLastW = 0;
+    var mapLastH = 0;
+    function syncMapSize() {
+      try {
+        if (window.mapApp && window.mapApp.map) window.mapApp.map.resize();
+      } catch (e) { }
+    }
+    function onMapBoxResize() {
+      var boxNow = document.querySelector('.map-box');
+      if (!boxNow) return;
+      var rect = boxNow.getBoundingClientRect();
+      if (Math.abs(rect.width - mapLastW) < 1 && Math.abs(rect.height - mapLastH) < 1) return;
+      mapLastW = rect.width;
+      mapLastH = rect.height;
+      syncMapSize();
+    }
+    function attachMapResize() {
+      if (window.mikomiMapResizeWatched) return;
+      var box = document.querySelector('.map-box');
+      if (!box || !window.ResizeObserver) return;
+      window.mikomiMapResizeWatched = true;
+      new ResizeObserver(onMapBoxResize).observe(box);
+      onMapBoxResize();
+    }
+    // 首屏注入时 `.map-box` 往往还没插进 DOM，隔几档再试。
+    attachMapResize();
+    setTimeout(attachMapResize, 900);
+    setTimeout(attachMapResize, 2600);
+  }
 
   // 「加载中…」按文本认人。标记放 window 上，onPageFinished 会重复注入，只装一套观察者。
   if (window.mikomiLoadingSweep) return;

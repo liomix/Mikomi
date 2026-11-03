@@ -51,7 +51,7 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.ui.component.AnimeCoverImage
 
 /** 搜索条的固定高度（收起态的胶囊与展开态的输入框同一高度，切换时不跳动）。 */
-private val SearchBarHeight = 44.dp
+private val SearchBarHeight = 40.dp
 
 /** 建议列表的最大高度：留出键盘的位置，列表本身不滚到屏幕外。 */
 private val SuggestionListMaxHeight = 360.dp
@@ -86,7 +86,13 @@ private fun CollapsedBar(onClick: () -> Unit) {
     }
 }
 
-/** 展开态：输入框 + 取消。 */
+/**
+ * 展开态：输入框 + 一个右侧按钮。
+ *
+ * 右侧不再有「取消搜索」四个字：它会占掉近三成宽度，还把这个本该很轻的搜索条压沉。
+ * 同一个位置留一个小图标，按输入状态切换语义——有输入时是「清空」，空的时候是
+ * 「退出搜索」；手指不用挪位，也不用把四个字塞回去。
+ */
 @Composable
 private fun ExpandedBar(
     query: String,
@@ -102,7 +108,7 @@ private fun ExpandedBar(
             .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
             .clip(CircleShape)
             .background(SearchSurface)
-            .padding(start = 14.dp, end = 8.dp),
+            .padding(start = 14.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -135,27 +141,23 @@ private fun ExpandedBar(
                 keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
             )
         }
-        if (query.isNotEmpty()) {
-            Icon(
-                imageVector = Icons.Filled.Close,
-                contentDescription = stringResource(R.string.animap_search_clear),
-                tint = SearchIconColor,
-                modifier = Modifier
-                    .size(18.dp)
-                    .clickable { onQueryChange("") },
-            )
-        }
-        Text(
-            text = stringResource(R.string.animap_search_cancel),
-            style = MaterialTheme.typography.labelLarge,
-            color = SearchActionColor,
+        val hasQuery = query.isNotEmpty()
+        Icon(
+            imageVector = Icons.Filled.Close,
+            contentDescription = stringResource(
+                if (hasQuery) R.string.animap_search_clear else R.string.animap_search_close,
+            ),
+            tint = SearchIconColor,
             modifier = Modifier
-                .clip(RoundedCornerShape(50))
+                .size(20.dp)
                 .clickable {
-                    keyboard?.hide()
-                    onCollapse()
-                }
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+                    if (hasQuery) {
+                        onQueryChange("")
+                    } else {
+                        keyboard?.hide()
+                        onCollapse()
+                    }
+                },
         )
     }
 }
@@ -320,7 +322,7 @@ private fun SuggestionPlaceholder(text: String) {
  * @param ready 页面脚本是否已就绪（地图数据还没到位时不能断言「没找到」）
  * @param onQueryChange 输入变化
  * @param onExpand 点开搜索
- * @param onCollapse 收起搜索（取消 / 选中建议后由外层关掉）
+ * @param onCollapse 退出搜索（输入框右侧那个小图标，或系统返回键）
  * @param onHitClick 选中一条建议
  */
 @Composable
@@ -387,6 +389,5 @@ private val SearchTextColor = Color(0xFF1B1B1F)
 private val SearchSecondaryColor = Color(0xFF5F5A62)
 private val SearchHintColor = Color(0xFF7A747C)
 private val SearchIconColor = Color(0xFF6B666E)
-private val SearchActionColor = Color(0xFF1B1B1F)
 private val SearchCursorColor = Color(0xFF1B1B1F)
 private val SearchChipColor = Color(0xFFF0EEF1)

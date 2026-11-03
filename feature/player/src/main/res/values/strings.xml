@@ -66,4 +66,8 @@
     <string name="player_error_no_stream">播放失败</string>
     <string name="player_error_need_webview">这个站靠脚本拼播放地址，静态页面里取不到</string>
     <string name="player_error_playback">播放器无法解码这个地址</string>
+
+    <!-- 锁屏：锁定后所有按钮与手势停止响应，只留解锁入口 -->
+    <string name="player_lock">锁定屏幕</string>
+    <string name="player_unlock">解除锁定</string>
 </resources>

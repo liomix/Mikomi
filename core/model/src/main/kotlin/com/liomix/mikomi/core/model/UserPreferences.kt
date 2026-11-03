@@ -17,4 +17,10 @@ data class UserPreferences(
     val bangumiApiMode: String = "direct",
     /** 镜像基地址（仅镜像模式使用）；空串表示未配置。 */
     val bangumiMirrorUrl: String = "",
+    /** 每集开播时的默认倍速，1f 为原速（见播放设置页）。 */
+    val playerDefaultSpeed: Float = 1f,
+    /** 长按画面时的临时倍速；松开恢复。 */
+    val playerLongPressSpeed: Float = 2f,
+    /** 左右滑动的幅度：手指横移**整屏宽度**对应的快进 / 快退秒数。 */
+    val playerSeekSweepSeconds: Int = 90,
 )

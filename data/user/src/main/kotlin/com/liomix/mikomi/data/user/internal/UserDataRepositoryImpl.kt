@@ -85,6 +85,18 @@ internal class UserDataRepositoryImpl @Inject constructor(
         userPreferencesDataSource.setBangumiMirrorUrl(url)
     }
 
+    override suspend fun setPlayerDefaultSpeed(speed: Float) {
+        userPreferencesDataSource.setPlayerDefaultSpeed(speed)
+    }
+
+    override suspend fun setPlayerLongPressSpeed(speed: Float) {
+        userPreferencesDataSource.setPlayerLongPressSpeed(speed)
+    }
+
+    override suspend fun setPlayerSeekSweepSeconds(seconds: Int) {
+        userPreferencesDataSource.setPlayerSeekSweepSeconds(seconds)
+    }
+
     override suspend fun addSearchHistory(keyword: String) {
         searchHistoryDataSource.add(keyword)
     }

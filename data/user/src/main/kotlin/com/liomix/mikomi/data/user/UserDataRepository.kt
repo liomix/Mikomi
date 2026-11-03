@@ -37,6 +37,15 @@ interface UserDataRepository {
     /** 设置镜像基地址（仅镜像模式使用）。 */
     suspend fun setBangumiMirrorUrl(url: String)
 
+    /** 设置每集开播的默认倍速（1f = 原速）。 */
+    suspend fun setPlayerDefaultSpeed(speed: Float)
+
+    /** 设置长按画面的临时倍速。 */
+    suspend fun setPlayerLongPressSpeed(speed: Float)
+
+    /** 设置左右滑动整屏宽度对应的快进 / 快退秒数。 */
+    suspend fun setPlayerSeekSweepSeconds(seconds: Int)
+
     /** 记录一次搜索关键词。 */
     suspend fun addSearchHistory(keyword: String)
 

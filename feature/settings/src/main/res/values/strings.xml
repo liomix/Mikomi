@@ -182,4 +182,19 @@
     <string name="settings_entry_proxy_desc">连接方式与镜像地址</string>
     <string name="settings_entry_plugins">视频插件源</string>
     <string name="settings_entry_plugins_desc">添加并测试插件：一份 JSON 描述一个视频站怎么找片、怎么出流</string>
+    <string name="settings_entry_playback">播放设置</string>
+    <string name="settings_entry_playback_desc">默认倍速、长按倍速与左右滑动幅度</string>
+
+    <!-- 播放设置二级页面 -->
+    <string name="settings_playback_title">播放设置</string>
+    <string name="settings_playback_back">返回</string>
+    <string name="settings_playback_speed_value">%1$sx</string>
+    <string name="settings_playback_seconds">%1$d 秒</string>
+    <string name="settings_playback_default_speed">默认播放速率</string>
+    <string name="settings_playback_default_speed_desc">每集开始播放时使用的倍速，播放中还能用播放器右下角的胶囊临时改</string>
+    <string name="settings_playback_long_press">长按倍速</string>
+    <string name="settings_playback_long_press_desc">长按画面时临时加速到这个档位，松手立刻回到原速</string>
+    <string name="settings_playback_seek_sweep">左右滑动幅度</string>
+    <string name="settings_playback_seek_sweep_desc">手指横滑一整屏宽度时快进或快退的时长，松手才真的跳过去</string>
+    <string name="settings_playback_hint">竖屏上下滑：左半屏调音量，右半屏调亮度；双击画面暂停或继续。</string>
 </resources>

@@ -2,12 +2,14 @@ package com.liomix.mikomi.feature.settings.navigation
 
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.Navigator
+import com.liomix.mikomi.core.navigation.PlaybackSettingsDestination
 import com.liomix.mikomi.core.navigation.VdoPlgDestination
 import com.liomix.mikomi.core.navigation.VdoPlgStoreDestination
 import com.liomix.mikomi.core.navigation.ProxyDestination
 import com.liomix.mikomi.core.navigation.SettingsDestination
 import com.liomix.mikomi.core.navigation.ThemeDestination
 import com.liomix.mikomi.feature.settings.SettingsScreen
+import com.liomix.mikomi.feature.settings.playback.PlaybackSettingsRoute
 import com.liomix.mikomi.feature.settings.plugin_test.PlgTstRoute
 import com.liomix.mikomi.feature.settings.plugin_test.store.PlgTstStoreRoute
 import com.liomix.mikomi.feature.settings.proxy.ProxyRoute
@@ -30,6 +32,7 @@ object SettingsNavigationModule {
                 onOpenTheme = { navigator.goTo(ThemeDestination) },
                 onOpenProxy = { navigator.goTo(ProxyDestination) },
                 onOpenPlugins = { navigator.goTo(VdoPlgDestination) },
+                onOpenPlayback = { navigator.goTo(PlaybackSettingsDestination) },
                 onBackClick = { navigator.goBack() },
             )
         }
@@ -38,6 +41,9 @@ object SettingsNavigationModule {
         }
         entry<ProxyDestination> {
             ProxyRoute(onBackClick = { navigator.goBack() })
+        }
+        entry<PlaybackSettingsDestination> {
+            PlaybackSettingsRoute(onBackClick = { navigator.goBack() })
         }
         entry<VdoPlgDestination> {
             PlgTstRoute(

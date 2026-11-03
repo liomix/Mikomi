@@ -9,8 +9,11 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import com.liomix.mikomi.core.media.MikomiPlayer
 import com.liomix.mikomi.core.media.MikomiPlayerFactory
+import com.liomix.mikomi.core.model.PlayerPlaybackSettings
 import com.liomix.mikomi.core.model.VdoPlgContent
+import com.liomix.mikomi.core.model.toPlayerPlaybackSettings
 import com.liomix.mikomi.data.anime.AnimeRepository
+import com.liomix.mikomi.data.user.UserDataRepository
 import com.liomix.mikomi.data.video.VdoEpisode
 import com.liomix.mikomi.data.video.VdoEpisodeRoad
 import com.liomix.mikomi.data.video.VdoFailureReason
@@ -68,6 +71,7 @@ class PlayerViewModel @Inject constructor(
     private val pluginRepository: VdoPlgRepository,
     private val engine: VdoPlgEngine,
     private val planner: VdoPlgStreamPlanner,
+    private val userDataRepository: UserDataRepository,
     playerFactory: MikomiPlayerFactory,
 ) : ViewModel(), PlayerCommandSink {
 
@@ -100,6 +104,25 @@ class PlayerViewModel @Inject constructor(
      * 不落 UI 状态：它只服务于防循环，界面上一旦开始降级就没有「回去」这一步。
      */
     private val webFallbacks = mutableSetOf<String>()
+
+    /**
+     * 「下一条交给播放器的流要不要套用默认倍速」。
+     *
+     * 只有**新的一集**要：切集/首次进页面回到用户配的默认档，换源/换线路是同一集的延续，
+     * 用户可能刚把倍速调成 1.25x，这时候按默认值重置等于把他刚做的操作抹掉。
+     *
+     * 单独记一个标志而不是在判定点现算，是因为「交给播放器」有两个出口
+     * （静态出流成功、嗅探拦到流），各自都不掌握那条信息。
+     */
+    private var applyDefaultSpeedOnNextStream = true
+
+    /**
+     * 最近一次读到的播放设置。
+     *
+     * 单独存一份是为了 [bind]：换番时整页状态会被重建，如果那时还没收到偏好的第一次发射，
+     * `PlayerUiState` 会退回默认值，而偏好流只在**变化**时发射，默认值就会一直留在页面上。
+     */
+    private var playbackSettings = PlayerPlaybackSettings()
 
     // —— 播放器回写 ——
 
@@ -148,6 +171,21 @@ class PlayerViewModel @Inject constructor(
     init {
         player.exoPlayer.addListener(playerListener)
         startProgressTicker()
+        // 播放设置跟着设置页走：那边改完这里立刻生效，不需要重进播放页。
+        // 值没变时 `PlayerUiState` 相等，StateFlow 不会再发一次，页面也不会重组。
+        viewModelScope.launch {
+            userDataRepository.observeUserPreferences().collect { prefs ->
+                val settings = prefs.toPlayerPlaybackSettings()
+                playbackSettings = settings
+                _uiState.update { state ->
+                    if (state.playbackSettings == settings) {
+                        state
+                    } else {
+                        state.copy(playbackSettings = settings)
+                    }
+                }
+            }
+        }
     }
 
     override fun onCleared() {
@@ -180,7 +218,11 @@ class PlayerViewModel @Inject constructor(
         player.reset()
         playback.resetForNewMedia()
         ruleStates = emptyList()
-        _uiState.value = PlayerUiState(animeId = animeId, loading = true)
+        _uiState.value = PlayerUiState(
+            animeId = animeId,
+            loading = true,
+            playbackSettings = playbackSettings,
+        )
         loadJob = viewModelScope.launch { load(animeId, episodeId.toIntOrNull() ?: 1) }
     }
 
@@ -390,6 +432,7 @@ class PlayerViewModel @Inject constructor(
             mimeType = stream.kind.mimeType,
             headers = stream.headers,
         )
+        applyPendingDefaultSpeed()
         // 首帧迟迟不来的兜底：流已经在播（有声音），不该报失败，但遮罩也不能永远盖着。
         sniffTimeoutJob = viewModelScope.launch {
             delay(FIRST_FRAME_TIMEOUT_MILLIS)
@@ -556,7 +599,8 @@ class PlayerViewModel @Inject constructor(
     ) {
         playJob?.cancel()
         val resumePosition = if (keepPosition) playback.positionMillis else 0L
-        val wasPlaying = playback.isPlaying
+        // 换集（而非换源/换线路）时，下一条流回到设置里的默认倍速。
+        if (!keepPosition) applyDefaultSpeedOnNextStream = true
 
         playJob = viewModelScope.launch(playbackGuard(sourceId)) {
             if (forgetCache) {
@@ -649,9 +693,22 @@ class PlayerViewModel @Inject constructor(
                 headers = stream.headers,
                 startPositionMillis = resumePosition,
             )
-            // 换源时如果原来是暂停的，就保持暂停：用户是在挑线路，不是点了继续。
-            if (!wasPlaying && keepPosition) player.pause()
+            applyPendingDefaultSpeed()
+            // 换源之后**一定要接着播**。早先这里有一句「原来是暂停的就保持暂停」，
+            // 结果是用户在换源弹窗里点了另一条线路、看着加载转圈结束，画面却停在那里——
+            // 换源这个动作本身就是「我要看这一集」，不该需要再点一次播放键。
         }
+    }
+
+    /**
+     * 把设置里的默认倍速套到刚装载的这条流上。
+     *
+     * 只在「新的一集」生效（见 [applyDefaultSpeedOnNextStream]）：换源/换线路保持当前档位。
+     */
+    private fun applyPendingDefaultSpeed() {
+        if (!applyDefaultSpeedOnNextStream) return
+        applyDefaultSpeedOnNextStream = false
+        playback.setPlaybackSpeed(playbackSettings.defaultSpeed)
     }
 
     /**

@@ -8,7 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -37,6 +36,8 @@ import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.FitScreen
 import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.FullscreenExit
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -82,11 +83,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.liomix.mikomi.core.media.MikomiPlayer
+import com.liomix.mikomi.core.model.PlayerPlaybackSettings
 import com.liomix.mikomi.feature.player.PlaybackMode
 import com.liomix.mikomi.feature.player.PlayerFailure
 import com.liomix.mikomi.feature.player.PlayerFailureReason
@@ -207,10 +210,15 @@ internal fun PlayerSurface(
     onDanmakuToggle: () -> Unit,
     onDanmakuSettingsClick: () -> Unit,
     onEpisodesClick: () -> Unit,
+    /** 手势与倍速偏好（默认倍速 / 长按倍速 / 滑动幅度）。 */
+    settings: PlayerPlaybackSettings,
     modifier: Modifier = Modifier,
 ) {
     var controlsVisible by remember { mutableStateOf(true) }
     var scrubbing by remember { mutableStateOf(false) }
+    // 锁屏：把画面上的按钮与手势全部关掉，只留解锁入口。
+    // 全屏才有意义——内嵌播放器占的是页面的一角，锁了也没人误触。
+    var locked by remember { mutableStateOf(false) }
     // 两个下拉菜单的展开状态放在这里而不是各自的胶囊内部：
     // 它们是「控制条整体」的状态，且要参与下面的自动隐藏判断——放进胶囊会随组合位置变化丢失，
     // 一旦丢失就再没人回调「关闭」，控制层将永远不再自动隐藏。
@@ -222,17 +230,36 @@ internal fun PlayerSurface(
     // 填充方式是纯视图状态：只影响画面怎么铺，不参与业务。
     var videoScale by rememberSaveable { mutableStateOf(PlayerVideoScale.AUTO) }
 
+    // 亮度是窗口属性，不是播放器状态：手势改它、离开页面时还原（见 PlayerBrightnessController）。
+    val brightness = rememberPlayerBrightness()
+
     // 只返回 State，读取延迟到绘制阶段（见文件头第 1 条）。
+    // 锁屏时控制层整体退场：alpha 走同一个动画，解锁会自然淡回来。
     val controlsAlpha = animateFloatAsState(
-        targetValue = if (controlsVisible) 1f else 0f,
-        animationSpec = tween(durationMillis = if (controlsVisible) 150 else 220),
+        targetValue = if (controlsVisible && !locked) 1f else 0f,
+        animationSpec = tween(durationMillis = if (controlsVisible && !locked) 150 else 220),
         label = "playerControlsAlpha",
     )
 
+    // 退全屏时解锁：回到页面里还锁着，用户会以为播放器坏了（按钮全不见、点也没反应）。
+    LaunchedEffect(fullscreen) {
+        if (!fullscreen) locked = false
+    }
+
+    // 锁上就把控制层收起来：锁屏的意思就是「别让手指碰到任何东西」。
+    LaunchedEffect(locked) {
+        if (locked) {
+            controlsVisible = false
+            // 开着的菜单必须关掉，否则它们浮在锁屏之上，等于留了一个后门。
+            speedMenuOpen = false
+            scaleMenuOpen = false
+        }
+    }
+
     // 播放中 3.5s 自动隐藏。isPlaying 走 snapshotFlow 读：
     // 直接读进组合的话，每次播放/暂停都会让整块画面重组。
-    LaunchedEffect(controlsVisible, interactionPinned, playback) {
-        if (!controlsVisible || interactionPinned) return@LaunchedEffect
+    LaunchedEffect(controlsVisible, interactionPinned, playback, locked) {
+        if (locked || !controlsVisible || interactionPinned) return@LaunchedEffect
         snapshotFlow { playback.isPlaying }
             .distinctUntilChanged()
             .collect { playing ->
@@ -276,18 +303,7 @@ internal fun PlayerSurface(
 
     Box(
         modifier = modifier
-            .background(Color.Black)
-            // 网页形态下把整块画面的点击让给站点播放器：它有自己的播放键与进度条，
-            // 我们再用「点画面显隐」去抢手势，用户就点不动它了。控制层在该形态下常显。
-            .then(
-                if (mode == PlaybackMode.NATIVE && sniffUrl == null) {
-                    Modifier.pointerInput(Unit) {
-                        detectTapGestures { controlsVisible = !controlsVisible }
-                    }
-                } else {
-                    Modifier
-                },
-            ),
+            .background(Color.Black),
     ) {
         if (mode == PlaybackMode.WEB && webUrl != null) {
             // 网页播放：顶栏与网页**分区**，不是叠层。
@@ -320,6 +336,20 @@ internal fun PlayerSurface(
             PlayerVideo(
                 mediaPlayer = mediaPlayer,
                 videoScale = videoScale,
+                modifier = Modifier.fillMaxSize(),
+            )
+
+            // 手势层贴着画面、压在所有控制层之下：按钮（顶栏 / 底栏 / 锁）在它上面，
+            // 所以点按钮永远优先于「点画面显隐」。网页形态不给：站点播放器有自己的
+            // 播放键与进度条，抢它的手势用户就点不动它了。
+            PlayerGestureLayer(
+                playback = playback,
+                settings = settings,
+                brightness = brightness,
+                // 解析期间画面还没有东西可控制，手势一起停掉，免得误触发音量/亮度；
+                // 失败页也停掉：那一屏只有「重试 / 用网页播放」两个按钮该响应。
+                enabled = mode == PlaybackMode.NATIVE && sniffUrl == null && !locked && failure == null,
+                onTap = { controlsVisible = !controlsVisible },
                 modifier = Modifier.fillMaxSize(),
             )
 
@@ -398,6 +428,27 @@ internal fun PlayerSurface(
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
                 }
+            }
+
+            // 锁屏按钮：画面右侧垂直居中，只在全屏给。
+            // 内嵌播放器占的是页面的一角，锁了没有任何意义（下面的选集与导航还在那儿）。
+            // 它**压在控制层之上**：锁上之后控制层整体退场，这枚按钮必须自己留在屏幕上，
+            // 否则用户没有解锁的入口。
+            if (fullscreen && mode == PlaybackMode.NATIVE && sniffUrl == null) {
+                PlayerLockButton(
+                    locked = locked,
+                    visible = controlsVisible || locked,
+                    onToggle = {
+                        val unlock = locked
+                        locked = unlock.not()
+                        // 解锁的同时把控制层带回来：用户点锁是为了继续用播放器，
+                        // 解锁后还要再点一下画面才看见按钮，会以为没解开。
+                        if (unlock) controlsVisible = true
+                    },
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 6.dp),
+                )
             }
         }
     }
@@ -587,6 +638,49 @@ private fun BufferingIndicator(playback: PlayerPlaybackState, visible: Boolean) 
     )
 }
 
+/**
+ * 锁屏按钮：右侧垂直居中。
+ *
+ * 锁定后**只有它留在画面上**，其余按钮与手势全部关掉——这就是「把手机递给孩子 / 放兜里
+ * 继续听」时想要的效果：怎么碰都不会跳进度、不会改音量、不会退出全屏。
+ *
+ * 锁定时不隐藏而是压到 55% 透明：完全藏起来用户就找不到解锁的地方了。
+ */
+@Composable
+private fun PlayerLockButton(
+    locked: Boolean,
+    visible: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val alpha by animateFloatAsState(
+        targetValue = when {
+            !visible -> 0f
+            locked -> 0.55f
+            else -> 1f
+        },
+        animationSpec = tween(durationMillis = 180),
+        label = "playerLockAlpha",
+    )
+    ControlSlot(
+        onClick = onToggle,
+        enabled = visible,
+        modifier = modifier
+            .size(ControlSize)
+            .graphicsLayer { this.alpha = alpha },
+        containerColor = if (locked) Color.White.copy(alpha = 0.22f) else ControlContainer,
+    ) {
+        Icon(
+            imageVector = if (locked) Icons.Rounded.Lock else Icons.Rounded.LockOpen,
+            contentDescription = stringResource(
+                if (locked) R.string.player_unlock else R.string.player_lock,
+            ),
+            tint = Color.White,
+            modifier = Modifier.size(ControlIconSize),
+        )
+    }
+}
+
 /** 播不出来的原因 → 一句人话。播放页语境：告诉用户下一步能做什么。 */
 @StringRes
 private fun PlayerFailureReason.messageRes(): Int = when (this) {
@@ -651,9 +745,16 @@ private fun PlayerTopOverlay(
         }
         Spacer(modifier = Modifier.width(4.dp))
         Column(modifier = Modifier.weight(1f)) {
+            // 全屏字号对齐 Dart-Mikomi 的全屏控制条：标题 18sp / 副标题 15sp，都 w600 / 0.8。
+            // 用主题字号派生（copy 只改 font size 与行高），字族、字距、字重仍跟主题走，
+            // 不在页面里另立一套排版常量。
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
+                style = if (fullscreen) {
+                    MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 24.sp)
+                } else {
+                    MaterialTheme.typography.titleMedium
+                },
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White,
                 maxLines = 1,
@@ -663,8 +764,12 @@ private fun PlayerTopOverlay(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.72f),
+                    style = if (fullscreen) {
+                        MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp, lineHeight = 20.sp)
+                    } else {
+                        MaterialTheme.typography.labelMedium
+                    },
+                    color = Color.White.copy(alpha = 0.8f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -1303,7 +1408,7 @@ private fun PlayerSeekBar(
 }
 
 /** 秒 → `mm:ss`（超过一小时按 `h:mm:ss`）。 */
-private fun formatTime(totalSeconds: Long): String {
+internal fun formatTime(totalSeconds: Long): String {
     val safeSeconds = totalSeconds.coerceAtLeast(0L)
     val hours = safeSeconds / 3_600
     val minutes = safeSeconds % 3_600 / 60
@@ -1323,7 +1428,7 @@ private fun Long.pad2(): String = if (this < 10) "0$this" else toString()
  * 小数位跟着数值走：整十的百分位（1.0、1.5、2.0）只留一位，否则「1.0x → 1.25x」时
  * 胶囊宽度会跳。`Locale.ROOT` 保证小数点永远是「.」，不随系统语言变成逗号。
  */
-private fun formatSpeed(speed: Float): String {
+internal fun formatSpeed(speed: Float): String {
     val decimals = if ((speed * 100f).toInt() % 10 == 0) 1 else 2
     return String.format(Locale.ROOT, "%.${decimals}f", speed)
 }

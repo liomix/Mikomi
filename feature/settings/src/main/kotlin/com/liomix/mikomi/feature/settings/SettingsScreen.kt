@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.PlayCircleOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -38,12 +39,15 @@ import com.liomix.mikomi.feature.settings.component.SettingsTopBar
 /**
  * 设置首页。
  *
- * 只做入口列表，按「一件事一张卡」分组：外观单独一张，数据源（Bangumi 代理 + 插件源）
- * 合成一张——这两项都在回答「番剧数据从哪儿来、怎么连」，放在一起才好比较，
- * 拆成两张卡反而让人以为它们互不相干。
+ * 只做入口列表，按「一件事一张卡」分组：外观一张、数据源（Bangumi 代理 + 插件源）一张、
+ * 播放一张。外观与播放各自只有一项，但仍然独立成卡——它们和「番剧数据从哪儿来、怎么连」
+ * 是三个互不相干的问题，合在一起只会让入口看起来像一堆杂项。
  *
  * 注意「数据源」是分组名，「插件源」才是页面名：插件源只负责视频来源（JSON 规则），
  * 番剧元数据走 Bangumi，那是 App 内置接口，不归插件管。
+ *
+ * 「播放」管的是**看片时手怎么用**：默认倍速、长按倍速、左右滑动幅度。它与外观无关，
+ * 也与数据源无关，单独一张卡才找得到。
  *
  * 具体配置由各自的二级页面承担，本页不持有任何状态。
  */
@@ -52,6 +56,7 @@ fun SettingsScreen(
     onOpenTheme: () -> Unit,
     onOpenProxy: () -> Unit,
     onOpenPlugins: () -> Unit,
+    onOpenPlayback: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -101,6 +106,18 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_entry_plugins),
                         description = stringResource(R.string.settings_entry_plugins_desc),
                         onClick = onOpenPlugins,
+                    )
+                }
+            }
+
+            // 播放单独一张卡：它管的是「看片时手怎么用」，与外观、数据源都不是一回事。
+            SettingsCard {
+                SettingsCardSection {
+                    EntryRow(
+                        icon = Icons.Outlined.PlayCircleOutline,
+                        title = stringResource(R.string.settings_entry_playback),
+                        description = stringResource(R.string.settings_entry_playback_desc),
+                        onClick = onOpenPlayback,
                     )
                 }
             }

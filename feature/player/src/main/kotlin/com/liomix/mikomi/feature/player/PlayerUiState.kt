@@ -1,5 +1,6 @@
 package com.liomix.mikomi.feature.player
 
+import com.liomix.mikomi.core.model.PlayerPlaybackSettings
 import com.liomix.mikomi.data.video.VdoSourceFamily
 
 /** 播放页内容区 Tab。 */
@@ -252,6 +253,13 @@ data class PlayerUiState(
     val webPageAvailable: Boolean = false,
     /** 播不出来的原因；非空时画面区显示错误与重试。 */
     val failure: PlayerFailure? = null,
+    /**
+     * 手势与倍速偏好（设置页「播放设置」里配）。
+     *
+     * 放在页面状态里而不是让 UI 自己去读 DataStore：播放页已经在读一份状态了，
+     * 再开一条数据流只会多一处「设置改了但画面没跟上」的可能。
+     */
+    val playbackSettings: PlayerPlaybackSettings = PlayerPlaybackSettings(),
 ) {
     /** 当前播放源。 */
     val currentSource: PlayerSource?

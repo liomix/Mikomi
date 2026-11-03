@@ -42,6 +42,10 @@ data object EditorDestination : NavKey
 @Serializable
 data object ProxyDestination : NavKey
 
+/** 播放设置二级页面（设置页「播放」卡片）。 */
+@Serializable
+data object PlaybackSettingsDestination : NavKey
+
 /** 视频插件源测试二级页面（设置页「数据源」卡片的第二项）。 */
 @Serializable
 data object VdoPlgDestination : NavKey

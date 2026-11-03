@@ -72,6 +72,9 @@ class PlayerPlaybackState {
     /** 命令出口；播放器就绪前为 null。为 null 时按钮点了不做事（不假装已经在播）。 */
     var sink: PlayerCommandSink? = null
 
+    /** 长按加速前的档位；非 null 即「正在长按加速」。 */
+    private var boostBaseSpeed: Float? = null
+
     /** 0..1。时长为 0（还没 prepare 完）时返回 0，避免除零。 */
     val progressFraction: Float
         get() = if (durationMillis > 0L) {
@@ -83,8 +86,19 @@ class PlayerPlaybackState {
     /** 拖动进度条时调用：写入的是最终位置，乐观更新一次，避免松手瞬间回弹到旧位置。 */
     fun seekToFraction(fraction: Float) {
         if (durationMillis <= 0L) return
-        val target = (durationMillis * fraction.coerceIn(0f, 1f)).toLong()
-        positionMillis = target
+        seekTo((durationMillis * fraction.coerceIn(0f, 1f)).toLong())
+    }
+
+    /**
+     * 跳到指定位置（左右滑动的手势用）。
+     *
+     * 和 [seekToFraction] 一样先乐观更新：手势松手到播放器真的跳过去之间有一小段延迟，
+     * 不先改状态的话进度条会停在原地不动，用户以为这一下没生效。
+     */
+    fun seekTo(positionMillis: Long) {
+        if (durationMillis <= 0L) return
+        val target = positionMillis.coerceIn(0L, durationMillis)
+        this.positionMillis = target
         sink?.seekTo(target)
     }
 
@@ -99,12 +113,37 @@ class PlayerPlaybackState {
         sink?.setPlaybackSpeed(clamped)
     }
 
+    /**
+     * 长按临时加速。
+     *
+     * 挡位本身由偏好在设置页配（默认 2x），这里只负责「抬起来再放回去」：
+     * 加速前的档位存在 [boostBaseSpeed]，松手时原样写回——用户自己调过的 1.25x
+     * 不会被这次长按抹成 1.0x。
+     *
+     * 重复调用是安全的：按住期间系统可能重复触发，已经有基档就不再覆盖。
+     */
+    fun beginTemporarySpeed(multiplier: Float) {
+        if (boostBaseSpeed != null) return
+        boostBaseSpeed = speed
+        setPlaybackSpeed(multiplier)
+    }
+
+    /** 松手（或手势被取消）：恢复长按前的档位。 */
+    fun endTemporarySpeed() {
+        val previous = boostBaseSpeed ?: return
+        boostBaseSpeed = null
+        setPlaybackSpeed(previous)
+    }
+
     /** 换集/换源：进度与时长都是上一条流的，必须清掉。 */
     fun resetForNewMedia() {
         positionMillis = 0L
         durationMillis = 0L
         bufferedMillis = 0L
         isBuffering = true
+        // 长按加速是「这一次按压」的状态，换流时不可能还在按着；
+        // 留着基档会让下一次长按的恢复值错成上一条流的档位。
+        boostBaseSpeed = null
     }
 
     // —— 以下由播放层（ViewModel 的 Player.Listener / 进度轮询）回写 ——

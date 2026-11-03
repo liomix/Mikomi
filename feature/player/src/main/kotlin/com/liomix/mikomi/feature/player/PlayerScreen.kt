@@ -178,6 +178,7 @@ fun PlayerScreen(
             onDanmakuToggle = onDanmakuToggle,
             onDanmakuSettingsClick = onDanmakuSettingsClick,
             onEpisodesClick = onEpisodesClick,
+            settings = state.playbackSettings,
             // 与上面 Column 里那块等高的 `Spacer` 对齐：两者都必须让出状态栏那一条，
             // 否则播放器会盖住选集区的第一行，或者反过来浮到状态栏底下。
             modifier = Modifier

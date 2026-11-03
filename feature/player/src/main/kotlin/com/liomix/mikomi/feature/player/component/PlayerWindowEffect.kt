@@ -1,8 +1,6 @@
 package com.liomix.mikomi.feature.player.component
 
 import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
 import android.os.Build
 import android.view.WindowManager
@@ -152,9 +150,3 @@ private data class WindowOrigin(
     val keepScreenOn: Boolean,
     val cutoutMode: Int,
 )
-
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
-}

@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import com.liomix.mikomi.core.media.MikomiPlayer
+import com.liomix.mikomi.core.model.PlayerPlaybackSettings
 import com.liomix.mikomi.feature.player.PlaybackMode
 import com.liomix.mikomi.feature.player.PlayerFailure
 import com.liomix.mikomi.feature.player.PlayerPlaybackState
@@ -56,6 +57,7 @@ internal fun PlayerHost(
     onDanmakuToggle: () -> Unit,
     onDanmakuSettingsClick: () -> Unit,
     onEpisodesClick: () -> Unit,
+    settings: PlayerPlaybackSettings,
     modifier: Modifier = Modifier,
 ) {
     PlayerSurface(
@@ -88,6 +90,7 @@ internal fun PlayerHost(
         onDanmakuToggle = onDanmakuToggle,
         onDanmakuSettingsClick = onDanmakuSettingsClick,
         onEpisodesClick = onEpisodesClick,
+        settings = settings,
         // 只改约束，不换位置：非全屏是「一屏宽 × 计算高度」，全屏铺满窗口。
         modifier = if (fullscreen) {
             modifier.fillMaxSize()

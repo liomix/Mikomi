@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -185,7 +186,9 @@ private fun SuggestionRow(hit: AniMapHit, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            // 竖向留白 8 -> 4：一行里已经有三行字，再留 8 会让「最近更新」那种长列表
+            // 一屏只装下五六条，翻起来很费劲。
+            .padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (hit.isCity) {
@@ -262,9 +265,22 @@ private fun SuggestionList(
         shadowElevation = 10.dp,
     ) {
         when {
-            hits.isNotEmpty() -> LazyColumn {
-                items(items = hits, key = { "${it.kind}-${it.index}" }) { hit ->
-                    SuggestionRow(hit = hit) { onHitClick(hit) }
+            hits.isNotEmpty() -> {
+                val listState = rememberLazyListState()
+                // 内容换了一套就回到顶部。「最近更新」有一千多条，翻到很下面再输入关键词时，
+                // 新结果的下标同样从 0 开始、key 也同样是 `bangumi-N`，列表会沿用旧的滚动位置，
+                // 于是看起来像「搜了但没结果」——这正是全量「最近更新」带出来的副作用。
+                LaunchedEffect(hits) {
+                    if (hits.isNotEmpty()) runCatching { listState.scrollToItem(0) }
+                }
+                LazyColumn(state = listState) {
+                    items(
+                        items = hits,
+                        key = { "${it.kind}-${it.index}" },
+                        contentType = { it.kind },
+                    ) { hit ->
+                        SuggestionRow(hit = hit) { onHitClick(hit) }
+                    }
                 }
             }
 
@@ -317,7 +333,7 @@ private fun SuggestionPlaceholder(text: String) {
  *
  * @param expanded 是否处于搜索态
  * @param query 当前输入
- * @param hits 建议列表
+ * @param hits 建议列表：输入为空时是「最近更新」的作品，输入后是检索命中
  * @param searching 是否正在检索
  * @param ready 页面脚本是否已就绪（地图数据还没到位时不能断言「没找到」）
  * @param onQueryChange 输入变化
@@ -364,7 +380,8 @@ internal fun AniMapSearchBar(
                 onCollapse = onCollapse,
                 focusRequester = focusRequester,
             )
-            if (query.isNotBlank() || searching) {
+            // 空输入时也给建议框：里面是「最近更新」的五部作品，不是空态。
+            if (query.isNotBlank() || searching || hits.isNotEmpty()) {
                 SuggestionList(
                     query = query,
                     hits = hits,

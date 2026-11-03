@@ -52,6 +52,15 @@ private const val NAV_BAR_HIDE_DELAY_MILLIS = 2_000L
 private const val SEARCH_DEBOUNCE_MILLIS = 240L
 
 /**
+ * 「最近更新」还没拿到时的重试次数与间隔。
+ *
+ * 典型场景：地图刚打开、作品数据还在路上，用户已经点开搜索框。
+ * 5 × 400ms 足够覆盖这段空窗，又不会在确实没数据时一直卡着「加载中」。
+ */
+private const val LATEST_RETRY_COUNT = 5
+private const val LATEST_RETRY_DELAY_MILLIS = 400L
+
+/**
  * 巡礼地图（AniMap）。以纯 WebView 形式内嵌 anitabi 地图，展示动漫取景地。
  *
  * WebView 装在 [AniMapWebViewContainer] 中，就是一个普通的子 View：
@@ -128,7 +137,20 @@ fun AniMapScreen(
         if (!searchExpanded) return@LaunchedEffect
         val keyword = searchQuery.trim()
         if (keyword.isEmpty()) {
-            searchHits = emptyList()
+            // 还没输入：先摆「最近更新」占位。站点自己那块搜索框也是这么做的，
+            // 空着一条都不给，用户只能凭记忆硬敲关键词。
+            searchLoading = true
+            var payload = container?.latestHits() ?: AniMapSearchPayload()
+            // 首屏数据常在地图加载完之后才到，此刻列表空是「还不能查」而不是「没有作品」。
+            // 展开搜索的一瞬间就撞上这种情况很常见，退几档重试，不用用户手动再点一次。
+            var attempt = 0
+            while (!payload.ready && attempt < LATEST_RETRY_COUNT) {
+                kotlinx.coroutines.delay(LATEST_RETRY_DELAY_MILLIS)
+                payload = container?.latestHits() ?: AniMapSearchPayload()
+                attempt++
+            }
+            searchHits = payload.hits
+            searchReady = payload.ready
             searchLoading = false
             return@LaunchedEffect
         }
@@ -246,6 +268,8 @@ fun AniMapScreen(
             onCollapse = {
                 searchExpanded = false
                 searchQuery = ""
+                // 收起时清空：下次展开是全新的「最近更新」，不该先闪一屏上次的关键词结果。
+                searchHits = emptyList()
             },
             onHitClick = { hit ->
                 // 作品缩放到取景地范围、地标落到具体坐标、城市圈住该城市全部取景点；

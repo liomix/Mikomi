@@ -320,6 +320,14 @@ private const val MAP_READY_TIMEOUT_MILLIS = 8_000L
 private const val SEARCH_HIT_LIMIT = 40
 
 /**
+ * 未输入时「最近更新」的条数。
+ *
+ * 给十条：一屏能扫完，也足够看出「最近有人更新过什么」；
+ * 再多就成了一个没有搜索框的完整列表，反而挡住地图。
+ */
+private const val LATEST_HIT_LIMIT = 10
+
+/**
  * 点击命中后回读相机状态的时间点（毫秒）。
  *
  * 起飞本身有 60ms 延迟，脚本里的验收在 1.8s 收尾，所以这个数要压在它之后。
@@ -515,6 +523,72 @@ private val SEARCH_JS = """
   }
   // 作品列表还是空的，说明地图数据没加载完——这时候「没找到」是假象。
   return { ready: list.length > 0, total: items.length, hits: out };
+})()
+"""
+
+/**
+ * 未输入关键词时的默认建议：最近更新的若干作品。
+ *
+ * 站点自己那块搜索框也是这么做的——空着的时候给一屏「最近更新」，让人有东西可点。
+ * 数据同样从 `window.mapApp.bangumis` 里取，按站点的 `modified`（最近修改时间，毫秒）
+ * 降序；时间戳相同的再按取景点数排，保证每次打开的顺序一致，不会看着像在乱跳。
+ *
+ * 只取前 [LATEST_HIT_LIMIT] 条：这里是「让人有个起点」，不是完整目录，
+ * 真要看全的应该去搜关键词。回包因此很小，一次就搬完。
+ *
+ * 回包结构与 [SEARCH_JS] 完全一致，界面上走同一套建议条（`kind` 恒为 `bangumi`）。
+ */
+private val LATEST_JS = """
+(function() {
+  var app = window.mapApp;
+  if (!app) return { ready: false, total: 0, hits: [] };
+  var raw = app.bangumis || [];
+  if (!raw.length) return { ready: false, total: 0, hits: [] };
+
+  function text(v) {
+    if (v == null) return '';
+    if (typeof v === 'string') return v;
+    if (v.join) return v.join(' ');
+    return '';
+  }
+
+  function absolute(src) {
+    var s = text(src);
+    if (!s) return '';
+    if (/^https?:/i.test(s)) return s;
+    if (s.indexOf('//') === 0) return 'https:' + s;
+    if (s.indexOf('/images/') === 0) return 'https://image-anitabi.magiconch.com/' + s.slice(8);
+    if (s.charAt(0) === '/') return 'https://www.anitabi.cn' + s;
+    return 'https://www.anitabi.cn/' + s;
+  }
+
+  // 排副本，别动站点那份数组：`bangumis` 是 getter，但返回的是内部对象引用，
+  // 原地 sort 会把站点自己的顺序改掉（它按 priority 排过，改了会影响地图上的显示）。
+  var list = raw.slice().sort(function(x, y) {
+    var d = ((y && y.modified) || 0) - ((x && x.modified) || 0);
+    if (d) return d;
+    return ((y && y.points) || []).length - ((x && x.points) || []).length;
+  });
+
+  var out = [];
+  var limit = Math.min(list.length, __LIMIT__);
+  for (var i = 0; i < limit; i++) {
+    var bgm = list[i];
+    if (!bgm) continue;
+    var cnText = text(bgm.cn);
+    var enText = text(bgm.title);
+    out.push({
+      kind: 'bangumi',
+      index: i,
+      id: bgm.id == null ? '' : String(bgm.id),
+      title: cnText || enText,
+      subtitle: (cnText && enText && enText !== cnText) ? enText : '',
+      city: text(bgm.city),
+      cover: absolute(bgm.cover),
+      points: (bgm.points || []).length
+    });
+  }
+  return { ready: true, total: list.length, hits: out };
 })()
 """
 
@@ -872,6 +946,9 @@ class AniMapWebViewContainer(
      */
     private var readyGeneration = 0
 
+    /** 「最近更新」全量结果的页内缓存（跟着这个容器一起活，页面重载即失效）。 */
+    private var cachedLatest = AniMapSearchPayload()
+
     /** 页面加载完成（onPageFinished）时回调，携带页面当前 URL（可能被站点重定向改写）。 */
     var onPageFinished: (WebView, String?) -> Unit = { _, _ -> }
 
@@ -1046,6 +1123,34 @@ class AniMapWebViewContainer(
                 }
             }
             // evaluateJavascript 本身抛了异常时回调不会再来了，必须在这里收尾，否则协程永久挂起。
+            if (dispatched.isFailure && continuation.isActive) {
+                continuation.resume(AniMapSearchPayload())
+            }
+        }
+    }
+
+    /**
+     * 未输入时给建议框垫底的「最近更新」作品（前 [LATEST_HIT_LIMIT] 条，按最近更新降序）。
+     *
+     * 与 [search] 同一套回包结构，界面上不用分叉；只是排序键从「关键词匹配」换成了
+     * 站点的 `modified` 时间。数据没到位时 `ready` 为 false，调方据此显示「加载中」
+     * 而不是「没有内容」。
+     *
+     * 结果按页面缓存一份：列表不随用户输入变化，每次展开都重跑一遍脚本没有意义。
+     * 缓存跟页面实例同寿，页面重载后容器会重建，自然失效。
+     */
+    suspend fun latestHits(): AniMapSearchPayload {
+        if (cachedLatest.ready && cachedLatest.hits.isNotEmpty()) return cachedLatest
+        val view = webView ?: return AniMapSearchPayload()
+        val script = LATEST_JS.replace(LIMIT_PLACEHOLDER, LATEST_HIT_LIMIT.toString())
+        return suspendCancellableCoroutine { continuation ->
+            val dispatched = runCatching {
+                view.evaluateJavascript(script) { raw ->
+                    val payload = parsePayload(raw)
+                    if (payload.ready) cachedLatest = payload
+                    if (continuation.isActive) continuation.resume(payload)
+                }
+            }
             if (dispatched.isFailure && continuation.isActive) {
                 continuation.resume(AniMapSearchPayload())
             }

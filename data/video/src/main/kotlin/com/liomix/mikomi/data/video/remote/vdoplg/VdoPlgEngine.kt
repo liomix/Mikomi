@@ -89,8 +89,8 @@ class VdoPlgEngine @Inject constructor(
         } else {
             VdoPlgSelector.select(document, rule.chapterRoads)
         }
-        return roads.mapIndexed { index, road ->
-            val episodes = VdoPlgSelector.select(road, VdoPlgSelector.scoped(rule.chapterResult))
+        return roads.map { road ->
+            VdoPlgSelector.select(road, VdoPlgSelector.scoped(rule.chapterResult))
                 .mapIndexedNotNull { position, link ->
                     val href = VdoPlgSelector.resolve(
                         detailUrl,
@@ -102,11 +102,20 @@ class VdoPlgEngine @Inject constructor(
                         url = href,
                     )
                 }
-            VdoEpisodeRoad(
-                name = road.text()?.take(ROAD_NAME_LIMIT).orEmpty().ifBlank { "线路 ${index + 1}" },
-                episodes = episodes,
-            )
-        }.filter { it.episodes.isNotEmpty() }
+        }
+            // 先丢掉空线路再编号：否则空线路被过滤后，剩下的会从「线路2」开始，
+            // 用户看到的第一条线路就不是「线路1」了。
+            .filter { it.isNotEmpty() }
+            .mapIndexed { index, episodes ->
+                VdoEpisodeRoad(
+                    // 线路名由我们自己编，不读站点的。
+                    // `chapterRoads` 命中的通常是整个列表容器，它的文本就是所有集名首尾相接
+                    // （实测 DM84 得到「54321」、7sefun 得到「第 01集 第 02集 …」），
+                    // 既不像名字、还会随集数变化——线路名一变，按线路存的能力缓存也就跟着失效。
+                    name = "线路${index + 1}",
+                    episodes = episodes,
+                )
+            }
     }
 
     /**
@@ -309,6 +318,5 @@ class VdoPlgEngine @Inject constructor(
         const val KEYWORD_TOKEN = "@keyword"
         const val CALL_TIMEOUT_SECONDS = 15L
         const val PROBE_BYTES = 2048
-        const val ROAD_NAME_LIMIT = 16
     }
 }

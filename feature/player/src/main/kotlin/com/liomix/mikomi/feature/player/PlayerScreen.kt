@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -96,7 +97,14 @@ fun PlayerScreen(
         val playerHeight = min(maxWidth * 9f / 16f, maxHeight * PLAYER_MAX_HEIGHT_RATIO)
 
         if (!fullscreen) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    // 播放器从**状态栏下方**开始。
+                    // App 是 edge-to-edge，内容默认铺到屏幕顶端，状态栏的时钟/信号图标
+                    // 会压在第一帧画面上；这里让出那一条，全屏时才铺到屏幕边缘。
+                    .statusBarsPadding(),
+            ) {
                 // 给播放器让出等高的一块：全屏与非全屏共用同一个播放器实例。
                 Spacer(modifier = Modifier.height(playerHeight))
 
@@ -125,6 +133,8 @@ fun PlayerScreen(
                             episodes = orderedEpisodes,
                             selectedEpisodeId = currentEpisode?.id,
                             order = state.order,
+                            // 交给选集区自己判断「剧集到底到没到」（见 EpisodeSection 里的 skeleton）。
+                            loading = state.loading,
                             gridState = episodeGridState,
                             onOrderToggle = onOrderToggle,
                             onEpisodeClick = onEpisodeClick,
@@ -168,7 +178,11 @@ fun PlayerScreen(
             onDanmakuToggle = onDanmakuToggle,
             onDanmakuSettingsClick = onDanmakuSettingsClick,
             onEpisodesClick = onEpisodesClick,
-            modifier = Modifier.align(Alignment.TopCenter),
+            // 与上面 Column 里那块等高的 `Spacer` 对齐：两者都必须让出状态栏那一条，
+            // 否则播放器会盖住选集区的第一行，或者反过来浮到状态栏底下。
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .then(if (fullscreen) Modifier else Modifier.statusBarsPadding()),
         )
 
         if (state.sourceSheetVisible) {

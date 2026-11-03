@@ -10,8 +10,11 @@ package com.liomix.mikomi.data.video
  * 地址形状只保留结构、把数字换成 `{n}`——同一站点换一部番时集号会变，
  * 但路径模板不会变，这正是我们要的稳定性。
  *
+ * 注意 [lineName] 是我们自己按顺序编的号（站点给的文本整块是集名拼接，不可用），
+ * 站点改版后编号会跟着错位——真正兜住改版的是 [firstEpisodeUrl] 的形状。
+ *
  * @property sourceName 规则名（也是 UI 上的源 id）。
- * @property lineName 规则 `chapterRoads` 给出的线路名。
+ * @property lineName 我们自己编号的线路名（`线路1`、`线路2`…），只当序号用。
  * @property urlShape 首集地址的形状，如 `/vodplay/{n}-{n}-{n}.html`。
  */
 data class VdoLineRef(

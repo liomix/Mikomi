@@ -41,21 +41,28 @@ import com.liomix.mikomi.core.ui.component.TabItemStyle
 import com.liomix.mikomi.feature.player.PlayerTab
 import com.liomix.mikomi.feature.player.R
 
-/** 导航条高度。 */
-private val PlayerBarHeight = 56.dp
+/**
+ * 导航条高度。
+ *
+ * 这一条不是纯 Tab 栏——左边是 Tab、右边还挂着三个圆钮，视觉上比系统导航条更「厚」。
+ * 56 → 52 → **48dp**（与 Dart-Mikomi 视频页的 `height: 48` 一致）：
+ * 里面的 Tab 与圆钮一起缩一档，内外留白才匀得开。
+ */
+private val PlayerBarHeight = 48.dp
 
 /**
  * 圆形操作按钮直径：**触控区就是这个圆本身**，不再向外扩隐形热区。
  *
  * 视觉与热区一致，点击必须落在圆内，相邻两个按钮之间才不会有互相抢事件的空白带。
+ * 36dp 已略高于 48dp 最小触控目标的折算值（配合 8dp 间距），在更薄的导航条里也不难按。
  */
-private val ActionSize = 40.dp
+private val ActionSize = 36.dp
 
 /**
  * 操作图标尺寸：来自 Dart-Mikomi 的图标铺满 24 网格且细节很密（气泡里的「弹」字 +
- * 角标），20dp 时角标会糊，22dp 在 40dp 圆里正好接近参考图的比例。
+ * 角标），20dp 时角标刚好看得清，与 36dp 的圆也是同一比例。
  */
-private val ActionIconSize = 22.dp
+private val ActionIconSize = 20.dp
 
 /**
  * Tab 栏 + 右侧操作区。
@@ -92,9 +99,9 @@ internal fun PlayerNavigationBar(
             contentPadding = PaddingValues(0.dp),
             itemSpacing = 2.dp,
             itemStyle = TabItemStyle(
-                height = 36.dp,
-                horizontalPadding = 12.dp,
-                labelStyle = MaterialTheme.typography.titleSmall,
+                height = 32.dp,
+                horizontalPadding = 10.dp,
+                labelStyle = MaterialTheme.typography.labelLarge,
             ),
         ) {
             Tab(index = PlayerTab.EPISODES.ordinal, text = stringResource(R.string.player_tab_episodes))
@@ -196,17 +203,17 @@ private fun SourceChip(
         contentColor = MaterialTheme.colorScheme.onSurface,
         // 源名可能很长：给一个上限，窄屏时宁可省略也不把 Tab 挤出去。
         modifier = Modifier
-            .height(36.dp)
-            .widthIn(max = 96.dp)
+            .height(32.dp)
+            .widthIn(max = 92.dp)
             .semantics { contentDescription = "$sourceDescription $label" },
     ) {
         Row(
-            modifier = Modifier.padding(start = 5.dp, end = 12.dp),
+            modifier = Modifier.padding(start = 4.dp, end = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .size(26.dp)
+                    .size(22.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center,
@@ -218,10 +225,10 @@ private fun SourceChip(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(5.dp))
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

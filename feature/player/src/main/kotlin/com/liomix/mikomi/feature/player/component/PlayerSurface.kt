@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -446,7 +447,8 @@ private fun PlayerVideo(
  *
  * 存在的理由：站点播放器**不是我们的界面**。底下那个 WebView 必须真实加载并起播
  * （嗅探就靠它发出媒体请求），但一进来就看见一个陌生网站的播放器，用户的第一反应是
- * 「这不是我要的播放器」。所以整块盖住，只留一句「正在解析播放地址」。
+ * 「这不是我要的播放器」。所以整块盖住，只留一句「正在加载」——
+ * 用户不需要知道我们在解析地址还是嗅探流，**文案只说结果，不说实现**。
  *
  * 这一层**不会自己消失**：拦到流 → 整个 WebView 一起被换掉；超时 → 换成失败与重试。
  * 早先的做法是「等 6 秒自动撤掉露出网页」，那正是「播放前弹网页」的来源，已经删了。
@@ -509,37 +511,46 @@ private fun PlayerStatusOverlay(
                     imageVector = Icons.Rounded.ErrorOutline,
                     contentDescription = null,
                     tint = Color.White.copy(alpha = 0.85f),
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(24.dp),
                 )
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = stringResource(failure.reason.messageRes()),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White,
                     textAlign = TextAlign.Center,
                 )
-                failure.detail?.let { detail ->
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = detail,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.55f),
-                        textAlign = TextAlign.Center,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Spacer(modifier = Modifier.height(14.dp))
+                // 这里**不显示** `failure.detail`。它装的是播放页地址或 XPath 字段名，
+                // 是给开发者看的调试信息：一长串 URL 摆在用户面前既看不懂，又把这一屏撑得很难看。
+                // 需要排查的时候去看日志，别让用户替我们读堆栈。
+                Spacer(modifier = Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Button(onClick = onRetry) {
-                        Text(stringResource(R.string.player_retry))
+                    // 失败态的两个按钮做小一号（32dp / labelMedium）：
+                    // 它们是「接着怎么办」的出口，不是这一屏的主角，不该比一句话还抢眼。
+                    Button(
+                        onClick = onRetry,
+                        modifier = Modifier.height(32.dp),
+                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 0.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.player_retry),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
                     }
                     // 「用网页播放」是**退出**主路径的选择，画成次按钮：不抢重试的位置，
                     // 但必须在失败这一屏给出来——否则那类「要人点一下才起播」的站就完全没路走了。
                     if (webPageAvailable) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        TextButton(onClick = onPlayInWebPage) {
-                            Text(stringResource(R.string.player_web_play), color = Color.White.copy(alpha = 0.8f))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        TextButton(
+                            onClick = onPlayInWebPage,
+                            modifier = Modifier.height(32.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.player_web_play),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White.copy(alpha = 0.8f),
+                            )
                         }
                     }
                 }

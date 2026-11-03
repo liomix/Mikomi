@@ -168,7 +168,9 @@ class PlayerViewModel @Inject constructor(
         if (boundAnimeId == animeId) {
             val number = episodeId.toIntOrNull() ?: return
             val current = _uiState.value.currentEpisode
-            if (current?.number != number) playEpisodeAt(number - 1, keepPosition = false)
+            if (current?.number != number) {
+                playEpisodeAt(number - 1, keepPosition = false, episodeNumber = number)
+            }
             return
         }
         boundAnimeId = animeId
@@ -476,7 +478,14 @@ class PlayerViewModel @Inject constructor(
             fail(ruleStates.firstNotNullOfOrNull { it.failure }.toFailureReason() ?: PlayerFailureReason.NoMatch)
             return
         }
-        playOn(firstPlayable.rule.name, episodeIndex = startNumber - 1, keepPosition = false)
+        // 首次进页面 / 路由带集号：按**集号**定位，不按下标。
+        // 这类站点常把最新一集排在最前面，按下标取 0 会一进去就播最后一集。
+        playOn(
+            sourceId = firstPlayable.rule.name,
+            episodeIndex = startNumber - 1,
+            keepPosition = false,
+            episodeNumber = startNumber,
+        )
     }
 
     /**
@@ -534,6 +543,16 @@ class PlayerViewModel @Inject constructor(
         lineId: String? = null,
         keepPosition: Boolean = false,
         forgetCache: Boolean = false,
+        /**
+         * 按**集号**定位，优先于 [episodeIndex]。
+         *
+         * 站点给的剧集顺序不一定从第 1 集开始（不少站把最新一集放在最前面），
+         * 所以「第 N 集」不能当成「列表第 N-1 项」。首次进页面、路由带集号这两条路
+         * 都必须走它，否则一进来播的是最后一集。
+         *
+         * 用户点击某张卡片时不用它——那里拿到的本来就是真实下标。
+         */
+        episodeNumber: Int? = null,
     ) {
         playJob?.cancel()
         val resumePosition = if (keepPosition) playback.positionMillis else 0L
@@ -560,7 +579,12 @@ class PlayerViewModel @Inject constructor(
                 return@launch
             }
 
-            val index = episodeIndex.coerceIn(0, episodes.lastIndex)
+            // 集号优先。找不到（站点集名里没有数字、集号不连续）才退回下标，
+            // 这样至少还能播出一集，而不是直接失败。
+            val index = episodeNumber
+                ?.let { number -> episodes.indexOfFirst { it.number == number } }
+                ?.takeIf { it >= 0 }
+                ?: episodeIndex.coerceIn(0, episodes.lastIndex)
             val episode = episodes[index]
 
             // 出流交给策略链：规则里的 useWebview 只是提示，不再决定走哪条路。
@@ -740,9 +764,9 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    private fun playEpisodeAt(index: Int, keepPosition: Boolean) {
+    private fun playEpisodeAt(index: Int, keepPosition: Boolean, episodeNumber: Int? = null) {
         val sourceId = _uiState.value.selectedSourceId ?: run { reload(); return }
-        playOn(sourceId, index, keepPosition = keepPosition)
+        playOn(sourceId, index, keepPosition = keepPosition, episodeNumber = episodeNumber)
     }
 
     // —— 探测 ——

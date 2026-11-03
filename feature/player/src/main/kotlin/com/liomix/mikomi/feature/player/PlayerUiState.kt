@@ -1,5 +1,7 @@
 package com.liomix.mikomi.feature.player
 
+import com.liomix.mikomi.data.video.VdoSourceFamily
+
 /** 播放页内容区 Tab。 */
 enum class PlayerTab {
     EPISODES,
@@ -75,10 +77,11 @@ data class PlayerLine(
 }
 
 /**
- * 换源弹窗里的一条源（一个插件源 = 一份规则）。
+ * 换源弹窗里的一个源（插件源里就是一份 json）。
  *
+ * [family] 是它属于哪个**大源**——弹窗的 Tab 按它分组。
  * [status] 是**源自身**的探测结果（搜索命中与否、页面能不能打开），
- * [lines] 是它给出的线路（规则的 `chapterRoads`）。
+ * [lines] 是它给出的线路（插件里的 `chapterRoads`）。
  *
  * [availability] 是给用户看的结果：源没就绪就直接透出，就绪后按线路汇总。
  * 注意「还没取到线路」不等于「没有结果」——就绪但线路为空时按源状态呈现，
@@ -87,6 +90,11 @@ data class PlayerLine(
 data class PlayerSource(
     val id: String,
     val name: String,
+    /**
+     * 所属大源。播放页目前只跑插件源，所以默认 [VdoSourceFamily.PLUGIN]；
+     * 等 VdoCyk / VdoRpb 接进来时由数据层显式指定，别在这里写死判断。
+     */
+    val family: VdoSourceFamily = VdoSourceFamily.PLUGIN,
     val status: SourceAvailability = SourceAvailability.READY,
     val lines: List<PlayerLine> = emptyList(),
     /** 当前选中的线路；源刚被发现、用户还没选过时为 null。 */
@@ -110,6 +118,20 @@ data class PlayerSource(
      * 用稳定排序保证同状态内维持源自己给的先后。
      */
     fun sortedLines(): List<PlayerLine> = lines.sortedBy { it.availability.ordinal }
+
+    /**
+     * 一条线路在换源弹窗里的显示名。
+     *
+     * 规则只有一条：**这个源有多条线路时才带线路名**，形如 `DM84 - 线路2`；
+     * 单线路的源只显示源名（`DM84`）——把「DM84 - 线路1」摆给用户看是在说废话。
+     * 线路名与源名相同（有的站点两处写的是同一个名字）时也不拼，否则会出现 `DM84 - DM84`。
+     */
+    fun lineLabel(line: PlayerLine): String =
+        if (lines.size <= 1 || line.name.isBlank() || line.name == name) {
+            name
+        } else {
+            "$name - ${line.name}"
+        }
 
     /** 源整体不可用时仍可整源重试；已就绪或正在检测的源不给重试入口。 */
     val isRetryable: Boolean
@@ -215,12 +237,16 @@ data class PlayerUiState(
         get() = currentSource?.currentLine
 
     /**
-     * 导航条胶囊上的名字：**优先线路名**。
+     * 导航条胶囊上的名字。
      *
-     * 用户记的是线路（DM84、樱花），源名反而抽象；线路还没选定时再退回源名。
+     * 与换源弹窗里那一行保持**同一个口径**（[PlayerSource.lineLabel]）：
+     * 单线路是 `DM84`，多线路是 `DM84 - 线路2`。两处显示不一致时，
+     * 用户会以为胶囊上写着的是另一个源。
      */
     val sourceLabel: String
-        get() = currentLine?.name ?: currentSource?.name.orEmpty()
+        get() = currentSource?.let { source ->
+            source.currentLine?.let { source.lineLabel(it) } ?: source.name
+        }.orEmpty()
 
     /** 当前排序方向下的展示顺序；排序在 UI 侧用 `remember` 缓存，避免每帧重排。 */
     fun sortedEpisodes(): List<EpisodeItem> = when (order) {

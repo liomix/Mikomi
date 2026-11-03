@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
+import com.liomix.mikomi.data.video.VdoSourceFamily
 import com.liomix.mikomi.feature.player.PlaybackMode
 import com.liomix.mikomi.feature.player.PlayerLine
 import com.liomix.mikomi.feature.player.PlayerSource
@@ -83,29 +84,46 @@ private val LineRowHeight = 48.dp
 private val RowActionSize = 32.dp
 private val RowActionIconSize = 18.dp
 
-/** Tab 上的状态点：比线路行里的点小一档，它只用来扫一眼「这个源有没有东西」。 */
+/** Tab 上的状态点：比线路行里的点小一档，它只用来扫一眼「这个大源有没有东西」。 */
 private val TabStatusDotSize = 7.dp
 private val TabStatusSpinnerSize = 12.dp
 
-/** Tab 名称上限：自建源一类名字可能带后缀，别让单个 Tab 占掉半个屏幕。 */
+/** Tab 名称上限：大源的代号不长，留个上限防止以后有人往里塞长名字。 */
 private val TabLabelMaxWidth = 132.dp
+
+/**
+ * 一条可点的行：**某个源的一条线路**，或**某个源自己**（它还没有线路时）。
+ *
+ * [line] 为 null 表示这个源线路还没出来（检测中 / 查不到 / 请求失败），
+ * 这一行就不提供「切换」，只说明状态并给一个重试入口。
+ */
+private data class LineEntry(
+    val source: PlayerSource,
+    val line: PlayerLine? = null,
+)
 
 /**
  * 换源弹窗。
  *
- * 布局是 **大源 Tab + 子线路列表**：
- * 顶部一行 Tab 是「大源」（插件源、AniCyk、AniRpb…），下面列出当前 Tab 的子线路
- * （插件源下面是 DM84 / 樱花）。一个源里挂多条线路是常态，但用户第一眼要先分清
- * 「哪个源能用」，再决定「用它的哪条线路」，两层不该在同一张平面上平铺。
+ * 布局是 **大源 Tab + 源/线路列表**：
+ * 顶部一行 Tab 是**大源**（`VdoPlg`、`VdoCyk`、`VdoRpb`…），
+ * 下面列出当前大源里所有能用的东西——一个源一条线路就是一行，多条线路就一行一条。
+ *
+ * 为什么 Tab 放「大源」而不是「源」：装十几个插件时，Tab 会变成十几个名字挤在一起，
+ * 用户第一眼关心的其实是「这套实现有没有片」（VdoPlg 有没有、VdoCyk 有没有），
+ * 具体是 DM84 还是 7sefun 是第二层的事。
+ *
+ * 行的名字由 [PlayerSource.lineLabel] 决定：单线路只写 `DM84`，多线路写 `DM84 - 线路2`。
+ * 所以源名不会被重复成两行，也不会出现「DM84 - 线路1」这种对一个单线路源的废话。
  *
  * 两个关键语义：
- * - **点 Tab 只切视图，不切播放源**。切源必须由「点某条线路」明确表达 ——
- *   翻看一下别的源就把当前播放干掉，是这里最不能接受的误操作。
+ * - **点 Tab 只切视图，不切播放源**。切源必须由「点某一行」明确表达 ——
+ *   翻看一下别的大源就把当前播放干掉，是这里最不能接受的误操作。
  * - 弹窗**只是当前列表的一个视图**，不发起检测、不持有结果：数据来自
- *   `PlayerUiState.sources`（后续由 `PlaybackCatalog` 供给），关掉再打开不会丢状态，
+ *   `PlayerUiState.sources`，关掉再打开不会丢状态，
  *   也不会因为弹窗重建而重跑一遍检测。
  *
- * 用 `Column` 而不是 `LazyColumn`：单个源的线路是个位数，
+ * 用 `Column` 而不是 `LazyColumn`：单个大源下的行是个位数，
  * 一次性组合更简单，也避免和 sheet 自身的 nested scroll 打架。
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -123,15 +141,21 @@ internal fun PlaybackSourceSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // 当前浏览的 Tab 是弹窗内的局部交互：关掉就回到「正在播放的源」，不必进 UiState。
-    var browsedSourceId by rememberSaveable { mutableStateOf<String?>(null) }
+    // 按大源分组。顺序取枚举声明顺序而不是插入顺序：Tab 的位置不该随探测谁先返回而变。
+    val grouped = remember(sources) { sources.groupBy { it.family } }
+    val families = remember(grouped) { VdoSourceFamily.entries.filter { grouped.containsKey(it) } }
 
-    // 浏览目标失效（源还没到 / 被移除）时回落到正在播放的源，再回落到第一个。
-    val activeSourceId = browsedSourceId?.takeIf { id -> sources.any { it.id == id } }
-        ?: selectedSourceId?.takeIf { id -> sources.any { it.id == id } }
-        ?: sources.firstOrNull()?.id
-    val activeSource = sources.firstOrNull { it.id == activeSourceId }
-    val activeIndex = sources.indexOfFirst { it.id == activeSourceId }.coerceAtLeast(0)
+    // 当前浏览的 Tab 是弹窗内的局部交互：关掉就回到「正在播放的那个大源」，不必进 UiState。
+    // 存 name 而不是枚举本体：saveable 只认基本类型，存枚举要靠隐式 Serializable，没必要赌。
+    var browsedFamilyName by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val playingFamily = sources.firstOrNull { it.id == selectedSourceId }?.family
+    // 浏览目标失效（大源没了 / 名字对不上）时回落到正在播的那个，再回落到第一个。
+    val activeFamily = browsedFamilyName
+        ?.let { name -> families.firstOrNull { it.name == name } }
+        ?: playingFamily?.takeIf { families.contains(it) }
+        ?: families.firstOrNull()
+    val activeIndex = families.indexOf(activeFamily).coerceAtLeast(0)
     val tabListState = rememberLazyListState()
 
     // 被切到的 Tab 不在可见范围时才滚一下；已经看得见就不动，避免每次点击都「跳到最左」。
@@ -165,7 +189,7 @@ internal fun PlaybackSourceSheet(
                     onRetryClick = onRetryAll,
                 )
 
-                if (sources.isEmpty()) {
+                if (families.isEmpty()) {
                     Text(
                         text = stringResource(R.string.player_source_empty),
                         style = MaterialTheme.typography.bodyMedium,
@@ -175,11 +199,12 @@ internal fun PlaybackSourceSheet(
                     return@Column
                 }
 
-                SourceTabRow(
-                    sources = sources,
-                    activeSourceId = activeSourceId,
+                FamilyTabRow(
+                    families = families,
+                    grouped = grouped,
+                    activeFamily = activeFamily,
                     listState = tabListState,
-                    onSelect = { browsedSourceId = it },
+                    onSelect = { browsedFamilyName = it.name },
                 )
 
                 HorizontalDivider(
@@ -193,15 +218,13 @@ internal fun PlaybackSourceSheet(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState()),
                 ) {
-                    if (activeSource != null) {
-                        SourceTabContent(
-                            source = activeSource,
-                            playing = activeSource.id == selectedSourceId,
-                            onLineSelected = { lineId -> onLineSelected(activeSource.id, lineId) },
-                            onRetrySource = { onRetrySource(activeSource.id) },
-                            onRetryLine = { lineId -> onRetryLine(activeSource.id, lineId) },
-                        )
-                    }
+                    FamilyTabContent(
+                        sources = activeFamily?.let { grouped[it] }.orEmpty(),
+                        playingSourceId = selectedSourceId,
+                        onLineSelected = onLineSelected,
+                        onRetrySource = onRetrySource,
+                        onRetryLine = onRetryLine,
+                    )
                 }
             }
         }
@@ -246,7 +269,7 @@ private fun SheetHeader(
             }
         }
         // 没有可重试的源时按钮不出现，避免点了没反应的死按钮。
-        // 单个源的重试在 Tab 内容顶部，这里只负责「一次全试一遍」。
+        // 单个源的重试在它自己那一行上，这里只负责「一次全试一遍」。
         if (canRetry) {
             TextButton(onClick = onRetryClick) {
                 Text(text = stringResource(R.string.player_source_retry_all))
@@ -258,16 +281,17 @@ private fun SheetHeader(
 /**
  * 大源 Tab 行。
  *
- * 横向可滚：源数量不可控（插件装得多的时候十几个），等分会把名字全挤成省略号。
+ * 横向可滚：大源个数未来会涨（VdoPlg / VdoCyk / VdoRpb / …），等分会把名字全挤成省略号。
  * 顺序**不按可用性排**：Tab 一跳动，用户刚记住的位置就没了；
- * 「哪个源有资源」由 Tab 上的状态点回答。
+ * 「这个大源有没有东西」由 Tab 上的状态点回答。
  */
 @Composable
-private fun SourceTabRow(
-    sources: List<PlayerSource>,
-    activeSourceId: String?,
+private fun FamilyTabRow(
+    families: List<VdoSourceFamily>,
+    grouped: Map<VdoSourceFamily, List<PlayerSource>>,
+    activeFamily: VdoSourceFamily?,
     listState: LazyListState,
-    onSelect: (String) -> Unit,
+    onSelect: (VdoSourceFamily) -> Unit,
 ) {
     LazyRow(
         state = listState,
@@ -277,20 +301,27 @@ private fun SourceTabRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(items = sources, key = { it.id }) { source ->
-            SourceTab(
-                source = source,
-                selected = source.id == activeSourceId,
-                onClick = { onSelect(source.id) },
+        items(items = families, key = { it.name }) { family ->
+            FamilyTab(
+                label = family.label,
+                // 大源的状态取组内最好的那个：只要有一个源能用，这个 Tab 就算有东西。
+                availability = grouped[family].orEmpty().bestAvailability(),
+                selected = family == activeFamily,
+                onClick = { onSelect(family) },
             )
         }
     }
 }
 
-/** 单个大源 Tab：状态点 + 源名。选中是主色浅底胶囊，不选中的只留文字。 */
+/** 组内最优状态：枚举顺序就是「从好到坏」，取最小的那个即可。 */
+private fun List<PlayerSource>.bestAvailability(): SourceAvailability =
+    minByOrNull { it.availability.ordinal }?.availability ?: SourceAvailability.NO_RESULT
+
+/** 单个大源 Tab：状态点 + 代号。选中是主色浅底胶囊，不选中的只留文字。 */
 @Composable
-private fun SourceTab(
-    source: PlayerSource,
+private fun FamilyTab(
+    label: String,
+    availability: SourceAvailability,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -301,7 +332,7 @@ private fun SourceTab(
             Color.Transparent
         },
         animationSpec = tween(durationMillis = 150),
-        label = "sourceTabContainer",
+        label = "familyTabContainer",
     )
     val contentColor by animateColorAsState(
         targetValue = if (selected) {
@@ -310,7 +341,7 @@ private fun SourceTab(
             MaterialTheme.colorScheme.onSurfaceVariant
         },
         animationSpec = tween(durationMillis = 150),
-        label = "sourceTabContent",
+        label = "familyTabContent",
     )
 
     Row(
@@ -324,13 +355,13 @@ private fun SourceTab(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         StatusDot(
-            availability = source.availability,
+            availability = availability,
             dotSize = TabStatusDotSize,
             spinnerSize = TabStatusSpinnerSize,
         )
         Spacer(modifier = Modifier.width(6.dp))
         Text(
-            text = source.name,
+            text = label,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             color = contentColor,
@@ -342,94 +373,81 @@ private fun SourceTab(
 }
 
 /**
- * 某个大源下的内容：一行状态说明 + 它的子线路列表。
+ * 大源下的内容：**所有源的线路铺成一张扁平列表**。
  *
- * 状态说明放在这里而不是 Tab 上：Tab 只能放下一个点，
- * 「为什么现在不能用」必须有一句话，否则用户只看到一个红点不知道点重试。
+ * 不做「源 → 线路」的两级缩进：一个源只要一条线路（绝大多数情况），
+ * 两级结构会多出一行只有源名的分组标题，而它和它下面那行说的是同一件事。
+ * 名字由 [PlayerSource.lineLabel] 一次拼好，源与线路的关系在文字里就是清楚的。
  */
 @Composable
-private fun SourceTabContent(
-    source: PlayerSource,
-    /** 这个源是不是**正在播放**的那个（不是「正在浏览」）。 */
-    playing: Boolean,
-    onLineSelected: (String) -> Unit,
-    onRetrySource: () -> Unit,
-    onRetryLine: (String) -> Unit,
+private fun FamilyTabContent(
+    sources: List<PlayerSource>,
+    playingSourceId: String?,
+    onLineSelected: (sourceId: String, lineId: String) -> Unit,
+    onRetrySource: (sourceId: String) -> Unit,
+    onRetryLine: (sourceId: String, lineId: String) -> Unit,
 ) {
-    val lines = remember(source.lines) { source.sortedLines() }
+    val entries = remember(sources) { sources.toLineEntries() }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 12.dp, end = 12.dp, top = 2.dp, bottom = 8.dp),
     ) {
-        SourceStatusRow(
-            source = source,
-            playing = playing,
-            onRetry = onRetrySource,
-        )
-
-        lines.forEach { line ->
-            LineRow(
-                line = line,
-                playing = playing && source.selectedLineId == line.id,
-                onSelect = { onLineSelected(line.id) },
-                onRetry = { onRetryLine(line.id) },
+        entries.forEach { entry ->
+            val line = entry.line
+            EntryRow(
+                entry = entry,
+                playing = line != null &&
+                    entry.source.id == playingSourceId &&
+                    entry.source.selectedLineId == line.id,
+                onSelect = { line?.let { onLineSelected(entry.source.id, it.id) } },
+                onRetry = {
+                    if (line == null) {
+                        onRetrySource(entry.source.id)
+                    } else {
+                        onRetryLine(entry.source.id, line.id)
+                    }
+                },
             )
         }
     }
 }
 
-/** 状态说明行：左侧一句话解释当前 Tab 的情况，右侧是本源的重新检测入口。 */
-@Composable
-private fun SourceStatusRow(
-    source: PlayerSource,
-    playing: Boolean,
-    onRetry: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 12.dp, end = 4.dp, top = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = source.statusText(playing = playing),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        if (source.isRetryable) {
-            TextButton(
-                onClick = onRetry,
-                contentPadding = PaddingValues(horizontal = 8.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.player_source_retry_this),
-                    style = MaterialTheme.typography.labelMedium,
-                )
-            }
-        }
+/**
+ * 源 → 行的展开规则。
+ *
+ * - 有线路：一条线路一行；
+ * - 没线路且不是「已就绪」：给一行源级状态，否则用户会以为这个源根本不存在（它是查挂了，不是没装）；
+ * - 已就绪但线路还没到：**什么都不画**，等它来——这时画一行「0 条线路」纯属添乱。
+ */
+private fun List<PlayerSource>.toLineEntries(): List<LineEntry> = flatMap { source ->
+    val lines = source.sortedLines()
+    when {
+        lines.isNotEmpty() -> lines.map { LineEntry(source = source, line = it) }
+        source.availability != SourceAvailability.READY -> listOf(LineEntry(source = source))
+        else -> emptyList()
     }
 }
 
 /**
- * 线路行。
+ * 一行：**某条线路**，或**某个源自己的状态**（[LineEntry.line] 为 null）。
  *
  * 点一下就切过去（切完弹窗关闭）——线路是这个弹窗的最小可执行单位。
  * 正在播放的那条给主色底 + 勾，其余可用的给灰点，
  * 不可用的置灰且不可点：点一条查不到资源的线路没有任何合理结果。
  */
 @Composable
-private fun LineRow(
-    line: PlayerLine,
+private fun EntryRow(
+    entry: LineEntry,
     playing: Boolean,
     onSelect: () -> Unit,
     onRetry: () -> Unit,
 ) {
-    val enabled = line.availability.selectable
+    val line = entry.line
+    val availability = line?.availability ?: entry.source.availability
+    // 源级行没有「切换」这回事：它连线路都还没拿到。
+    val enabled = line != null && availability.selectable
     val containerColor = if (playing) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
     } else {
@@ -460,7 +478,7 @@ private fun LineRow(
                 )
 
                 else -> StatusDot(
-                    availability = line.availability,
+                    availability = availability,
                     dotSize = 8.dp,
                     spinnerSize = 14.dp,
                 )
@@ -472,7 +490,7 @@ private fun LineRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = line.name,
+                text = line?.let { entry.source.lineLabel(it) } ?: entry.source.name,
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (playing) {
                     MaterialTheme.colorScheme.primary
@@ -482,24 +500,43 @@ private fun LineRow(
                 fontWeight = if (playing) FontWeight.SemiBold else FontWeight.Normal,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                // fill = false：线路名短的时候清晰度标签要紧跟着，不被推到最右。
+                // fill = false：线路名短的时候标签要紧跟着，不被推到最右。
                 modifier = Modifier.weight(1f, fill = false),
             )
-            val quality = line.quality
-            if (quality != null) {
-                Spacer(modifier = Modifier.width(6.dp))
-                QualityTag(quality = quality)
-            }
-            val mode = line.playbackMode
-            if (mode != null) {
-                Spacer(modifier = Modifier.width(6.dp))
-                CapabilityTag(mode = mode)
+            // 源级行没有线路可标，用一句状态说明代替那两种小标。
+            if (line == null) {
+                val statusText = entry.source.statusText()
+                if (statusText.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            } else {
+                val quality = line.quality
+                if (quality != null) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    QualityTag(quality = quality)
+                }
+                val mode = line.playbackMode
+                if (mode != null) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    CapabilityTag(mode = mode)
+                }
             }
         }
-        if (line.isRetryable) {
+        if (entry.source.isRetryable) {
             RowAction(
                 icon = Icons.Rounded.Refresh,
-                contentDescription = stringResource(R.string.player_source_retry_item, line.name),
+                contentDescription = stringResource(
+                    R.string.player_source_retry_item,
+                    line?.let { entry.source.lineLabel(it) } ?: entry.source.name,
+                ),
                 onClick = onRetry,
             )
         }
@@ -530,26 +567,18 @@ private fun RowAction(
 }
 
 /**
- * 状态说明文案。
+ * 源级状态文案：这一行代表的是「这个源现在什么情况」，不是某条线路。
  *
- * 「当前线路」只属于正在播放的那个源：每个源各自记着自己的 `selectedLineId`，
- * 不分场合都写「当前线路」，用户会以为好几个源同时在播。
- *
- * 非播放中的源要补一句「点线路切换」——Tab 只是用来翻看的，不告诉用户这一点，
- * 会有人点完 Tab 发现还在放原来的线路，以为坏了。
+ * 只在源**拿不到线路**时出现（检测中 / 未找到 / 请求失败），
+ * 所以「已就绪」返回空串——那种源的每条线路都有自己的行，不需要再多一句。
+ * 空串不是文案，是「这里没有话要说」这个事实，调用方据此决定画不画。
  */
 @Composable
-private fun PlayerSource.statusText(playing: Boolean): String = when (availability) {
-    SourceAvailability.READY -> if (playing) {
-        currentLine?.let { stringResource(R.string.player_source_current_line, it.name) }
-            ?: stringResource(R.string.player_source_lines, lines.size)
-    } else {
-        stringResource(R.string.player_source_lines_pickable, lines.size)
-    }
-
+private fun PlayerSource.statusText(): String = when (availability) {
     SourceAvailability.CHECKING -> stringResource(R.string.player_source_checking)
     SourceAvailability.NO_RESULT -> stringResource(R.string.player_source_no_result)
     SourceAvailability.FAILED -> stringResource(R.string.player_source_failed)
+    SourceAvailability.READY -> ""
 }
 
 /** 清晰度小标：只在线路上报了清晰度时出现。 */

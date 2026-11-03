@@ -1,4 +1,4 @@
-package com.liomix.mikomi.feature.settings.plugin
+package com.liomix.mikomi.feature.settings.plugin_test
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
@@ -89,11 +89,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.liomix.mikomi.core.model.PluginRule
+import com.liomix.mikomi.core.model.VdoPlgContent
 import com.liomix.mikomi.data.video.VdoFailureReason
 import com.liomix.mikomi.data.video.VdoStreamKind
-import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgTestReport
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgStageResult
+import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgTestReport
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardHeader
@@ -104,24 +104,24 @@ import kotlinx.coroutines.launch
 /**
  * 插件源设置页。
  *
- * 「插件源」= 一份 JSON 规则文件，描述某个视频站怎么搜索、怎么取剧集。
+ * 「视频插件源」= 一份 JSON 文件，描述某个视频站怎么搜索、怎么取剧集。
  * 它只管**视频来源**，和番剧元数据（Bangumi 那类内置接口）没有关系——
  * 后者是 App 写死的，不靠插件扩展。
  *
- * 页面只有两张卡：规则仓库（源从哪儿来）与已安装列表（装了哪些、什么顺序、每条能做什么）。
+ * 页面只有两张卡：插件仓库（插件从哪儿来）与已安装列表（装了哪些、什么顺序、每个能做什么）。
  * 页面上不放任何解释性文字：能操作的地方自己会说话，解释性段落只会把两卡之间的距离拉长。
  *
  * 添加入口在顶栏右上角；排序靠**长按某一行拖动**，所以行菜单里不再重复放上移/下移。
  *
  * 行菜单四项各有去处：编辑开编辑面板、测试开测试面板、分享走系统分享面板、删除先问一句。
  * 编辑用面板而不是独立页面——改完立刻能对照上下相邻那几条，不用推栈切走再切回。
- * 删除之所以要确认，是因为它删的是**文件**，而规则仓库里那条不一定还在（自建仓库、他人分享的规则
+ * 删除之所以要确认，是因为它删的是**文件**，而插件仓库里那条不一定还在（自建仓库、他人分享的插件
  * 都没法重新下载）。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PluginScreen(
-    uiState: PluginUiState,
+fun PlgTstScreen(
+    uiState: PlgTstUiState,
     onToggle: (String) -> Unit,
     onMoveUp: (String) -> Unit,
     onMoveDown: (String) -> Unit,
@@ -135,7 +135,7 @@ fun PluginScreen(
     onTestRun: (String) -> Unit,
     onTestDismiss: () -> Unit,
     onShare: (String) -> Unit,
-    onMirrorSelected: (RuleMirror) -> Unit,
+    onMirrorSelected: (PlgTstMirror) -> Unit,
     onRepoUrlChanged: (String) -> Unit,
     onOpenStore: () -> Unit,
     onBackClick: () -> Unit,
@@ -146,14 +146,14 @@ fun PluginScreen(
     var addSheetOpen by rememberSaveable { mutableStateOf(false) }
     var mirrorPickerOpen by rememberSaveable { mutableStateOf(false) }
     var repoEditorOpen by rememberSaveable { mutableStateOf(false) }
-    // 待确认删除的规则：不直接用「当前行」判断，删除后列表会变，弹窗得钉住当时那一条。
-    var deleteTarget by remember { mutableStateOf<PluginRule?>(null) }
+    // 待确认删除的插件：不直接用「当前行」判断，删除后列表会变，弹窗得钉住当时那一条。
+    var deleteTarget by remember { mutableStateOf<VdoPlgContent?>(null) }
     // 编辑面板「先收起、再问是否放弃」：面板收起是为了让确认弹窗独占视线，
     // 选「继续编辑」时再把它放回来，内容还在 ViewModel 里，不会丢。
     var editorSheetHidden by remember { mutableStateOf(false) }
     var discardConfirm by remember { mutableStateOf(false) }
     // 提示语在组合期取好：Snackbar 在协程里弹，那里不能调 stringResource。
-    val importPendingMessage = stringResource(R.string.settings_plugin_pending)
+    val importPendingMessage = stringResource(R.string.settings_plg_tst_pending)
 
     fun notify(message: String) {
         scope.launch { snackbarHostState.showSnackbar(message) }
@@ -166,14 +166,14 @@ fun PluginScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             SettingsTopBar(
-                title = stringResource(R.string.settings_plugin_title),
-                backContentDescription = stringResource(R.string.settings_plugin_back),
+                title = stringResource(R.string.settings_plg_tst_title),
+                backContentDescription = stringResource(R.string.settings_plg_tst_back),
                 onBackClick = onBackClick,
             ) {
                 IconButton(onClick = { addSheetOpen = true }) {
                     Icon(
                         imageVector = Icons.Rounded.Add,
-                        contentDescription = stringResource(R.string.settings_plugin_add),
+                        contentDescription = stringResource(R.string.settings_plg_tst_add),
                     )
                 }
             }
@@ -187,14 +187,14 @@ fun PluginScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                RuleRepoCard(
+                PluginRepoCard(
                     repoUrl = uiState.repoUrl,
                     mirror = uiState.mirror,
                     onRepoClick = { repoEditorOpen = true },
                     onMirrorClick = { mirrorPickerOpen = true },
                 )
 
-                SourcesCard(
+                PluginCard(
                     uiState = uiState,
                     onToggle = onToggle,
                     onMoveUp = onMoveUp,
@@ -216,8 +216,8 @@ fun PluginScreen(
     }
 
     deleteTarget?.let { target ->
-        DeleteRuleDialog(
-            rule = target,
+        DeletePluginDialog(
+            plugin = target,
             onDismiss = { deleteTarget = null },
             onConfirm = {
                 deleteTarget = null
@@ -227,7 +227,7 @@ fun PluginScreen(
     }
 
     uiState.test?.let { test ->
-        RuleTestSheet(
+        PluginTestSheet(
             state = test,
             onRun = onTestRun,
             onDismiss = onTestDismiss,
@@ -235,7 +235,7 @@ fun PluginScreen(
     }
 
     // 面板关掉（保存成功或放弃修改）后把两个临时标记复位，下次打开才不会被上一次挡住。
-    // key 用规则名而不是整份状态：编辑区每敲一个字都换 key 会白重启协程。
+    // key 用插件名而不是整份状态：编辑区每敲一个字都换 key 会白重启协程。
     LaunchedEffect(uiState.editor?.ruleName) {
         if (uiState.editor == null) {
             editorSheetHidden = false
@@ -245,7 +245,7 @@ fun PluginScreen(
 
     val editor = uiState.editor
     if (editor != null && !editorSheetHidden) {
-        RuleEditorSheet(
+        PlgTstEditorSheet(
             state = editor,
             onTextChange = onEditorTextChange,
             onFormat = onEditorFormat,
@@ -276,7 +276,7 @@ fun PluginScreen(
     }
 
     if (addSheetOpen) {
-        AddSourceSheet(
+        AddPluginSheet(
             onDismiss = { addSheetOpen = false },
             onSelect = { method ->
                 addSheetOpen = false
@@ -314,29 +314,29 @@ fun PluginScreen(
  * 删除确认。
  *
  * 文案里点明「文件会从本机移除」而不是「删除成功」：删掉的是本地那份 JSON，
- * 站点本身、别人的规则仓库都不受影响，说清楚才不会被当成「下架了某个网站」。
+ * 站点本身、别人的插件仓库都不受影响，说清楚才不会被当成「下架了某个网站」。
  */
 @Composable
-private fun DeleteRuleDialog(
-    rule: PluginRule,
+private fun DeletePluginDialog(
+    plugin: VdoPlgContent,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_plugin_delete_title, rule.name)) },
-        text = { Text(stringResource(R.string.settings_plugin_delete_message)) },
+        title = { Text(stringResource(R.string.settings_plg_tst_delete_title, plugin.name)) },
+        text = { Text(stringResource(R.string.settings_plg_tst_delete_message)) },
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text(
-                    text = stringResource(R.string.settings_plugin_delete_confirm),
+                    text = stringResource(R.string.settings_plg_tst_delete_confirm),
                     color = MaterialTheme.colorScheme.error,
                 )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.settings_plugin_cancel))
+                Text(stringResource(R.string.settings_plg_tst_cancel))
             }
         },
     )
@@ -355,19 +355,19 @@ private fun DiscardEditorDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_plugin_editor_discard_title)) },
-        text = { Text(stringResource(R.string.settings_plugin_editor_discard_message)) },
+        title = { Text(stringResource(R.string.settings_plg_tst_editor_discard_title)) },
+        text = { Text(stringResource(R.string.settings_plg_tst_editor_discard_message)) },
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text(
-                    text = stringResource(R.string.settings_plugin_editor_discard_confirm),
+                    text = stringResource(R.string.settings_plg_tst_editor_discard_confirm),
                     color = MaterialTheme.colorScheme.error,
                 )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.settings_plugin_editor_continue))
+                Text(stringResource(R.string.settings_plg_tst_editor_continue))
             }
         },
     )
@@ -384,12 +384,12 @@ private fun DiscardEditorDialog(
  * 一行两行交替的列表里越拖越偏。
  */
 @Composable
-private fun SourcesCard(
-    uiState: PluginUiState,
+private fun PluginCard(
+    uiState: PlgTstUiState,
     onToggle: (String) -> Unit,
     onMoveUp: (String) -> Unit,
     onMoveDown: (String) -> Unit,
-    onRemoveRequest: (PluginRule) -> Unit,
+    onRemoveRequest: (VdoPlgContent) -> Unit,
     onEdit: (String) -> Unit,
     onTest: (String) -> Unit,
     onShare: (String) -> Unit,
@@ -407,7 +407,7 @@ private fun SourcesCard(
     SettingsCard {
         SettingsCardSection {
             SettingsCardHeader(
-                title = stringResource(R.string.settings_plugin_section, rules.size),
+                title = stringResource(R.string.settings_plg_tst_section, rules.size),
             )
 
             when {
@@ -426,17 +426,17 @@ private fun SourcesCard(
                 }
 
                 uiState.isEmpty -> Text(
-                    text = stringResource(R.string.settings_plugin_empty),
+                    text = stringResource(R.string.settings_plg_tst_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant,
                     modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
                 )
 
-                else -> rules.forEachIndexed { index, rule ->
+                else -> rules.forEachIndexed { index, plugin ->
                     // key 是拖动的前提：列表没有稳定标识时，换位会让「第 i 个槽位」换人，
                     // pointerInput 的 key 一变就连手势一起重启，拖到一半就断。
-                    key(rule.id) {
-                        val isDragging = draggingId == rule.id
+                    key(plugin.id) {
+                        val isDragging = draggingId == plugin.id
                         Column(
                             modifier = Modifier
                                 // 被拖的那行浮在其它行之上，否则缩放后会被下一行盖住一截。
@@ -458,11 +458,11 @@ private fun SourcesCard(
                                         Modifier
                                     },
                                 )
-                                .onSizeChanged { rowHeights[rule.id] = it.height.toFloat() }
-                                .pointerInput(rule.id) {
+                                .onSizeChanged { rowHeights[plugin.id] = it.height.toFloat() }
+                                .pointerInput(plugin.id) {
                                     detectDragGesturesAfterLongPress(
                                         onDragStart = {
-                                            draggingId = rule.id
+                                            draggingId = plugin.id
                                             dragOffset = 0f
                                         },
                                         onDragCancel = {
@@ -477,21 +477,21 @@ private fun SourcesCard(
                                             change.consume()
                                             dragOffset += amount.y
                                             val list = currentRules
-                                            val from = list.indexOfFirst { it.id == rule.id }
+                                            val from = list.indexOfFirst { it.id == plugin.id }
                                             if (from >= 0 && dragOffset > 0f) {
                                                 // 往下拖：越过下一行一半就换位，并把已消费的位移扣掉，
                                                 // 否则换位后偏移量还留着，会连着再跳一格。
                                                 val below = list.getOrNull(from + 1)
                                                 val height = below?.let { rowHeights[it.id] } ?: 0f
                                                 if (height > 0f && dragOffset > height / 2f) {
-                                                    onMoveDown(rule.id)
+                                                    onMoveDown(plugin.id)
                                                     dragOffset -= height
                                                 }
                                             } else if (from >= 0 && dragOffset < 0f) {
                                                 val above = list.getOrNull(from - 1)
                                                 val height = above?.let { rowHeights[it.id] } ?: 0f
                                                 if (height > 0f && dragOffset < -height / 2f) {
-                                                    onMoveUp(rule.id)
+                                                    onMoveUp(plugin.id)
                                                     dragOffset += height
                                                 }
                                             }
@@ -505,14 +505,14 @@ private fun SourcesCard(
                                     color = colors.outlineVariant.copy(alpha = 0.5f),
                                 )
                             }
-                            SourceRow(
-                                rule = rule,
+                            PluginRow(
+                                plugin = plugin,
                                 dragging = isDragging,
-                                onToggle = { onToggle(rule.id) },
-                                onRemove = { onRemoveRequest(rule) },
-                                onEdit = { onEdit(rule.id) },
-                                onTest = { onTest(rule.id) },
-                                onShare = { onShare(rule.id) },
+                                onToggle = { onToggle(plugin.id) },
+                                onRemove = { onRemoveRequest(plugin) },
+                                onEdit = { onEdit(plugin.id) },
+                                onTest = { onTest(plugin.id) },
+                                onShare = { onShare(plugin.id) },
                             )
                         }
                     }
@@ -533,8 +533,8 @@ private fun SourcesCard(
  * 这里挡比事后修状态便宜。
  */
 @Composable
-private fun SourceRow(
-    rule: PluginRule,
+private fun PluginRow(
+    plugin: VdoPlgContent,
     dragging: Boolean,
     onToggle: () -> Unit,
     onRemove: () -> Unit,
@@ -549,7 +549,7 @@ private fun SourceRow(
         modifier = Modifier
             .fillMaxWidth()
             .toggleable(
-                value = rule.enabled,
+                value = plugin.enabled,
                 role = Role.Switch,
                 onValueChange = { if (!dragging) onToggle() },
             )
@@ -559,52 +559,52 @@ private fun SourceRow(
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = rule.name,
+                    text = plugin.name,
                     style = MaterialTheme.typography.titleSmall,
                     // 停用的源整体压低存在感，但仍留在原位——它不是「待删除」，只是暂时不上场。
-                    color = if (rule.enabled) colors.onSurface else colors.onSurfaceVariant,
+                    color = if (plugin.enabled) colors.onSurface else colors.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 TagChip(
-                    text = stringResource(R.string.settings_plugin_version, rule.version),
+                    text = stringResource(R.string.settings_plg_tst_version, plugin.version),
                     background = colors.surfaceContainerHigh,
                     foreground = colors.onSurfaceVariant,
                 )
             }
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = metaLine(rule),
+                text = pluginMetaLine(plugin),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant,
             )
         }
 
         Spacer(modifier = Modifier.width(10.dp))
-        Switch(checked = rule.enabled, onCheckedChange = null)
+        Switch(checked = plugin.enabled, onCheckedChange = null)
 
         Box {
             IconButton(onClick = { menuOpen = true }) {
                 Icon(
                     imageVector = Icons.Rounded.MoreVert,
-                    contentDescription = stringResource(R.string.settings_plugin_more, rule.name),
+                    contentDescription = stringResource(R.string.settings_plg_tst_more, plugin.name),
                     tint = colors.onSurfaceVariant,
                 )
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                SourceAction(
-                    label = stringResource(R.string.settings_plugin_edit),
+                PluginAction(
+                    label = stringResource(R.string.settings_plg_tst_edit),
                     icon = Icons.Rounded.Edit,
                     onClick = onEdit,
                     close = { menuOpen = false },
                 )
-                SourceAction(
-                    label = stringResource(R.string.settings_plugin_test),
+                PluginAction(
+                    label = stringResource(R.string.settings_plg_tst_test),
                     icon = Icons.Rounded.Science,
                     onClick = onTest,
                     close = { menuOpen = false },
                 )
-                SourceAction(
-                    label = stringResource(R.string.settings_plugin_share),
+                PluginAction(
+                    label = stringResource(R.string.settings_plg_tst_share),
                     icon = Icons.Rounded.Share,
                     onClick = onShare,
                     close = { menuOpen = false },
@@ -613,8 +613,8 @@ private fun SourceRow(
                     modifier = Modifier.padding(vertical = 4.dp),
                     color = colors.outlineVariant.copy(alpha = 0.5f),
                 )
-                SourceAction(
-                    label = stringResource(R.string.settings_plugin_remove),
+                PluginAction(
+                    label = stringResource(R.string.settings_plg_tst_remove),
                     icon = Icons.Rounded.DeleteOutline,
                     tint = colors.error,
                     onClick = onRemove,
@@ -627,7 +627,7 @@ private fun SourceRow(
 
 /** 菜单项的统一形状：先关菜单再执行，避免动作里跳页面或弹窗时菜单还挂着。 */
 @Composable
-private fun SourceAction(
+private fun PluginAction(
     label: String,
     icon: ImageVector,
     onClick: () -> Unit,
@@ -653,24 +653,24 @@ private fun SourceAction(
 }
 
 @Composable
-private fun RuleRepoCard(
+private fun PluginRepoCard(
     repoUrl: String,
-    mirror: RuleMirror,
+    mirror: PlgTstMirror,
     onRepoClick: () -> Unit,
     onMirrorClick: () -> Unit,
 ) {
     SettingsCard {
         SettingsCardSection {
-            SettingsCardHeader(stringResource(R.string.settings_plugin_repo_section))
+            SettingsCardHeader(stringResource(R.string.settings_plg_tst_repo_section))
             Column(modifier = Modifier.padding(bottom = 8.dp)) {
                 RepoRow(
-                    title = stringResource(R.string.settings_plugin_repo_address),
+                    title = stringResource(R.string.settings_plg_tst_repo_address),
                     value = repoUrl,
                     onClick = onRepoClick,
                 )
                 RepoDivider()
                 RepoRow(
-                    title = stringResource(R.string.settings_plugin_repo_mirror),
+                    title = stringResource(R.string.settings_plg_tst_repo_mirror),
                     value = stringResource(mirror.labelRes),
                     onClick = onMirrorClick,
                 )
@@ -733,10 +733,10 @@ private fun RepoRow(
 }
 
 /**
- * 规则测试面板：只测两件真正要紧的事——**剧集拿不拿得到、视频出不出流**。
+ * 插件测试面板：只测两件真正要紧的事——**剧集拿不拿得到、视频出不出流**。
  *
  * 三步是串起来的：搜索 → 剧集 → 出流。哪一步断了就停在那一步并说明原因，后面的步骤标「未执行」。
- * 不再单独列字段体检清单：字段缺失会以「规则读不出来（字段名）」的形式落在具体那一步上，
+ * 不再单独列字段体检清单：字段缺失会以「插件读不出来（字段名）」的形式落在具体那一步上，
  * 比十条「未填写」更接近用户真正遇到的问题。
  *
  * 出流会真的拉开一次播放地址（只读开头 2KB），所以它慢；换来的是现场数据：
@@ -744,8 +744,8 @@ private fun RepoRow(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RuleTestSheet(
-    state: RuleTestState,
+private fun PluginTestSheet(
+    state: PlgTstTestState,
     onRun: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -769,7 +769,7 @@ private fun RuleTestSheet(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = stringResource(R.string.settings_plugin_test_title, state.ruleName),
+                    text = stringResource(R.string.settings_plg_tst_test_title, state.ruleName),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = colors.onSurface,
@@ -783,26 +783,26 @@ private fun RuleTestSheet(
 
             Spacer(modifier = Modifier.height(14.dp))
             StageRow(
-                label = stringResource(R.string.settings_plugin_test_stage_search),
+                label = stringResource(R.string.settings_plg_tst_test_stage_search),
                 result = report?.search,
                 running = state.running,
                 summary = report?.searchHits?.takeIf { it.isNotEmpty() }?.let { hits ->
                     stringResource(
-                        R.string.settings_plugin_test_hit,
+                        R.string.settings_plg_tst_test_hit,
                         hits.size,
                         hits.first().name,
                     )
                 },
             )
             StageRow(
-                label = stringResource(R.string.settings_plugin_test_stage_episodes),
+                label = stringResource(R.string.settings_plg_tst_test_stage_episodes),
                 result = report?.episodes,
                 running = state.running,
                 summary = report?.roads?.takeIf { it.isNotEmpty() }?.let { roads ->
                     // 每条线路都保证至少有 1 集（引擎侧滤掉空线路），这里仍按可空处理，免得坏数据把面板搞崩。
                     roads.firstOrNull()?.episodes?.firstOrNull()?.let { first ->
                         stringResource(
-                            R.string.settings_plugin_test_roads,
+                            R.string.settings_plg_tst_test_roads,
                             roads.size,
                             report.episodeCount,
                             first.name,
@@ -811,12 +811,12 @@ private fun RuleTestSheet(
                 },
             )
             StageRow(
-                label = stringResource(R.string.settings_plugin_test_stage_stream),
+                label = stringResource(R.string.settings_plg_tst_test_stage_stream),
                 result = report?.stream,
                 running = state.running,
                 summary = report?.streamInfo?.let { stream ->
                     stringResource(
-                        R.string.settings_plugin_test_stream,
+                        R.string.settings_plg_tst_test_stream,
                         stringResource(stream.kind.labelRes()),
                         stream.statusCode,
                         stream.byteCount,
@@ -829,7 +829,7 @@ private fun RuleTestSheet(
             OutlinedTextField(
                 value = keyword,
                 onValueChange = { keyword = it },
-                label = { Text(stringResource(R.string.settings_plugin_test_keyword_label)) },
+                label = { Text(stringResource(R.string.settings_plg_tst_test_keyword_label)) },
                 singleLine = true,
                 enabled = !state.running,
                 modifier = Modifier.fillMaxWidth(),
@@ -849,7 +849,7 @@ private fun RuleTestSheet(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                 }
-                Text(stringResource(R.string.settings_plugin_test_run))
+                Text(stringResource(R.string.settings_plg_tst_test_run))
             }
         }
     }
@@ -861,26 +861,26 @@ private fun TestSummaryChip(running: Boolean, report: VdoPlgTestReport?) {
     val colors = MaterialTheme.colorScheme
     val (text, foreground, background) = when {
         running -> Triple(
-            stringResource(R.string.settings_plugin_test_running),
+            stringResource(R.string.settings_plg_tst_test_running),
             colors.onSurfaceVariant,
             colors.surfaceContainerHigh,
         )
 
         // 关键词为空时报告里三步全跳过，那不是「都通过」，要按未测试呈现。
         report == null || report.keyword.isBlank() -> Triple(
-            stringResource(R.string.settings_plugin_test_idle),
+            stringResource(R.string.settings_plg_tst_test_idle),
             colors.onSurfaceVariant,
             colors.surfaceContainerHigh,
         )
 
         report.failedCount == 0 -> Triple(
-            stringResource(R.string.settings_plugin_test_summary_pass),
+            stringResource(R.string.settings_plg_tst_test_summary_pass),
             colors.primary,
             colors.primary.copy(alpha = 0.12f),
         )
 
         else -> Triple(
-            stringResource(R.string.settings_plugin_test_summary_fail, report.failedCount),
+            stringResource(R.string.settings_plg_tst_test_summary_fail, report.failedCount),
             colors.error,
             colors.error.copy(alpha = 0.12f),
         )
@@ -977,14 +977,14 @@ private fun StageRow(
                 }
 
                 VdoPlgStageResult.Skipped -> Text(
-                    text = stringResource(R.string.settings_plugin_test_skipped),
+                    text = stringResource(R.string.settings_plg_tst_test_skipped),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.onSurfaceVariant,
                 )
 
                 null -> if (!running) {
                     Text(
-                        text = stringResource(R.string.settings_plugin_test_idle),
+                        text = stringResource(R.string.settings_plg_tst_test_idle),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant,
                     )
@@ -1007,22 +1007,22 @@ private fun StageRow(
 /** 失败原因 → 一句人话。数据层只给枚举，文案留在这里。 */
 @StringRes
 private fun VdoFailureReason.labelRes(): Int = when (this) {
-    VdoFailureReason.RuleBroken -> R.string.settings_plugin_test_reason_rule_broken
-    VdoFailureReason.NetworkError -> R.string.settings_plugin_test_reason_network
-    VdoFailureReason.HttpError -> R.string.settings_plugin_test_reason_http
-    VdoFailureReason.NoResults -> R.string.settings_plugin_test_reason_no_results
-    VdoFailureReason.NoEpisodes -> R.string.settings_plugin_test_reason_no_episodes
-    VdoFailureReason.NoStream -> R.string.settings_plugin_test_reason_no_stream
-    VdoFailureReason.StreamUnreachable -> R.string.settings_plugin_test_reason_stream_unreachable
-    VdoFailureReason.NeedWebView -> R.string.settings_plugin_test_reason_webview
+    VdoFailureReason.RuleBroken -> R.string.settings_plg_tst_test_reason_rule_broken
+    VdoFailureReason.NetworkError -> R.string.settings_plg_tst_test_reason_network
+    VdoFailureReason.HttpError -> R.string.settings_plg_tst_test_reason_http
+    VdoFailureReason.NoResults -> R.string.settings_plg_tst_test_reason_no_results
+    VdoFailureReason.NoEpisodes -> R.string.settings_plg_tst_test_reason_no_episodes
+    VdoFailureReason.NoStream -> R.string.settings_plg_tst_test_reason_no_stream
+    VdoFailureReason.StreamUnreachable -> R.string.settings_plg_tst_test_reason_stream_unreachable
+    VdoFailureReason.NeedWebView -> R.string.settings_plg_tst_test_reason_webview
 }
 
 /** 流类型 → 文案。HLS 与直链的差别，决定了播放器要不要走 HLS 分支。 */
 @StringRes
 private fun VdoStreamKind.labelRes(): Int = when (this) {
-    VdoStreamKind.Hls -> R.string.settings_plugin_test_stream_hls
-    VdoStreamKind.Mp4 -> R.string.settings_plugin_test_stream_mp4
-    VdoStreamKind.Other -> R.string.settings_plugin_test_stream_other
+    VdoStreamKind.Hls -> R.string.settings_plg_tst_test_stream_hls
+    VdoStreamKind.Mp4 -> R.string.settings_plg_tst_test_stream_mp4
+    VdoStreamKind.Other -> R.string.settings_plg_tst_test_stream_other
 }
 
 /**
@@ -1043,7 +1043,7 @@ private fun RepoEditorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_plugin_repo_edit_title)) },
+        title = { Text(stringResource(R.string.settings_plg_tst_repo_edit_title)) },
         text = {
             OutlinedTextField(
                 value = text,
@@ -1052,7 +1052,7 @@ private fun RepoEditorDialog(
                 isError = !valid,
                 supportingText = {
                     if (!valid) {
-                        Text(stringResource(R.string.settings_plugin_repo_edit_invalid))
+                        Text(stringResource(R.string.settings_plg_tst_repo_edit_invalid))
                     }
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
@@ -1067,12 +1067,12 @@ private fun RepoEditorDialog(
                     onDismiss()
                 },
             ) {
-                Text(stringResource(R.string.settings_plugin_save))
+                Text(stringResource(R.string.settings_plg_tst_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.settings_plugin_cancel))
+                Text(stringResource(R.string.settings_plg_tst_cancel))
             }
         },
     )
@@ -1086,21 +1086,21 @@ private fun RepoEditorDialog(
  */
 @Composable
 private fun MirrorPickerDialog(
-    current: RuleMirror,
+    current: PlgTstMirror,
     onDismiss: () -> Unit,
-    onSelect: (RuleMirror) -> Unit,
+    onSelect: (PlgTstMirror) -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = stringResource(R.string.settings_plugin_repo_mirror_title),
+                text = stringResource(R.string.settings_plg_tst_repo_mirror_title),
                 style = MaterialTheme.typography.titleMedium,
             )
         },
         text = {
             Column {
-                RuleMirror.entries.forEach { mirror ->
+                PlgTstMirror.entries.forEach { mirror ->
                     val selected = mirror == current
                     Row(
                         modifier = Modifier
@@ -1134,7 +1134,7 @@ private fun MirrorPickerDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.settings_plugin_cancel))
+                Text(stringResource(R.string.settings_plg_tst_cancel))
             }
         },
     )
@@ -1146,12 +1146,12 @@ private fun MirrorPickerDialog(
  * 只给「从哪儿拿」这一个决定，不在这里让人填字段：手写选择器的成本远高于抄一份现成的，
  * 所以把「新建」放在最后，前三个都是导入。
  *
- * 「浏览规则仓库」用主色淡底托一下：仓库是这个 App 唯一的官方来源，其余三种是补充，
+ * 「浏览插件仓库」用主色淡底托一下：仓库是这个 App 唯一的官方来源，其余三种是补充，
  * 四行长得一样的话，新用户会去点「新建」，然后在空白模板里卡住。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddSourceSheet(
+private fun AddPluginSheet(
     onDismiss: () -> Unit,
     onSelect: (AddMethod) -> Unit,
 ) {
@@ -1163,7 +1163,7 @@ private fun AddSourceSheet(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = stringResource(R.string.settings_plugin_add_sheet_title),
+                text = stringResource(R.string.settings_plg_tst_add_sheet_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = colors.onSurface,
@@ -1222,19 +1222,19 @@ private enum class AddMethod(
     val icon: ImageVector,
 ) {
     FromCatalog(
-        titleRes = R.string.settings_plugin_add_catalog,
+        titleRes = R.string.settings_plg_tst_add_catalog,
         icon = Icons.Rounded.TravelExplore,
     ),
     FromClipboard(
-        titleRes = R.string.settings_plugin_add_clipboard,
+        titleRes = R.string.settings_plg_tst_add_clipboard,
         icon = Icons.Rounded.ContentPaste,
     ),
     FromFile(
-        titleRes = R.string.settings_plugin_add_file,
+        titleRes = R.string.settings_plg_tst_add_file,
         icon = Icons.Rounded.FileOpen,
     ),
     FromTemplate(
-        titleRes = R.string.settings_plugin_add_create,
+        titleRes = R.string.settings_plg_tst_add_create,
         icon = Icons.Rounded.EditNote,
     ),
 }
@@ -1260,10 +1260,10 @@ private fun TagChip(
 }
 
 /** 副标题：作者（可缺省）+ 站点 host。写完整 URL 太长，host 足够认出来源。 */
-private fun metaLine(rule: PluginRule): String {
-    val host = runCatching { java.net.URI(rule.baseUrl).host }.getOrNull()
-        ?: rule.baseUrl
-    return listOf(rule.author, host)
+private fun pluginMetaLine(plugin: VdoPlgContent): String {
+    val host = runCatching { java.net.URI(plugin.baseUrl).host }.getOrNull()
+        ?: plugin.baseUrl
+    return listOf(plugin.author, host)
         .filter { it.isNotBlank() }
         .joinToString(" · ")
 }

@@ -1,6 +1,6 @@
 package com.liomix.mikomi.data.video.remote.vdoplg.rule
 
-import com.liomix.mikomi.core.model.PluginRule
+import com.liomix.mikomi.core.model.VdoPlgContent
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -8,7 +8,7 @@ import org.json.JSONObject
  * 插件源解析失败的原因。
  *
  * 只给**原因**，不给文案：仓库/解析器不认识多语言，用户看到的那句话由 feature 层按
- * [InvalidVdoPlgSourceException.Reason] 映射（见 `PluginScreen` 里的 `reasonRes`）。
+ * [InvalidVdoPlgSourceException.Reason] 映射（见 `PlgTstScreen` 里的 `reasonRes`）。
  */
 class InvalidVdoPlgSourceException(
     /** 失败原因。UI 据此选一句人话。 */
@@ -53,7 +53,7 @@ object VdoPlgFormat {
      * @param enabled 启停状态不在 JSON 里，由仓库的 state 文件单独记，这里原样带进去。
      * @throws InvalidVdoPlgSourceException 缺少元信息或不是合法 JSON 对象。
      */
-    fun parse(json: String, enabled: Boolean = true): PluginRule {
+    fun parse(json: String, enabled: Boolean = true): VdoPlgContent {
         val root = try {
             JSONObject(json)
         } catch (e: JSONException) {
@@ -70,7 +70,7 @@ object VdoPlgFormat {
         if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
             throw InvalidVdoPlgSourceException(InvalidVdoPlgSourceException.Reason.InvalidBaseUrl, "baseURL")
         }
-        return PluginRule(
+        return VdoPlgContent(
             name = name,
             version = root.optString("version").trim(),
             author = root.optString("author").trim(),

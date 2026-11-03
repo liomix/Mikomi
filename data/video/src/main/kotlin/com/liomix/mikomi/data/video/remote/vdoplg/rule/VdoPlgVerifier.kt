@@ -150,7 +150,7 @@ class VdoPlgVerifier @Inject constructor(
             val request = VdoPlgPlanRequest(
                 ruleJson = ruleJson,
                 line = VdoLineRef(
-                    sourceName = VdoPlgDocument.parse(ruleJson).name.ifBlank { "source" },
+                    sourceName = VdoPlgDocument.parse(ruleJson).name.ifBlank { "plugin" },
                     lineName = roads.first().name,
                     firstEpisodeUrl = roads.first().episodes.first().url,
                 ),

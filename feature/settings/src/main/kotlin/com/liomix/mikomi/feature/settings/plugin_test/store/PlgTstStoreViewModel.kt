@@ -1,4 +1,4 @@
-package com.liomix.mikomi.feature.settings.plugin.store
+package com.liomix.mikomi.feature.settings.plugin_test.store
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.InvalidVdoPlgSourceException
 import com.liomix.mikomi.data.video.remote.vdoplg.store.VdoPlgRepository
-import com.liomix.mikomi.feature.settings.plugin.DEFAULT_RULES_REPO_URL
-import com.liomix.mikomi.feature.settings.plugin.RuleMirror
+import com.liomix.mikomi.feature.settings.plugin_test.PLG_TST_REPO_URL
+import com.liomix.mikomi.feature.settings.plugin_test.PlgTstMirror
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.IOException
 import java.util.concurrent.TimeUnit
@@ -41,7 +41,7 @@ import org.json.JSONException
  *    本机规则目录。落盘之后插件源页立刻就能看到这一条——两页读的是同一个仓库的热流。
  */
 @HiltViewModel
-class PluginStoreViewModel @Inject constructor(
+class PlgTstStoreViewModel @Inject constructor(
     okHttpClient: OkHttpClient,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val repository: VdoPlgRepository,
@@ -57,8 +57,8 @@ class PluginStoreViewModel @Inject constructor(
         .callTimeout(FETCH_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .build()
 
-    private val _uiState = MutableStateFlow(PluginStoreUiState())
-    val uiState: StateFlow<PluginStoreUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(PlgTstStoreUiState())
+    val uiState: StateFlow<PlgTstStoreUiState> = _uiState.asStateFlow()
 
     /** 上次成功拉到目录的时间，用于「短时间内重进页面不重复拉」。 */
     private var loadedAtMillis = 0L
@@ -79,11 +79,11 @@ class PluginStoreViewModel @Inject constructor(
         _uiState.update { it.copy(query = query) }
     }
 
-    fun onFilterChange(filter: StoreFilter) {
+    fun onFilterChange(filter: PlgTstStoreFilter) {
         _uiState.update { it.copy(filter = filter) }
     }
 
-    fun onSortChange(sort: StoreSort) {
+    fun onSortChange(sort: PlgTstStoreSort) {
         _uiState.update { it.copy(sort = sort) }
     }
 
@@ -101,20 +101,20 @@ class PluginStoreViewModel @Inject constructor(
      * `installing` 既是按钮的转圈依据，也是并发闸门：同一条规则被连点时，第二次直接返回，
      * 不会真的发两个请求。
      */
-    fun onInstall(item: StoreItem) {
+    fun onInstall(item: PlgTstStoreItem) {
         val state = _uiState.value
         if (item.name in state.installing) return
-        if (state.statusOf(item) == StoreItemStatus.Installed) return
+        if (state.statusOf(item) == PlgTstStoreStatus.Installed) return
 
         _uiState.update { it.copy(installing = it.installing + item.name) }
         viewModelScope.launch {
             try {
-                val installedVersion = downloadRule(item.name)
+                val installedVersion = downloadPlugin(item.name)
                 _uiState.update {
                     it.copy(
                         installing = it.installing - item.name,
                         installedVersions = it.installedVersions + (item.name to installedVersion),
-                        message = StoreMessage.Installed(item.name),
+                        message = PlgTstStoreMessage.Installed(item.name),
                     )
                 }
             } catch (e: CancellationException) {
@@ -134,7 +134,7 @@ class PluginStoreViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 installing = it.installing - name,
-                message = StoreMessage.InstallFailed(
+                message = PlgTstStoreMessage.InstallFailed(
                     name = name,
                     reason = error.message ?: error::class.java.simpleName,
                 ),
@@ -180,7 +180,7 @@ class PluginStoreViewModel @Inject constructor(
         }
     }
 
-    private suspend fun fetchCatalog(): List<StoreItem> = withContext(ioDispatcher) {
+    private suspend fun fetchCatalog(): List<PlgTstStoreItem> = withContext(ioDispatcher) {
         parseCatalog(fetchText(INDEX_FILE))
     }
 
@@ -190,21 +190,21 @@ class PluginStoreViewModel @Inject constructor(
      * 校验交给仓库：它会检查 JSON 合法、`name` 与 `baseURL` 齐备，不合法就抛异常。
      * 因此「报成功」时磁盘上一定有一份能用的规则，不会出现「装上了但打开是空白」。
      */
-    private suspend fun downloadRule(name: String): String = withContext(ioDispatcher) {
+    private suspend fun downloadPlugin(name: String): String = withContext(ioDispatcher) {
         val json = fetchText("$name.json")
         repository.install(json).version
     }
 
-    private fun parseCatalog(raw: String): List<StoreItem> {
+    private fun parseCatalog(raw: String): List<PlgTstStoreItem> {
         val array = JSONArray(raw)
-        val items = ArrayList<StoreItem>(array.length())
+        val items = ArrayList<PlgTstStoreItem>(array.length())
         for (index in 0 until array.length()) {
             // 单条坏数据只跳过，不拖垮整页：仓库是多人维护的，一条写错的规则不该让商店打不开。
             val entry = array.optJSONObject(index) ?: continue
             val name = entry.optString("name").trim()
             val version = entry.optString("version").trim()
             if (name.isEmpty() || version.isEmpty()) continue
-            items += StoreItem(
+            items += PlgTstStoreItem(
                 name = name,
                 version = version,
                 author = entry.optString("author").trim(),
@@ -257,18 +257,18 @@ class PluginStoreViewModel @Inject constructor(
      * 只能把上游仓库地址整段换掉——换了仓库地址（自建/换源）时这一步自动退化成直连，
      * 不会拼出一个必然 404 的地址。
      */
-    private fun RuleMirror.resolveUrl(path: String): String {
+    private fun PlgTstMirror.resolveUrl(path: String): String {
         val fullUrl = "$REPO_ROOT$path"
         return when (this) {
-            RuleMirror.Direct -> fullUrl
-            RuleMirror.GhProxy -> GH_PROXY_PREFIX + fullUrl
-            RuleMirror.GhFast -> GH_FAST_PREFIX + fullUrl
-            RuleMirror.GitCode -> fullUrl.replaceFirst(GITHUB_RAW_ROOT, GITCODE_ROOT)
+            PlgTstMirror.Direct -> fullUrl
+            PlgTstMirror.GhProxy -> GH_PROXY_PREFIX + fullUrl
+            PlgTstMirror.GhFast -> GH_FAST_PREFIX + fullUrl
+            PlgTstMirror.GitCode -> fullUrl.replaceFirst(GITHUB_RAW_ROOT, GITCODE_ROOT)
         }
     }
 
     private companion object {
-        const val TAG = "PluginStoreViewModel"
+        const val TAG = "PlgTstStoreViewModel"
 
         /** 目录文件名；单条规则则是 `<name>.json`。 */
         const val INDEX_FILE = "index.json"
@@ -279,7 +279,7 @@ class PluginStoreViewModel @Inject constructor(
         const val FETCH_TIMEOUT_SECONDS = 8L
 
         /** 仓库根地址（带结尾斜杠），与插件源页共用同一个默认值。 */
-        val REPO_ROOT = "$DEFAULT_RULES_REPO_URL/"
+        val REPO_ROOT = "$PLG_TST_REPO_URL/"
 
         /** 上游仓库的 raw 根地址：GitCode 镜像只能整段替换它。 */
         const val GITHUB_RAW_ROOT = "https://raw.githubusercontent.com/Predidit/KazumiRules/main"
@@ -293,10 +293,10 @@ class PluginStoreViewModel @Inject constructor(
 
         /** 降级顺序：默认镜像 → 备用镜像 → 国内镜像 → 直连。 */
         val MIRROR_FALLBACK = listOf(
-            RuleMirror.GhProxy,
-            RuleMirror.GhFast,
-            RuleMirror.GitCode,
-            RuleMirror.Direct,
+            PlgTstMirror.GhProxy,
+            PlgTstMirror.GhFast,
+            PlgTstMirror.GitCode,
+            PlgTstMirror.Direct,
         )
     }
 }

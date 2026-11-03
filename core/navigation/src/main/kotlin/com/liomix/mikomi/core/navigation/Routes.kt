@@ -42,13 +42,13 @@ data object EditorDestination : NavKey
 @Serializable
 data object ProxyDestination : NavKey
 
-/** 数据源插件设置二级页面（设置页「数据源」卡片的第二项）。 */
+/** 视频插件源测试二级页面（设置页「数据源」卡片的第二项）。 */
 @Serializable
-data object PluginDestination : NavKey
+data object VdoPlgDestination : NavKey
 
-/** 插件商店二级页面（插件源页「浏览规则仓库」进入）。 */
+/** 插件源商店二级页面（插件测试页「浏览插件仓库」进入）。 */
 @Serializable
-data object PluginStoreDestination : NavKey
+data object VdoPlgStoreDestination : NavKey
 
 /** 时间表二级页面（首页快捷入口跳转）。 */
 @Serializable

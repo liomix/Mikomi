@@ -1,4 +1,4 @@
-package com.liomix.mikomi.feature.settings.plugin
+package com.liomix.mikomi.feature.settings.plugin_test
 
 import android.content.Intent
 import android.util.Log
@@ -13,27 +13,27 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.liomix.mikomi.feature.settings.R
 
 /**
- * 插件源设置页入口：把 ViewModel 的状态与事件接到 UI 上。
+ * 插件测试页入口：把 ViewModel 的状态与事件接到 UI 上。
  *
  * 分享是这里唯一需要 Context 的动作——ViewModel 不该碰 Context，所以流程拆成两半：
- * `onShare` 只把规则原文放进 `pendingShare`，本页读到后拉起系统分享面板，再把状态清空。
+ * `onShare` 只把插件原文放进 `pendingShare`，本页读到后拉起系统分享面板，再把状态清空。
  */
 @Composable
-fun PluginRoute(
+fun PlgTstRoute(
     onBackClick: () -> Unit,
     onOpenStore: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: PluginViewModel = hiltViewModel(),
+    viewModel: PlgTstViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val chooserTitle = stringResource(R.string.settings_plugin_share_chooser)
+    val chooserTitle = stringResource(R.string.settings_plg_tst_share_chooser)
 
     LaunchedEffect(uiState.pendingShare) {
         val share = uiState.pendingShare ?: return@LaunchedEffect
         val send = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
-            // 主题给规则名，正文给整份 JSON：对方存成 `<name>.json` 就能直接用。
+            // 主题给插件名，正文给整份 JSON：对方存成 `<name>.json` 就能直接用。
             putExtra(Intent.EXTRA_SUBJECT, share.name)
             putExtra(Intent.EXTRA_TEXT, share.text)
         }
@@ -46,7 +46,7 @@ fun PluginRoute(
         viewModel.onShareHandled()
     }
 
-    PluginScreen(
+    PlgTstScreen(
         uiState = uiState,
         onToggle = viewModel::onToggle,
         onMoveUp = viewModel::onMoveUp,
@@ -69,4 +69,4 @@ fun PluginRoute(
     )
 }
 
-private const val TAG = "PluginRoute"
+private const val TAG = "PlgTstRoute"

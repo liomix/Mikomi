@@ -1,4 +1,4 @@
-package com.liomix.mikomi.feature.settings.plugin.store
+package com.liomix.mikomi.feature.settings.plugin_test.store
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -76,10 +76,10 @@ import kotlinx.coroutines.launch
 /**
  * 插件商店页。
  *
- * 「插件源」是一份 JSON 规则，商店就是这些规则的目录页。与插件源设置页的区别是定位：
+ * 「视频插件源」是一份 JSON，商店就是这些插件的目录页。与插件测试页的区别是定位：
  * 那一页管**已经装上的**（启停、排序、删除），这一页管**还没装上的**（浏览、搜索、安装）。
  *
- * 从 Kazumi 的规则仓库页搬过来的四处，都是「用起来才知道值」的细节：
+ * 从 Kazumi 的插件仓库页搬过来的四处，都是「用起来才知道值」的细节：
  * 1. **筛选 chip 带计数**：`全部 12 / 已安装 2 / 可更新 1` 一行就把仓库规模、已装数量、
  *    待更新数量说完了，不用再单独摆一段统计文字；这三个数也正好是三种筛选的入口。
  * 2. **刷新不清空**：已有列表时再刷新只加一条 2dp 进度线，失败也只在顶部提示一行，
@@ -94,13 +94,13 @@ import kotlinx.coroutines.launch
  * 先不让它们占位置。
  */
 @Composable
-fun PluginStoreScreen(
-    uiState: PluginStoreUiState,
+fun PlgTstStoreScreen(
+    uiState: PlgTstStoreUiState,
     onQueryChange: (String) -> Unit,
-    onFilterChange: (StoreFilter) -> Unit,
-    onSortChange: (StoreSort) -> Unit,
+    onFilterChange: (PlgTstStoreFilter) -> Unit,
+    onSortChange: (PlgTstStoreSort) -> Unit,
     onRefresh: () -> Unit,
-    onInstall: (StoreItem) -> Unit,
+    onInstall: (PlgTstStoreItem) -> Unit,
     onMessageShown: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -112,9 +112,9 @@ fun PluginStoreScreen(
     // 文案在组合期取好：showSnackbar 跑在协程里，那里调不了 stringResource。
     val messageText = when (message) {
         null -> null
-        is StoreMessage.Installed ->
+        is PlgTstStoreMessage.Installed ->
             stringResource(R.string.settings_store_toast_installed, message.name)
-        is StoreMessage.InstallFailed ->
+        is PlgTstStoreMessage.InstallFailed ->
             stringResource(R.string.settings_store_toast_failed, message.name, message.reason)
     }
     LaunchedEffect(message) {
@@ -202,7 +202,7 @@ fun PluginStoreScreen(
                             TextButton(
                                 onClick = {
                                     onQueryChange("")
-                                    onFilterChange(StoreFilter.All)
+                                    onFilterChange(PlgTstStoreFilter.All)
                                 },
                             ) {
                                 Text(stringResource(R.string.settings_store_clear_filter))
@@ -246,7 +246,7 @@ fun PluginStoreScreen(
 /**
  * 搜索框。
  *
- * 只按名字与作者过滤，不搜规则正文：正文还没下载，搜不了。
+ * 只按名字与作者过滤，不搜插件正文：正文还没下载，搜不了。
  * 输入即过滤（几十条数据不值得加防抖），清除按钮只在有内容时出现。
  */
 @Composable
@@ -288,8 +288,8 @@ private fun SearchField(
  */
 @Composable
 private fun FilterRow(
-    uiState: PluginStoreUiState,
-    onFilterChange: (StoreFilter) -> Unit,
+    uiState: PlgTstStoreUiState,
+    onFilterChange: (PlgTstStoreFilter) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -297,7 +297,7 @@ private fun FilterRow(
             .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        StoreFilter.entries.forEach { filter ->
+        PlgTstStoreFilter.entries.forEach { filter ->
             FilterChip(
                 selected = uiState.filter == filter,
                 onClick = { onFilterChange(filter) },
@@ -312,8 +312,8 @@ private fun FilterRow(
 /** 排序菜单：只有两档，用下拉而不是分段控件——它不常用，不值得常驻两个按钮的宽度。 */
 @Composable
 private fun SortAction(
-    current: StoreSort,
-    onSelect: (StoreSort) -> Unit,
+    current: PlgTstStoreSort,
+    onSelect: (PlgTstStoreSort) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -325,7 +325,7 @@ private fun SortAction(
             )
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            StoreSort.entries.forEach { sort ->
+            PlgTstStoreSort.entries.forEach { sort ->
                 DropdownMenuItem(
                     text = { Text(stringResource(sort.labelRes)) },
                     onClick = {
@@ -347,15 +347,15 @@ private fun SortAction(
 }
 
 /**
- * 一条规则。
+ * 一个插件。
  *
  * 名称与版本胶囊同一行、作者与时间同一行，信息密度压到三行以内：
  * 商店要的是「一眼扫完一屏」，不是每条都展开成详情卡。
  */
 @Composable
 private fun StoreItemCard(
-    item: StoreItem,
-    status: StoreItemStatus,
+    item: PlgTstStoreItem,
+    status: PlgTstStoreStatus,
     installing: Boolean,
     onInstall: () -> Unit,
 ) {
@@ -433,9 +433,9 @@ private fun StoreItemCard(
 
 /** 左侧状态块：装着的给对勾，没装的给插件图标，颜色一并区分。 */
 @Composable
-private fun StatusTile(status: StoreItemStatus) {
+private fun StatusTile(status: PlgTstStoreStatus) {
     val colors = MaterialTheme.colorScheme
-    val installed = status != StoreItemStatus.Install
+    val installed = status != PlgTstStoreStatus.Install
 
     Surface(
         modifier = Modifier.size(44.dp),
@@ -461,7 +461,7 @@ private fun StatusTile(status: StoreItemStatus) {
  */
 @Composable
 private fun StoreAction(
-    status: StoreItemStatus,
+    status: PlgTstStoreStatus,
     installing: Boolean,
     onInstall: () -> Unit,
 ) {
@@ -481,7 +481,7 @@ private fun StoreAction(
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = stringResource(
-                    if (status == StoreItemStatus.Update) {
+                    if (status == PlgTstStoreStatus.Update) {
                         R.string.settings_store_updating
                     } else {
                         R.string.settings_store_installing
@@ -490,7 +490,7 @@ private fun StoreAction(
             )
         }
 
-        status == StoreItemStatus.Installed -> Row(verticalAlignment = Alignment.CenterVertically) {
+        status == PlgTstStoreStatus.Installed -> Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Rounded.Check,
                 contentDescription = null,
@@ -511,14 +511,14 @@ private fun StoreAction(
             modifier = Modifier.height(40.dp),
         ) {
             Icon(
-                imageVector = if (status == StoreItemStatus.Update) Icons.Rounded.Sync else Icons.Rounded.Add,
+                imageVector = if (status == PlgTstStoreStatus.Update) Icons.Rounded.Sync else Icons.Rounded.Add,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = stringResource(
-                    if (status == StoreItemStatus.Update) {
+                    if (status == PlgTstStoreStatus.Update) {
                         R.string.settings_store_update
                     } else {
                         R.string.settings_store_install

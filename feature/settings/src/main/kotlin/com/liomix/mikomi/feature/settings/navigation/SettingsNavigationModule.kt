@@ -2,14 +2,14 @@ package com.liomix.mikomi.feature.settings.navigation
 
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.Navigator
-import com.liomix.mikomi.core.navigation.PluginDestination
-import com.liomix.mikomi.core.navigation.PluginStoreDestination
+import com.liomix.mikomi.core.navigation.VdoPlgDestination
+import com.liomix.mikomi.core.navigation.VdoPlgStoreDestination
 import com.liomix.mikomi.core.navigation.ProxyDestination
 import com.liomix.mikomi.core.navigation.SettingsDestination
 import com.liomix.mikomi.core.navigation.ThemeDestination
 import com.liomix.mikomi.feature.settings.SettingsScreen
-import com.liomix.mikomi.feature.settings.plugin.PluginRoute
-import com.liomix.mikomi.feature.settings.plugin.store.PluginStoreRoute
+import com.liomix.mikomi.feature.settings.plugin_test.PlgTstRoute
+import com.liomix.mikomi.feature.settings.plugin_test.store.PlgTstStoreRoute
 import com.liomix.mikomi.feature.settings.proxy.ProxyRoute
 import com.liomix.mikomi.feature.settings.theme.ThemeRoute
 import dagger.Module
@@ -29,7 +29,7 @@ object SettingsNavigationModule {
             SettingsScreen(
                 onOpenTheme = { navigator.goTo(ThemeDestination) },
                 onOpenProxy = { navigator.goTo(ProxyDestination) },
-                onOpenPlugins = { navigator.goTo(PluginDestination) },
+                onOpenPlugins = { navigator.goTo(VdoPlgDestination) },
                 onBackClick = { navigator.goBack() },
             )
         }
@@ -39,14 +39,14 @@ object SettingsNavigationModule {
         entry<ProxyDestination> {
             ProxyRoute(onBackClick = { navigator.goBack() })
         }
-        entry<PluginDestination> {
-            PluginRoute(
+        entry<VdoPlgDestination> {
+            PlgTstRoute(
                 onBackClick = { navigator.goBack() },
-                onOpenStore = { navigator.goTo(PluginStoreDestination) },
+                onOpenStore = { navigator.goTo(VdoPlgStoreDestination) },
             )
         }
-        entry<PluginStoreDestination> {
-            PluginStoreRoute(onBackClick = { navigator.goBack() })
+        entry<VdoPlgStoreDestination> {
+            PlgTstStoreRoute(onBackClick = { navigator.goBack() })
         }
     }
 }

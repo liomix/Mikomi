@@ -1,4 +1,4 @@
-package com.liomix.mikomi.feature.settings.plugin.store
+package com.liomix.mikomi.feature.settings.plugin_test.store
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -8,14 +8,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /** 插件商店页入口：把 ViewModel 的状态与事件接到 UI 上。 */
 @Composable
-fun PluginStoreRoute(
+fun PlgTstStoreRoute(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: PluginStoreViewModel = hiltViewModel(),
+    viewModel: PlgTstStoreViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    PluginStoreScreen(
+    PlgTstStoreScreen(
         uiState = uiState,
         onQueryChange = viewModel::onQueryChange,
         onFilterChange = viewModel::onFilterChange,

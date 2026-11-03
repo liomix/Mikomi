@@ -1,12 +1,12 @@
-package com.liomix.mikomi.feature.settings.plugin
+package com.liomix.mikomi.feature.settings.plugin_test
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.InvalidVdoPlgSourceException
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgFormat
-import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgVerifier
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgTestReport
+import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgVerifier
 import com.liomix.mikomi.data.video.remote.vdoplg.store.VdoPlgRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -20,30 +20,30 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * 插件源设置页的 ViewModel。
+ * 插件测试页的 ViewModel。
  *
  * 列表来自 [VdoPlgRepository] 的热流：安装/删除/改名在商店页发生后，这一页会自己跟着变。
  * 页面上每个动作都是仓库的一次挂起写操作——UI 不再自己拼列表，因为磁盘才是真相。
  *
- * 「编辑规则」也在这里：编辑是一个面板而不是独立页面，状态就放在本页状态里，
+ * 「编辑插件」也在这里：编辑是一个面板而不是独立页面，状态就放在本页状态里，
  * 面板关掉即回到列表，不用推栈。
  *
- * 仓库地址与加速方式**仍只在内存里**：它们属于「从哪儿拉」，和规则文件无关，
+ * 仓库地址与加速方式**仍只在内存里**：它们属于「从哪儿拉」，和插件文件无关，
  * 等 DataStore 那一层接上再落盘，现在改了只影响本次会话的下拉行为。
  */
 @HiltViewModel
-class PluginViewModel @Inject constructor(
+class PlgTstViewModel @Inject constructor(
     private val repository: VdoPlgRepository,
     private val verifier: VdoPlgVerifier,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(PluginUiState())
-    val uiState: StateFlow<PluginUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(PlgTstUiState())
+    val uiState: StateFlow<PlgTstUiState> = _uiState.asStateFlow()
 
     /** 当前在跑的测试。重复点「开始测试」时掐掉上一条，免得旧结果后到覆盖新结果。 */
     private var testJob: Job? = null
 
-    /** 正在读某条规则的原文。面板关掉或换了对象就掐掉，避免旧结果写进新面板。 */
+    /** 正在读某个插件的原文。面板关掉或换了对象就掐掉，避免旧结果写进新面板。 */
     private var editorJob: Job? = null
 
     /** 上次测试用的关键词：同一个源常要反复测，重新打开面板时带出来省得重打。 */
@@ -85,7 +85,7 @@ class PluginViewModel @Inject constructor(
     }
 
     /**
-     * 改规则仓库地址。
+     * 改插件仓库地址。
      *
      * 末尾斜杠统一去掉：拼 `<repo>/index.json` 时多一道斜杠有些 CDN 会 404。
      * 空串与非 http(s) 直接忽略——UI 侧已做校验，这里是最后一道。
@@ -96,21 +96,21 @@ class PluginViewModel @Inject constructor(
         _uiState.update { it.copy(repoUrl = normalized) }
     }
 
-    /** 切换规则仓库加速。只改内存，见类注释。 */
-    fun onMirrorSelected(mirror: RuleMirror) {
+    /** 切换插件仓库加速。只改内存，见类注释。 */
+    fun onMirrorSelected(mirror: PlgTstMirror) {
         _uiState.update { it.copy(mirror = mirror) }
     }
 
     /**
-     * 准备分享：把规则原文塞进状态，由 Route 拉起系统分享面板。
+     * 准备分享：把插件原文塞进状态，由 Route 拉起系统分享面板。
      *
-     * 分享的是**原文**而不是重排后的字段：规则的价值就在于原封不动地交给别人，
+     * 分享的是**原文**而不是重排后的字段：插件的价值就在于原封不动地交给别人，
      * 转成模型再序列化回去，丢了字段顺序也丢了几行注释性的键。
      */
     fun onShare(id: String) {
         viewModelScope.launch {
             val rule = repository.get(id) ?: return@launch
-            _uiState.update { it.copy(pendingShare = PluginShare(rule.name, rule.json)) }
+            _uiState.update { it.copy(pendingShare = PlgTstShare(rule.name, rule.json)) }
         }
     }
 
@@ -129,7 +129,7 @@ class PluginViewModel @Inject constructor(
         if (_uiState.value.rules.none { it.id == id }) return
         testJob?.cancel()
         testJob = null
-        _uiState.update { it.copy(test = RuleTestState(ruleName = id, keyword = lastKeyword)) }
+        _uiState.update { it.copy(test = PlgTstTestState(ruleName = id, keyword = lastKeyword)) }
     }
 
     /** 按当前关键词跑完整链路：搜索 → 剧集 → 出流。 */
@@ -149,12 +149,12 @@ class PluginViewModel @Inject constructor(
         testJob?.cancel()
         lastKeyword = keyword
         _uiState.update {
-            it.copy(test = RuleTestState(ruleName = ruleName, keyword = keyword, running = true))
+            it.copy(test = PlgTstTestState(ruleName = ruleName, keyword = keyword, running = true))
         }
         testJob = viewModelScope.launch {
             val rule = repository.get(ruleName)
             val report: VdoPlgTestReport = if (rule == null) {
-                // 文件被别的页面删了：给一份三步都未执行的空报告，比一句「规则不存在」更有信息量。
+                // 文件被别的页面删了：给一份三步都未执行的空报告，比一句「插件不存在」更有信息量。
                 VdoPlgTestReport(keyword = keyword)
             } else {
                 try {
@@ -182,12 +182,12 @@ class PluginViewModel @Inject constructor(
      * 打开编辑面板并读盘。
      *
      * 打开即读原文、保存即写回原文，中间不做「字段模型 ↔ 文本」的双向转换：
-     * 规则的字段多半是 XPath 字符串，转来转去只会把用户手写的换行和顺序揉掉。
+     * 插件的字段多半是 XPath 字符串，转来转去只会把用户手写的换行和顺序揉掉。
      * 校验只做「能不能存」（JSON 合法 + 有 name/baseURL），选择器写得对不对交给「测试」。
      */
     fun onEditOpen(id: String) {
         editorJob?.cancel()
-        _uiState.update { it.copy(editor = RuleEditorState(ruleName = id, loading = true)) }
+        _uiState.update { it.copy(editor = PlgTstEditorState(ruleName = id, loading = true)) }
         editorJob = viewModelScope.launch {
             val rule = repository.get(id)
             _uiState.update { state ->
@@ -263,7 +263,7 @@ class PluginViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: InvalidVdoPlgSourceException) {
-                // 本地校验刚过、这里又不过，只可能是改名撞车：另有同名规则占着文件。
+                // 本地校验刚过、这里又不过，只可能是改名撞车：另有同名插件占着文件。
                 _uiState.update { it.copy(editor = it.editor?.copy(saving = false, reason = e.reason)) }
             } catch (e: Exception) {
                 Log.w(TAG, "Save plugin rule failed: ${editor.ruleName}", e)
@@ -287,6 +287,6 @@ class PluginViewModel @Inject constructor(
     }
 
     private companion object {
-        const val TAG = "PluginViewModel"
+        const val TAG = "PlgTstViewModel"
     }
 }

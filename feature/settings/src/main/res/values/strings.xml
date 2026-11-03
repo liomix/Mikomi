@@ -47,96 +47,96 @@
     <string name="settings_proxy_about_section">关于</string>
     <string name="settings_proxy_about_body">镜像只替换请求的域名，接口路径与参数保持原样。日后自建反向代理时，把地址换成自己的即可，无需改动任何代码。</string>
 
-    <!-- 插件源（视频来源的 JSON 规则） -->
-    <string name="settings_plugin_title">插件源</string>
-    <string name="settings_plugin_back">返回</string>
-    <string name="settings_plugin_add">添加插件源</string>
-    <string name="settings_plugin_section">已安装 %1$d 个</string>
-    <string name="settings_plugin_version">v%1$s</string>
-    <string name="settings_plugin_update_available">可更新</string>
-    <string name="settings_plugin_empty">还没有插件源</string>
-    <string name="settings_plugin_more">%1$s 的更多操作</string>
-    <string name="settings_plugin_edit">编辑规则</string>
-    <string name="settings_plugin_test">测试</string>
-    <string name="settings_plugin_share">分享</string>
-    <string name="settings_plugin_remove">删除</string>
-    <string name="settings_plugin_share_chooser">分享规则</string>
+    <!-- 视频插件源：添加并测试 -->
+    <string name="settings_plg_tst_title">插件测试</string>
+    <string name="settings_plg_tst_back">返回</string>
+    <string name="settings_plg_tst_add">添加插件源</string>
+    <string name="settings_plg_tst_section">已安装 %1$d 个</string>
+    <string name="settings_plg_tst_version">v%1$s</string>
+    <string name="settings_plg_tst_update_available">可更新</string>
+    <string name="settings_plg_tst_empty">还没有插件源</string>
+    <string name="settings_plg_tst_more">%1$s 的更多操作</string>
+    <string name="settings_plg_tst_edit">编辑插件</string>
+    <string name="settings_plg_tst_test">测试</string>
+    <string name="settings_plg_tst_share">分享</string>
+    <string name="settings_plg_tst_remove">删除</string>
+    <string name="settings_plg_tst_share_chooser">分享插件</string>
 
-    <!-- 插件源：删除确认 -->
-    <string name="settings_plugin_delete_title">删除 %1$s？</string>
-    <string name="settings_plugin_delete_message">规则文件会从本机移除。仓库里还有这条规则的话，之后能重新装回来。</string>
-    <string name="settings_plugin_delete_confirm">删除</string>
+    <!-- 插件测试：删除确认 -->
+    <string name="settings_plg_tst_delete_title">删除 %1$s？</string>
+    <string name="settings_plg_tst_delete_message">插件文件会从本机移除。插件仓库里还有这一份的话，之后能重新装回来。</string>
+    <string name="settings_plg_tst_delete_confirm">删除</string>
 
-    <!-- 插件源：测试面板（只测剧集与出流） -->
-    <string name="settings_plugin_test_title">测试 %1$s</string>
-    <string name="settings_plugin_test_stage_search">搜索</string>
-    <string name="settings_plugin_test_stage_episodes">剧集</string>
-    <string name="settings_plugin_test_stage_stream">出流</string>
-    <string name="settings_plugin_test_keyword_label">搜索关键词</string>
-    <string name="settings_plugin_test_run">开始测试</string>
-    <string name="settings_plugin_test_running">测试中…</string>
-    <string name="settings_plugin_test_idle">未测试</string>
-    <string name="settings_plugin_test_skipped">未执行</string>
-    <string name="settings_plugin_test_summary_pass">剧集与出流都通</string>
-    <string name="settings_plugin_test_summary_fail">%1$d 步未通过</string>
-    <string name="settings_plugin_test_hit">命中 %1$d 条 · %2$s</string>
-    <string name="settings_plugin_test_roads">%1$d 条线路 · 共 %2$d 集 · 首集 %3$s</string>
-    <string name="settings_plugin_test_stream">%1$s · HTTP %2$d · 采样 %3$d B</string>
-    <string name="settings_plugin_test_stream_hls">HLS</string>
-    <string name="settings_plugin_test_stream_mp4">MP4</string>
-    <string name="settings_plugin_test_stream_other">未知流</string>
+    <!-- 插件测试：测试面板（只测剧集与出流） -->
+    <string name="settings_plg_tst_test_title">测试 %1$s</string>
+    <string name="settings_plg_tst_test_stage_search">搜索</string>
+    <string name="settings_plg_tst_test_stage_episodes">剧集</string>
+    <string name="settings_plg_tst_test_stage_stream">出流</string>
+    <string name="settings_plg_tst_test_keyword_label">搜索关键词</string>
+    <string name="settings_plg_tst_test_run">开始测试</string>
+    <string name="settings_plg_tst_test_running">测试中…</string>
+    <string name="settings_plg_tst_test_idle">未测试</string>
+    <string name="settings_plg_tst_test_skipped">未执行</string>
+    <string name="settings_plg_tst_test_summary_pass">剧集与出流都通</string>
+    <string name="settings_plg_tst_test_summary_fail">%1$d 步未通过</string>
+    <string name="settings_plg_tst_test_hit">命中 %1$d 条 · %2$s</string>
+    <string name="settings_plg_tst_test_roads">%1$d 条线路 · 共 %2$d 集 · 首集 %3$s</string>
+    <string name="settings_plg_tst_test_stream">%1$s · HTTP %2$d · 采样 %3$d B</string>
+    <string name="settings_plg_tst_test_stream_hls">HLS</string>
+    <string name="settings_plg_tst_test_stream_mp4">MP4</string>
+    <string name="settings_plg_tst_test_stream_other">未知流</string>
 
-    <!-- 插件源：测试失败原因 -->
-    <string name="settings_plugin_test_reason_rule_broken">规则读不出来：字段缺失或 XPath 写错</string>
-    <string name="settings_plugin_test_reason_network">连不上站点，可能是网络或代理问题</string>
-    <string name="settings_plugin_test_reason_http">站点返回了错误状态码</string>
-    <string name="settings_plugin_test_reason_no_results">搜索页打得通，但按 searchList 没匹配到内容</string>
-    <string name="settings_plugin_test_reason_no_episodes">详情页打得通，但没取到剧集</string>
-    <string name="settings_plugin_test_reason_no_stream">播放页里找不到播放地址</string>
-    <string name="settings_plugin_test_reason_stream_unreachable">找到了播放地址，但拉不到视频流</string>
-    <string name="settings_plugin_test_reason_webview">这个站靠 JS 拼播放地址，静态页面里没有</string>
+    <!-- 插件测试：失败原因 -->
+    <string name="settings_plg_tst_test_reason_rule_broken">插件读不出来：字段缺失或 XPath 写错</string>
+    <string name="settings_plg_tst_test_reason_network">连不上站点，可能是网络或代理问题</string>
+    <string name="settings_plg_tst_test_reason_http">站点返回了错误状态码</string>
+    <string name="settings_plg_tst_test_reason_no_results">搜索页打得通，但按 searchList 没匹配到内容</string>
+    <string name="settings_plg_tst_test_reason_no_episodes">详情页打得通，但没取到剧集</string>
+    <string name="settings_plg_tst_test_reason_no_stream">播放页里找不到播放地址</string>
+    <string name="settings_plg_tst_test_reason_stream_unreachable">找到了播放地址，但拉不到视频流</string>
+    <string name="settings_plg_tst_test_reason_webview">这个站靠 JS 拼播放地址，静态页面里没有</string>
 
-    <!-- 插件源：规则编辑器 -->
-    <string name="settings_plugin_editor_title">编辑规则</string>
-    <string name="settings_plugin_editor_save">保存</string>
-    <string name="settings_plugin_editor_format">格式化</string>
-    <string name="settings_plugin_editor_missing">规则已不存在，可能刚被删除</string>
-    <string name="settings_plugin_editor_discard_title">放弃修改？</string>
-    <string name="settings_plugin_editor_discard_message">还没保存的内容会丢失。</string>
-    <string name="settings_plugin_editor_discard_confirm">放弃</string>
-    <string name="settings_plugin_editor_continue">继续编辑</string>
-    <string name="settings_plugin_error_json">不是合法的 JSON</string>
-    <string name="settings_plugin_error_name">缺少 name 字段</string>
-    <string name="settings_plugin_error_base_url">缺少 baseURL 字段</string>
-    <string name="settings_plugin_error_base_url_invalid">baseURL 需要以 http:// 或 https:// 开头</string>
-    <string name="settings_plugin_error_name_taken">已经有一条同名规则</string>
-    <string name="settings_plugin_error_save_failed">保存失败：%1$s</string>
+    <!-- 插件测试：插件编辑器 -->
+    <string name="settings_plg_tst_editor_title">编辑插件</string>
+    <string name="settings_plg_tst_editor_save">保存</string>
+    <string name="settings_plg_tst_editor_format">格式化</string>
+    <string name="settings_plg_tst_editor_missing">插件已不存在，可能刚被删除</string>
+    <string name="settings_plg_tst_editor_discard_title">放弃修改？</string>
+    <string name="settings_plg_tst_editor_discard_message">还没保存的内容会丢失。</string>
+    <string name="settings_plg_tst_editor_discard_confirm">放弃</string>
+    <string name="settings_plg_tst_editor_continue">继续编辑</string>
+    <string name="settings_plg_tst_error_json">不是合法的 JSON</string>
+    <string name="settings_plg_tst_error_name">缺少 name 字段</string>
+    <string name="settings_plg_tst_error_base_url">缺少 baseURL 字段</string>
+    <string name="settings_plg_tst_error_base_url_invalid">baseURL 需要以 http:// 或 https:// 开头</string>
+    <string name="settings_plg_tst_error_name_taken">已经有一个同名插件</string>
+    <string name="settings_plg_tst_error_save_failed">保存失败：%1$s</string>
 
-    <!-- 插件源：规则仓库 -->
-    <string name="settings_plugin_repo_section">规则仓库</string>
-    <string name="settings_plugin_repo_address">仓库地址</string>
-    <string name="settings_plugin_repo_mirror">加速方式</string>
-    <string name="settings_plugin_repo_mirror_title">规则仓库加速</string>
-    <string name="settings_plugin_mirror_ghproxy">gh-proxy</string>
-    <string name="settings_plugin_mirror_ghproxy_desc">默认镜像</string>
-    <string name="settings_plugin_mirror_ghfast">ghfast</string>
-    <string name="settings_plugin_mirror_ghfast_desc">备用镜像</string>
-    <string name="settings_plugin_mirror_gitcode">GitCode</string>
-    <string name="settings_plugin_mirror_gitcode_desc">国内镜像</string>
-    <string name="settings_plugin_mirror_direct">直连</string>
-    <string name="settings_plugin_mirror_direct_desc">直接访问 GitHub</string>
-    <string name="settings_plugin_repo_edit_title">仓库地址</string>
-    <string name="settings_plugin_repo_edit_invalid">需要以 http:// 或 https:// 开头</string>
-    <string name="settings_plugin_save">保存</string>
-    <string name="settings_plugin_cancel">取消</string>
+    <!-- 插件测试：插件仓库 -->
+    <string name="settings_plg_tst_repo_section">插件仓库</string>
+    <string name="settings_plg_tst_repo_address">仓库地址</string>
+    <string name="settings_plg_tst_repo_mirror">加速方式</string>
+    <string name="settings_plg_tst_repo_mirror_title">插件仓库加速</string>
+    <string name="settings_plg_tst_mirror_ghproxy">gh-proxy</string>
+    <string name="settings_plg_tst_mirror_ghproxy_desc">默认镜像</string>
+    <string name="settings_plg_tst_mirror_ghfast">ghfast</string>
+    <string name="settings_plg_tst_mirror_ghfast_desc">备用镜像</string>
+    <string name="settings_plg_tst_mirror_gitcode">GitCode</string>
+    <string name="settings_plg_tst_mirror_gitcode_desc">国内镜像</string>
+    <string name="settings_plg_tst_mirror_direct">直连</string>
+    <string name="settings_plg_tst_mirror_direct_desc">直接访问 GitHub</string>
+    <string name="settings_plg_tst_repo_edit_title">仓库地址</string>
+    <string name="settings_plg_tst_repo_edit_invalid">需要以 http:// 或 https:// 开头</string>
+    <string name="settings_plg_tst_save">保存</string>
+    <string name="settings_plg_tst_cancel">取消</string>
 
-    <!-- 插件源：添加方式 -->
-    <string name="settings_plugin_add_sheet_title">添加插件源</string>
-    <string name="settings_plugin_add_catalog">浏览规则仓库</string>
-    <string name="settings_plugin_add_clipboard">从剪贴板导入</string>
-    <string name="settings_plugin_add_file">从文件导入</string>
-    <string name="settings_plugin_add_create">新建插件源</string>
-    <string name="settings_plugin_pending">插件源导入尚未接入</string>
+    <!-- 插件测试：添加方式 -->
+    <string name="settings_plg_tst_add_sheet_title">添加插件源</string>
+    <string name="settings_plg_tst_add_catalog">浏览插件仓库</string>
+    <string name="settings_plg_tst_add_clipboard">从剪贴板导入</string>
+    <string name="settings_plg_tst_add_file">从文件导入</string>
+    <string name="settings_plg_tst_add_create">新建插件源</string>
+    <string name="settings_plg_tst_pending">插件源导入尚未接入</string>
 
     <!-- 插件商店 -->
     <string name="settings_store_title">插件商店</string>
@@ -161,12 +161,12 @@
     <string name="settings_store_meta_author">作者 · %1$s</string>
     <string name="settings_store_meta_date">更新于 %1$s</string>
     <string name="settings_store_stale">刷新失败，正在显示上次获取的列表</string>
-    <string name="settings_store_error_title">无法访问规则仓库</string>
+    <string name="settings_store_error_title">无法访问插件仓库</string>
     <string name="settings_store_error_desc">已依次尝试 gh-proxy、ghfast、GitCode 与直连。原因：%1$s</string>
     <string name="settings_store_retry">重试</string>
-    <string name="settings_store_empty_title">仓库里还没有规则</string>
+    <string name="settings_store_empty_title">仓库里还没有插件</string>
     <string name="settings_store_empty_desc">这个仓库的 index.json 是空的</string>
-    <string name="settings_store_no_match_title">没有符合条件的规则</string>
+    <string name="settings_store_no_match_title">没有符合条件的插件</string>
     <string name="settings_store_clear_filter">清除筛选</string>
     <string name="settings_store_toast_installed">已安装 %1$s</string>
     <string name="settings_store_toast_failed">%1$s 安装失败：%2$s</string>
@@ -180,6 +180,6 @@
     <string name="settings_entry_theme_desc">主题颜色、深浅模式、应用图标与动态效果</string>
     <string name="settings_entry_proxy">Bangumi 代理</string>
     <string name="settings_entry_proxy_desc">连接方式与镜像地址</string>
-    <string name="settings_entry_plugins">插件源</string>
-    <string name="settings_entry_plugins_desc">以 JSON 规则描述的视频来源，决定播放时去哪里找片</string>
+    <string name="settings_entry_plugins">视频插件源</string>
+    <string name="settings_entry_plugins_desc">添加并测试插件：一份 JSON 描述一个视频站怎么找片、怎么出流</string>
 </resources>

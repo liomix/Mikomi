@@ -9,7 +9,7 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import com.liomix.mikomi.core.media.MikomiPlayer
 import com.liomix.mikomi.core.media.MikomiPlayerFactory
-import com.liomix.mikomi.core.model.PluginRule
+import com.liomix.mikomi.core.model.VdoPlgContent
 import com.liomix.mikomi.data.anime.AnimeRepository
 import com.liomix.mikomi.data.video.VdoEpisode
 import com.liomix.mikomi.data.video.VdoEpisodeRoad
@@ -549,7 +549,7 @@ class PlayerViewModel @Inject constructor(
      * 令牌只留给「同一个地址要重来一次」的重试。
      */
     private fun enterWebMode(
-        rule: PluginRule,
+        rule: VdoPlgContent,
         episode: EpisodeItem,
         episodes: List<EpisodeItem>,
         sourceId: String,
@@ -588,7 +588,7 @@ class PlayerViewModel @Inject constructor(
     // —— 探测 ——
 
     /** 等仓库完成首次扫描再取列表；拿不到（超时）就用当下已经读到的。 */
-    private suspend fun awaitEnabledRules(): List<PluginRule> {
+    private suspend fun awaitEnabledRules(): List<VdoPlgContent> {
         val rules = withTimeoutOrNull(RULES_WAIT_MILLIS) {
             pluginRepository.rules.first { it.isNotEmpty() }
         } ?: pluginRepository.rules.value
@@ -600,7 +600,7 @@ class PlayerViewModel @Inject constructor(
      *
      * 限 3 个并发：这些站点多半有速率限制，一次放五个反而全被限流。
      */
-    private suspend fun probeAll(rules: List<PluginRule>, keyword: String): List<RuleState> = coroutineScope {
+    private suspend fun probeAll(rules: List<VdoPlgContent>, keyword: String): List<RuleState> = coroutineScope {
         val gate = Semaphore(PROBE_CONCURRENCY)
         rules.map { rule ->
             async { gate.withPermit { probe(rule, keyword) } }
@@ -612,7 +612,7 @@ class PlayerViewModel @Inject constructor(
      *
      * 超时不抛异常而是当成「网络失败」：一个源慢不该拖垮整页，其它源还能播。
      */
-    private suspend fun probe(rule: PluginRule, keyword: String): RuleState {
+    private suspend fun probe(rule: VdoPlgContent, keyword: String): RuleState {
         val hits: List<VdoSearchHit>? = withTimeoutOrNull(SEARCH_TIMEOUT_MILLIS) {
             engine.search(rule.json, keyword)
         }
@@ -770,7 +770,7 @@ class PlayerViewModel @Inject constructor(
 
     /** 一次探测的结果。`failure == null && roads.isEmpty()` 表示「跑通了但这集没有」。 */
     private data class RuleState(
-        val rule: PluginRule,
+        val rule: VdoPlgContent,
         val hits: List<VdoSearchHit> = emptyList(),
         val roads: List<VdoEpisodeRoad> = emptyList(),
         val failure: VdoFailureReason? = null,

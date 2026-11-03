@@ -90,16 +90,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.liomix.mikomi.core.model.PluginRule
-import com.liomix.mikomi.data.video.remote.VdoFailureReason
-import com.liomix.mikomi.data.video.remote.VdoStreamKind
-import com.liomix.mikomi.data.video.remote.vdoplugin.rule.VdoRuleTestReport
-import com.liomix.mikomi.data.video.remote.vdoplugin.rule.VdoStageResult
+import com.liomix.mikomi.data.video.VdoFailureReason
+import com.liomix.mikomi.data.video.VdoStreamKind
+import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgTestReport
+import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgStageResult
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardHeader
 import com.liomix.mikomi.feature.settings.component.SettingsCardSection
 import com.liomix.mikomi.feature.settings.component.SettingsTopBar
-import java.util.Locale
 import kotlinx.coroutines.launch
 
 /**
@@ -858,7 +857,7 @@ private fun RuleTestSheet(
 
 /** 结论小标签：剧集与出流都通 / 哪几步没过 / 测试中。 */
 @Composable
-private fun TestSummaryChip(running: Boolean, report: VdoRuleTestReport?) {
+private fun TestSummaryChip(running: Boolean, report: VdoPlgTestReport?) {
     val colors = MaterialTheme.colorScheme
     val (text, foreground, background) = when {
         running -> Triple(
@@ -904,15 +903,15 @@ private fun TestSummaryChip(running: Boolean, report: VdoRuleTestReport?) {
 @Composable
 private fun StageRow(
     label: String,
-    result: VdoStageResult?,
+    result: VdoPlgStageResult?,
     running: Boolean,
     summary: String? = null,
     mono: String? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     val tint = when (result) {
-        is VdoStageResult.Passed -> colors.primary
-        is VdoStageResult.Failed -> colors.error
+        is VdoPlgStageResult.Passed -> colors.primary
+        is VdoPlgStageResult.Failed -> colors.error
         else -> colors.onSurfaceVariant
     }
 
@@ -932,8 +931,8 @@ private fun StageRow(
 
             else -> Icon(
                 imageVector = when (result) {
-                    is VdoStageResult.Passed -> Icons.Rounded.CheckCircle
-                    is VdoStageResult.Failed -> Icons.Rounded.ErrorOutline
+                    is VdoPlgStageResult.Passed -> Icons.Rounded.CheckCircle
+                    is VdoPlgStageResult.Failed -> Icons.Rounded.ErrorOutline
                     else -> Icons.Rounded.RadioButtonUnchecked
                 },
                 contentDescription = null,
@@ -951,7 +950,7 @@ private fun StageRow(
                 color = colors.onSurface,
             )
             when (result) {
-                is VdoStageResult.Passed -> if (summary != null) {
+                is VdoPlgStageResult.Passed -> if (summary != null) {
                     Text(
                         text = summary,
                         style = MaterialTheme.typography.bodySmall,
@@ -959,7 +958,7 @@ private fun StageRow(
                     )
                 }
 
-                is VdoStageResult.Failed -> {
+                is VdoPlgStageResult.Failed -> {
                     Text(
                         text = stringResource(result.reason.labelRes()),
                         style = MaterialTheme.typography.bodySmall,
@@ -977,7 +976,7 @@ private fun StageRow(
                     }
                 }
 
-                VdoStageResult.Skipped -> Text(
+                VdoPlgStageResult.Skipped -> Text(
                     text = stringResource(R.string.settings_plugin_test_skipped),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.onSurfaceVariant,
@@ -991,7 +990,7 @@ private fun StageRow(
                     )
                 }
             }
-            if (result is VdoStageResult.Passed && mono != null) {
+            if (result is VdoPlgStageResult.Passed && mono != null) {
                 Text(
                     text = mono,
                     style = MaterialTheme.typography.labelSmall,

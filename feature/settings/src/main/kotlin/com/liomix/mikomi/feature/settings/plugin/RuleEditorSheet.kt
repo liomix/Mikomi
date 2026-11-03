@@ -34,7 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.liomix.mikomi.data.video.remote.vdoplugin.rule.InvalidVdoPluginRuleException
+import com.liomix.mikomi.data.video.remote.vdoplg.rule.InvalidVdoPlgSourceException
 import com.liomix.mikomi.feature.settings.R
 
 /**
@@ -159,7 +159,7 @@ fun RuleEditorSheet(
 /** 错误条：格式问题（能修）与写盘失败（要看日志）用同一块地方，省得视线来回跳。 */
 @Composable
 private fun EditorError(
-    reason: InvalidVdoPluginRuleException.Reason?,
+    reason: InvalidVdoPlgSourceException.Reason?,
     failure: String?,
 ) {
     val message = when {
@@ -187,10 +187,10 @@ private fun EditorError(
 
 /** 校验原因 → 文案。与数据层解耦：那边只给枚举，这里才认识多语言。 */
 @StringRes
-private fun InvalidVdoPluginRuleException.Reason.messageRes(): Int = when (this) {
-    InvalidVdoPluginRuleException.Reason.MalformedJson -> R.string.settings_plugin_error_json
-    InvalidVdoPluginRuleException.Reason.MissingName -> R.string.settings_plugin_error_name
-    InvalidVdoPluginRuleException.Reason.MissingBaseUrl -> R.string.settings_plugin_error_base_url
-    InvalidVdoPluginRuleException.Reason.InvalidBaseUrl -> R.string.settings_plugin_error_base_url_invalid
-    InvalidVdoPluginRuleException.Reason.NameTaken -> R.string.settings_plugin_error_name_taken
+private fun InvalidVdoPlgSourceException.Reason.messageRes(): Int = when (this) {
+    InvalidVdoPlgSourceException.Reason.MalformedJson -> R.string.settings_plugin_error_json
+    InvalidVdoPlgSourceException.Reason.MissingName -> R.string.settings_plugin_error_name
+    InvalidVdoPlgSourceException.Reason.MissingBaseUrl -> R.string.settings_plugin_error_base_url
+    InvalidVdoPlgSourceException.Reason.InvalidBaseUrl -> R.string.settings_plugin_error_base_url_invalid
+    InvalidVdoPlgSourceException.Reason.NameTaken -> R.string.settings_plugin_error_name_taken
 }

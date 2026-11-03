@@ -30,7 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.liomix.mikomi.data.video.remote.VdoStreamSniffer
+import com.liomix.mikomi.data.video.VdoStreamSniffer
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
@@ -57,7 +57,7 @@ import java.util.concurrent.atomic.AtomicReference
  *   嗅探直接失效（这是嗅探能工作的前提，不只是为了好看）；
  * - `MIXED_CONTENT_ALWAYS_ALLOW`：https 页面里嵌 http 流很常见，默认会被拦掉。
  *
- * UA 由调用方给（`VdoPluginEngine.userAgentOf` 保证非空）：**必须是桌面 UA**，
+ * UA 由调用方给（`VdoPlgEngine.userAgentOf` 保证非空）：**必须是桌面 UA**，
  * 这类站点见到 Android UA 会 302 到 `/app/android.php`，返回一个「下载 App」页。
  *
  * 站点播放器点自己的全屏按钮时，WebView 会回调 `onShowCustomView`——把那个 view 塞进

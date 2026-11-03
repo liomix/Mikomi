@@ -11,18 +11,18 @@ import com.liomix.mikomi.core.media.MikomiPlayer
 import com.liomix.mikomi.core.media.MikomiPlayerFactory
 import com.liomix.mikomi.core.model.PluginRule
 import com.liomix.mikomi.data.anime.AnimeRepository
-import com.liomix.mikomi.data.video.remote.VdoEpisode
-import com.liomix.mikomi.data.video.remote.VdoEpisodeRoad
-import com.liomix.mikomi.data.video.remote.VdoFailureReason
-import com.liomix.mikomi.data.video.remote.VdoLineRef
-import com.liomix.mikomi.data.video.remote.VdoSearchHit
-import com.liomix.mikomi.data.video.remote.VdoSourceException
-import com.liomix.mikomi.data.video.remote.VdoStreamKind
-import com.liomix.mikomi.data.video.remote.VdoStreamPlan
-import com.liomix.mikomi.data.video.remote.vdoplugin.VdoPluginEngine
-import com.liomix.mikomi.data.video.remote.vdoplugin.store.VdoPluginRepository
-import com.liomix.mikomi.data.video.remote.vdoplugin.stream.VdoPlanRequest
-import com.liomix.mikomi.data.video.remote.vdoplugin.stream.VdoStreamPlanner
+import com.liomix.mikomi.data.video.VdoEpisode
+import com.liomix.mikomi.data.video.VdoEpisodeRoad
+import com.liomix.mikomi.data.video.VdoFailureReason
+import com.liomix.mikomi.data.video.VdoLineRef
+import com.liomix.mikomi.data.video.VdoSearchHit
+import com.liomix.mikomi.data.video.VdoSourceException
+import com.liomix.mikomi.data.video.VdoStreamKind
+import com.liomix.mikomi.data.video.VdoStreamPlan
+import com.liomix.mikomi.data.video.remote.vdoplg.VdoPlgEngine
+import com.liomix.mikomi.data.video.remote.vdoplg.store.VdoPlgRepository
+import com.liomix.mikomi.data.video.remote.vdoplg.stream.VdoPlgPlanRequest
+import com.liomix.mikomi.data.video.remote.vdoplg.stream.VdoPlgStreamPlanner
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
@@ -63,9 +63,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     private val animeRepository: AnimeRepository,
-    private val pluginRepository: VdoPluginRepository,
-    private val engine: VdoPluginEngine,
-    private val planner: VdoStreamPlanner,
+    private val pluginRepository: VdoPlgRepository,
+    private val engine: VdoPlgEngine,
+    private val planner: VdoPlgStreamPlanner,
     playerFactory: MikomiPlayerFactory,
 ) : ViewModel(), PlayerCommandSink {
 
@@ -444,7 +444,7 @@ class PlayerViewModel @Inject constructor(
 
             // 出流交给策略链：规则里的 useWebview 只是提示，不再决定走哪条路。
             // 能直链的线路拿回进度条与倍速，拿不到才退到网页。
-            val request = VdoPlanRequest(
+            val request = VdoPlgPlanRequest(
                 ruleJson = state.rule.json,
                 line = VdoLineRef(
                     sourceName = state.rule.name,

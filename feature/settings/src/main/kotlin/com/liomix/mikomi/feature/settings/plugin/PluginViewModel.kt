@@ -3,11 +3,11 @@ package com.liomix.mikomi.feature.settings.plugin
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.liomix.mikomi.data.video.remote.vdoplugin.rule.InvalidVdoPluginRuleException
-import com.liomix.mikomi.data.video.remote.vdoplugin.rule.VdoPluginRuleFormat
-import com.liomix.mikomi.data.video.remote.vdoplugin.rule.VdoPluginRuleVerifier
-import com.liomix.mikomi.data.video.remote.vdoplugin.rule.VdoRuleTestReport
-import com.liomix.mikomi.data.video.remote.vdoplugin.store.VdoPluginRepository
+import com.liomix.mikomi.data.video.remote.vdoplg.rule.InvalidVdoPlgSourceException
+import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgFormat
+import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgVerifier
+import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgTestReport
+import com.liomix.mikomi.data.video.remote.vdoplg.store.VdoPlgRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 /**
  * 插件源设置页的 ViewModel。
  *
- * 列表来自 [VdoPluginRepository] 的热流：安装/删除/改名在商店页发生后，这一页会自己跟着变。
+ * 列表来自 [VdoPlgRepository] 的热流：安装/删除/改名在商店页发生后，这一页会自己跟着变。
  * 页面上每个动作都是仓库的一次挂起写操作——UI 不再自己拼列表，因为磁盘才是真相。
  *
  * 「编辑规则」也在这里：编辑是一个面板而不是独立页面，状态就放在本页状态里，
@@ -33,8 +33,8 @@ import kotlinx.coroutines.launch
  */
 @HiltViewModel
 class PluginViewModel @Inject constructor(
-    private val repository: VdoPluginRepository,
-    private val verifier: VdoPluginRuleVerifier,
+    private val repository: VdoPlgRepository,
+    private val verifier: VdoPlgVerifier,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PluginUiState())
@@ -153,9 +153,9 @@ class PluginViewModel @Inject constructor(
         }
         testJob = viewModelScope.launch {
             val rule = repository.get(ruleName)
-            val report: VdoRuleTestReport = if (rule == null) {
+            val report: VdoPlgTestReport = if (rule == null) {
                 // 文件被别的页面删了：给一份三步都未执行的空报告，比一句「规则不存在」更有信息量。
-                VdoRuleTestReport(keyword = keyword)
+                VdoPlgTestReport(keyword = keyword)
             } else {
                 try {
                     verifier.verify(rule.json, keyword)
@@ -164,7 +164,7 @@ class PluginViewModel @Inject constructor(
                 } catch (e: Exception) {
                     // 体检本身不该把面板搞崩：解析/网络之外的意外在这里兜住并留日志。
                     Log.w(TAG, "Rule test crashed, rule=$ruleName", e)
-                    VdoRuleTestReport(keyword = keyword)
+                    VdoPlgTestReport(keyword = keyword)
                 }
             }
             _uiState.update { state ->
@@ -226,12 +226,12 @@ class PluginViewModel @Inject constructor(
      */
     fun onEditorFormat() {
         val editor = _uiState.value.editor ?: return
-        val pretty = VdoPluginRuleFormat.pretty(editor.text)
+        val pretty = VdoPlgFormat.pretty(editor.text)
         _uiState.update { state ->
             val current = state.editor ?: return@update state
             state.copy(
                 editor = if (pretty == null) {
-                    current.copy(reason = InvalidVdoPluginRuleException.Reason.MalformedJson)
+                    current.copy(reason = InvalidVdoPlgSourceException.Reason.MalformedJson)
                 } else {
                     current.copy(text = pretty, reason = null, failure = null)
                 },
@@ -249,7 +249,7 @@ class PluginViewModel @Inject constructor(
         val editor = _uiState.value.editor ?: return
         if (!editor.canSave) return
 
-        val reason = VdoPluginRuleFormat.validate(editor.text)
+        val reason = VdoPlgFormat.validate(editor.text)
         if (reason != null) {
             _uiState.update { it.copy(editor = it.editor?.copy(reason = reason)) }
             return
@@ -262,7 +262,7 @@ class PluginViewModel @Inject constructor(
                 _uiState.update { it.copy(editor = null) }
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: InvalidVdoPluginRuleException) {
+            } catch (e: InvalidVdoPlgSourceException) {
                 // 本地校验刚过、这里又不过，只可能是改名撞车：另有同名规则占着文件。
                 _uiState.update { it.copy(editor = it.editor?.copy(saving = false, reason = e.reason)) }
             } catch (e: Exception) {

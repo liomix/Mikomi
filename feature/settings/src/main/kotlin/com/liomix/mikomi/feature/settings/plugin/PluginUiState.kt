@@ -2,8 +2,8 @@ package com.liomix.mikomi.feature.settings.plugin
 
 import androidx.annotation.StringRes
 import com.liomix.mikomi.core.model.PluginRule
-import com.liomix.mikomi.data.video.remote.vdoplugin.rule.InvalidVdoPluginRuleException
-import com.liomix.mikomi.data.video.remote.vdoplugin.rule.VdoRuleTestReport
+import com.liomix.mikomi.data.video.remote.vdoplg.rule.InvalidVdoPlgSourceException
+import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgTestReport
 import com.liomix.mikomi.feature.settings.R
 
 /**
@@ -49,7 +49,7 @@ data class RuleTestState(
     val ruleName: String,
     val keyword: String = "",
     val running: Boolean = false,
-    val report: VdoRuleTestReport? = null,
+    val report: VdoPlgTestReport? = null,
 )
 
 /**
@@ -71,7 +71,7 @@ data class RuleEditorState(
     val text: String = "",
     val originalText: String = "",
     val saving: Boolean = false,
-    val reason: InvalidVdoPluginRuleException.Reason? = null,
+    val reason: InvalidVdoPlgSourceException.Reason? = null,
     val failure: String? = null,
 ) {
     /** 有未保存的修改。关闭面板时据此决定是直接关还是先确认。 */

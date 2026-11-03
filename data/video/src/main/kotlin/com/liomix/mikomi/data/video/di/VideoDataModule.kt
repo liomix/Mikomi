@@ -2,8 +2,8 @@ package com.liomix.mikomi.data.video.di
 
 import com.liomix.mikomi.data.video.VideoRepository
 import com.liomix.mikomi.data.video.internal.VideoRepositoryImpl
-import com.liomix.mikomi.data.video.remote.vdoplugin.store.VdoPluginRepository
-import com.liomix.mikomi.data.video.remote.vdoplugin.store.VdoPluginRepositoryImpl
+import com.liomix.mikomi.data.video.remote.vdoplg.store.VdoPlgRepository
+import com.liomix.mikomi.data.video.remote.vdoplg.store.VdoPlgRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -23,5 +23,5 @@ internal abstract class VideoDataModule {
      */
     @Binds
     @Singleton
-    internal abstract fun bindVdoPluginRepository(impl: VdoPluginRepositoryImpl): VdoPluginRepository
+    internal abstract fun bindVdoPlgRepository(impl: VdoPlgRepositoryImpl): VdoPlgRepository
 }

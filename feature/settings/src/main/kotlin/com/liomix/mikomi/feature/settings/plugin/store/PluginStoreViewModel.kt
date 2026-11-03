@@ -4,8 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
-import com.liomix.mikomi.data.video.remote.vdoplugin.rule.InvalidVdoPluginRuleException
-import com.liomix.mikomi.data.video.remote.vdoplugin.store.VdoPluginRepository
+import com.liomix.mikomi.data.video.remote.vdoplg.rule.InvalidVdoPlgSourceException
+import com.liomix.mikomi.data.video.remote.vdoplg.store.VdoPlgRepository
 import com.liomix.mikomi.feature.settings.plugin.DEFAULT_RULES_REPO_URL
 import com.liomix.mikomi.feature.settings.plugin.RuleMirror
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,14 +37,14 @@ import org.json.JSONException
  *    而且切完还得回来看是否生效，来回两趟。
  * 2. **有数据时刷新不清空**：旧列表留着，只显示一条细进度；失败也只在顶部提示一行。
  *    商店里最烦的是「一刷新整页变白，然后报错」。
- * 3. **安装 = 下载 + 校验 + 落盘**：真正下载 `<name>.json`，交给 `VdoPluginRepository` 写进
+ * 3. **安装 = 下载 + 校验 + 落盘**：真正下载 `<name>.json`，交给 `VdoPlgRepository` 写进
  *    本机规则目录。落盘之后插件源页立刻就能看到这一条——两页读的是同一个仓库的热流。
  */
 @HiltViewModel
 class PluginStoreViewModel @Inject constructor(
     okHttpClient: OkHttpClient,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val repository: VdoPluginRepository,
+    private val repository: VdoPlgRepository,
 ) : ViewModel() {
 
     /**
@@ -123,7 +123,7 @@ class PluginStoreViewModel @Inject constructor(
                 failInstall(item.name, e)
             } catch (e: JSONException) {
                 failInstall(item.name, e)
-            } catch (e: InvalidVdoPluginRuleException) {
+            } catch (e: InvalidVdoPlgSourceException) {
                 failInstall(item.name, e)
             }
         }

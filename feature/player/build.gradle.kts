@@ -10,7 +10,7 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:navigation"))
     implementation(project(":core:media"))
-    // 番名要拿来搜插件源；出流与规则解释只有 data:video 的 vdoplugin 一处实现。
+    // 番名要拿来搜插件源；出流与规则解释只有 data:video 的 vdoplg 一处实现。
     implementation(project(":data:anime"))
     implementation(project(":data:video"))
 

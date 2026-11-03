@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -45,8 +46,8 @@ private const val NAV_BAR_HIDE_DELAY_MILLIS = 2_000L
 /**
  * 巡礼地图（AniMap）。以纯 WebView 形式内嵌 anitabi 地图，展示动漫取景地。
  *
- * WebView 装在 [SurfaceWebViewContainer]（TextureView + VirtualDisplay）中，
- * 与宿主 View 树隔离，宿主厂商系统模块的反射遍历碰不到 WebView 本体。
+ * WebView 装在 [AniMapWebViewContainer] 中，就是一个普通的子 View：
+ * 触摸、焦点、输入法全部交给系统，页内搜索框才能正常弹键盘。
  *
  * 沉浸式交互设计：
  * - 状态栏常驻，页面内容避开状态栏区域（statusBars padding）；
@@ -90,20 +91,22 @@ fun AniMapScreen(
     }
 
     // 自动进入沉浸（隐藏底部导航栏）计时器位于宿主 MikomiNavHost：
-    // 切回本页时 AndroidView factory 重建 SurfaceWebViewContainer → 挂新 Presentation 窗口
+    // 切回本页时 AndroidView factory 重建容器（缓存命中则把旧 WebView 挂回来）
     // → ViewRootImpl relayout / ImeFocusController 焦点抢占会让 entry effect scope 被销毁
     // 重建，delay 协程被取消后键（immersive）未变不再重启，导致 2s 计时器永不完成
     // （真机日志已证实：LaunchedEffect(immersive=false) entered 后 2s 无任何后续日志）。
     // 页面 entry 不再承担计时，避免被 WebView 窗口挂载打断。
     Box(modifier = modifier.fillMaxSize()) {
         // 加载指示须放在 AndroidView 之后声明：Box 子节点按声明顺序绘制，
-        // TextureView 不支持 zIndex，后声明的 Compose 内容才会盖到 WebView 之上。
+        // 后声明的 Compose 内容才会盖到 WebView 之上。
         AndroidView(
-            // 地图容器避开状态栏区域：地图位于状态栏之下（内容不被状态栏遮挡）。
-            // 仅状态栏避让，底部仍全屏（手势条/导航栏覆盖在地图之上，符合沉浸设计）。
+            // 状态栏避让：地图位于状态栏之下，搜索框不会被状态栏压住。
+            // ime 避让：键盘弹起时整块地图让出去，站点才会把聚焦的输入框滚到可见区
+            // （WebView 只有自身尺寸变了，才会当成 viewport 变化去重排/滚动）。
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.statusBars),
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .imePadding(),
             factory = { context ->
                 // 复用缓存的 WebView：切换回巡礼页不再重新加载地图。
                 AniMapWebCache.acquire(context, url).also { container ->
@@ -119,7 +122,7 @@ fun AniMapScreen(
                 }
             },
             onRelease = {
-                // 仅释放容器外壳（虚拟显示/挂载），WebView 本体由缓存持有，不销毁。
+                // 仅把 WebView 从容器上摘下，本体由缓存持有，下次进入直接挂回来。
                 AniMapWebCache.release(it)
             },
         )

@@ -84,6 +84,24 @@ class MainActivity : ComponentActivity() {
                 darkTheme = darkTheme,
                 colorSchemeId = preferences.colorScheme,
             ) {
+                // 系统栏图标的明暗跟 **App 主题** 走，而不是系统深色模式。
+                //
+                // 状态栏本身是透明的，露出来的是下面 App 的主题背景：图标若按系统模式取反，
+                // 「系统浅色 + App 强制夜间」就会得到深色图标压在纯黑状态栏上——直接看不见；
+                // 反过来「系统夜间 + App 浅色」则是白图标压在白色页面上，同样看不见。
+                // 巡礼页那种浅色地图页也走这一条：白天白条深图标、夜间黑条浅图标，不做例外。
+                LaunchedEffect(darkTheme) {
+                    val barStyle = if (darkTheme) {
+                        SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                    } else {
+                        SystemBarStyle.light(
+                            android.graphics.Color.TRANSPARENT,
+                            android.graphics.Color.TRANSPARENT,
+                        )
+                    }
+                    enableEdgeToEdge(statusBarStyle = barStyle, navigationBarStyle = barStyle)
+                }
+
                 // 窗口底色跟随当前主题：手动切夜间后再冷启动 / 返回前台不会闪白色。
                 val windowBackground = MaterialTheme.colorScheme.background
                 LaunchedEffect(windowBackground) {

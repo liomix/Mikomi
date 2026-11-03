@@ -8,9 +8,9 @@ import android.webkit.WebView
 /**
  * 巡礼地图 WebView 进程级缓存。
  *
- * WebView 本体挂在 [SurfaceWebViewContainer] 的虚拟显示上，切换 tab 时容器被销毁；
- * 这里把 WebView 从容器中摘下保留，下次进入 [AniMapScreen] 时通过
- * [SurfaceWebViewContainer] 的 cachedWebView 参数重新挂载，避免重复加载地图。
+ * 切换 tab 时容器随 Compose 一起销毁，WebView 本体在这里留下；
+ * 下次进入 [AniMapScreen] 时通过 [AniMapWebViewContainer] 的 cachedWebView 参数
+ * 重新挂载，避免重复加载地图。
  *
  * WebView 必须在主线程创建/销毁；[cached] 仅主线程访问。
  */
@@ -36,16 +36,16 @@ internal object AniMapWebCache {
      */
     // 命中判定同样不比对 cachedUrl 与 url 的字符串相等：anitabi 会重定向改写 URL，
     // cachedUrl 记录的是页面最终 URL。只要存在缓存 WebView 本体就命中复用。
-    fun acquire(context: Context, url: String): SurfaceWebViewContainer {
+    fun acquire(context: Context, url: String): AniMapWebViewContainer {
         cancelScheduledDestroy()
         val existing = cached
         return if (existing != null) {
             cached = null
-            SurfaceWebViewContainer(context, url, existing)
+            AniMapWebViewContainer(context, url, existing)
         } else {
             // 无缓存：销毁旧缓存，走全新加载路径（容器内部会创建 WebView）。
             destroyNow()
-            SurfaceWebViewContainer(context, url)
+            AniMapWebViewContainer(context, url)
         }
     }
 
@@ -53,7 +53,7 @@ internal object AniMapWebCache {
      * 释放容器外壳（虚拟显示/窗口挂载），但保留 WebView 本体供下次复用。
      * 若 WebView 尚未完成加载，则不缓存，随容器一起销毁。
      */
-    fun release(container: SurfaceWebViewContainer) {
+    fun release(container: AniMapWebViewContainer) {
         val web = container.webView
         // 不比对 web.url 与 cachedUrl 的字符串相等：anitabi 会重定向改写 URL，
         // web.url 与记录值不等时严格相等会让缓存永不命中。

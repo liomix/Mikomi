@@ -47,8 +47,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
@@ -186,19 +184,12 @@ fun MikomiNavHost(
         }
     }
 
-    // AniMap 沉浸式：仅隐藏应用底部导航栏。状态栏常驻，不改动任何系统栏可见性
-    // （地图延伸到状态栏之下但状态栏保持可见）。系统导航栏也保持可见，与状态栏一致。
-    // 页面通过 ImmersiveCallback 上报"地图已被滑动"，仅此一条链路，不猜测页面状态。
+    // 系统栏一律不动：可见性、配色、edge-to-edge 全部由 MainActivity 的 enableEdgeToEdge
+    // 统一决定，巡礼页不参与。曾经在这里按沉浸状态强制 show(systemBars()) 并重设
+    // setDecorFitsSystemWindows——那等于每次进出巡礼页都往窗口上盖一次章，
+    // 与播放页的全屏（要隐藏系统栏）互相打架，也让状态栏行为变成「巡礼页专属」。
+    // 巡礼页的沉浸只是隐藏我们自己画的底部导航栏，和系统栏无关。
     val view = LocalView.current
-    LaunchedEffect(immersiveRequested, view) {
-        val activity = view.context as? Activity ?: return@LaunchedEffect
-        activity.window?.let { window ->
-            // 保持 edge-to-edge：内容延伸到系统栏之下，但系统栏本身始终显示。
-            WindowCompat.setDecorFitsSystemWindows(window, false)
-            WindowCompat.getInsetsController(window, view)
-                .show(WindowInsetsCompat.Type.systemBars())
-        }
-    }
 
     // 根屏仅在巡礼页处于沉浸状态时才拦截返回，用于临时显示导航栏。
     // 其它目的地交还给系统返回，避免首页或“我的”页无法正常退出应用。

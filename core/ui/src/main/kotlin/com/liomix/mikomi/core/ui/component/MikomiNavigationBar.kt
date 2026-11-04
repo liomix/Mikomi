@@ -66,7 +66,11 @@ fun MikomiNavigationBar(
         unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         hoveredContentColor = MaterialTheme.colorScheme.onSurface,
         shape = CircleShape,
-        elevation = 8.dp,
+        // 不投影。栏体会浮在巡礼页的浅色地图上，8dp 投影在纯色背景里扩散成一圈
+        // 肉眼可见的灰边，两端圆角外侧尤其像「多出来一块矩形的触控范围」；
+        // 而在深色页面上这层灰影根本看不见。它只在个别页面起反作用，所以不要。
+        // 浮起感由栏体着色与页面留白给出，不靠阴影。
+        elevation = 0.dp,
         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
         itemSpacing = 4.dp,
         itemStyle = TabItemStyle.navigation(),

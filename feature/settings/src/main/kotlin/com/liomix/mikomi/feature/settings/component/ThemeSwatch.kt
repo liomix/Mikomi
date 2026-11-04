@@ -43,9 +43,8 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
 import com.liomix.mikomi.feature.settings.R
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 
 /**
  * 主题配色色卡（复刻 Telegram `ThemeSmallPreviewView`，去掉聊天气泡）。
@@ -55,7 +54,7 @@ import kotlinx.coroutines.launch
  *    最后压一圈半透明白描边交代边界。
  * 2. **选中描边**：圆角比色块大 2dp、线宽 2dp，250ms 里透明度 0→1、同时从离边 6dp 收到 1dp ——
  *    观感是「描边从外面收拢并浮现」，不是简单淡入。
- * 3. **表情**：底部居中的 Lottie 动画，平时停在首帧，点一下播一遍。
+ * 3. **表情**：底部居中的 Lottie 动画，选中期间常驻循环，点击时额外放大 2× 再缩回。
  *
  * 底色这层的 `clip` 只包住自己：表情要能放大 2× 且不被裁，所以它必须是外层 Box 的兄弟节点，
  * 选中描边也用 `drawBehind` 画在最外层、同样不参与裁剪。
@@ -64,7 +63,8 @@ import kotlinx.coroutines.launch
  * - 选中动画的进度**不在组合阶段解包**，只在 `drawBehind` 里读 `State.value`：
  *   动画的每一帧只让这层重绘，不会重组整张卡（连带 Lottie 子树）；
  * - 四色色斑的 `Brush` 用 `drawWithCache` 缓存，尺寸与配色不变时不重建；
- * - 没有表情素材的配色根本不进入 Lottie 组合。
+ * - 没有表情素材的配色根本不进入 Lottie 组合；循环只发生在**当前选中**的那一张上，
+ *   未选中的卡停在首帧当静态图标 —— 配色是单选的，所以整个列表同时最多一个帧循环。
  *
  * @param palette 配色，决定色斑颜色与表情动画
  * @param selected 是否为当前配色
@@ -84,8 +84,9 @@ fun ThemeSwatch(
         animationSpec = tween(durationMillis = SELECTION_MILLIS),
         label = "paletteSelection",
     )
-    // 点击播放信号：+1 就重头播一遍表情。Telegram 也只在点击时播放，进页面是静帧。
-    var emojiPlayToken by remember { mutableIntStateOf(0) }
+    // 点击信号：每次 +1 就让表情重新弹一次（放大 → 停留 → 回缩）。
+    // 注意它**不控制播放**：播放由「是否选中」决定，见 SwatchEmoji。
+    var emojiPopToken by remember { mutableIntStateOf(0) }
     val interactionSource = remember { MutableInteractionSource() }
     val emojiRes = palette.emojiRes
 
@@ -114,7 +115,7 @@ fun ThemeSwatch(
                 indication = null,
                 role = Role.RadioButton,
                 onClick = {
-                    emojiPlayToken++
+                    emojiPopToken++
                     onClick()
                 },
             )
@@ -152,7 +153,8 @@ fun ThemeSwatch(
         if (emojiRes != null) {
             SwatchEmoji(
                 rawRes = emojiRes,
-                playToken = emojiPlayToken,
+                active = selected,
+                popToken = emojiPopToken,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = EMOJI_BOTTOM_PADDING),
@@ -202,54 +204,66 @@ private class GradientSpot(
 /**
  * 色卡上的表情动画。
  *
- * 与 Telegram `ThemeSmallPreviewView.playEmojiAnimation()` 一致：
- * 未点击时停在首帧当静态图标；点击后从头播一遍（不循环）、
- * 同时以底边中点为轴放大 2×（300ms，带 overshoot），停留到动画播完再 150ms 弹回 1×。
- * 放大的 pivot 在底边，所以只会向上长，不会顶出色卡。
+ * **播放与缩放是两条独立的时间线**，这也是 Telegram 的做法（`ThemeSmallPreviewView`
+ * 里 `RLottieDrawable.start()` 自驱帧循环，2.5s 后回缩的 runnable 只管 `scaleX/scaleY`）：
  *
- * @param playToken 每次 +1 重播一遍；0 表示还没点过
+ * - 播放：`active` 期间无限循环。素材首末帧闭合（实测 `diamond_blue` 首末帧 0% 像素差、
+ *   `duck_orange` 0.5%），所以「播到 1 → 跳回 0」在接缝处看不出来。
+ * - 缩放：每次 [popToken] 变化走一遍「放大 2× → 停留 → 回缩 1×」，中途再点会打断回缩、
+ *   从当前倍数重新弹，等于自动续期。
+ *
+ * 之所以不像 Telegram 那样「点过的都继续跑」：配色是单选，`active` 挂在 `selected` 上，
+ * 整个列表同时最多一个帧循环；滑出 LazyRow 可见范围时组合被回收，协程自动取消，动画自己停。
+ *
+ * @param active 是否选中（选中期间循环播放，否则停在首帧当静态图标）
+ * @param popToken 每次点击 +1，触发一次放大回弹；0 表示还没点过
  */
 @Composable
 private fun SwatchEmoji(
     @RawRes rawRes: Int,
-    playToken: Int,
+    active: Boolean,
+    popToken: Int,
     modifier: Modifier = Modifier,
 ) {
     // LottieCompositionSpec 是普通 class（不是 data class），每次新建实例都会让
     // rememberLottieComposition 的 key 变化、重新走一遍加载 —— 所以按资源 id 缓存住。
     val spec = remember(rawRes) { LottieCompositionSpec.RawRes(rawRes) }
     val composition by rememberLottieComposition(spec)
-    // 进度手写而不用 animateLottieCompositionAsState：需要「播一次停在末帧」，
-    // 且速率必须是线性（json 关键帧自带缓动，再加缓动就跑偏了）。
+    // 进度手写而不用 animateLottieCompositionAsState：需要「每轮从 0 开始、速率严格线性」，
+    // 而 json 关键帧自带缓动，再叠一层缓动就跑偏了。
     val progress = remember { Animatable(0f) }
     val scale = remember { Animatable(1f) }
     val durationMillis = composition?.duration?.toInt()?.takeIf { it > 0 }
 
-    // 播放与缩放跑同一个协程：这样「播完」与「回弹结束」是一件事，不用按估算时长对齐。
-    LaunchedEffect(playToken, durationMillis) {
-        if (playToken == 0 || durationMillis == null) return@LaunchedEffect
-        progress.snapTo(0f)
-        coroutineScope {
-            launch {
-                progress.animateTo(
-                    targetValue = 1f,
-                    animationSpec = tween(durationMillis = durationMillis, easing = LinearEasing),
-                )
-            }
-            launch {
-                scale.animateTo(
-                    targetValue = EMOJI_POP_SCALE,
-                    animationSpec = tween(durationMillis = EMOJI_POP_MILLIS, easing = OvershootEasing),
-                )
-                // 停到「放大结束 + 固定停留」为止；但动画本身更长时（橙色的蛋有 3s）就等它播完再回缩，
-                // 否则最后一段会一边缩小一边播，看着像被掐断。
-                delay(maxOf(EMOJI_HOLD_MILLIS, durationMillis.toLong() - EMOJI_POP_MILLIS))
-                scale.animateTo(
-                    targetValue = 1f,
-                    animationSpec = tween(durationMillis = EMOJI_SETTLE_MILLIS, easing = SettleEasing),
-                )
-            }
+    // 时间线一：循环播放。没有任何「播完」的终点，协程随组合销毁而取消。
+    LaunchedEffect(active, durationMillis) {
+        if (!active || durationMillis == null) {
+            // 取消选中时回到首帧，而不是停在循环被掐断的那一帧（Telegram 同样
+            // stop() 之后 setCurrentFrame(0)）——未选中的卡都长一样。
+            progress.snapTo(0f)
+            return@LaunchedEffect
         }
+        while (isActive) {
+            progress.snapTo(0f)
+            progress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = durationMillis, easing = LinearEasing),
+            )
+        }
+    }
+
+    // 时间线二：缩放。与播放进度完全解耦 —— 回缩结束后动画照旧在跑，和 TG 一致。
+    LaunchedEffect(popToken) {
+        if (popToken == 0) return@LaunchedEffect
+        scale.animateTo(
+            targetValue = EMOJI_POP_SCALE,
+            animationSpec = tween(durationMillis = EMOJI_POP_MILLIS, easing = OvershootEasing),
+        )
+        delay(EMOJI_HOLD_MILLIS)
+        scale.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = EMOJI_SETTLE_MILLIS, easing = SettleEasing),
+        )
     }
 
     LottieAnimation(

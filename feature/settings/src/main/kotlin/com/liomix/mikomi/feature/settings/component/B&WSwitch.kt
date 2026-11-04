@@ -57,13 +57,16 @@ fun BAndWSwitch(
 
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.sun_outline))
 
-    // Lottie 首帧是月牙（夜），末帧是太阳（日），与 isDarkMode 相反。
+    // 图标表示**目标**模式，与右侧文案同一口径：
+    // 夜间 →「切换到日间模式」→ 太阳；日间 →「切换到夜间模式」→ 月亮。
+    // Lottie 首帧是月牙（夜），末帧是太阳（日），所以夜间用末帧、日间用首帧。
+    // 判断依据：文案是「点下去会变成哪一档」，图标若画当前档就和文案对着说，用户看到的就是「反了」。
     // 时长直接取合成时长（600ms），保证与 Telegram 的播放速度一致。
     val durationMillis = remember(composition) {
         composition?.duration?.toInt()?.takeIf { it > 0 } ?: DEFAULT_ICON_MORPH_MILLIS
     }
     val frame by animateFloatAsState(
-        targetValue = if (darkMode) 0f else 1f,
+        targetValue = if (darkMode) PROGRESS_SUN else PROGRESS_MOON,
         animationSpec = tween(durationMillis = durationMillis, easing = LinearEasing),
         label = "nightModeLottieProgress",
     )
@@ -135,3 +138,14 @@ private const val DEFAULT_ICON_MORPH_MILLIS = 600
 
 /** 图标颜色的过渡时长（Telegram 揭示结束后 350ms 混色）。 */
 private const val ICON_TINT_MILLIS = 350
+
+/**
+ * 月牙形状在合成里的位置：首帧。
+ *
+ * 注意这里的「月牙」指**形状**，不指「现在是夜间」——日间模式下点下去会切到夜间，图标就是月牙。
+ * 名字比数字重要：这个文件历史上的「反了」全都源于分不清 0 和 1 对应哪种形状。
+ */
+private const val PROGRESS_MOON = 0f
+
+/** 太阳形状在合成里的位置：末帧（盘面 + 8 条射线转正）。 */
+private const val PROGRESS_SUN = 1f

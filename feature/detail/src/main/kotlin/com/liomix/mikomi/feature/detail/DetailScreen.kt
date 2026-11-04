@@ -1,5 +1,8 @@
 package com.liomix.mikomi.feature.detail
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -13,7 +16,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -42,6 +44,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -52,32 +55,49 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.ErrorState
 import com.liomix.mikomi.core.ui.component.SkeletonBox
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeChild
-import dev.chrisbanes.haze.hazeSource
 import kotlin.math.roundToInt
 
 /** 头部完整高度（展开态）。 */
 private val HEADER_HEIGHT = 420.dp
 
 /**
- * 收到底之后头部仍保留的高度。
+ * 收到底之后头部仍保留的高度：**只是首帧占位**。
  *
- * 这是这套方案的底线：上滑只让「可见的封面变少」，不允许把头部收没。
- * 数值 = 状态栏 + 标题行（状态栏 40 + 上边距 8 + 标题 28 ≈ 76）+ Tab 栏 48 + 一点余量，
- * 保证收到底时标题和 Tab 栏不会互相压住，也仍能看清封面。
+ * 真正的值由头部实测得出 —— 信息列（评分排在最下面）的底边 + Tab 栏 + 一点余量，
+ * 收到那里时 Tab 栏刚好停在评分下方。状态栏高度、字体缩放、刘海安全区都会改变这个数，
+ * 写死一个 dp 数不是压住评分，就是收得不够，所以这里只给一个足够小的兜底：
+ * 首帧布局完成的同一个回调里就会被真实值替换，用户看不到它。
  */
-private val HEADER_MIN_HEIGHT = 140.dp
+private val HEADER_MIN_VISIBLE_PLACEHOLDER = 140.dp
+
+/**
+ * 收到底时，Tab 栏顶边与评分下沿之间留的缝。
+ *
+ * 「一点点」就是这几 dp：不贴死（贴死会让两行文字挤在一起像同一块），
+ * 也不拉开（拉开就白收了，封面留在屏幕上没意义）。
+ */
+private val HEADER_TAIL_GAP = 8.dp
+
+/**
+ * Tab 栏高度。
+ *
+ * M3 `TabRow` 的高度由 Tab 的最小高度定死在这个值上，用来在「收到底」时把 Tab 栏自己的
+ * 高度算进去 —— 收到底的位置是 Tab 栏的**顶边**对齐评分下方，而不是可见区域的底边。
+ */
+private val TAB_BAR_HEIGHT = 48.dp
 
 /**
  * 橡皮筋最大位移。
@@ -110,8 +130,8 @@ private val FavoriteStarColor = Color(0xFFFFBD29)
  * 从上到下一条纵向流：头部（封面 + 标题 + 信息 + Tab 栏）→ 内容区。
  *
  * **Tab 栏是长在头部上的**：它叠在封面底部，上滑时由 [NestedScrollConnection] 把增量先给头部，
- * Tab 栏贴着封面的下边缘往上盖，封面本身钉在原地不动、可见高度一路收到 [HEADER_MIN_HEIGHT]
- * 就停住 —— 头部永远不会被收没，标题始终留着。收到底后增量才落到内容区自己身上；
+ * Tab 栏贴着封面的下边缘往上盖，封面本身钉在原地不动、可见高度一路收到「评分下方一点」
+ * 就停住 —— 头部永远不会被收没，标题与评分都还在。收到底后增量才落到内容区自己身上；
  * 内容回到顶部再继续下滑，Tab 栏又滑下来、封面重新露全。
  *
  * 每个 Tab 仍保有自己的滚动状态（各自 `ScrollState` / `LazyListState`），切 Tab 互不影响。
@@ -199,15 +219,19 @@ private fun DetailContent(
     modifier: Modifier = Modifier,
 ) {
     var selectedTab by remember { mutableStateOf(DetailTabType.OVERVIEW) }
-    // 毛玻璃：内容作 source，顶栏作 child。
-    val hazeState = remember { HazeState() }
+    // 头部封面一直画到屏幕最顶端，状态栏底下没有遮罩，图标必须转成浅色才看得见。
+    ImmersiveStatusBar()
     // 头部收缩：内容区的滚动先经过这里，Tab 栏贴着封面下边缘往上盖。
     val collapse = rememberHeaderCollapse(
         fullHeight = HEADER_HEIGHT,
-        minVisible = HEADER_MIN_HEIGHT,
+        initialMinVisible = HEADER_MIN_VISIBLE_PLACEHOLDER,
         stretchLimit = HEADER_STRETCH_LIMIT,
     )
     val collapseConnection = rememberHeaderCollapseConnection(collapse)
+    // 收到底 = 评分下沿 + Tab 栏 + 余量：Tab 栏的顶边正好落在评分下面一点点。
+    val headerTailPx = with(LocalDensity.current) {
+        (TAB_BAR_HEIGHT + HEADER_TAIL_GAP).toPx()
+    }
 
     // 每个 Tab 独立的滚动状态，切 Tab 后各自位置保留、互不干扰。
     val overviewScroll = rememberScrollState()
@@ -216,13 +240,22 @@ private fun DetailContent(
     val teasingListState = rememberLazyListState()
 
     Box(modifier = modifier.fillMaxSize()) {
+        // 整页橡皮筋把内容推走时，屏幕顶部会露出一条缝。这里垫一层与头部同源的模糊封面，
+        // 露出来的是「封面自己的上沿」，而不是一条页面底色（深色主题下是纯黑）。
+        HeaderEdgeBackdrop(
+            model = anime.coverUrl,
+            headerHeight = HEADER_HEIGHT,
+            stretchPx = { collapse.stretchPx },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(HEADER_STRETCH_LIMIT),
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(state = hazeState)
                 .nestedScroll(collapseConnection)
-                // 橡皮筋：整页（头部 + Tab 栏 + 内容）被拉出的临时位移，
-                // 只在两端越界时非 0，读取发生在布局阶段，不触发重组。
+                // 橡皮筋：整页（头部 + Tab 栏 + 内容）被拉出的临时位移，只在两端越界时非 0；
+                // 读取发生在布局阶段，不触发重组。
                 .offset { IntOffset(0, collapse.stretchPx.roundToInt()) },
         ) {
             // 头部 + Tab 栏：同一个块。Tab 栏叠在封面底部，随收缩沿封面上移，
@@ -234,8 +267,11 @@ private fun DetailContent(
             ) {
                 DetailHeader(
                     anime = anime,
-                    // 海报/信息列贴在标题下面，最先被 Tab 栏压到：收掉大半后淡出。
-                    infoAlpha = { collapse.infoAlpha },
+                    // 头部能收到多高由评分的位置决定：实测底边 + Tab 栏 + 余量。
+                    // 读的是布局结果，不是每帧变化的量，滚动里不会重复回调。
+                    onInfoBottomMeasured = { infoBottomPx ->
+                        collapse.updateMinVisible(infoBottomPx + headerTailPx)
+                    },
                     modifier = Modifier.fillMaxSize(),
                 )
                 DetailTabBar(
@@ -278,9 +314,6 @@ private fun DetailContent(
             }
         }
 
-        // 顶栏：常驻毛玻璃，让状态栏图标在封面图上依旧清晰。
-        TopBar(hazeState = hazeState)
-
         // 右下角悬浮按钮组：收藏（圆形星标）+ 追番（扩展按钮）。
         BottomActions(
             isFavorite = isFavorite,
@@ -311,7 +344,8 @@ private fun DetailLoadingSkeleton(
                 .height(HEADER_HEIGHT)
                 .background(MaterialTheme.colorScheme.surfaceContainerLow)
                 .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp),
+                // 与真实头部一致：状态栏之下不再留额外上边距。
+                .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
         ) {
             SkeletonBox(
                 modifier = Modifier
@@ -365,7 +399,8 @@ private fun DetailLoadingSkeleton(
     }
 }
 
-/** 右下角按钮组：收藏在上、追番在下，纵向右对齐。 */@Composable
+/** 右下角按钮组：收藏在上、追番在下，纵向右对齐。 */
+@Composable
 private fun BottomActions(
     isFavorite: Boolean,
     onToggleFavorite: () -> Unit,
@@ -581,16 +616,33 @@ private fun DetailTabBar(
     }
 }
 
-/** 顶栏毛玻璃：只覆盖状态栏高度（头部固定后不会有内容从顶栏下方穿过）。 */
+/**
+ * 把状态栏图标切成浅色，离开详情页时还原。
+ *
+ * 头部封面画到了屏幕最顶端，状态栏区域没有任何遮罩 —— 图标是直接压在模糊封面上的。
+ * 日间主题默认给深色图标，压在深底封面上几乎看不见，所以这一页要临时翻成浅色。
+ *
+ * 用**快照还原**而不是写死 `true`/`false`：进来时读到什么就还回什么，
+ * 夜间主题本来就是浅色图标，写死深色反而会在返回后错一拍。
+ * 与播放页同样的做法，各自负责自己那一页的窗口外观。
+ */
 @Composable
-private fun TopBar(hazeState: HazeState) {
-    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(statusBarHeight)
-            .hazeChild(state = hazeState),
-    )
+private fun ImmersiveStatusBar() {
+    val view = LocalView.current
+    val activity = view.context.findActivity() ?: return
+    val window = activity.window
+    DisposableEffect(window, view) {
+        val controller = WindowCompat.getInsetsController(window, view)
+        val origin = controller.isAppearanceLightStatusBars
+        controller.isAppearanceLightStatusBars = false
+        onDispose { controller.isAppearanceLightStatusBars = origin }
+    }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 /** 详情页三个 Tab。 */

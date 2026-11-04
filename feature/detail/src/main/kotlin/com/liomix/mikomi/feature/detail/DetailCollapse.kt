@@ -51,7 +51,8 @@ private val StretchSpring = spring<Float>(
  * 头部收缩状态。
  *
  * 与「折叠工具栏」的常规做法不同，这里**头部内容不位移**：封面始终贴在屏幕顶部不动，
- * 只是可见高度从 [fullHeightPx] 一路收到 `minVisible`，收掉的部分由 Tab 栏从下往上盖住。
+ * 只是可见高度从 [fullHeightPx] 一路收到 [minVisiblePx]（评分下方一点，实测得到），
+ * 收掉的部分由 Tab 栏从下往上盖住。
  * 因此看起来是「Tab 栏在封面上滑动」，而不是「封面被推走」—— banner 一直活着，也永远
  * 不会被收没。
  *
@@ -60,23 +61,35 @@ private val StretchSpring = spring<Float>(
  * - [stretchPx]：整页的橡皮筋位移，只在「内容已经到边界」时出现，松手弹回 0。
  *
  * 所有读取都发生在**布局 / 绘制阶段**（[CollapsingHeader]、Tab 栏的 `offset`、
- * 整页的 `offset`、海报的 `graphicsLayer`），滚动过程中不会发生重组。
+ * 整页的 `offset`），滚动过程中不会发生重组。
  *
  * @param fullHeightPx 头部完整高度（展开态）
- * @param minVisiblePx 收到底时仍保留的高度：封面 + 标题要继续露出来，不能被 Tab 栏吃干净
+ * @param initialMinVisiblePx 首帧用的「收到底」高度：真实值要等头部布局完成后实测（见 [updateMinVisible]）
  * @param stretchLimitPx 橡皮筋最大位移：到这个距离就几乎拉不动了
  */
 @Stable
 internal class HeaderCollapse(
     val fullHeightPx: Float,
-    minVisiblePx: Float,
+    initialMinVisiblePx: Float,
     private val stretchLimitPx: Float,
 ) {
-    /** 收缩行程：展开 → 收到底走过的距离。 */
-    val travelPx: Float = (fullHeightPx - minVisiblePx).coerceAtLeast(0f)
+    /**
+     * 收到底时仍保留的高度（px）。
+     *
+     * 它不是常量：由头部**实测**得出 —— 信息列（评分排在最下面）的底边，再让出 Tab 栏与一点余量，
+     * 收到底时 Tab 栏刚好落在评分下方。写死一个 dp 数在不同设备上不是压住评分，就是收得不够：
+     * 状态栏高度、字体缩放、安全区都会改变这个值。
+     */
+    var minVisiblePx by mutableFloatStateOf(initialMinVisiblePx.coerceIn(0f, fullHeightPx))
+        private set
 
-    /** 锚点间距（三个锚点等距）。 */
-    private val anchorStep: Float = travelPx / (ANCHOR_COUNT - 1)
+    /** 收缩行程：展开 → 收到底走过的距离。 */
+    val travelPx: Float
+        get() = (fullHeightPx - minVisiblePx).coerceAtLeast(0f)
+
+    /** 锚点间距（等距）。 */
+    private val anchorStep: Float
+        get() = travelPx / (ANCHOR_COUNT - 1)
 
     /** 已收起距离：0 = 完全展开，[travelPx] = 收到底。 */
     var offsetPx by mutableFloatStateOf(0f)
@@ -86,30 +99,32 @@ internal class HeaderCollapse(
      * 整页位移：正 = 被往下拽（内容已到顶），负 = 被往上拽（内容已到底）。
      *
      * 它不是滚动，只是「拉过头」的临时形变，松手一定回到 0。
+     * 两端露出来的缝都由 `HeaderEdgeBackdrop` 垫住，所以这里可以放心地移动整页。
      */
     var stretchPx by mutableFloatStateOf(0f)
         private set
-
-    /** 收缩进度 0..1。 */
-    val fraction: Float
-        get() = if (travelPx <= 0f) 0f else (offsetPx / travelPx).coerceIn(0f, 1f)
 
     /** 当前可见高度。 */
     val visiblePx: Float
         get() = fullHeightPx - offsetPx
 
-    /**
-     * 海报与信息列的淡出系数。
-     *
-     * 它们贴在标题下面，是第一个被 Tab 栏压到的区域：后半程才淡出，收到底时正好消失。
-     * 直接硬裁一张海报会在半张脸的位置切一刀，比淡出难看得多。
-     */
-    val infoAlpha: Float
-        get() = ((1f - fraction) / 0.5f).coerceIn(0f, 1f)
-
     /** 收到底后头部不再有可收缩的余量，滚动全部交给内容区。 */
     private val roomToCollapse: Float
         get() = (travelPx - offsetPx).coerceAtLeast(0f)
+
+    /**
+     * 更新「收到底」的位置（px，从头部顶边算起）。
+     *
+     * 由头部布局实测后调用（见 `DetailHeader` 的 `onInfoBottomMeasured`）。重复调用是安全的：
+     * 值没变就什么都不做；头部已经收得比新下限还深时把它拉回来 —— 详情从骨架换成真实内容后
+     * 信息列会变高，下限也跟着变大。
+     */
+    fun updateMinVisible(px: Float) {
+        val clamped = px.coerceIn(0f, fullHeightPx)
+        if (clamped == minVisiblePx) return
+        minVisiblePx = clamped
+        offsetPx = offsetPx.coerceAtMost(travelPx)
+    }
 
     /** 内容区上滑：先吃掉头部；返回实际消耗的像素（正数）。 */
     fun collapseBy(distance: Float): Float {
@@ -198,21 +213,24 @@ internal class HeaderCollapse(
 
 /**
  * 收缩状态的持有者。
+ *
+ * @param initialMinVisible 首帧的「收到底」高度。真实值由头部实测后写回 —— 传进来的只是占位，
+ *   不该按它调视觉
  */
 @Composable
 internal fun rememberHeaderCollapse(
     fullHeight: Dp,
-    minVisible: Dp,
+    initialMinVisible: Dp,
     stretchLimit: Dp,
 ): HeaderCollapse {
     val density = LocalDensity.current
     val fullHeightPx = with(density) { fullHeight.toPx() }
-    val minVisiblePx = with(density) { minVisible.toPx() }
+    val minVisiblePx = with(density) { initialMinVisible.toPx() }
     val stretchLimitPx = with(density) { stretchLimit.toPx() }
     return remember(fullHeightPx, minVisiblePx, stretchLimitPx) {
         HeaderCollapse(
             fullHeightPx = fullHeightPx,
-            minVisiblePx = minVisiblePx,
+            initialMinVisiblePx = minVisiblePx,
             stretchLimitPx = stretchLimitPx,
         )
     }
@@ -223,11 +241,12 @@ internal fun rememberHeaderCollapse(
  *
  * 上滑在 `onPreScroll`（子级之前）里先吃：Tab 栏立刻顺着封面往上盖，内容留在原地；
  * 收到底后 `collapseBy` 返回 0，剩余增量原样流向内容 —— 「先收头，再滚内容」是连续的。
- * 下拉走 `onPostScroll`：内容真的回到顶部、还有多余距离时才放回头部；
- * 头部都放完了还有距离，才开始拉橡皮筋。
+ * 下拉走 `onPostScroll`：内容真的回到顶部、还有多余距离时才放回头部；头部放完了还有距离，
+ * 才开始拉橡皮筋。
  *
  * 两端的橡皮筋都发生在 `onPostScroll`（说明子级已经消费不动了）：
  * 内容到顶时继续下拉 → 整页被往下拽；内容到底时继续上滑 → 整页被往上拽。
+ * 露出来的缝由页面顶部那层同源封面垫住（`HeaderEdgeBackdrop`），不会看到页面底色。
  *
  * 松手后 `onPostFling` 统一收尾：橡皮筋弹回 0、头部吸附到最近的锚点。
  * 这两件事放在独立协程里并行做，fling 本身立刻结束，不拖着页面一起等。
@@ -297,6 +316,7 @@ private class HeaderCollapseConnection(
             val rest = dy - used
             if (rest <= 0f) return if (used > 0f) Offset(0f, used) else Offset.Zero
             // 头部也放完了 —— 再拉就是橡皮筋（整页往下走一点）。
+            // 顶部露出来的那条缝由 `HeaderEdgeBackdrop` 用同一张模糊封面垫住，不会露底色。
             val stretched = collapse.stretchBy(rest)
             // 拉到极限时 stretchBy 返回 0：这里主动吃掉剩下的位移，
             // 否则底层列表会再叠一层系统自带的回弹，屏幕上就是两套动画抢一个手势。

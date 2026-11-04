@@ -29,13 +29,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -70,24 +80,63 @@ private val DETAIL_BACKDROP_BLUR = 40.dp
 private val DETAIL_BACKDROP_FALLBACK = Color(0xFF26262A)
 
 /**
+ * 橡皮筋接缝的渐隐带高度。
+ *
+ * 屏幕顶部那条「封面延伸」和真正的头部画面之间，行号会往回跳一次 —— 模糊后大部分封面看不出来，
+ * 强对比封面上却是一条横线。让延伸层的最后这几 dp 化到全透明，错位就摊成一条柔和过渡。
+ * 再宽就开始吃掉封面本身的上沿细节，3dp 是「看不出线、也看不出带」的量。
+ */
+internal val DETAIL_SEAM_FADE = 3.dp
+
+/**
+ * 头部内部两个节点的坐标（普通对象，不是 State）。
+ *
+ * 测量回调只用来算一个静态距离，没必要把结果存成组合状态再触发重组 ——
+ * 每次布局都改一遍状态，页面转场时就是每帧一次全量重组。
+ */
+private class HeaderCoords {
+    var header: LayoutCoordinates? = null
+    var info: LayoutCoordinates? = null
+}
+
+/**
  * 详情页头部：模糊封面背景 + 标题 + 左封面 / 右信息（上映时间、排行、评分）。
  *
  * 对齐 Dart 版 `AnimeHeader`：背景图高斯模糊铺满，标题单行省略，
  * 左侧封面圆角，右侧竖排信息（label 14sp / value 20sp bold，与 Dart 版一致）。
  *
  * 头部自身不做位移动画：折叠时由外层裁掉下半截，标题始终钉在顶部。
- * [infoAlpha] 是海报 + 信息列的淡出系数，随折叠变化 —— 它以 lambda 传入，
- * 只在 `graphicsLayer` 的绘制阶段读取，因此滚动时不会重组这张头部。
+ *
+ * [onInfoBottomMeasured] 把右信息列（评分排在最下面）的底边报给调用方 —— 头部能收到多高
+ * 由它决定，见 `HeaderCollapse.updateMinVisible`。它在**布局之后**回调，只会在尺寸/位置
+ * 真的变了时触发，滚动过程中不参与。
  */
 @Composable
 internal fun DetailHeader(
     anime: Anime,
-    infoAlpha: () -> Float,
+    onInfoBottomMeasured: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // 两个坐标都记下来再相减：页面转场、橡皮筋位移会改变头部根节点在屏幕上的位置，
+    // 只有「相对头部自己」的距离才是不随动画变化的常量。
+    val coords = remember { HeaderCoords() }
+    val reportInfoBottom = {
+        val header = coords.header
+        val info = coords.info
+        if (header != null && info != null && header.isAttached && info.isAttached) {
+            onInfoBottomMeasured(
+                header.localPositionOf(info, Offset.Zero).y + info.size.height,
+            )
+        }
+    }
+
     Box(
         modifier = modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .onGloballyPositioned {
+                coords.header = it
+                reportInfoBottom()
+            },
     ) {
         DetailBackdrop(
             model = anime.coverUrl,
@@ -98,7 +147,9 @@ internal fun DetailHeader(
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp),
+                // 状态栏 inset 之后不再留额外上边距：标题紧贴状态栏下沿，
+                // 封面与信息列同在一个 Column 里，会一起上移，间距保持不变。
+                .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
         ) {
             // 标题：单行，超宽时无限横向滚动（与 Dart 版 ScrollingText 一致）。
             ScrollingText(
@@ -112,10 +163,7 @@ internal fun DetailHeader(
             Spacer(modifier = Modifier.height(20.dp))
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // 折叠后期的淡出：读在绘制阶段，滚动时不产生重组。
-                    .graphicsLayer { alpha = infoAlpha() },
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 // 左侧封面（飞行终点：与列表卡封面同一个 key，点进来时封面飞到这里）。
@@ -138,7 +186,13 @@ internal fun DetailHeader(
                 val detailLoaded = anime.airDate != null || anime.ratingCount > 0
                 if (detailLoaded) {
                     Column(
-                        modifier = Modifier.weight(1f),
+                        // 它的底边 = 评分（或最下面那块信息）的下沿。
+                        modifier = Modifier
+                            .weight(1f)
+                            .onGloballyPositioned {
+                                coords.info = it
+                                reportInfoBottom()
+                            },
                         verticalArrangement = Arrangement.spacedBy(18.dp),
                     ) {
                         anime.airDate?.let { airDate ->
@@ -162,7 +216,13 @@ internal fun DetailHeader(
                     }
                 } else {
                     HeaderInfoSkeleton(
-                        modifier = Modifier.weight(1f),
+                        // 骨架也参与测量：详情到达后信息列会变高，底边跟着重新上报。
+                        modifier = Modifier
+                            .weight(1f)
+                            .onGloballyPositioned {
+                                coords.info = it
+                                reportInfoBottom()
+                            },
                     )
                 }
             }
@@ -211,6 +271,66 @@ private fun DetailBackdrop(
                     radius = DETAIL_BACKDROP_BLUR,
                     edgeTreatment = BlurredEdgeTreatment.Rectangle,
                 ),
+        )
+    }
+}
+
+/**
+ * 屏幕最顶部那条「封面延伸」。
+ *
+ * 整页橡皮筋把内容往下推时，屏幕顶部会露出 `stretchPx` 那么高的一条缝。
+ * 这里用与 [DetailHeader] 背景**完全同源**的一层盖住这条缝：同一张图、同样的完整高度、
+ * 同样的模糊半径 —— 两者其实是同一张画的不同裁切，拼起来不会露出页面底色
+ * （深色主题下那条底色就是纯黑，非常割裂）。
+ *
+ * 关键在内部图层仍按头部完整高度渲染，只有同尺寸的模糊结果才真的对得上。
+ *
+ * 但这张画上面没有多余的像素可画：缝里放的是第 `0..stretchPx` 行，接缝下面重新从第 0 行
+ * 开始，行号会往回跳一次。40dp 的模糊已经把这种跳变压得很轻，强对比封面上却仍是一条横线。
+ * 所以这一层**盖在头部上面**，最后 [DETAIL_SEAM_FADE] 那一段用 `DstIn` 把 alpha 收到 0，
+ * 让位给下面真实的头部画面 —— 错位被摊平在几 dp 里，而不是一刀切。
+ *
+ * @param headerHeight 头部完整高度，必须与 [DetailHeader] 的折叠高度一致
+ * @param stretchPx 整页位移：为 0 时这条缝不存在，整层跳过绘制
+ */
+@Composable
+internal fun HeaderEdgeBackdrop(
+    model: Any?,
+    headerHeight: Dp,
+    stretchPx: () -> Float,
+    modifier: Modifier = Modifier,
+) {
+    val fadePx = with(LocalDensity.current) { DETAIL_SEAM_FADE.toPx() }
+    Box(
+        modifier = modifier
+            // 渐隐要靠 DstIn 遮罩，必须先有自己的图层。
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+            .drawWithContent {
+                val dy = stretchPx()
+                // 没越界（或是在往上拽）时这条缝不存在，整层不进绘制。
+                if (dy <= 0f) return@drawWithContent
+                val bottom = dy + fadePx
+                clipRect(bottom = bottom) {
+                    this@drawWithContent.drawContent()
+                    // 前 dy 原样，最后 fadePx 一路化到全透明；两个端点之外由 CLAMP 接管，
+                    // 所以这条遮罩只会影响接缝那几 dp。
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            0f to Color.Black,
+                            1f to Color.Transparent,
+                            startY = dy,
+                            endY = bottom,
+                        ),
+                        blendMode = BlendMode.DstIn,
+                    )
+                }
+            },
+    ) {
+        DetailBackdrop(
+            model = model,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(headerHeight),
         )
     }
 }

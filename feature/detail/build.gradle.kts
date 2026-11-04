@@ -15,7 +15,7 @@ dependencies {
 
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
-    implementation(libs.haze)
+    implementation(libs.androidx.core.ktx)
     implementation(libs.lottie.compose)
 
     implementation(libs.androidx.lifecycle.runtime.compose)

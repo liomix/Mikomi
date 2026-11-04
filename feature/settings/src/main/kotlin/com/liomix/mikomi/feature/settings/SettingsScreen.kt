@@ -1,19 +1,14 @@
 package com.liomix.mikomi.feature.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Extension
@@ -31,10 +26,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.ui.component.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardHeader
 import com.liomix.mikomi.feature.settings.component.SettingsCardSection
-import com.liomix.mikomi.feature.settings.component.SettingsTopBar
 
 /**
  * 设置首页。
@@ -60,66 +55,51 @@ fun SettingsScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+    BaseScreenLayout(
+        title = stringResource(R.string.settings_title),
+        onBackClick = onBackClick,
+        modifier = modifier,
     ) {
-        SettingsTopBar(
-            title = stringResource(R.string.settings_title),
-            backContentDescription = stringResource(R.string.settings_back),
-            onBackClick = onBackClick,
-        )
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            SettingsCard {
-                SettingsCardSection {
-                    EntryRow(
-                        icon = Icons.Outlined.Palette,
-                        title = stringResource(R.string.settings_entry_theme),
-                        description = stringResource(R.string.settings_entry_theme_desc),
-                        onClick = onOpenTheme,
-                    )
-                }
+        SettingsCard {
+            SettingsCardSection {
+                EntryRow(
+                    icon = Icons.Outlined.Palette,
+                    title = stringResource(R.string.settings_entry_theme),
+                    description = stringResource(R.string.settings_entry_theme_desc),
+                    onClick = onOpenTheme,
+                )
             }
+        }
 
-            SettingsCard {
-                SettingsCardSection {
-                    SettingsCardHeader(stringResource(R.string.settings_group_data_source))
-                    EntryRow(
-                        icon = Icons.Outlined.Language,
-                        title = stringResource(R.string.settings_entry_proxy),
-                        description = stringResource(R.string.settings_entry_proxy_desc),
-                        onClick = onOpenProxy,
-                    )
-                }
-                SettingsCardSection(dividerAbove = true) {
-                    EntryRow(
-                        icon = Icons.Outlined.Extension,
-                        title = stringResource(R.string.settings_entry_plugins),
-                        description = stringResource(R.string.settings_entry_plugins_desc),
-                        onClick = onOpenPlugins,
-                    )
-                }
+        SettingsCard {
+            SettingsCardSection {
+                SettingsCardHeader(stringResource(R.string.settings_group_data_source))
+                EntryRow(
+                    icon = Icons.Outlined.Language,
+                    title = stringResource(R.string.settings_entry_proxy),
+                    description = stringResource(R.string.settings_entry_proxy_desc),
+                    onClick = onOpenProxy,
+                )
             }
+            SettingsCardSection(dividerAbove = true) {
+                EntryRow(
+                    icon = Icons.Outlined.Extension,
+                    title = stringResource(R.string.settings_entry_plugins),
+                    description = stringResource(R.string.settings_entry_plugins_desc),
+                    onClick = onOpenPlugins,
+                )
+            }
+        }
 
-            // 播放单独一张卡：它管的是「看片时手怎么用」，与外观、数据源都不是一回事。
-            SettingsCard {
-                SettingsCardSection {
-                    EntryRow(
-                        icon = Icons.Outlined.PlayCircleOutline,
-                        title = stringResource(R.string.settings_entry_playback),
-                        description = stringResource(R.string.settings_entry_playback_desc),
-                        onClick = onOpenPlayback,
-                    )
-                }
+        // 播放单独一张卡：它管的是「看片时手怎么用」，与外观、数据源都不是一回事。
+        SettingsCard {
+            SettingsCardSection {
+                EntryRow(
+                    icon = Icons.Outlined.PlayCircleOutline,
+                    title = stringResource(R.string.settings_entry_playback),
+                    description = stringResource(R.string.settings_entry_playback_desc),
+                    onClick = onOpenPlayback,
+                )
             }
         }
     }

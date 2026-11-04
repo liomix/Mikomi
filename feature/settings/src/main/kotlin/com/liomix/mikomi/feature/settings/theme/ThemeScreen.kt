@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,18 +17,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -48,6 +40,7 @@ import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.ui.component.Capsule
 import com.liomix.mikomi.core.ui.component.MikomiToast
 import com.liomix.mikomi.core.ui.component.MikomiToastData
+import com.liomix.mikomi.core.ui.component.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.theme.appicon.AppIconStyle
 import com.liomix.mikomi.feature.settings.component.BAndWSwitch
@@ -78,134 +71,122 @@ fun ThemeScreen(
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
+        BaseScreenLayout(
+            title = stringResource(R.string.theme_title),
+            onBackClick = onBackClick,
         ) {
-            ThemeTopBar(onBackClick = onBackClick)
+            // 主题颜色：配色色卡 + 黑白（日 / 夜）切换。
+            SettingsCard {
+                SettingsCardSection {
+                    Text(
+                        text = stringResource(R.string.theme_color_section),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(
+                            start = 20.dp,
+                            end = 20.dp,
+                            top = 20.dp,
+                        ),
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        items(
+                            items = ThemePalette.entries,
+                            key = { palette -> palette.id },
+                            contentType = { "palette" },
+                        ) { palette ->
+                            PaletteSwatch(
+                                palette = palette,
+                                selected = palette.id == colorSchemeId,
+                                onClick = { onSelectColorScheme(palette.id) },
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
 
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                // 主题颜色：配色色卡 + 黑白（日 / 夜）切换。
-                SettingsCard {
-                    SettingsCardSection {
-                        Text(
-                            text = stringResource(R.string.theme_color_section),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(
-                                start = 20.dp,
-                                end = 20.dp,
-                                top = 20.dp,
-                            ),
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
+                // 黑白（日 / 夜）切换：动画与交互由组件内部完成。
+                SettingsCardSection(dividerAbove = true) {
+                    BAndWSwitch(isDarkMode = isDarkMode)
+                }
+            }
+
+            // 动态效果：只剩封面动效。页面转场已固定为 Telegram 那一套，不再暴露选项。
+            SettingsCard {
+                SettingsCardSection {
+                    Text(
+                        text = stringResource(R.string.settings_effect_section),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(
+                            start = 20.dp,
+                            end = 20.dp,
+                            top = 20.dp,
+                        ),
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    EffectGroup(title = stringResource(R.string.settings_effect_hero)) {
+                        // 用解析后的枚举比较：老版本存过 standard / fade / scale 这类
+                        // 已废弃的 id，直接比字符串会导致「一个都不选中」。
+                        val currentHero = TransitionStyle.fromId(transitionStyleId)
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 20.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             items(
-                                items = ThemePalette.entries,
-                                key = { palette -> palette.id },
-                                contentType = { "palette" },
-                            ) { palette ->
-                                PaletteSwatch(
-                                    palette = palette,
-                                    selected = palette.id == colorSchemeId,
-                                    onClick = { onSelectColorScheme(palette.id) },
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-
-                    // 黑白（日 / 夜）切换：动画与交互由组件内部完成。
-                    SettingsCardSection(dividerAbove = true) {
-                        BAndWSwitch(isDarkMode = isDarkMode)
-                    }
-                }
-
-                // 动态效果：只剩封面动效。页面转场已固定为 Telegram 那一套，不再暴露选项。
-                SettingsCard {
-                    SettingsCardSection {
-                        Text(
-                            text = stringResource(R.string.settings_effect_section),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(
-                                start = 20.dp,
-                                end = 20.dp,
-                                top = 20.dp,
-                            ),
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        EffectGroup(title = stringResource(R.string.settings_effect_hero)) {
-                            // 用解析后的枚举比较：老版本存过 standard / fade / scale 这类
-                            // 已废弃的 id，直接比字符串会导致「一个都不选中」。
-                            val currentHero = TransitionStyle.fromId(transitionStyleId)
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                items(
-                                    items = TransitionStyle.entries,
-                                    key = { style -> style.id },
-                                    contentType = { "hero" },
-                                ) { style ->
-                                    Capsule(
-                                        text = stringResource(style.labelRes),
-                                        selected = currentHero == style,
-                                        onClick = { onSelectTransitionStyle(style.id) },
-                                    )
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(20.dp))
-                    }
-                }
-
-                // 应用图标：切换桌面显示的应用图标（系统组件状态，即时生效）。
-                SettingsCard {
-                    SettingsCardSection {
-                        Text(
-                            text = stringResource(R.string.settings_app_icon_section),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(
-                                start = 20.dp,
-                                end = 20.dp,
-                                top = 20.dp,
-                            ),
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(20.dp),
-                        ) {
-                            items(
-                                items = AppIconStyle.entries,
+                                items = TransitionStyle.entries,
                                 key = { style -> style.id },
-                                contentType = { "app_icon" },
+                                contentType = { "hero" },
                             ) { style ->
-                                AppIconOption(
-                                    style = style,
-                                    selected = style.id == appIconId,
-                                    onClick = { onSelectAppIcon(style.id) },
+                                Capsule(
+                                    text = stringResource(style.labelRes),
+                                    selected = currentHero == style,
+                                    onClick = { onSelectTransitionStyle(style.id) },
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(20.dp))
                     }
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+            }
+
+            // 应用图标：切换桌面显示的应用图标（系统组件状态，即时生效）。
+            SettingsCard {
+                SettingsCardSection {
+                    Text(
+                        text = stringResource(R.string.settings_app_icon_section),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(
+                            start = 20.dp,
+                            end = 20.dp,
+                            top = 20.dp,
+                        ),
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(20.dp),
+                    ) {
+                        items(
+                            items = AppIconStyle.entries,
+                            key = { style -> style.id },
+                            contentType = { "app_icon" },
+                        ) { style ->
+                            AppIconOption(
+                                style = style,
+                                selected = style.id == appIconId,
+                                onClick = { onSelectAppIcon(style.id) },
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
         }
@@ -220,34 +201,6 @@ fun ThemeScreen(
         )
     }
 }
-
-@Composable
-private fun ThemeTopBar(
-    onBackClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = onBackClick) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.theme_back),
-            )
-        }
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = stringResource(R.string.theme_title),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-        )
-    }
-}
-
 /**
  * 配色色卡：整块纯色（只用该配色的主色，不加任何装饰）。
  *

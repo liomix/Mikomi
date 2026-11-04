@@ -65,9 +65,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.ui.component.BaseScreenLayout
 import com.liomix.mikomi.core.ui.component.SkeletonBox
 import com.liomix.mikomi.feature.settings.R
-import com.liomix.mikomi.feature.settings.component.SettingsTopBar
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -137,16 +137,12 @@ fun PlgTstStoreScreen(
     val error = uiState.error
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+        modifier = modifier.fillMaxSize(),
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            SettingsTopBar(
-                title = stringResource(R.string.settings_store_title),
-                backContentDescription = stringResource(R.string.settings_store_back),
-                onBackClick = onBackClick,
-            ) {
+        BaseScreenLayout(
+            title = stringResource(R.string.settings_store_title),
+            onBackClick = onBackClick,
+            actions = {
                 SortAction(current = uiState.sort, onSelect = onSortChange)
                 IconButton(onClick = onRefresh, enabled = !uiState.loading) {
                     Icon(
@@ -154,8 +150,11 @@ fun PlgTstStoreScreen(
                         contentDescription = stringResource(R.string.settings_store_refresh),
                     )
                 }
-            }
-
+            },
+            scrollable = false,
+            contentPadding = PaddingValues(0.dp),
+            verticalArrangement = Arrangement.Top,
+        ) {
             SearchField(query = uiState.query, onQueryChange = onQueryChange)
             FilterRow(uiState = uiState, onFilterChange = onFilterChange)
 
@@ -232,6 +231,7 @@ fun PlgTstStoreScreen(
                     }
                 }
             }
+
         }
 
         SnackbarHost(

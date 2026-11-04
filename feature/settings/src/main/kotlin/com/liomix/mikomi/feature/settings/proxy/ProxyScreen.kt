@@ -3,22 +3,18 @@ package com.liomix.mikomi.feature.settings.proxy
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Link
@@ -46,11 +42,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.BangumiApiMode
+import com.liomix.mikomi.core.ui.component.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardHeader
 import com.liomix.mikomi.feature.settings.component.SettingsCardSection
-import com.liomix.mikomi.feature.settings.component.SettingsTopBar
 
 /** 选项卡片的圆角。 */
 private val OptionShape = RoundedCornerShape(18.dp)
@@ -89,68 +85,53 @@ fun ProxyScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+    BaseScreenLayout(
+        title = stringResource(R.string.settings_proxy_title),
+        onBackClick = onBackClick,
+        modifier = modifier,
     ) {
-        SettingsTopBar(
-            title = stringResource(R.string.settings_proxy_title),
-            backContentDescription = stringResource(R.string.settings_proxy_back),
-            onBackClick = onBackClick,
-        )
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            SettingsCard {
-                SettingsCardSection {
-                    SettingsCardHeader(stringResource(R.string.settings_proxy_mode_section))
-                    Column(
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        ModeOption(
-                            title = stringResource(R.string.settings_proxy_mode_direct),
-                            description = stringResource(
-                                R.string.settings_proxy_mode_direct_desc,
-                            ),
-                            selected = uiState.mode == BangumiApiMode.Direct,
-                            onClick = { onSelectMode(BangumiApiMode.Direct) },
-                        )
-                        ModeOption(
-                            title = stringResource(R.string.settings_proxy_mode_mirror),
-                            description = stringResource(
-                                R.string.settings_proxy_mode_mirror_desc,
-                            ),
-                            selected = uiState.isMirrorMode,
-                            onClick = { onSelectMode(BangumiApiMode.Mirror) },
-                        )
-                    }
-                }
-            }
-
-            MirrorAddressCard(
-                uiState = uiState,
-                onMirrorUrlChange = onMirrorUrlChange,
-                onTestConnection = onTestConnection,
-            )
-
-            SettingsCard {
-                SettingsCardSection {
-                    SettingsCardHeader(stringResource(R.string.settings_proxy_about_section))
-                    Text(
-                        text = stringResource(R.string.settings_proxy_about_body),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
+        SettingsCard {
+            SettingsCardSection {
+                SettingsCardHeader(stringResource(R.string.settings_proxy_mode_section))
+                Column(
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    ModeOption(
+                        title = stringResource(R.string.settings_proxy_mode_direct),
+                        description = stringResource(
+                            R.string.settings_proxy_mode_direct_desc,
+                        ),
+                        selected = uiState.mode == BangumiApiMode.Direct,
+                        onClick = { onSelectMode(BangumiApiMode.Direct) },
+                    )
+                    ModeOption(
+                        title = stringResource(R.string.settings_proxy_mode_mirror),
+                        description = stringResource(
+                            R.string.settings_proxy_mode_mirror_desc,
+                        ),
+                        selected = uiState.isMirrorMode,
+                        onClick = { onSelectMode(BangumiApiMode.Mirror) },
                     )
                 }
+            }
+        }
+
+        MirrorAddressCard(
+            uiState = uiState,
+            onMirrorUrlChange = onMirrorUrlChange,
+            onTestConnection = onTestConnection,
+        )
+
+        SettingsCard {
+            SettingsCardSection {
+                SettingsCardHeader(stringResource(R.string.settings_proxy_about_section))
+                Text(
+                    text = stringResource(R.string.settings_proxy_about_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
+                )
             }
         }
     }

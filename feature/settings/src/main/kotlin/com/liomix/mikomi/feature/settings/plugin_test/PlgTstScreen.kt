@@ -4,7 +4,6 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -90,6 +89,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.liomix.mikomi.core.model.VdoPlgContent
+import com.liomix.mikomi.core.ui.component.BaseScreenLayout
 import com.liomix.mikomi.data.video.VdoFailureReason
 import com.liomix.mikomi.data.video.VdoStreamKind
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgStageResult
@@ -98,7 +98,6 @@ import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardHeader
 import com.liomix.mikomi.feature.settings.component.SettingsCardSection
-import com.liomix.mikomi.feature.settings.component.SettingsTopBar
 import kotlinx.coroutines.launch
 
 /**
@@ -160,51 +159,37 @@ fun PlgTstScreen(
     }
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+        modifier = modifier.fillMaxSize(),
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            SettingsTopBar(
-                title = stringResource(R.string.settings_plg_tst_title),
-                backContentDescription = stringResource(R.string.settings_plg_tst_back),
-                onBackClick = onBackClick,
-            ) {
+        BaseScreenLayout(
+            title = stringResource(R.string.settings_plg_tst_title),
+            onBackClick = onBackClick,
+            actions = {
                 IconButton(onClick = { addSheetOpen = true }) {
                     Icon(
                         imageVector = Icons.Rounded.Add,
                         contentDescription = stringResource(R.string.settings_plg_tst_add),
                     )
                 }
-            }
+            },
+        ) {
+            PluginRepoCard(
+                repoUrl = uiState.repoUrl,
+                mirror = uiState.mirror,
+                onRepoClick = { repoEditorOpen = true },
+                onMirrorClick = { mirrorPickerOpen = true },
+            )
 
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                PluginRepoCard(
-                    repoUrl = uiState.repoUrl,
-                    mirror = uiState.mirror,
-                    onRepoClick = { repoEditorOpen = true },
-                    onMirrorClick = { mirrorPickerOpen = true },
-                )
-
-                PluginCard(
-                    uiState = uiState,
-                    onToggle = onToggle,
-                    onMoveUp = onMoveUp,
-                    onMoveDown = onMoveDown,
-                    onRemoveRequest = { deleteTarget = it },
-                    onEdit = onEditOpen,
-                    onTest = onTestOpen,
-                    onShare = onShare,
-                )
-            }
+            PluginCard(
+                uiState = uiState,
+                onToggle = onToggle,
+                onMoveUp = onMoveUp,
+                onMoveDown = onMoveDown,
+                onRemoveRequest = { deleteTarget = it },
+                onEdit = onEditOpen,
+                onTest = onTestOpen,
+                onShare = onShare,
+            )
         }
 
         SnackbarHost(

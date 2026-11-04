@@ -44,7 +44,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
-import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.ui.component.Capsule
 import com.liomix.mikomi.core.ui.component.MikomiToast
@@ -71,12 +70,10 @@ fun ThemeScreen(
     isDarkMode: Boolean,
     appIconId: String,
     transitionStyleId: String,
-    pageTransitionStyleId: String,
     toast: MikomiToastData?,
     onSelectColorScheme: (String) -> Unit,
     onSelectAppIcon: (String) -> Unit,
     onSelectTransitionStyle: (String) -> Unit,
-    onSelectPageTransitionStyle: (String) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -136,7 +133,7 @@ fun ThemeScreen(
                     }
                 }
 
-                // 动态效果：拆成「封面动效」与「页面动效」两组，互不影响。
+                // 动态效果：只剩封面动效。页面转场已固定为 Telegram 那一套，不再暴露选项。
                 SettingsCard {
                     SettingsCardSection {
                         Text(
@@ -168,25 +165,6 @@ fun ThemeScreen(
                                         text = stringResource(style.labelRes),
                                         selected = currentHero == style,
                                         onClick = { onSelectTransitionStyle(style.id) },
-                                    )
-                                }
-                            }
-                        }
-                        EffectGroup(title = stringResource(R.string.settings_effect_page)) {
-                            val currentPage = PageTransitionStyle.fromId(pageTransitionStyleId)
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                items(
-                                    items = PageTransitionStyle.entries,
-                                    key = { style -> style.id },
-                                    contentType = { "page" },
-                                ) { style ->
-                                    Capsule(
-                                        text = stringResource(style.labelRes),
-                                        selected = currentPage == style,
-                                        onClick = { onSelectPageTransitionStyle(style.id) },
                                     )
                                 }
                             }
@@ -366,9 +344,7 @@ private val APP_ICON_FOREGROUND_PADDING = 10.dp
 /** 预览底色：与真实启动图标的白底保持一致。 */
 private val APP_ICON_PREVIEW_BACKGROUND = Color(0xFFFEFEFE)
 
-/**
- * 动态效果里的一个分组（封面动效 / 页面动效）：浅色子卡片 + 标题 + 选项行。
- */
+/** 动态效果里的一个分组：浅色子卡片 + 标题 + 选项行。 */
 @Composable
 private fun EffectGroup(
     title: String,
@@ -393,16 +369,6 @@ private fun EffectGroup(
         }
     }
 }
-
-/** 页面动效的中文名资源映射。 */
-@get:StringRes
-private val PageTransitionStyle.labelRes: Int
-    get() = when (this) {
-        PageTransitionStyle.Standard -> R.string.settings_page_standard
-        PageTransitionStyle.Fade -> R.string.settings_page_fade
-        PageTransitionStyle.Scale -> R.string.settings_page_scale
-        PageTransitionStyle.None -> R.string.settings_page_none
-    }
 
 /** 封面动效的中文名资源映射。 */
 @get:StringRes

@@ -1,20 +1,15 @@
 package com.liomix.mikomi.navigation
 
 import android.app.Activity
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.animation.core.SpringSpec
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
@@ -44,17 +39,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.liomix.mikomi.R
 import com.liomix.mikomi.core.ui.component.MikomiNavItem
 import com.liomix.mikomi.core.ui.component.MikomiNavBarMargin
 import com.liomix.mikomi.core.ui.component.MikomiNavigationBar
-import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.navigation.AniMapDestination
 import com.liomix.mikomi.core.navigation.DetailDestination
@@ -80,46 +76,8 @@ private const val NAV_BAR_AUTO_HIDE_DELAY_MILLIS = 2_000L
  */
 private const val ANIMAP_WARM_UP_DELAY_MILLIS = 4_000L
 
-/**
- * 页面转场统一 spring 参数。
- *
- * `stiffness` 从 1600 降到 400：1600 只有约 120ms，加上封面飞行同时进行，
- * 几个样式在肉眼上几乎分辨不出来（会被当成「没生效」）。400 约 300ms，
- * 与 Dart 版 MaterialPageRoute 的时长一致。
- */
-private const val SPRING_DAMPING = 1.0f
-private const val SPRING_STIFFNESS = 400.0f
-
-/** 缩放转场的起始缩放比（明显小于「标准」的 0.88，保证肉眼可辨）。 */
-private const val SCALE_FROM = 0.55f
-
-/** 缩放样式的弹簧参数：欠阻尼带回弹。 */
-private const val SCALE_SPRING_DAMPING = 0.72f
-private const val SCALE_SPRING_STIFFNESS = 520.0f
-
-/** 交叉溶解（淡入淡出）时长。 */
-private const val FADE_MILLIS = 320
-
-/** 标准转场的起始缩放比：比 [SCALE_FROM] 更收敛，接近 Android 12 默认的页面缩放。 */
-private const val ZOOM_FROM = 0.88f
-
-/** 标准转场的退场缩放比：旧页轻微放大后淡出（远离观感，与 Flutter 的 zoom 返回一致）。 */
-private const val ZOOM_OUT_TO = 1.06f
-
 /** 顶级页面左右滑动切换的触发距离。 */
 private val TOP_LEVEL_SWIPE_THRESHOLD = 80.dp
-
-/**
- * 页面转场统一缓动。
- *
- * `dampingRatio = 1` 无过冲、`stiffness = 1600` 干脆利落；泛型化以便
- * fade / scale（`Float`）等不同数值类型共用同一套参数。
- */
-private fun <T> pageMotion(): SpringSpec<T> = spring(
-    dampingRatio = SPRING_DAMPING,
-    stiffness = SPRING_STIFFNESS,
-    visibilityThreshold = null,
-)
 
 @Composable
 fun MikomiNavHost(
@@ -127,7 +85,6 @@ fun MikomiNavHost(
     entryProviderInstallers: Set<EntryProviderInstaller>,
     immersionBridge: ImmersionBridge,
     heroStyleId: String = TransitionStyle.Translate.id,
-    pageStyleId: String = PageTransitionStyle.Standard.id,
 ) {
     val homeLabel = stringResource(R.string.nav_home)
     val aniMapLabel = stringResource(R.string.nav_animap)
@@ -246,6 +203,15 @@ fun MikomiNavHost(
         }
     }
 
+    // 转场方向：栈变长 = 进入（新页要从右 48dp 处淡入），变短 = 返回（目标页直接可见）。
+    // 上一次的栈深存在普通数组里而不是 State：它只在组合期间被读，写入放 SideEffect，
+    // 避免「组合里改状态 → 再排一次组合」。
+    val stackDepth = navigator.backStack.size
+    val lastStackDepth = remember { intArrayOf(stackDepth) }
+    val motionDirection =
+        if (stackDepth >= lastStackDepth[0]) PageMotionDirection.Enter else PageMotionDirection.Back
+    SideEffect { lastStackDepth[0] = stackDepth }
+
     // 根容器统一铺主题背景：各页面不再需要各自设置底色，
     // 夜间模式下除巡礼页（WebView 地图不透明，直接盖住）外全部为纯黑。
     Box(
@@ -298,22 +264,39 @@ fun MikomiNavHost(
                 )
             },
     ) {
-        CompositionLocalProvider(LocalHeroFlightController provides heroController) {
+        // 48dp 位移按当前密度换算一次：slideOut 的 offset lambda 没有 Density 作用域。
+        val pageOffsetPx = with(LocalDensity.current) { PAGE_MOTION_TRAVEL.roundToPx() }
+        // 页面入场动画挂在 entry 装饰器上，装饰器实例必须稳定，否则每次重组都会重建一遍
+        // 装饰链、连带把每个页面的动画状态也重置。
+        val saveableStateDecorator = rememberSaveableStateHolderNavEntryDecorator<NavKey>()
+        val pageMotionDecorator = remember { telegramPageMotionDecorator() }
+        val entryDecorators = remember(saveableStateDecorator, pageMotionDecorator) {
+            listOf(saveableStateDecorator, pageMotionDecorator)
+        }
+        CompositionLocalProvider(
+            LocalHeroFlightController provides heroController,
+            // 只影响「首次组合」那一瞬间的页面：装饰器会把它冻结，之后不再跟变。
+            LocalPageMotionDirection provides motionDirection,
+        ) {
             NavDisplay(
                 backStack = navigator.backStack,
                 onBack = navBackHandler,
                 entryProvider = navEntryProvider,
+                entryDecorators = entryDecorators,
                 // 关掉 AnimatedContent 的尺寸动画：页面本就是整屏，尺寸动画只会让新旧页
                 // 互相裁剪（表现为页面被裁成一条/半张再展开）。
+                //
+                // 进入这一步的插值不由框架算：新页自己按帧推进（见 TelegramPageMotion），
+                // 这里只给旧页挂一个肉眼不可见的退场，用它的时长当「转场窗口」。
                 transitionSpec = {
-                    pushTransform(pageStyleId).using(null)
+                    (EnterTransition.None togetherWith pageHold()).using(null)
                 },
                 popTransitionSpec = {
-                    popTransform(pageStyleId).using(null)
+                    (EnterTransition.None togetherWith pageExit(pageOffsetPx)).using(null)
                 },
-                // 预测性返回复用返回转场：spring 会实时跟随手势进度，无需单独一套动画。
+                // 预测性返回复用返回转场：tween 会按手势进度 seek，拖动时旧页跟手右移。
                 predictivePopTransitionSpec = {
-                    popTransform(pageStyleId).using(null)
+                    (EnterTransition.None togetherWith pageExit(pageOffsetPx)).using(null)
                 },
             )
         }
@@ -358,60 +341,34 @@ fun MikomiNavHost(
 }
 
 /**
- * 页面动效：新旧两页之间的过渡，与封面飞行（[HeroFlightController]）互不影响。
+ * 页面转场：新旧两页之间的过渡，与封面飞行（[HeroFlightController]）互不影响。
  *
- * 进与出刻意**不对称**：
- * - 进入（[pushTransform]）：新页动、旧页保持不透明；
- * - 退出（[popTransform]）：返回的目标页直接可见，只让将被销毁的旧页缩放淡出。
+ * 进与出刻意**不对称**，这是 Telegram `ActionBarLayout` 的做法：
+ * - 进入：新页从右 48dp 处淡入，旧页保持不透明、原地不动（`:1887`）；
+ * - 退出：目标页直接可见且不动，只让将被销毁的旧页右移 48dp 淡出（`:1906`）。
  *
- * 这条「任意时刻至少一页完全不透明，且要消失的那一页总有退场动作」的规则是关键：
- * 两页同时半透明会合成出 alpha < 1，透出窗口白底（表现为「白屏闪一下」）；
- * 而两页都关掉动画则会让返回变成硬切（表现为「返回没有退场」）。
+ * 进入的插值不在这里算——它在页面里按帧累加（见 [TelegramPageMotion]），
+ * 所以这里的新页是 `EnterTransition.None`，[pageHold] 只负责旧页的存活窗口。
  *
- * 不用 slide：slide 是布局位移，会让页面内元素上报的坐标带上位移，
- * 封面飞行拿不到正确终点（Dart 版干净正是因为 MaterialPageRoute 也是变换）。
+ * 退出仍然用 spec：预测性返回手势要按手指进度逐帧 seek，只有 spec 驱动才跟手。
+ * 那里手指本身就是时钟，不存在「掉帧跳格」的问题。
+ *
+ * 位移用 slide 而不是缩放：Telegram 的行程只有 48dp，读作「整块内容推进来」，
+ * 不是「页面被缩小」。封面飞行靠 `onGloballyPositioned` 逐帧修正终点，
+ * 位移期间会跟着一起归位，落点不会偏。
  */
-private fun pushTransform(styleId: String): ContentTransform = when (
-    PageTransitionStyle.fromId(styleId)
-) {
-    PageTransitionStyle.Standard -> zoomIn() togetherWith ExitTransition.None
-    // 只淡入新页、旧页不动：新页半透明时透出的是**不透明的旧页**，不会露白底。
-    PageTransitionStyle.Fade -> fadeIn(fadeSpec()) togetherWith ExitTransition.None
-    PageTransitionStyle.Scale -> scaleIn(
-        scaleInMotion(),
-        initialScale = SCALE_FROM,
-    ) togetherWith ExitTransition.None
-    PageTransitionStyle.None -> ContentTransform(EnterTransition.None, ExitTransition.None)
-}
+private fun AnimatedContentTransitionScope<*>.pageHold(): ExitTransition =
+    fadeOut(
+        animationSpec = tween(PAGE_MOTION_WINDOW_MILLIS),
+        // 只降 0.5%：肉眼不可见，纯粹是为了让框架「有事可做」从而把旧页留在组合里。
+        // 没有它，AnimatedContent 会在第一帧就把上一页撤掉，新页半透明时透出的是页面底色。
+        targetAlpha = 0.995f,
+    ) + ExitTransition.KeepUntilTransitionsFinished
 
-/** 页面动效的退出方向：目标页直接可见，旧页缩放淡出。 */
-private fun popTransform(styleId: String): ContentTransform = when (
-    PageTransitionStyle.fromId(styleId)
-) {
-    PageTransitionStyle.Standard -> EnterTransition.None togetherWith zoomOut()
-    PageTransitionStyle.Fade -> EnterTransition.None togetherWith fadeOut(fadeSpec())
-    // 与「弹入」对称：缩回原来的小尺寸再消失。
-    PageTransitionStyle.Scale -> EnterTransition.None togetherWith (
-        scaleOut(scaleInMotion(), targetScale = SCALE_FROM) + fadeOut(pageMotion())
+/** 退出转场：被关闭的页右移 48dp 并淡出，目标页始终完全不动。 */
+private fun pageExit(offsetPx: Int): ExitTransition =
+    fadeOut(tween(PAGE_MOTION_MILLIS, easing = PageMotionEasing)) +
+        slideOutHorizontally(
+            animationSpec = tween(PAGE_MOTION_MILLIS, easing = PageMotionEasing),
+            targetOffsetX = { offsetPx },
         )
-    PageTransitionStyle.None -> ContentTransform(EnterTransition.None, ExitTransition.None)
-}
-
-/** 标准进入：新页 0.88 → 1 放大并淡入（对齐 Dart 版 MaterialPageRoute 的缩放过渡）。 */
-private fun zoomIn(): EnterTransition =
-    scaleIn(pageMotion(), initialScale = ZOOM_FROM) + fadeIn(pageMotion())
-
-/** 标准退出：旧页略微放大并淡出（远离观看者的观感，也是 Flutter zoom 返回的方向）。 */
-private fun zoomOut(): ExitTransition =
-    scaleOut(pageMotion(), targetScale = ZOOM_OUT_TO) + fadeOut(pageMotion())
-
-/** 淡入淡出样式的统一缓动：溶解速度要稳定可预期，因此用 tween 而不是 spring。 */
-private fun fadeSpec(): FiniteAnimationSpec<Float> =
-    tween(durationMillis = FADE_MILLIS, easing = LinearOutSlowInEasing)
-
-/** 缩放样式的弹簧：略微欠阻尼，带回弹，和「标准」的线性观感拉开距离。 */
-private fun <T> scaleInMotion(): SpringSpec<T> = spring(
-    dampingRatio = SCALE_SPRING_DAMPING,
-    stiffness = SCALE_SPRING_STIFFNESS,
-    visibilityThreshold = null,
-)

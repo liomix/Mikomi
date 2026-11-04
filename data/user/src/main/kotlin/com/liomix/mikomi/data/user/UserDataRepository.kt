@@ -28,8 +28,6 @@ interface UserDataRepository {
     /** 设置封面动效 id（见 TransitionStyle）。 */
     suspend fun setTransitionStyle(style: String)
 
-    /** 设置页面动效 id（见 PageTransitionStyle）。 */
-    suspend fun setPageTransitionStyle(style: String)
 
     /** 设置 Bangumi 连接方式 id（见 BangumiApiMode）。 */
     suspend fun setBangumiApiMode(mode: String)

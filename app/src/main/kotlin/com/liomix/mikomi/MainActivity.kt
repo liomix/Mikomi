@@ -129,7 +129,6 @@ class MainActivity : ComponentActivity() {
                         entryProviderInstallers = entryProviderInstallers,
                         immersionBridge = immersionBridge,
                         heroStyleId = preferences.transitionStyle,
-                        pageStyleId = preferences.pageTransitionStyle,
                     )
                 }
             }

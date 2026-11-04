@@ -7,7 +7,6 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
-import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.data.user.UserDataRepository
 import com.liomix.mikomi.feature.settings.R
@@ -80,15 +79,6 @@ class ThemeViewModel @Inject constructor(
             initialValue = TransitionStyle.Translate.id,
         )
 
-    /** 页面动效 id（作用在页面过渡上）。 */
-    val pageTransitionStyleId: StateFlow<String> = userDataRepository.observeUserPreferences()
-        .map { it.pageTransitionStyle }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = PageTransitionStyle.Standard.id,
-        )
-
     /** 一次性提示，由 UI 层用 [com.liomix.mikomi.core.ui.component.MikomiToast] 呈现。 */
     private val _toasts = MutableSharedFlow<ThemeToast>(extraBufferCapacity = 1)
     val toasts: SharedFlow<ThemeToast> = _toasts.asSharedFlow()
@@ -114,19 +104,6 @@ class ThemeViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Set transition style failed, id=$id", e)
-            }
-        }
-    }
-
-    /** 选择页面动效。 */
-    fun selectPageTransitionStyle(id: String) {
-        viewModelScope.launch {
-            try {
-                userDataRepository.setPageTransitionStyle(id)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.w(TAG, "Set page transition style failed, id=$id", e)
             }
         }
     }

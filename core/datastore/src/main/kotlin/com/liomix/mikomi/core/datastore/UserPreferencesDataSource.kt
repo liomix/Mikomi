@@ -33,7 +33,6 @@ class UserPreferencesDataSource @Inject constructor(
             colorScheme = prefs[KEY_COLOR_SCHEME] ?: DEFAULT_COLOR_SCHEME,
             appIcon = prefs[KEY_APP_ICON] ?: DEFAULT_APP_ICON,
             transitionStyle = prefs[KEY_TRANSITION_STYLE] ?: DEFAULT_TRANSITION_STYLE,
-            pageTransitionStyle = prefs[KEY_PAGE_TRANSITION_STYLE] ?: DEFAULT_TRANSITION_STYLE,
             bangumiApiMode = prefs[KEY_BANGUMI_API_MODE] ?: DEFAULT_BANGUMI_API_MODE,
             bangumiMirrorUrl = prefs[KEY_BANGUMI_MIRROR_URL] ?: "",
             playerDefaultSpeed = prefs[KEY_PLAYER_DEFAULT_SPEED] ?: DEFAULT_PLAYER_SPEED,
@@ -66,10 +65,6 @@ class UserPreferencesDataSource @Inject constructor(
         dataStore.edit { it[KEY_TRANSITION_STYLE] = style }
     }
 
-    suspend fun setPageTransitionStyle(style: String) {
-        dataStore.edit { it[KEY_PAGE_TRANSITION_STYLE] = style }
-    }
-
     suspend fun setBangumiApiMode(mode: String) {
         dataStore.edit { it[KEY_BANGUMI_API_MODE] = mode }
     }
@@ -97,7 +92,6 @@ class UserPreferencesDataSource @Inject constructor(
         val KEY_COLOR_SCHEME = stringPreferencesKey("color_scheme")
         val KEY_APP_ICON = stringPreferencesKey("app_icon")
         val KEY_TRANSITION_STYLE = stringPreferencesKey("transition_style")
-        val KEY_PAGE_TRANSITION_STYLE = stringPreferencesKey("page_transition_style")
         val KEY_BANGUMI_API_MODE = stringPreferencesKey("bangumi_api_mode")
         val KEY_BANGUMI_MIRROR_URL = stringPreferencesKey("bangumi_mirror_url")
         val KEY_PLAYER_DEFAULT_SPEED = floatPreferencesKey("player_default_speed")

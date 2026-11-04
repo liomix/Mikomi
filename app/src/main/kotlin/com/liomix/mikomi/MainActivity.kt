@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.designsystem.theme.NightModeTransitionHost
@@ -44,11 +45,20 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var userDataRepository: UserDataRepository
 
+    /**
+     * 窗口底色。
+     *
+     * 复用同一个实例、只改 `color`（内部只 `invalidateSelf`）：每次切换主题都
+     * `setBackgroundDrawable(ColorDrawable(...))` 会让 decor 重新 `requestLayout`，
+     * 那次整窗布局正好压在切换的那一帧上。
+     */
+    private val windowBackgroundDrawable = ColorDrawable()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // 状态栏/导航栏透明，透出 App 自身背景（Compose 内容已 edge-to-edge 铺满窗口），
-        // 深浅色模式下都与背景无色差；图标明暗由 auto 跟随系统深色模式
-        // （App 主题同样跟随系统，二者始终一致）。
+        // 深浅色模式下都与背景无色差；图标的明暗在主题生效后由下面的 LaunchedEffect 按 App 主题改写，
+        // 这里先用 auto 让首帧跟随系统，避免冷启动时白底白图标。
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(
                 android.graphics.Color.TRANSPARENT,
@@ -59,6 +69,8 @@ class MainActivity : ComponentActivity() {
                 android.graphics.Color.TRANSPARENT,
             ),
         )
+        // 只安装一次背景 Drawable，后续切换主题只换颜色（见下面的 LaunchedEffect）。
+        window?.setBackgroundDrawable(windowBackgroundDrawable)
         setContent {
             // 主题配色跟随用户偏好实时变化：设置页选色后立即生效。
             val preferences by userDataRepository.observeUserPreferences()
@@ -90,22 +102,22 @@ class MainActivity : ComponentActivity() {
                 // 「系统浅色 + App 强制夜间」就会得到深色图标压在纯黑状态栏上——直接看不见；
                 // 反过来「系统夜间 + App 浅色」则是白图标压在白色页面上，同样看不见。
                 // 巡礼页那种浅色地图页也走这一条：白天白条深图标、夜间黑条浅图标，不做例外。
+                //
+                // 这里只翻 appearance，**不再调 enableEdgeToEdge**：后者会重设
+                // `decorFitsSystemWindows` 和两个栏色（API 35 起栏色已废弃），
+                // 等于每次切换都白做一遍窗口配置，全压在同一帧上。
                 LaunchedEffect(darkTheme) {
-                    val barStyle = if (darkTheme) {
-                        SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-                    } else {
-                        SystemBarStyle.light(
-                            android.graphics.Color.TRANSPARENT,
-                            android.graphics.Color.TRANSPARENT,
-                        )
+                    WindowCompat.getInsetsController(window, window.decorView).apply {
+                        isAppearanceLightStatusBars = !darkTheme
+                        isAppearanceLightNavigationBars = !darkTheme
                     }
-                    enableEdgeToEdge(statusBarStyle = barStyle, navigationBarStyle = barStyle)
                 }
 
                 // 窗口底色跟随当前主题：手动切夜间后再冷启动 / 返回前台不会闪白色。
                 val windowBackground = MaterialTheme.colorScheme.background
                 LaunchedEffect(windowBackground) {
-                    window?.setBackgroundDrawable(ColorDrawable(windowBackground.toArgb()))
+                    // 只改颜色，不换 Drawable —— 避免切换那一帧上多一次整窗布局。
+                    windowBackgroundDrawable.color = windowBackground.toArgb()
                 }
 
                 // 日夜切换宿主必须包住**整个**内容：揭示动画裁的是窗口级内容（含系统栏区域），

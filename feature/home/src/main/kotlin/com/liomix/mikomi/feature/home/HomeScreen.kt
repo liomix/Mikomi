@@ -39,6 +39,7 @@ import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.AnimePosterCard
 import com.liomix.mikomi.core.ui.component.ErrorState
 import com.liomix.mikomi.core.ui.component.SkeletonBox
+import com.liomix.mikomi.core.ui.component.SkeletonShimmer
 
 /** 网格列宽：手机竖屏约 3 列，宽屏自动增加列数（Dart 版为固定 3 列）。 */
 private val HomeGridColumns = GridCells.Adaptive(minSize = 100.dp)
@@ -49,16 +50,22 @@ private val HomeGridColumns = GridCells.Adaptive(minSize = 100.dp)
  * 垂直节奏统一由网格的 [Arrangement.spacedBy] 提供（12dp），
  * 各区域组件不再自带区域间垂直 padding；此处仅为页面顶边
  * 补状态栏安全区 + 少量呼吸空间。
+ *
+ * 用 remember 固定实例：`PaddingValues` 是接口类型（Compose 视为不稳定），
+ * 每次重组都新建会让 `LazyVerticalGrid` 无法跳过、白跑一次重排；
+ * 下拉刷新、加载更多这些每页都会翻的状态更是每次都要赔一遍。
  */
 @Composable
-private fun homeContentPadding(): PaddingValues {
+private fun rememberHomeContentPadding(): PaddingValues {
     val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    return PaddingValues(
-        start = 16.dp,
-        end = 16.dp,
-        top = statusBarInset + 4.dp,
-        bottom = 112.dp,
-    )
+    return remember(statusBarInset) {
+        PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = statusBarInset + 4.dp,
+            bottom = 112.dp,
+        )
+    }
 }
 
 private const val LOAD_MORE_THRESHOLD = 3
@@ -156,33 +163,37 @@ private fun HomeSkeleton(
     val searchHint = stringResource(R.string.home_search_hint)
     val profileContentDescription = stringResource(R.string.home_profile)
 
-    LazyVerticalGrid(
-        columns = HomeGridColumns,
-        modifier = modifier.fillMaxSize(),
-        contentPadding = homeContentPadding(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item(key = "topBar", span = { GridItemSpan(maxLineSpan) }) {
-            HomeTopBar(
-                onSearchClick = onSearchClick,
-                onProfileClick = onProfileClick,
-                searchHint = searchHint,
-                profileContentDescription = profileContentDescription,
-            )
-        }
-        item(key = "bannerSkeleton", span = { GridItemSpan(maxLineSpan) }) {
-            HomeBannerSkeleton()
-        }
-        item(key = "actions", span = { GridItemSpan(maxLineSpan) }) {
-            HomeActionTabs(onActionClick = onActionClick)
-        }
-        items(
-            count = 12,
-            key = { "skeleton_$it" },
-            contentType = { "skeleton" },
+    // 整屏骨架共用一条扫光时间线：十几块 SkeletonBox 各自 rememberInfiniteTransition
+    // 的话，同一帧里会有十几条时间线同时写入、失效、重绘。见 SkeletonShimmer 注释。
+    SkeletonShimmer {
+        LazyVerticalGrid(
+            columns = HomeGridColumns,
+            modifier = modifier.fillMaxSize(),
+            contentPadding = rememberHomeContentPadding(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            SkeletonGridCard()
+            item(key = "topBar", span = { GridItemSpan(maxLineSpan) }) {
+                HomeTopBar(
+                    onSearchClick = onSearchClick,
+                    onProfileClick = onProfileClick,
+                    searchHint = searchHint,
+                    profileContentDescription = profileContentDescription,
+                )
+            }
+            item(key = "bannerSkeleton", span = { GridItemSpan(maxLineSpan) }) {
+                HomeBannerSkeleton()
+            }
+            item(key = "actions", span = { GridItemSpan(maxLineSpan) }) {
+                HomeActionTabs(onActionClick = onActionClick)
+            }
+            items(
+                count = 12,
+                key = { "skeleton_$it" },
+                contentType = { "skeleton" },
+            ) {
+                SkeletonGridCard()
+            }
         }
     }
 }
@@ -246,7 +257,7 @@ private fun HomeContent(
             state = gridState,
             columns = HomeGridColumns,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = homeContentPadding(),
+            contentPadding = rememberHomeContentPadding(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -294,8 +305,10 @@ private fun HomeContent(
                 contentType = { "anime" },
             ) { item ->
                 AnimePosterCard(
-                    anime = item,
-                    onClick = { onAnimeClick(item.id) },
+                    id = item.id,
+                    title = item.title,
+                    coverUrl = item.coverUrl,
+                    onCardClick = onAnimeClick,
                 )
             }
 

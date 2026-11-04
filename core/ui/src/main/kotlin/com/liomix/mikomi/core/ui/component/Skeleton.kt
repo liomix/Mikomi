@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -40,7 +42,7 @@ import androidx.compose.ui.unit.dp
  * - 速度是「每 400ms 平移一个列表宽度」，而不是固定时长 —— 大屏上绝对速度快、相对观感一致。
  *
  * 帧开销与 Telegram 一致：Paint / shader / 矩阵在组合阶段建好，每帧只 `setLocalMatrix`，
- * 不重建 Shader、不分配临时对象。
+ * 不重建 Shader、不分配临时对象。整屏多块骨架的时间线合并见 [SkeletonShimmer]。
  *
  * @param baseColor 占位底色；默认由主题推导成半透明墨色
  * @param sweepColor 扫光带颜色；默认比底色更亮一档
@@ -59,6 +61,46 @@ fun SkeletonBox(
             sweepColor = sweepColor,
         ),
     )
+}
+
+/**
+ * 一屏骨架共用的扫光参数。
+ *
+ * @property progress 扫光进度，只在绘制阶段读取
+ * @property gradientWidth 渐变窗口宽度（px）
+ * @property travel 一次循环的位移行程（px）
+ */
+private class ShimmerSweep(
+    val progress: State<Float>,
+    val gradientWidth: Float,
+    val travel: Float,
+)
+
+/**
+ * 当前生效的共享扫光；为 null 时由每块骨架自建一条时间线。
+ *
+ * 用 [staticCompositionLocalOf]：值在容器存续期不变，不需要为每个读者登记失效。
+ */
+private val LocalShimmerSweep = staticCompositionLocalOf<ShimmerSweep?> { null }
+
+/**
+ * 骨架屏容器：一屏内所有骨架共用**一条**扫光时间线。
+ *
+ * Telegram 的消息骨架只有一份 `skeletonGradient` 和一个 `skeletonTotalTranslation`，
+ * 几十个气泡共用同一个位移量；这里照同样思路把时间线提到容器层。
+ *
+ * 为什么值得单拎出来：`rememberInfiniteTransition` 每个实例都是「一条 `withFrameNanos`
+ * 自驱协程 + 一个 `State` 每帧写入」。12 张卡片骨架连同其文字块就是二十多条时间线，
+ * 同一帧里各自写入、各自失效、各自重绘；提到容器后整屏只剩一条，
+ * 而且所有块的相位天然一致（不会因为组合先后而错开）。
+ *
+ * 只在骨架**真正显示**的那一小段 UI 上包这一层：骨架消失时容器一起离开组合，时间线随之停止，
+ * 不会留下一条空转的无限动画。
+ */
+@Composable
+fun SkeletonShimmer(content: @Composable () -> Unit) {
+    val sweep = rememberShimmerSweep()
+    CompositionLocalProvider(LocalShimmerSweep provides sweep, content = content)
 }
 
 /**
@@ -81,15 +123,10 @@ fun Modifier.shimmer(
     val base = baseColor ?: ink.copy(alpha = if (night) NightBaseAlpha else DayBaseAlpha)
     val sweep = sweepColor ?: ink.copy(alpha = if (night) NightSweepAlpha else DaySweepAlpha)
 
-    val density = LocalDensity.current
-    val screenWidthDp = LocalConfiguration.current.screenWidthDp.dp
-    // 位移行程：-2×渐变宽 → 2×列表宽（列表宽这里用屏幕宽代替）。
-    val gradientWidth = with(density) { SweepGradientWidth.toPx() }
-    val travelWidth = with(density) { screenWidthDp.toPx() }.coerceAtLeast(1f)
-    val travel = 2f * gradientWidth + 2f * travelWidth
-    // 周期由「每 400ms 平移一个列表宽」反推，而不是写死时长。
-    val cycleMillis = (travel / (travelWidth / SweepPerWidthMillis)).toInt().coerceAtLeast(1)
-    val progress = rememberShimmerProgress(cycleMillis)
+    // 容器提供了共享时间线就复用它，否则自建一条（单块骨架的常见场景）。
+    val shared = LocalShimmerSweep.current
+    val spec = if (shared != null) shared else rememberShimmerSweep()
+    val gradientWidth = spec.gradientWidth
 
     // 画笔 / shader / 矩阵只建一次：色标与渐变宽都和滚动位置无关，每帧要变的只有
     // shader 的 localMatrix。Telegram 也是这么做的（skeletonPaint + setLocalMatrix）；
@@ -99,10 +136,32 @@ fun Modifier.shimmer(
     }
 
     return clip(shape).drawBehind {
-        val x = -2f * gradientWidth + progress.value * travel
+        val x = -2f * gradientWidth + spec.progress.value * spec.travel
         drawIntoCanvas { canvas ->
             sweepPaint.draw(canvas.nativeCanvas, size.width, size.height, x)
         }
+    }
+}
+
+/**
+ * 建一份扫光参数。
+ *
+ * 周期由「每 400ms 平移一个列表宽」反推（列表宽这里用屏幕宽代替），而不是写死时长 ——
+ * 大屏绝对速度快、观感一致。
+ */
+@Composable
+private fun rememberShimmerSweep(): ShimmerSweep {
+    val density = LocalDensity.current
+    val screenWidthPx = with(density) {
+        LocalConfiguration.current.screenWidthDp.dp.toPx()
+    }.coerceAtLeast(1f)
+    val gradientWidth = with(density) { SweepGradientWidth.toPx() }
+    // 行程：-2×渐变宽 → 2×列表宽。
+    val travel = 2f * gradientWidth + 2f * screenWidthPx
+    val cycleMillis = (travel / (screenWidthPx / SweepPerWidthMillis)).toInt().coerceAtLeast(1)
+    val progress = rememberShimmerProgress(cycleMillis)
+    return remember(progress, gradientWidth, travel) {
+        ShimmerSweep(progress, gradientWidth, travel)
     }
 }
 

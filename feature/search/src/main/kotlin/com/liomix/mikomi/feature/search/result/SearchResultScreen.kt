@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.ui.component.AnimePosterCard
 import com.liomix.mikomi.core.ui.component.SkeletonBox
+import com.liomix.mikomi.core.ui.component.SkeletonShimmer
 import com.liomix.mikomi.feature.search.LoadState
 import com.liomix.mikomi.feature.search.R
 import com.liomix.mikomi.feature.search.SearchCenteredHint
@@ -131,8 +132,10 @@ private fun ResultGrid(
             contentType = { "result_item" },
         ) { anime ->
             AnimePosterCard(
-                anime = anime,
-                onClick = { onAnimeClick(anime.id) },
+                id = anime.id,
+                title = anime.title,
+                coverUrl = anime.coverUrl,
+                onCardClick = onAnimeClick,
             )
         }
         item(
@@ -177,37 +180,40 @@ private fun ResultFooter(
 /** 骨架屏网格：与首页推荐区同构（海报块 + 标题条）。 */
 @Composable
 private fun ResultSkeleton() {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = RESULT_GRID_MIN_SIZE),
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            top = 4.dp,
-            bottom = 24.dp,
-        ),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        items(
-            count = RESULT_SKELETON_COUNT,
-            key = { "result_skeleton_$it" },
-            contentType = { "result_skeleton" },
+    // 整屏骨架共用一条扫光时间线（12 格 × 2 块 = 24 条 time line 合成一条）。
+    SkeletonShimmer {
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = RESULT_GRID_MIN_SIZE),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 4.dp,
+                bottom = 24.dp,
+            ),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column {
-                SkeletonBox(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(2f / 3f),
-                    shape = RoundedCornerShape(8.dp),
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                SkeletonBox(
-                    modifier = Modifier
-                        .fillMaxWidth(0.7f)
-                        .height(12.dp),
-                    shape = RoundedCornerShape(4.dp),
-                )
+            items(
+                count = RESULT_SKELETON_COUNT,
+                key = { "result_skeleton_$it" },
+                contentType = { "result_skeleton" },
+            ) {
+                Column {
+                    SkeletonBox(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(2f / 3f),
+                        shape = RoundedCornerShape(8.dp),
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SkeletonBox(
+                        modifier = Modifier
+                            .fillMaxWidth(0.7f)
+                            .height(12.dp),
+                        shape = RoundedCornerShape(4.dp),
+                    )
+                }
             }
         }
     }

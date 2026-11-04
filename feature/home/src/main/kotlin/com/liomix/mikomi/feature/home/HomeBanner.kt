@@ -194,6 +194,9 @@ private fun BannerItem(
             .memoryCacheKey(anime.coverUrl)
             .build()
     }
+    // ColorPainter 必须 remember：翻页时每个可见页都会重组，字面量 new 出来的 painter
+    // 会让 AsyncImage 认为占位图换了、重跑一遍比对与绘制。
+    val placeholderPainter = remember(placeholderColor) { ColorPainter(placeholderColor) }
 
     Box(
         modifier = modifier
@@ -218,8 +221,8 @@ private fun BannerItem(
                 contentDescription = anime.title,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
-                placeholder = ColorPainter(placeholderColor),
-                error = ColorPainter(placeholderColor),
+                placeholder = placeholderPainter,
+                error = placeholderPainter,
             )
         }
 

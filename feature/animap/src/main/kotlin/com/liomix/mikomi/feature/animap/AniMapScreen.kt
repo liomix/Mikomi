@@ -29,7 +29,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -199,24 +198,26 @@ fun AniMapScreen(
                 .then(if (searchExpanded) Modifier else Modifier.imePadding()),
             factory = { context ->
                 // 复用缓存的 WebView：切换回巡礼页不再重新加载地图。
-                AniMapWebCache.acquire(context, url).also { acquired ->
+                AniMapCache.acquire(context, url).also { acquired ->
                     container = acquired
                     acquired.onLoadingChanged = { isLoading -> loading = isLoading }
                     acquired.onPageFinished = { view, finishedUrl ->
                         // 用页面最终 URL 记录缓存；anitabi 会重定向改写 URL，
                         // 与初始 url 不等会导致缓存永不命中。
-                        AniMapWebCache.onLoaded(finishedUrl ?: view.url ?: url)
+                        AniMapCache.onLoaded(finishedUrl ?: view.url ?: url)
                     }
                     // 缓存 WebView 已完成首屏加载；其挂载发生在 AndroidView 布局阶段，
                     // 因此不能通过此刻的 container.webView 是否为空判断加载状态。
-                    loading = !acquired.hasCachedWebView
+                    // 来自预热的页面数据齐了但还没画过首帧，仍要先盖住一下：
+                    // 直接撤遮罩会先露出底色和半个地图，再跳成完整地图。
+                    loading = !acquired.hasCachedWebView || acquired.needsPresentWait
                 }
             },
             onRelease = {
                 // 容器随本次组合卸载；搜索不能再对着一个已经摘下来的 WebView 求值。
                 container = null
                 // 仅把 WebView 从容器上摘下，本体由缓存持有，下次进入直接挂回来。
-                AniMapWebCache.release(it)
+                AniMapCache.release(it)
             },
         )
 

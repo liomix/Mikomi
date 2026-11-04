@@ -57,6 +57,15 @@ private const val MAP_READY_TIMEOUT_MILLIS = 8_000L
  */
 private const val DIAGNOSTIC_DELAY_MILLIS = 2000L
 
+/**
+ * 预热页挂回界面后等首帧的上限（毫秒）。
+ *
+ * 预热阶段已经把文档、JS、作品数据、地图对象都准备好了，挂回窗口只差「画第一帧」，
+ * 这个数字给得比冷启动的 [MAP_READY_TIMEOUT_MILLIS] 短得多；等太久只会让用户
+ * 对着一个其实已经能用的页面看转圈。
+ */
+private const val PRESENT_READY_TIMEOUT_MILLIS = 3_000L
+
 /** 解析注入脚本回包用的序列化器（页面回的是 JSON；生成 JS 字面量的那份在 [AniMapScript]）。 */
 private val JSON = Json {
     ignoreUnknownKeys = true
@@ -85,11 +94,32 @@ class AniMapWebViewContainer(
     context: Context,
     private val initialUrl: String,
     private val cachedWebView: WebView? = null,
+    private val presentPending: Boolean = false,
 ) : FrameLayout(context) {
 
     /** 容器内的 WebView，创建后可调用 goBack 等。 */
     var webView: WebView? = null
         private set
+
+    /**
+     * 页面最终 URL（站点会把初始地址重定向改写）。
+     *
+     * 预热出去的容器要靠它记缓存键：拿到它的时候 `onPageFinished` 早就触发过了，
+     * 界面上那个回调不会再来第二次。
+     */
+    internal var pageUrl: String? = null
+
+    /** 是否正在等「挂回窗口后的第一帧」。 */
+    private var presentPendingFrame = presentPending
+
+    /**
+     * 是否还需要等一次首帧才能撤掉加载遮罩。
+     *
+     * 来自预热或刚转正的容器为 true：页面数据齐了但还没画过，直接撤遮罩会先闪一屏底色。
+     * 已经完整展示过的缓存页为 false，切回 tab 时应当瞬时出现。
+     */
+    internal val needsPresentWait: Boolean
+        get() = presentPendingFrame
 
     /** 页面开始加载/加载完成时回调 true/false。 */
     var onLoadingChanged: (Boolean) -> Unit = {}
@@ -124,9 +154,34 @@ class AniMapWebViewContainer(
             onLoadingChanged(true)
             web.loadUrl(initialUrl)
         } else {
+            // 摘下来时暂停过（见 detachForCache），挂回窗口必须恢复：
+            // 不恢复的话页面不跑 JS 定时器，地图不会响应点击与缩放。
+            web.resumeTimers()
+            web.onResume()
             // 缓存页面的样式早就注入过；SPA 偶尔会重建 head，补一次不吃亏。
             injectOverlayStyle(web)
+            if (presentPending) {
+                // 预热页的数据和样式都好了，但它是不可见状态下准备的，首帧还没画过。
+                // 挂回窗口后必须等一次真正的首帧，否则会先露出「底色 + 半个地图」。
+                web.post { awaitMapReady(web, PRESENT_READY_TIMEOUT_MILLIS) }
+            }
         }
+    }
+
+    /**
+     * 把预热中的容器转正为界面上的容器。
+     *
+     * 与「缓存页挂回新容器」的区别：这里连容器本体一起接手，页面还在加载中，
+     * 不能重建（重建等于白预热）。所以只做三件事：显示、作废预热期那一轮判定、
+     * 重新起一轮「等首帧」。
+     */
+    internal fun promoteFromWarmUp() {
+        val view = webView ?: return
+        visibility = View.VISIBLE
+        presentPendingFrame = true
+        // 预热期那次轮询可能还在排队，而它是在「不可见」状态下判的，结论不作数。
+        readyGeneration++
+        view.post { awaitMapReady(view, PRESENT_READY_TIMEOUT_MILLIS) }
     }
 
     /** 停止加载并销毁 WebView。 */
@@ -140,11 +195,22 @@ class AniMapWebViewContainer(
     }
 
     /**
-     * 仅把 WebView 从容器上摘下，保留本体由 [AniMapWebCache] 持有，供下次进入复用。
+     * 仅把 WebView 从容器上摘下，保留本体由 [AniMapCache] 持有，供下次进入复用。
      * 调用后容器不可再用。
+     *
+     * 摘下来还不够：实测 WebView 离开窗口之后 **rAF 依旧在跑**，`document.visibilityState`
+     * 仍是 `visible`，mapbox 的渲染循环会以每秒上百帧空转——这正是「后台预热拖累首页」
+     * 的实际来源。所以这里必须显式 [WebView.onPause] + [WebView.pauseTimers]。
+     *
+     * `pauseTimers` 是进程级的（会影响所有 WebView）。当前只有地图这一个 WebView，
+     * 将来若新增，需要在各自恢复时重新 `resumeTimers`。
      */
     fun detachForCache() {
-        webView?.let { (it.parent as? ViewGroup)?.removeView(it) }
+        webView?.let { web ->
+            web.onPause()
+            web.pauseTimers()
+            (web.parent as? ViewGroup)?.removeView(web)
+        }
         webView = null
     }
 
@@ -192,6 +258,9 @@ class AniMapWebViewContainer(
             }
 
             override fun onPageFinished(view: WebView, finishedUrl: String?) {
+                // 先自己记一笔：预热出去的那次加载没有界面在听回调，
+                // 缓存层只能从这里拿最终地址（站点会重定向改写 URL）。
+                pageUrl = finishedUrl ?: view.url
                 injectOverlayStyle(view)
                 // 这里**不再**直接把 loading 置 false：HTML 到齐时地图还是空白的，
                 // 站点原本用那块浅蓝启动页盖住这段时间，启动页被藏掉后得由我们接上，
@@ -217,11 +286,17 @@ class AniMapWebViewContainer(
      * 站点自己用 `.ui-loading` 盖住这段时间，我们把那块藏了，就得自己接住这段空窗。
      *
      * 三道保险：`2` 立刻收；`1`（瓦片齐但 loaded() 没转真）过了宽限期就收；
-     * 整体超过 [MAP_READY_TIMEOUT_MILLIS] 强制收 —— 弱网下宁可先露出半成品，
+     * 整体超过 [timeoutMillis] 强制收 —— 弱网下宁可先露出半成品，
      * 也不能让人对着转圈等到天荒地老。
      * 页面已经卸载或又发起新导航时，这一轮静默作废（见 [readyGeneration]）。
+     *
+     * @param timeoutMillis 这一轮最多等多久。冷启动用默认值；预热页挂回来时数据都齐了，
+     *   只差首帧，用更短的上限，别让用户对着一个其实已经能用的页面看转圈
      */
-    private fun awaitMapReady(view: WebView) {
+    private fun awaitMapReady(
+        view: WebView,
+        timeoutMillis: Long = MAP_READY_TIMEOUT_MILLIS,
+    ) {
         val generation = readyGeneration
         val startedAt = SystemClock.uptimeMillis()
         val poll = object : Runnable {
@@ -230,12 +305,16 @@ class AniMapWebViewContainer(
                 // 容器已卸载 / 已经换了页面：直接作废，别去动现在的 loading。
                 if (view !== webView || generation != readyGeneration) return
                 val elapsed = SystemClock.uptimeMillis() - startedAt
-                if (elapsed >= MAP_READY_TIMEOUT_MILLIS) {
+                if (elapsed >= timeoutMillis) {
+                    presentPendingFrame = false
                     onLoadingChanged(false)
                     return
                 }
                 val release = {
-                    if (generation == readyGeneration) onLoadingChanged(false)
+                    if (generation == readyGeneration) {
+                        presentPendingFrame = false
+                        onLoadingChanged(false)
+                    }
                 }
                 runCatching {
                     view.evaluateJavascript(MAP_READY_JS) { raw ->

@@ -67,9 +67,18 @@ import com.liomix.mikomi.core.navigation.topLevelDestinations
 import com.liomix.mikomi.core.ui.component.HeroFlightController
 import com.liomix.mikomi.core.ui.component.HeroFlightOverlay
 import com.liomix.mikomi.core.ui.component.LocalHeroFlightController
+import com.liomix.mikomi.feature.animap.AniMapWarmer
 
 /** 进入巡礼页后自动隐藏底部导航栏的延时（毫秒）：不靠滑动判定，进页面 2s 后自动进入沉浸。 */
 private const val NAV_BAR_AUTO_HIDE_DELAY_MILLIS = 2_000L
+
+/**
+ * 首页停留多久之后开始预热巡礼页（毫秒）。
+ *
+ * 太早会和首屏组合、封面解码、首次布局挤在一起；太晚则用户已经点走了。
+ * 4 秒大致是「首屏看完、开始细看内容」的位置，此时主线程不再是满负荷。
+ */
+private const val ANIMAP_WARM_UP_DELAY_MILLIS = 4_000L
 
 /**
  * 页面转场统一 spring 参数。
@@ -191,6 +200,24 @@ fun MikomiNavHost(
     // 巡礼页的沉浸只是隐藏我们自己画的底部导航栏，和系统栏无关。
     val view = LocalView.current
 
+    // 预热巡礼页需要一个 Activity：WebView 要挂在它的窗口上（不可见）才能真正布局与加载。
+    val activity = view.context as? Activity
+
+    // 首页静止时预热巡礼页：这是唯一能把「点进去等七八秒」变成「点进去就有」的时机。
+    //
+    // 巡礼页的等待里，Chromium 初始化、HTML 往返、JS 与作品数据都不要求页面可见，
+    // 只有最后那一帧要求。把前三段提前到首页完成，用户进来时只剩首帧。
+    //
+    // 为什么要延后：WebView 的构造必须在主线程，首次初始化要 100~400ms。
+    // 放在首屏刚上来的时刻会和组合、图片解码、首次布局抢同一条队列；
+    // 等 4 秒再动手，用户已经在看内容，那一下的代价不可见。
+    LaunchedEffect(currentTopLevel, isTopLevel, activity) {
+        if (currentTopLevel != HomeDestination || !isTopLevel) return@LaunchedEffect
+        if (activity == null) return@LaunchedEffect
+        kotlinx.coroutines.delay(ANIMAP_WARM_UP_DELAY_MILLIS)
+        AniMapWarmer.warmUp(activity)
+    }
+
     // 根屏仅在巡礼页处于沉浸状态时才拦截返回，用于临时显示导航栏。
     // 其它目的地交还给系统返回，避免首页或“我的”页无法正常退出应用。
     val isRootScreen = navigator.backStack.size <= 1
@@ -227,7 +254,7 @@ fun MikomiNavHost(
             .background(MaterialTheme.colorScheme.background)
             // 顶级页面之间左右滑动切换：竖向手势与子级横向滚动（轮播、分页）都优先，
             // 只有它们没消费的横向手势才落到这里，因此不会抢详情页/轮播的滑动。
-            .pointerInput(isTopLevel, topLevelOrder, currentTopLevel) {
+            .pointerInput(isTopLevel, topLevelOrder, currentTopLevel, activity) {
                 // 巡礼页例外：那个页面的主体是真实 WebView（地图），平移要原地收到每一帧
                 // move。而 Compose 的指针事件先于原生子 View 派发——这里一旦判定成横向
                 // 拖动并 consume，WebView 就再也收不到 move，真机表现正是「上下能拖、
@@ -235,8 +262,12 @@ fun MikomiNavHost(
                 // 所以巡礼页放弃横滑，要换页点底部导航栏（沉浸中先点底部手势条唤出）。
                 if (!isTopLevel || currentTopLevel == AniMapDestination) return@pointerInput
                 var dragged = 0f
+                var warmUpRequested = false
                 detectHorizontalDragGestures(
-                    onDragStart = { dragged = 0f },
+                    onDragStart = {
+                        dragged = 0f
+                        warmUpRequested = false
+                    },
                     onDragEnd = {
                         val threshold = TOP_LEVEL_SWIPE_THRESHOLD.toPx()
                         val index = topLevelOrder.indexOf(currentTopLevel)
@@ -253,6 +284,16 @@ fun MikomiNavHost(
                     onHorizontalDrag = { change, amount ->
                         dragged += amount
                         change.consume()
+                        // 滑过阈值一半就认为「多半要切页」：提前把巡礼页建起来，
+                        // 松手时 Chromium 已经初始化完、HTML 也在路上了。
+                        // 幂等，且真正没滑够时只是浪费一个后台页面（T半小时自行回收）。
+                        if (!warmUpRequested) {
+                            val half = TOP_LEVEL_SWIPE_THRESHOLD.toPx() / 2
+                            if (dragged <= -half || dragged >= half) {
+                                warmUpRequested = true
+                                activity?.let { AniMapWarmer.warmUp(it) }
+                            }
+                        }
                     },
                 )
             },
@@ -296,6 +337,12 @@ fun MikomiNavHost(
                 selectedKey = currentTopLevel,
                 onSelect = { key ->
                     (key as? NavKey)?.let { destination ->
+                        // 点巡礼 tab 时补一次预热：首页停留不足 4 秒就点进来时，
+                        // 空闲预热还没触发，这里至少能把 Chromium 初始化塞进转场动画。
+                        // 已经预热过则直接返回，没有额外开销。
+                        if (destination == AniMapDestination) {
+                            activity?.let { AniMapWarmer.warmUp(it) }
+                        }
                         // 先同步复位，避免切回巡礼页的首帧沿用上一次的沉浸状态而隐藏底栏。
                         immersionBridge.resetForTopLevelNavigation()
                         navigator.selectTopLevel(destination)

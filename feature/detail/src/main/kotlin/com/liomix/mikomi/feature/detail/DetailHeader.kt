@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -74,11 +75,14 @@ private val DETAIL_BACKDROP_FALLBACK = Color(0xFF26262A)
  * 对齐 Dart 版 `AnimeHeader`：背景图高斯模糊铺满，标题单行省略，
  * 左侧封面圆角，右侧竖排信息（label 14sp / value 20sp bold，与 Dart 版一致）。
  *
- * 头部固定不随内容滚动，因此不再做视差偏移。
+ * 头部自身不做位移动画：折叠时由外层裁掉下半截，标题始终钉在顶部。
+ * [infoAlpha] 是海报 + 信息列的淡出系数，随折叠变化 —— 它以 lambda 传入，
+ * 只在 `graphicsLayer` 的绘制阶段读取，因此滚动时不会重组这张头部。
  */
 @Composable
 internal fun DetailHeader(
     anime: Anime,
+    infoAlpha: () -> Float,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -108,7 +112,10 @@ internal fun DetailHeader(
             Spacer(modifier = Modifier.height(20.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // 折叠后期的淡出：读在绘制阶段，滚动时不产生重组。
+                    .graphicsLayer { alpha = infoAlpha() },
                 horizontalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 // 左侧封面（飞行终点：与列表卡封面同一个 key，点进来时封面飞到这里）。

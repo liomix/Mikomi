@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -50,8 +51,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -62,9 +65,19 @@ import com.liomix.mikomi.core.ui.component.SkeletonBox
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.hazeSource
+import kotlin.math.roundToInt
 
-/** 头部固定高度。 */
+/** 头部完整高度（展开态）。 */
 private val HEADER_HEIGHT = 420.dp
+
+/**
+ * 收到底之后头部仍保留的高度。
+ *
+ * 这是这套方案的底线：上滑只让「可见的封面变少」，不允许把头部收没。
+ * 数值 = 状态栏 + 标题行（状态栏 40 + 上边距 8 + 标题 28 ≈ 76）+ Tab 栏 48 + 一点余量，
+ * 保证收到底时标题和 Tab 栏不会互相压住，也仍能看清封面。
+ */
+private val HEADER_MIN_HEIGHT = 140.dp
 
 /** 内容区底部留白：避让右下角悬浮按钮组（收藏 48 + 间距 12 + 追番 56 + 外边距 24 + 余量）。 */
 internal val CONTENT_BOTTOM_SPACER = 156.dp
@@ -72,17 +85,28 @@ internal val CONTENT_BOTTOM_SPACER = 156.dp
 /** 收藏按钮直径（比追番按钮更收，形成主次）。 */
 private val FAVORITE_BUTTON_SIZE = 48.dp
 
+/**
+ * Tab 栏底色的不透明度。
+ *
+ * 它压在模糊封面上，留一点透明度让封面的色调透上来，整块看起来是一体的；
+ * 0.88 是「看得出底色、又不影响文字对比度」的平衡点（浅色主题下接近白，深色主题下接近 #181818）。
+ */
+private const val TAB_BAR_ALPHA = 0.88f
+
 /** 收藏星标的固定金色（描边态与填充态共用）。 */
 private val FavoriteStarColor = Color(0xFFFFBD29)
 
 /**
  * 详情页。
  *
- * 布局分三层，纵向互不影响：
- * 1. 头部（封面 + 标题 + 信息）固定不动；
- * 2. TabBar 固定；
- * 3. 内容区占满剩余高度，**每个 Tab 拥有自己的滚动状态**，
- *    上下滑动只滚动当前 Tab 的内容，不会带动头部或整个页面。
+ * 从上到下一条纵向流：头部（封面 + 标题 + 信息 + Tab 栏）→ 内容区。
+ *
+ * **Tab 栏是长在头部上的**：它叠在封面底部，上滑时由 [NestedScrollConnection] 把增量先给头部，
+ * Tab 栏贴着封面的下边缘往上盖，封面本身钉在原地不动、可见高度一路收到 [HEADER_MIN_HEIGHT]
+ * 就停住 —— 头部永远不会被收没，标题始终留着。收到底后增量才落到内容区自己身上；
+ * 内容回到顶部再继续下滑，Tab 栏又滑下来、封面重新露全。
+ *
+ * 每个 Tab 仍保有自己的滚动状态（各自 `ScrollState` / `LazyListState`），切 Tab 互不影响。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -169,6 +193,9 @@ private fun DetailContent(
     var selectedTab by remember { mutableStateOf(DetailTabType.OVERVIEW) }
     // 毛玻璃：内容作 source，顶栏作 child。
     val hazeState = remember { HazeState() }
+    // 头部收缩：内容区的滚动先经过这里，Tab 栏贴着封面下边缘往上盖。
+    val collapse = rememberHeaderCollapse(HEADER_HEIGHT, HEADER_MIN_HEIGHT)
+    val collapseConnection = rememberHeaderCollapseConnection(collapse)
 
     // 每个 Tab 独立的滚动状态，切 Tab 后各自位置保留、互不干扰。
     val overviewScroll = rememberScrollState()
@@ -180,19 +207,31 @@ private fun DetailContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(state = hazeState),
+                .hazeSource(state = hazeState)
+                .nestedScroll(collapseConnection),
         ) {
-            // 头部：固定不随内容滚动。
-            DetailHeader(
-                anime = anime,
+            // 头部 + Tab 栏：同一个块。Tab 栏叠在封面底部，随收缩沿封面上移，
+            // 裁切由 collapsingHeader 负责 —— 露不出来的只有封面下半截，标题永远在。
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(HEADER_HEIGHT),
-            )
-            DetailTabBar(
-                selectedTab = selectedTab,
-                onSelect = { selectedTab = it },
-            )
+                    .collapsingHeader(collapse),
+            ) {
+                DetailHeader(
+                    anime = anime,
+                    // 海报/信息列贴在标题下面，最先被 Tab 栏压到：收掉大半后淡出。
+                    infoAlpha = { collapse.infoAlpha },
+                    modifier = Modifier.fillMaxSize(),
+                )
+                DetailTabBar(
+                    selectedTab = selectedTab,
+                    onSelect = { selectedTab = it },
+                    // 贴住可见区域的下边缘：读取放进 offset 的 lambda 里，走布局阶段。
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .offset { IntOffset(0, -collapse.offsetPx.roundToInt()) },
+                )
+            }
             // 内容区：占满剩余高度，内部各自滚动。
             Box(
                 modifier = Modifier
@@ -473,15 +512,26 @@ private fun ScrollableTabPane(
     }
 }
 
+/**
+ * Tab 栏。
+ *
+ * 它叠在封面上（不是内容区的第一条），所以底色用半透明的 surface：模糊封面的颜色会透一点上来，
+ * 观感上是「封面下沿的一条玻璃条」，而不是把 banner 切两刀的实心块。
+ * 透明度是常量的 —— 收缩过程中不换色，只有位置在动，因此这条栏在滚动里没有任何重组。
+ */
 @Composable
 private fun DetailTabBar(
     selectedTab: DetailTabType,
     onSelect: (DetailTabType) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Surface(color = MaterialTheme.colorScheme.surface) {
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = TAB_BAR_ALPHA),
+    ) {
         TabRow(
             selectedTabIndex = selectedTab.ordinal,
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = Color.Transparent,
             divider = {},
         ) {
             DetailTabType.entries.forEachIndexed { index, tab ->

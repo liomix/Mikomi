@@ -14,13 +14,13 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,15 +37,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
 import com.liomix.mikomi.core.model.TransitionStyle
+import com.liomix.mikomi.core.ui.component.BaseScreenLayout
 import com.liomix.mikomi.core.ui.component.Capsule
 import com.liomix.mikomi.core.ui.component.MikomiToast
 import com.liomix.mikomi.core.ui.component.MikomiToastData
-import com.liomix.mikomi.core.ui.component.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.R
-import com.liomix.mikomi.feature.settings.theme.appicon.AppIconStyle
 import com.liomix.mikomi.feature.settings.component.BAndWSwitch
 import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardSection
+import com.liomix.mikomi.feature.settings.component.ThemeSwatch
+import com.liomix.mikomi.feature.settings.theme.appicon.AppIconStyle
 
 /**
  * 主题设置页。
@@ -56,6 +57,8 @@ import com.liomix.mikomi.feature.settings.component.SettingsCardSection
  *
  * 日夜切换的圆形揭示动画由 App 根部的 `NightModeTransitionHost` 负责（裁的是整个窗口），
  * 本页只负责把开关放在正确的位置；页面级提示由 [MikomiToast]（core:ui 公共组件）渲染在底部。
+ *
+ * 配色色卡本身的绘制、选中态与表情动画在 [com.liomix.mikomi.feature.settings.component.ThemeSwatch]。
  */
 @Composable
 fun ThemeScreen(
@@ -91,6 +94,7 @@ fun ThemeScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     LazyRow(
+                        modifier = Modifier.selectableGroup(),
                         contentPadding = PaddingValues(horizontal = 20.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
@@ -99,7 +103,7 @@ fun ThemeScreen(
                             key = { palette -> palette.id },
                             contentType = { "palette" },
                         ) { palette ->
-                            PaletteSwatch(
+                            ThemeSwatch(
                                 palette = palette,
                                 selected = palette.id == colorSchemeId,
                                 onClick = { onSelectColorScheme(palette.id) },
@@ -201,44 +205,12 @@ fun ThemeScreen(
         )
     }
 }
-/**
- * 配色色卡：整块纯色（只用该配色的主色，不加任何装饰）。
- *
- * 选中时外圈描主色并在内外留出间隙（对齐参考版式的选中态）。
- */
-@Composable
-private fun PaletteSwatch(
-    palette: ThemePalette,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val borderColor = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
-    Box(
-        modifier = modifier
-            .size(width = SWATCH_WIDTH, height = SWATCH_HEIGHT)
-            .border(
-                width = if (selected) SELECTED_BORDER_WIDTH else 0.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(20.dp),
-            )
-            .padding(SELECTED_BORDER_WIDTH)
-            .clip(RoundedCornerShape(17.dp))
-            .background(palette.swatch)
-            .clickable(onClick = onClick),
-    )
-}
-
-/** 色卡尺寸（与参考版式 3.x 屏占比接近）。 */
-private val SWATCH_WIDTH = 92.dp
-private val SWATCH_HEIGHT = 124.dp
-private val SELECTED_BORDER_WIDTH = 3.dp
 
 /**
  * 图标样式选项：圆角图标预览 + 名称。
  *
  * 触控区域严格等于图标本身（72dp），名称只作说明不可点；
- * 选中时外圈描主色并在内外留出间隙（与配色色卡选中态一致）。
+ * 选中时外圈描主色并在内外留出间隙（图标是方形预览，不套用色卡那套收拢描边）。
  */
 @Composable
 private fun AppIconOption(
@@ -261,11 +233,11 @@ private fun AppIconOption(
             modifier = Modifier
                 .size(APP_ICON_PREVIEW_SIZE)
                 .border(
-                    width = if (selected) SELECTED_BORDER_WIDTH else 0.dp,
+                    width = if (selected) APP_ICON_SELECTED_BORDER else 0.dp,
                     color = borderColor,
                     shape = RoundedCornerShape(24.dp),
                 )
-                .padding(SELECTED_BORDER_WIDTH)
+                .padding(APP_ICON_SELECTED_BORDER)
                 .clip(RoundedCornerShape(21.dp))
                 .background(APP_ICON_PREVIEW_BACKGROUND)
                 // 点击与涟漪都限制在图标区域内，名称不参与触控。
@@ -293,6 +265,9 @@ private fun AppIconOption(
 /** 图标预览尺寸与前景内边距（贴近自适应图标的前景安全区）。 */
 private val APP_ICON_PREVIEW_SIZE = 72.dp
 private val APP_ICON_FOREGROUND_PADDING = 10.dp
+
+/** 应用图标选项的选中描边宽度（色卡已改成 Telegram 那套，这里保持图标选项原有的观感）。 */
+private val APP_ICON_SELECTED_BORDER = 3.dp
 
 /** 预览底色：与真实启动图标的白底保持一致。 */
 private val APP_ICON_PREVIEW_BACKGROUND = Color(0xFFFEFEFE)

@@ -240,7 +240,7 @@ fun AniMapScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     LottieLoading(
-                        rawRes = R.raw.animap_loading,
+                        rawRes = R.raw.map,
                         size = 96.dp,
                         // 这份动画自带配色（青/绿/橙），本来就是在同色底图上用的；
                         // 统一染色会把它压成一坨单色，反而看不出画的是什么。

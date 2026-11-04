@@ -1,6 +1,8 @@
 package com.liomix.mikomi.feature.detail
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -39,15 +41,21 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.ErrorState
 import com.liomix.mikomi.core.ui.component.SkeletonBox
@@ -63,6 +71,9 @@ internal val CONTENT_BOTTOM_SPACER = 156.dp
 
 /** 收藏按钮直径（比追番按钮更收，形成主次）。 */
 private val FAVORITE_BUTTON_SIZE = 48.dp
+
+/** 收藏星标的固定金色（描边态与填充态共用）。 */
+private val FavoriteStarColor = Color(0xFFFFBD29)
 
 /**
  * 详情页。
@@ -322,7 +333,16 @@ private fun BottomActions(
     }
 }
 
-/** 收藏按钮：圆形星标，已收藏时填充主色。 */
+/**
+ * 收藏按钮：圆形星标，已收藏时填充主色。
+ *
+ * 收藏成功的那一刻在按钮上叠一次星星反应（`star_collect.json`）：
+ * 素材本身是「星星轮廓炸开、粒子飞散再消失」，所以只在播放期间存在于组合里，
+ * 播完立刻摘掉 —— 平时这张页面不为它保留任何绘制节点，也没有常驻的帧回调。
+ *
+ * 触发看的是**状态**而不是点击：`isFavorite` 由数据库观察流驱动，只有真正写进去了才会
+ * `false -> true`，写失败时不会白炸一次。取消收藏不播（素材也不是为倒放设计的）。
+ */
 @Composable
 private fun FavoriteButton(
     isFavorite: Boolean,
@@ -334,30 +354,78 @@ private fun FavoriteButton(
     } else {
         R.string.detail_add_favorite
     }
-    Surface(
-        onClick = onClick,
-        modifier = modifier.size(FAVORITE_BUTTON_SIZE),
-        shape = CircleShape,
-        color = if (isFavorite) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerHighest
-        },
-        contentColor = if (isFavorite) {
-            MaterialTheme.colorScheme.onPrimary
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = if (isFavorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
-                contentDescription = stringResource(contentDescriptionRes),
-                modifier = Modifier.size(26.dp),
+    // 进页面就解析好 json（异步，几十毫秒），真正点收藏时不必等加载。
+    val composition by rememberLottieComposition(StarCollectSpec)
+    val progress = remember { Animatable(0f) }
+    var bursting by remember { mutableStateOf(false) }
+    var playToken by remember { mutableIntStateOf(0) }
+    // 记住上一次的状态：进页面时已经是「已收藏」不该补播一遍。
+    var wasFavorite by remember { mutableStateOf(isFavorite) }
+    LaunchedEffect(isFavorite) {
+        if (isFavorite && !wasFavorite) playToken++
+        wasFavorite = isFavorite
+    }
+
+    val loaded = composition
+    LaunchedEffect(playToken, loaded) {
+        if (playToken == 0 || loaded == null) return@LaunchedEffect
+        // 先归零再挂上去，避免复用上一次的末帧闪一下。
+        progress.snapTo(0f)
+        bursting = true
+        // 进度手写而不用 animateLottieCompositionAsState：需要「播一次就撤」，
+        // 且速率必须是线性 —— json 关键帧自带缓动，再叠一层会拖尾。
+        progress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(
+                durationMillis = loaded.duration.toInt().coerceAtLeast(1),
+                easing = LinearEasing,
+            ),
+        )
+        bursting = false
+    }
+
+    Box(modifier = modifier.size(FAVORITE_BUTTON_SIZE)) {
+        Surface(
+            onClick = onClick,
+            modifier = Modifier.fillMaxSize(),
+            shape = CircleShape,
+            color = if (isFavorite) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHighest
+            },
+            // 星标固定金色：空心的描边和点满的填充是同一个色，只换字形不换颜色，
+            // 这样「点没点」只看形状，不会被两套配色搅乱。
+            contentColor = FavoriteStarColor,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+                    contentDescription = stringResource(contentDescriptionRes),
+                    // 图标全程不撤：动画后段粒子已经散得差不多，撤掉图标会留下半秒空窗，
+                    // 看着像按钮没响应；叠在一起反而像「星星被点亮」。
+                    modifier = Modifier.size(26.dp),
+                )
+            }
+        }
+        // 动画是 Surface 的兄弟节点：按钮被 clip 成圆形，星级要能飞出这个圆才好看。
+        if (bursting && loaded != null) {
+            LottieAnimation(
+                composition = loaded,
+                progress = { progress.value },
+                modifier = Modifier.matchParentSize(),
             )
         }
     }
 }
+
+/**
+ * 收藏反应动画的加载描述。
+ *
+ * 放在顶层：`LottieCompositionSpec.RawRes` 是普通 class（不是 data class），
+ * 每次新建都会让 `rememberLottieComposition` 的 key 变化、重新走一遍加载。
+ */
+private val StarCollectSpec = LottieCompositionSpec.RawRes(R.raw.star_collect)
 
 /** 追番按钮：扩展 FAB（播放图标 + 文案），对齐 Dart 版 PlayButton。 */
 @Composable

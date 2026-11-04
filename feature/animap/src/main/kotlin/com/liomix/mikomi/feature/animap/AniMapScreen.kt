@@ -16,11 +16,9 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,6 +44,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.liomix.mikomi.core.navigation.ImmersionBridge
+import com.liomix.mikomi.core.ui.component.LottieLoading
 
 /** 巡礼地图（anitabi）页面地址。 */
 const val ANIMAP_URL = "https://www.anitabi.cn/map?c=138.5098%2C37.2073&z=5.2"
@@ -222,12 +221,12 @@ fun AniMapScreen(
         )
 
         if (loading) {
-            // 地图加载指示：Material 风格环形进度 + 说明文字，居中显示。
+            // 地图加载遮罩：站点自己的启动动画 + 说明文字，居中显示。
             //
             // 这块现在**顶替了站点的启动页**：站点的 `.ui-loading`（浅蓝底 + 地图 SVG）
             // 已被样式藏掉，而它原本盖住的正是「HTML 到了、地图还没画出来」这段空窗。
             // 因此这里必须是不透明底色，否则用户会先看到一片半成品画面再突然出图；
-            // 用白色而不是主题色：巡礼页的地图始终是浅色的，夜间模式也不该黑一下再变亮。
+            // 取站点地图的浅蓝而不是主题色：巡礼页的地图始终是浅色的，夜间模式也不该黑一下再变亮。
             val loadingText = stringResource(R.string.animap_loading)
             Box(
                 modifier = Modifier
@@ -238,9 +237,15 @@ fun AniMapScreen(
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(40.dp))
+                    LottieLoading(
+                        rawRes = R.raw.animap_loading,
+                        size = 96.dp,
+                        // 这份动画自带配色（青/绿/橙），本来就是在同色底图上用的；
+                        // 统一染色会把它压成一坨单色，反而看不出画的是什么。
+                        tint = null,
+                    )
                     Text(
                         text = loadingText,
                         style = MaterialTheme.typography.bodyMedium,

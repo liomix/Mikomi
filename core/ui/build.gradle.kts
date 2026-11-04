@@ -17,4 +17,5 @@ dependencies {
     api(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.lottie.compose)
 }

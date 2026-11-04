@@ -5,28 +5,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.ui.component.AnimePosterCard
+import com.liomix.mikomi.core.ui.component.PosterCardSkeleton
+import com.liomix.mikomi.core.ui.component.PosterSkeletonRow
 import com.liomix.mikomi.core.ui.component.SkeletonBox
 import com.liomix.mikomi.core.ui.component.SkeletonShimmer
 import com.liomix.mikomi.feature.search.LoadState
@@ -36,6 +29,9 @@ import com.liomix.mikomi.feature.search.SearchTopBar
 
 /** 网格卡片最小宽度：与首页推荐区一致（手机竖屏约 3 列）。 */
 private val RESULT_GRID_MIN_SIZE = 100.dp
+
+/** 网格间距；翻页骨架行必须用同一个值，否则列宽对不齐。 */
+private val RESULT_GRID_SPACING = 12.dp
 
 /** 骨架屏卡片数量。 */
 private const val RESULT_SKELETON_COUNT = 9
@@ -123,8 +119,8 @@ private fun ResultGrid(
             top = 4.dp,
             bottom = 24.dp,
         ),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),
+        verticalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),
     ) {
         items(
             items = state.items,
@@ -164,17 +160,12 @@ private fun ResultFooter(
     LaunchedEffect(loadMoreKey) {
         onLoadMore()
     }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(22.dp),
-            strokeWidth = 2.dp,
-        )
-    }
+    // 翻页等待期间显示一行海报骨架（与网格同列数、同宽、同间距），
+    // 数据到位后原地被真实卡片替换，不再是一个孤立的转圈。
+    PosterSkeletonRow(
+        spacing = RESULT_GRID_SPACING,
+        minColumnWidth = RESULT_GRID_MIN_SIZE,
+    )
 }
 
 /** 骨架屏网格：与首页推荐区同构（海报块 + 标题条）。 */
@@ -191,29 +182,15 @@ private fun ResultSkeleton() {
                 top = 4.dp,
                 bottom = 24.dp,
             ),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),
+            verticalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),
         ) {
             items(
                 count = RESULT_SKELETON_COUNT,
                 key = { "result_skeleton_$it" },
                 contentType = { "result_skeleton" },
             ) {
-                Column {
-                    SkeletonBox(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(2f / 3f),
-                        shape = RoundedCornerShape(8.dp),
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    SkeletonBox(
-                        modifier = Modifier
-                            .fillMaxWidth(0.7f)
-                            .height(12.dp),
-                        shape = RoundedCornerShape(4.dp),
-                    )
-                }
+                PosterCardSkeleton()
             }
         }
     }

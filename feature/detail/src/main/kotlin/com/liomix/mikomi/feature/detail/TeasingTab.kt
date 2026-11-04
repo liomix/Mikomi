@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -39,12 +38,16 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.model.TeasingComment
 import com.liomix.mikomi.core.ui.component.SkeletonBox
+import com.liomix.mikomi.core.ui.component.SkeletonShimmer
 
 /** 吐槽头像直径（对齐 Dart 版 40）。 */
 private val TEASING_AVATAR_SIZE = 40.dp
 
 /** 首屏骨架屏条数（对齐 Dart 版 5）。 */
 private const val TEASING_SKELETON_COUNT = 5
+
+/** 底部翻页骨架条数：两条就够撑住一行可见区域，再多只是白白拉长列表。 */
+private const val TEASING_FOOTER_SKELETON_COUNT = 2
 
 /**
  * 吐槽 Tab：自带独立滚动的吐槽列表（对齐 Dart 版 `AnimeTeasingContent`）。
@@ -216,16 +219,16 @@ private fun TeasingFooter(
             LaunchedEffect(state.comments.size) {
                 onLoadMore()
             }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(22.dp),
-                    strokeWidth = 2.dp,
-                )
+            // 翻页等待期间补两条**同构吐槽骨架**，而不是一个孤立的进度环：
+            // 头像 + 三行文本的位置、行高、左右边距都和上面已显示的内容一致，
+            // 数据到位后原地被真实条目替换，底部不会出现「转圈 → 突然多两条」的跳变。
+            // 整块共用一个 SkeletonShimmer：两条骨架 8 个块，各自建时间线就是 8 条。
+            SkeletonShimmer {
+                Column {
+                    repeat(TEASING_FOOTER_SKELETON_COUNT) {
+                        TeasingSkeletonItem()
+                    }
+                }
             }
         }
 
@@ -286,9 +289,12 @@ private fun TeasingStatusBlock(
 /** 骨架屏列表：头像 + 三行文本占位。 */
 @Composable
 private fun TeasingSkeletonList(modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxSize()) {
-        repeat(TEASING_SKELETON_COUNT) {
-            TeasingSkeletonItem()
+    // 5 条 × 4 块：合成一条扫光时间线，见 SkeletonShimmer 注释。
+    SkeletonShimmer {
+        Column(modifier = modifier.fillMaxSize()) {
+            repeat(TEASING_SKELETON_COUNT) {
+                TeasingSkeletonItem()
+            }
         }
     }
 }

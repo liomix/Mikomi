@@ -1,19 +1,16 @@
 package com.liomix.mikomi.core.ui.component
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -44,7 +41,7 @@ import androidx.compose.ui.unit.dp
  * 帧开销与 Telegram 一致：Paint / shader / 矩阵在组合阶段建好，每帧只 `setLocalMatrix`，
  * 不重建 Shader、不分配临时对象。整屏多块骨架的时间线合并见 [SkeletonShimmer]。
  *
- * @param baseColor 占位底色；默认由主题推导成半透明墨色
+ * @param baseColor 占位底色；默认由主题推导成半透明墨色，见 [skeletonBaseColor]
  * @param sweepColor 扫光带颜色；默认比底色更亮一档
  */
 @Composable
@@ -64,6 +61,15 @@ fun SkeletonBox(
 }
 
 /**
+ * 骨架占位底色（默认档）。
+ *
+ * 给「图片还没画出来」的容器垫底用：与骨架块完全同色，所以骨架 → 图片的过渡里
+ * 任何一帧都不会露出页面底色（也就是「空白块」）。见 `AnimeCoverImage`。
+ */
+@Composable
+fun skeletonBaseColor(): Color = rememberSkeletonColors().base
+
+/**
  * 一屏骨架共用的扫光参数。
  *
  * @property progress 扫光进度，只在绘制阶段读取
@@ -76,11 +82,7 @@ private class ShimmerSweep(
     val travel: Float,
 )
 
-/**
- * 当前生效的共享扫光；为 null 时由每块骨架自建一条时间线。
- *
- * 用 [staticCompositionLocalOf]：值在容器存续期不变，不需要为每个读者登记失效。
- */
+/** 当前生效的共享扫光；为 null 时由每块骨架自建一条时间线。 */
 private val LocalShimmerSweep = staticCompositionLocalOf<ShimmerSweep?> { null }
 
 /**
@@ -89,10 +91,9 @@ private val LocalShimmerSweep = staticCompositionLocalOf<ShimmerSweep?> { null }
  * Telegram 的消息骨架只有一份 `skeletonGradient` 和一个 `skeletonTotalTranslation`，
  * 几十个气泡共用同一个位移量；这里照同样思路把时间线提到容器层。
  *
- * 为什么值得单拎出来：`rememberInfiniteTransition` 每个实例都是「一条 `withFrameNanos`
- * 自驱协程 + 一个 `State` 每帧写入」。12 张卡片骨架连同其文字块就是二十多条时间线，
- * 同一帧里各自写入、各自失效、各自重绘；提到容器后整屏只剩一条，
- * 而且所有块的相位天然一致（不会因为组合先后而错开）。
+ * 为什么值得单拎出来：每条时间线都是「一条按帧唤醒的协程 + 每帧写一次状态」。
+ * 12 张卡片骨架连同其文字块就是二十多条，同一帧里各自写入、各自失效、各自重绘；
+ * 提到容器后整屏只剩一条，而且所有块的相位天然一致（不会因为组合先后而错开）。
  *
  * 只在骨架**真正显示**的那一小段 UI 上包这一层：骨架消失时容器一起离开组合，时间线随之停止，
  * 不会留下一条空转的无限动画。
@@ -115,13 +116,9 @@ fun Modifier.shimmer(
     baseColor: Color? = null,
     sweepColor: Color? = null,
 ): Modifier {
-    val ink = MaterialTheme.colorScheme.onSurface
-    val night = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    // Telegram 的底色是 listSelector（5.9% 黑）再抬到 alpha 22：浅色 8.6% 黑、夜间 9.4% 白；
-    // 亮带在浅色里是更淡的 3.5%（等于「擦亮」），夜间是更亮的 12% 白。
-    // 色相统一取 onSurface —— 深浅两套都只是同一支笔的不同不透明度。
-    val base = baseColor ?: ink.copy(alpha = if (night) NightBaseAlpha else DayBaseAlpha)
-    val sweep = sweepColor ?: ink.copy(alpha = if (night) NightSweepAlpha else DaySweepAlpha)
+    val colors = rememberSkeletonColors()
+    val base = baseColor ?: colors.base
+    val sweep = sweepColor ?: colors.sweep
 
     // 容器提供了共享时间线就复用它，否则自建一条（单块骨架的常见场景）。
     val shared = LocalShimmerSweep.current
@@ -165,19 +162,56 @@ private fun rememberShimmerSweep(): ShimmerSweep {
     }
 }
 
-/** 无限循环的扫光进度；读取方在 Draw 阶段取值，保持阶段延迟。 */
+/**
+ * 扫光进度：按帧驱动，相位锚在**帧时钟的绝对时间**上。
+ *
+ * 为什么不用 `rememberInfiniteTransition`（两者算力开销相近，但这个更可控）：
+ *
+ * 1. **不会「卡住不动」**。无限动画的实例是 remember 出来的，而懒列表（`LazyVerticalGrid`）
+ *    会把划出屏幕的 item 连同其 `remember` 一起放进复用池，重新进视口时只是**重新激活**，
+ *    实例与状态都还在。由内部帧回调驱动的无限动画在「停用 → 复用 → 重新激活」这条路径上
+ *    有可能不再注册帧回调，表现就是「块还在，扫光不动」。
+ *    `LaunchedEffect` 在停用时被取消、激活时重新启动，是确定会重新跑起来的。
+ * 2. **相位天然对齐**。进度直接由 `frameTimeNanos`（`CLOCK_MONOTONIC`）算出，
+ *    任何时刻进组合的块，其位置都等于「当前绝对时间在一个周期里的位置」——
+ *    骨架块与「骨架消失后接手的封面占位」是两棵互不相干的节点，也不会各自从头开始；
+ *    一屏所有骨架的亮带永远对齐（Telegram 本来也是一份 gradient 全局共用）。
+ *
+ * 只在骨架显示期间存在：宿主离开组合，协程随之取消。
+ */
 @Composable
 private fun rememberShimmerProgress(cycleMillis: Int): State<Float> {
-    val transition = rememberInfiniteTransition(label = "skeleton")
-    return transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = cycleMillis, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "skeletonProgress",
-    )
+    val progress = remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(cycleMillis) {
+        while (true) {
+            withFrameNanos { frameTimeNanos ->
+                val millis = frameTimeNanos / 1_000_000L
+                progress.floatValue = (millis % cycleMillis).toFloat() / cycleMillis
+            }
+        }
+    }
+    return progress
+}
+
+/** 骨架的两种墨色：底色与扫光亮带。 */
+private class SkeletonColors(val base: Color, val sweep: Color)
+
+/**
+ * 骨架配色：色相统一取 `onSurface`，深浅两套只是同一支笔的不同不透明度。
+ *
+ * Telegram 的底色是 `listSelector`（5.9% 黑）再抬到 alpha 22：浅色 8.6% 黑、夜间 9.4% 白；
+ * 亮带在浅色里是更淡的 3.5%（等于「擦亮」），夜间是更亮的 12% 白。
+ */
+@Composable
+private fun rememberSkeletonColors(): SkeletonColors {
+    val ink = MaterialTheme.colorScheme.onSurface
+    val night = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    return remember(ink, night) {
+        SkeletonColors(
+            base = ink.copy(alpha = if (night) NightBaseAlpha else DayBaseAlpha),
+            sweep = ink.copy(alpha = if (night) NightSweepAlpha else DaySweepAlpha),
+        )
+    }
 }
 
 /**

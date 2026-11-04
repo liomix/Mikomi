@@ -37,13 +37,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -54,9 +57,10 @@ import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.platform.LocalContext
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
-import coil3.request.crossfade
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.ScrollingText
+import com.liomix.mikomi.core.ui.component.SkeletonBox
+import com.liomix.mikomi.core.ui.component.skeletonBaseColor
 import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.delay
@@ -190,13 +194,17 @@ private fun BannerItem(
     val imageRequest = remember(anime.coverUrl, context) {
         ImageRequest.Builder(context)
             .data(anime.coverUrl)
-            .crossfade(true)
             .memoryCacheKey(anime.coverUrl)
             .build()
     }
     // ColorPainter 必须 remember：翻页时每个可见页都会重组，字面量 new 出来的 painter
     // 会让 AsyncImage 认为占位图换了、重跑一遍比对与绘制。
     val placeholderPainter = remember(placeholderColor) { ColorPainter(placeholderColor) }
+
+    // 图片是否已经画得出来。在此之前占位是「骨架同款扫光」，之后换成图片本身。
+    // 与 AnimeCoverImage 同一套逻辑：扫光垫在图片底下，图片落地即整块盖住，
+    // 所以不依赖这个状态提前一帧生效；它只负责把那条扫光时间线从组合里摘掉。
+    var settled by remember(anime.id) { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -206,23 +214,37 @@ private fun BannerItem(
                 scaleY = scale
             }
             .clip(RoundedCornerShape(corner))
-            // 占位底色：封面图加载中 / 失败时仍能看到轮播卡片轮廓。
-            // 用主题表面色（夜间 #181818、日间浅色），两种模式下都不会突兀。
-            .background(placeholderColor)
+            // 与骨架同色的底：图片画不出来时（url 为空 / 请求失败）仍是同一种材质，
+            // 而不是透出页面底色的空洞。图片落地后整块被盖住。
+            .background(skeletonBaseColor())
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick,
             ),
     ) {
+        // 加载中：180dp 的大块占位。首屏这里原本是骨架（HomeBannerSkeleton），
+        // 换成一块死灰会显得整个头图区「塌下去」，所以这里沿用同一种材质。
+        // 外层已按圆角裁剪，块本身用直角，省一层遮罩。
+        if (!settled) {
+            SkeletonBox(
+                modifier = Modifier.fillMaxSize(),
+                shape = RectangleShape,
+            )
+        }
+
         key(anime.id) {
             AsyncImage(
                 model = imageRequest,
                 contentDescription = anime.title,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
-                placeholder = placeholderPainter,
+                // 有扫光占位时不能再叠纯色，否则灰块会盖住扫光。
+                placeholder = null,
                 error = placeholderPainter,
+                onSuccess = { settled = true },
+                // 失败（含 url 为空）就停在静态占位色上，别让扫光一直跑。
+                onError = { settled = true },
             )
         }
 
@@ -352,8 +374,10 @@ private fun PagerIndicator(
 private fun formatRating(rating: Double?): String? =
     rating?.let { String.format(Locale.ROOT, "%.1f", it) }
 
-private val BANNER_HEIGHT = 180.dp
-private val BANNER_CORNER = 20.dp
+// 与 HomeScreen 的轮播骨架屏共用：骨架和真实卡片必须同高同圆角，
+// 否则 banners 到货的那一刻整个头图区会「跳」一下。所以不再是 file-private。
+internal val BANNER_HEIGHT = 180.dp
+internal val BANNER_CORNER = 20.dp
 private val BANNER_CORNER_PRESSED = 16.dp
 private val BANNER_CONTENT_PADDING = 16.dp
 private val BANNER_TITLE_TO_RATING_GAP = 6.dp

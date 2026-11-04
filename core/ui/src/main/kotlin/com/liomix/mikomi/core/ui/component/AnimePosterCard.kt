@@ -44,6 +44,9 @@ fun AnimePosterCard(
             heroKey = id,
             // 网格滚动时关掉淡入：一屏多图同时过渡会叠出大量 alpha 混合。
             crossfade = false,
+            // 骨架行变成真实卡片的瞬间，封面仍在解码：这里继续用同款扫光占位，
+            // 把「骨架 → 灰块 → 封面」接成「骨架 → 扫光 → 封面」。
+            shimmerWhileLoading = true,
         )
         Spacer(modifier = Modifier.height(6.dp))
         ScrollingText(

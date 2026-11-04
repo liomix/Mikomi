@@ -5,28 +5,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,6 +33,7 @@ import com.liomix.mikomi.core.model.AirTime
 import com.liomix.mikomi.core.model.AirTimePrecision
 import com.liomix.mikomi.core.model.ScheduleEntry
 import com.liomix.mikomi.core.ui.component.AnimeCoverImage
+import com.liomix.mikomi.core.ui.component.BaseScreenLayout
 import com.liomix.mikomi.core.ui.component.EmptyState
 import com.liomix.mikomi.core.ui.component.ErrorState
 import com.liomix.mikomi.core.ui.component.ScrollingText
@@ -86,14 +77,13 @@ private val TAB_ROW_CORNER_RADIUS = 22.dp
 /**
  * 时间表：二级页面（周一~周日七天番剧列表），数据来自多源合并后的本周时间表。
  *
- * - 顶部 [CenterAlignedTopAppBar]，返回交给上层导航；
+ * - 顶栏由 [BaseScreenLayout] 统一提供，返回交给上层导航；
  * - 七天用 [TabBar] 日历标签栏选中（星期 + 月-日，今天显示「今」），
  *   [HorizontalPager] 左右滑动切换，二者联动，默认定位到今天；
  * - 放送时间按三态精度展示：精确时刻 / 约 HH:mm（低优先级源推断）/ 时间待定 / 待公布；
  * - 加载 / 数据 / 空态 / 错误由 [ScheduleUiState] 驱动，错误态可通过
  *   [onRetryClick] 重新拉取。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleScreen(
     uiState: ScheduleUiState,
@@ -102,49 +92,38 @@ fun ScheduleScreen(
     onRetryClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.home_action_schedule),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = stringResource(R.string.schedule_back),
-                        )
-                    }
-                },
-            )
-        },
-    ) { innerPadding ->
+    BaseScreenLayout(
+        title = stringResource(R.string.home_action_schedule),
+        modifier = modifier,
+        onBackClick = onBackClick,
+        // 内容自带滚动（标签栏固定 + Pager 内的 LazyColumn），骨架不再套一层垂直滚动。
+        scrollable = false,
+        contentPadding = PaddingValues(0.dp),
+        verticalArrangement = Arrangement.Top,
+    ) {
+        // 各状态都撑满剩余高度：weight 而不是 fillMaxSize，
+        // 否则子项会按整列高度测量，把标签栏顶出可视区。
         when (uiState) {
             ScheduleUiState.Loading -> ScheduleSkeleton(
-                modifier = Modifier.padding(innerPadding),
+                modifier = Modifier.weight(1f),
             )
 
             ScheduleUiState.Empty -> EmptyState(
                 message = stringResource(R.string.schedule_empty),
-                modifier = Modifier.padding(innerPadding),
+                modifier = Modifier.weight(1f),
             )
 
             ScheduleUiState.Error -> ErrorState(
                 message = stringResource(R.string.schedule_error),
                 onRetry = onRetryClick,
-                modifier = Modifier.padding(innerPadding),
+                modifier = Modifier.weight(1f),
             )
 
             is ScheduleUiState.Success -> ScheduleContent(
                 days = uiState.days,
                 dates = uiState.dates,
                 onAnimeTitleClick = onAnimeTitleClick,
-                modifier = Modifier.padding(innerPadding),
+                modifier = Modifier.weight(1f),
             )
         }
     }
@@ -181,7 +160,10 @@ private fun ScheduleContent(
 
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxSize(),
+            // 固定高度的标签栏先占位，剩下全给 Pager；fillMaxSize 会按整列高度测量，把标签栏顶出去。
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
         ) { page ->
             DayList(
                 entries = days[page],
@@ -260,7 +242,8 @@ private fun DayList(
             start = 12.dp,
             end = 12.dp,
             top = 8.dp,
-            bottom = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 24.dp,
+            // 导航栏留白由 BaseScreenLayout 统一消费，这里只补列表自己的收尾余量。
+            bottom = 24.dp,
         ),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {

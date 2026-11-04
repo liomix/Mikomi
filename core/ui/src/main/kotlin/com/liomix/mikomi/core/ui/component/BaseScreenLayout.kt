@@ -94,6 +94,9 @@ private object TopBarDefaults {
  *   顶栏只保证它们在右侧、垂直居中、彼此间距统一。放几个都行，标题不会因此偏离中线——
  *   顶栏按两侧实际宽度对称让位，动作多时标题只会变短，位置不动。
  * @param scrollable 内容区是否纵向滚动。整块内容自己管滚动的页面传 `false`。
+ *   传 `false` 时内容区是一个普通 [ColumnScope]，想让子项占满剩余高度的直接用 `Modifier.weight(1f)`。
+ * @param contentModifier 内容区的附加修饰，作用在滚动容器内侧。
+ *   典型用途是输入页的 `Modifier.imePadding()`——键盘留白只应影响内容，不能把顶栏顶上去。
  * @param contentPadding 内容区留白，默认 [BaseScreenDefaults.ContentPadding]。
  * @param verticalArrangement 内容子项之间的间距，默认 [BaseScreenDefaults.SectionSpacing]。
  * @param content 内容区。直接堆卡片即可，间距与留白已由骨架排好。
@@ -105,6 +108,7 @@ fun BaseScreenLayout(
     onBackClick: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     scrollable: Boolean = true,
+    contentModifier: Modifier = Modifier,
     contentPadding: PaddingValues = BaseScreenDefaults.ContentPadding,
     verticalArrangement: Arrangement.Vertical = BaseScreenDefaults.SectionSpacing,
     content: @Composable ColumnScope.() -> Unit,
@@ -130,6 +134,7 @@ fun BaseScreenLayout(
                 // 导航栏留白在滚动区之外：滚到底时内容停在手势条之上，这一段不跟着滚。
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .then(if (scrollable) Modifier.verticalScroll(scrollState) else Modifier)
+                .then(contentModifier)
                 .padding(contentPadding),
             verticalArrangement = verticalArrangement,
             content = content,

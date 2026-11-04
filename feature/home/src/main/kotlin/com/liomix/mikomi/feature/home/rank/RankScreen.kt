@@ -2,14 +2,10 @@ package com.liomix.mikomi.feature.home.rank
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,23 +15,17 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.RankEntry
+import com.liomix.mikomi.core.ui.component.BaseScreenLayout
 import com.liomix.mikomi.core.ui.component.ErrorState
 import com.liomix.mikomi.core.ui.component.SkeletonBox
 import com.liomix.mikomi.core.ui.component.Tab
@@ -47,7 +37,7 @@ import kotlinx.coroutines.launch
 /**
  * 排行榜：首页快捷入口的二级页面（AniRpb 日漫 / 国漫整榜，每榜 100 条）。
  *
- * - 顶栏右侧刷新：刷新进行中替换为进度环并禁用重复点击；
+ * - 顶栏由 [BaseScreenLayout] 统一提供，右侧刷新：刷新进行中替换为进度环并禁用重复点击；
  * - 分类标签是静态资源，任何状态下都真实渲染，只有下方的卡片列表需要骨架屏；
  * - 卡片列表在「加载中」与「一个数据都没有」时都保持骨架屏，不切空态；
  * - 榜单卡片为「封面整块满铺」，左侧斜体名次，右侧单行标题（文字自带描影）；
@@ -74,89 +64,59 @@ fun RankScreen(
     val pagerState = rememberPagerState(pageCount = { RankType.entries.size })
     val coroutineScope = rememberCoroutineScope()
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = {
-            RankTopBar(
-                isRefreshing = isRefreshing,
-                onBackClick = onBackClick,
-                onRefreshClick = onRefreshClick,
-            )
-        },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize(),
-        ) {
-            RankTabs(
-                selectedIndex = pagerState.currentPage,
-                onSelect = { index ->
-                    coroutineScope.launch { pagerState.animateScrollToPage(index) }
-                },
-            )
+    BaseScreenLayout(
+        title = stringResource(R.string.home_action_rank),
+        modifier = modifier,
+        onBackClick = onBackClick,
+        actions = { RefreshAction(isRefreshing = isRefreshing, onClick = onRefreshClick) },
+        // 内容自带滚动（标签栏固定 + Pager 内的 LazyColumn），骨架不再套一层垂直滚动。
+        scrollable = false,
+        contentPadding = PaddingValues(0.dp),
+        verticalArrangement = Arrangement.Top,
+    ) {
+        RankTabs(
+            selectedIndex = pagerState.currentPage,
+            onSelect = { index ->
+                coroutineScope.launch { pagerState.animateScrollToPage(index) }
+            },
+        )
 
-            RankBody(
-                uiState = uiState,
-                pagerState = pagerState,
-                onAnimeTitleClick = onAnimeTitleClick,
-                onRefreshClick = onRefreshClick,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
+        RankBody(
+            uiState = uiState,
+            pagerState = pagerState,
+            onAnimeTitleClick = onAnimeTitleClick,
+            onRefreshClick = onRefreshClick,
+            // weight 而不是 fillMaxSize：标签栏先占位，剩余高度才给列表。
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
 /**
- * 顶栏：标题居中、左侧返回、右侧刷新。
- *
- * 刷新中用一个同尺寸的进度环替代图标，避免按钮宽度跳动；
+ * 顶栏刷新动作：刷新中用一个同尺寸的进度环替代图标，避免按钮宽度跳动；
  * 同时禁用按钮，防止连点叠加多次请求。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RankTopBar(
+private fun RefreshAction(
     isRefreshing: Boolean,
-    onBackClick: () -> Unit,
-    onRefreshClick: () -> Unit,
-    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
 ) {
-    CenterAlignedTopAppBar(
-        modifier = modifier,
-        title = {
-            Text(
-                text = stringResource(R.string.home_action_rank),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+    IconButton(
+        onClick = onClick,
+        enabled = !isRefreshing,
+    ) {
+        if (isRefreshing) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(RefreshIndicatorSize),
+                strokeWidth = RefreshIndicatorStroke,
             )
-        },
-        navigationIcon = {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                    contentDescription = stringResource(R.string.rank_back),
-                )
-            }
-        },
-        actions = {
-            IconButton(
-                onClick = onRefreshClick,
-                enabled = !isRefreshing,
-            ) {
-                if (isRefreshing) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(RefreshIndicatorSize),
-                        strokeWidth = RefreshIndicatorStroke,
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Outlined.Refresh,
-                        contentDescription = stringResource(R.string.rank_refresh),
-                    )
-                }
-            }
-        },
-    )
+        } else {
+            Icon(
+                imageVector = Icons.Outlined.Refresh,
+                contentDescription = stringResource(R.string.rank_refresh),
+            )
+        }
+    }
 }
 
 /**
@@ -241,9 +201,8 @@ private fun RankList(
             start = 12.dp,
             end = 12.dp,
             top = 8.dp,
-            // 底部留出悬浮导航栏空间，避免最后一项被遮挡。
-            bottom = WindowInsets.navigationBars.asPaddingValues()
-                .calculateBottomPadding() + 96.dp,
+            // 导航栏留白由 BaseScreenLayout 统一消费，这里只补悬浮栏的避让余量。
+            bottom = 96.dp,
         ),
         verticalArrangement = Arrangement.spacedBy(RankCardSpacing),
     ) {
@@ -278,8 +237,7 @@ private fun RankCardSkeletonList(
             start = 12.dp,
             end = 12.dp,
             top = 8.dp,
-            bottom = WindowInsets.navigationBars.asPaddingValues()
-                .calculateBottomPadding() + 96.dp,
+            bottom = 96.dp,
         ),
         verticalArrangement = Arrangement.spacedBy(RankCardSpacing),
     ) {

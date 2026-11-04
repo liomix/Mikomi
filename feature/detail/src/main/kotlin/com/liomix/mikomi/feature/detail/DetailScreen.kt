@@ -79,6 +79,14 @@ private val HEADER_HEIGHT = 420.dp
  */
 private val HEADER_MIN_HEIGHT = 140.dp
 
+/**
+ * 橡皮筋最大位移。
+ *
+ * 内容已经到顶/到底之后继续拖，整页会被拉出这么远（越接近这个距离越拉不动），
+ * 松手弹回。40dp 是「手感上明确有一下回弹、又几乎不改变页面版式」的量。
+ */
+private val HEADER_STRETCH_LIMIT = 40.dp
+
 /** 内容区底部留白：避让右下角悬浮按钮组（收藏 48 + 间距 12 + 追番 56 + 外边距 24 + 余量）。 */
 internal val CONTENT_BOTTOM_SPACER = 156.dp
 
@@ -194,7 +202,11 @@ private fun DetailContent(
     // 毛玻璃：内容作 source，顶栏作 child。
     val hazeState = remember { HazeState() }
     // 头部收缩：内容区的滚动先经过这里，Tab 栏贴着封面下边缘往上盖。
-    val collapse = rememberHeaderCollapse(HEADER_HEIGHT, HEADER_MIN_HEIGHT)
+    val collapse = rememberHeaderCollapse(
+        fullHeight = HEADER_HEIGHT,
+        minVisible = HEADER_MIN_HEIGHT,
+        stretchLimit = HEADER_STRETCH_LIMIT,
+    )
     val collapseConnection = rememberHeaderCollapseConnection(collapse)
 
     // 每个 Tab 独立的滚动状态，切 Tab 后各自位置保留、互不干扰。
@@ -208,7 +220,10 @@ private fun DetailContent(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(state = hazeState)
-                .nestedScroll(collapseConnection),
+                .nestedScroll(collapseConnection)
+                // 橡皮筋：整页（头部 + Tab 栏 + 内容）被拉出的临时位移，
+                // 只在两端越界时非 0，读取发生在布局阶段，不触发重组。
+                .offset { IntOffset(0, collapse.stretchPx.roundToInt()) },
         ) {
             // 头部 + Tab 栏：同一个块。Tab 栏叠在封面底部，随收缩沿封面上移，
             // 裁切由 collapsingHeader 负责 —— 露不出来的只有封面下半截，标题永远在。

@@ -54,12 +54,12 @@ private val DETAIL_COVER_RADIUS = 14.dp
 /**
  * 头部背景的模糊半径。
  *
- * `Modifier.blur` 的半径按密度换算成像素：30dp 已足以把封面的纹理、文字化开成柔和的色底，
- * 再往上加（48dp 起）四角会开始发雾、边缘显脏，观感反而变差。
+ * `Modifier.blur` 的半径按密度换算成像素：40dp 会把封面的纹理、文字彻底化开成柔和的色底，
+ * 只留大块色相；再往上加边缘会开始发雾、发脏，观感反而变差。
  * 头部不滚动、不缩放，模糊结果会被缓存成一层 RenderEffect，
  * 半径只影响一次性的光栅化成本，不进入每帧预算（见 [DetailBackdrop] 注释）。
  */
-private val DETAIL_BACKDROP_BLUR = 30.dp
+private val DETAIL_BACKDROP_BLUR = 40.dp
 
 /**
  * 背景兜底底色。

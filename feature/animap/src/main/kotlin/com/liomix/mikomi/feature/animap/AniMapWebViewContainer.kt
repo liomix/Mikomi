@@ -218,8 +218,13 @@ class AniMapWebViewContainer(
     private fun createWebView(context: Context): WebView = WebView(context).apply {
         // 保持 WebView 默认渲染模式：不要用 LAYER_TYPE_SOFTWARE（会废掉 WebGL）。
         setLayerType(View.LAYER_TYPE_NONE, null)
-        // 不暴露无障碍节点：地图页没有需要读屏遍历的内容，也省掉一遍树遍历。
-        contentDescription = null
+        // 整棵子树退出无障碍树。WebView 会把页面 DOM 铺成可访问节点（1500 部作品、
+        // 数万个取景点、站点自带的按钮），开着 TalkBack 时会被逐条遍历，而且这棵树是
+        // WebView 现算的，白付一份遍历开销。地图页的可访问入口交给自绘的搜索条与
+        // 底部横条，不需要读屏去读底图。
+        //
+        // 不必再写 contentDescription = null：View 默认就是 null，且这条设置已经让
+        // 该节点本身也不出现在无障碍树里，写了也不会被读出（原本那行是纯冗余）。
         importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
         WebView.setWebContentsDebuggingEnabled(context.isDebuggable())
         settings.apply {

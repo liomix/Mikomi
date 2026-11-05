@@ -371,7 +371,7 @@ private fun DetailLoadingSkeleton(
                 )
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Lg),
                 ) {
                     repeat(3) {
                         Column(verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xs)) {

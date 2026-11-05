@@ -62,6 +62,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
 import com.liomix.mikomi.feature.player.PlayerPlaybackState
@@ -481,7 +482,7 @@ private fun PlayerGestureHudView(
                 text = "${formatTime(hud.targetMillis / 1_000)}/${formatTime(durationMillis / 1_000)}",
                 // 时间码左右各留一点：圆角白底如果贴着字形，首尾数字会被圆角削掉。
                 // 图标块不需要——图形本身四周是空的，圆角只削到它的空白角。
-                modifier = Modifier.padding(horizontal = 10.dp),
+                modifier = Modifier.padding(horizontal = MikomiSpacing.Compact),
                 // `tnum`：等宽数字。拖动时数字每帧都在变，比例数字会让整块左右抖。
                 // 字阶取设计系统的 HUD 档（22sp Bold），这里只把数字换成等宽 `tnum`——
                 // 拖动时数字每帧都在变，比例数字会让整块左右抖。
@@ -499,7 +500,7 @@ private fun PlayerGestureHudView(
             )
         }
         if (fraction != null) {
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Compact))
             ValueTrack(fraction = fraction)
         }
     }

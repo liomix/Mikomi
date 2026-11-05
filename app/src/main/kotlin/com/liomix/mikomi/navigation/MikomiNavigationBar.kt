@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.lerp
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import kotlin.math.roundToInt
 
@@ -137,9 +138,6 @@ private const val ContentColorMillis = 140
 /** 胶囊滑动时长。Telegram 的实际曲线没测，这里用通用减速曲线。 */
 private const val IndicatorMillis = MikomiMotion.Duration.Short
 
-/** 胶囊与单项统一的形状：`percent = 50` 恒为胶囊，与高度自动吻合。 */
-private val NavBarPillShape = RoundedCornerShape(percent = 50)
-
 /**
  * 单个条目：图标在上、文字在下，整块可点。
  *
@@ -175,7 +173,7 @@ private fun NavBarItem(
                 }
             }
             .height(NavBarItemHeight)
-            .clip(NavBarPillShape)
+            .clip(MikomiPillShape)
             .selectable(
                 selected = selected,
                 interactionSource = interactionSource,
@@ -255,7 +253,7 @@ private fun NavBarIndicator(
                 val placeable = measurable.measure(Constraints.fixed(width, height))
                 layout(width, height) { placeable.place(0, 0) }
             }
-            .background(color, NavBarPillShape),
+            .background(color, MikomiPillShape),
     )
 }
 

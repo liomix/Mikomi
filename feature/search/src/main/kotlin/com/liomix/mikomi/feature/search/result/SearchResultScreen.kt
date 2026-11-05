@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.ui.component.business.AnimePosterCard
 import com.liomix.mikomi.core.ui.component.business.PosterCardSkeleton
 import com.liomix.mikomi.core.ui.component.business.PosterSkeletonRow
@@ -113,10 +114,10 @@ private fun ResultGrid(
         columns = GridCells.Adaptive(minSize = RESULT_GRID_MIN_SIZE),
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            top = 4.dp,
-            bottom = 24.dp,
+            start = MikomiSpacing.Lg,
+            end = MikomiSpacing.Lg,
+            top = MikomiSpacing.Xs,
+            bottom = MikomiSpacing.Xl,
         ),
         horizontalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),
         verticalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),
@@ -176,10 +177,10 @@ private fun ResultSkeleton() {
             columns = GridCells.Adaptive(minSize = RESULT_GRID_MIN_SIZE),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = 4.dp,
-                bottom = 24.dp,
+                start = MikomiSpacing.Lg,
+                end = MikomiSpacing.Lg,
+                top = MikomiSpacing.Xs,
+                bottom = MikomiSpacing.Xl,
             ),
             horizontalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),
             verticalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),

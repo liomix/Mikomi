@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.feature.player.EpisodeItem
@@ -236,7 +237,7 @@ internal fun EpisodeSection(
                     contentPadding = PaddingValues(
                         start = EpisodeGridPadding,
                         end = EpisodeGridPadding,
-                        top = 2.dp,
+                        top = MikomiSpacing.Xxs,
                         // 只在底部避让：按钮浮在上面，不占列宽。
                         bottom = bottomInset + EpisodeRailClearance,
                     ),
@@ -402,7 +403,7 @@ private fun EpisodeHeader(
             .padding(
                 start = EpisodeGridPadding,
                 end = EpisodeGridPadding,
-                top = 10.dp,
+                top = MikomiSpacing.Compact,
                 bottom = MikomiSpacing.Sm,
             ),
         verticalAlignment = Alignment.CenterVertically,
@@ -453,7 +454,7 @@ private fun EpisodeSkeleton(
         contentPadding = PaddingValues(
             start = EpisodeGridPadding,
             end = EpisodeGridPadding,
-            top = 2.dp,
+            top = MikomiSpacing.Xxs,
             bottom = bottomInset + EpisodeRailClearance,
         ),
         horizontalArrangement = Arrangement.spacedBy(EpisodeGridSpacing),
@@ -504,7 +505,7 @@ private fun EpisodeCountChip(count: Int) {
             .widthIn(min = EpisodeChipMinWidth),
     ) {
         Box(
-            modifier = Modifier.padding(horizontal = 10.dp),
+            modifier = Modifier.padding(horizontal = MikomiSpacing.Compact),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -553,7 +554,7 @@ private fun SortButton(
             .widthIn(min = EpisodeChipMinWidth),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp),
+            modifier = Modifier.padding(horizontal = MikomiSpacing.Compact),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -620,11 +621,11 @@ private fun EpisodeCard(
         shape = RoundedCornerShape(MikomiRadius.Lg),
         color = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        border = if (selected) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
+        border = if (selected) BorderStroke(MikomiStroke.Medium, MaterialTheme.colorScheme.primary) else null,
         modifier = modifier.height(height),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = MikomiSpacing.Tight),
+            modifier = Modifier.padding(horizontal = MikomiSpacing.Compact, vertical = MikomiSpacing.Tight),
             verticalArrangement = Arrangement.Center,
         ) {
             Text(

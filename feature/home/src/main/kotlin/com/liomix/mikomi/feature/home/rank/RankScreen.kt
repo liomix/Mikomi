@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.model.RankEntry
 import com.liomix.mikomi.core.ui.component.base.ErrorState
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
@@ -72,7 +73,7 @@ fun RankScreen(
         actions = { RefreshAction(isRefreshing = isRefreshing, onClick = onRefreshClick) },
         // 内容自带滚动（标签栏固定 + Pager 内的 LazyColumn），骨架不再套一层垂直滚动。
         scrollable = false,
-        contentPadding = PaddingValues(0.dp),
+        contentPadding = PaddingValues(MikomiSpacing.None),
         verticalArrangement = Arrangement.Top,
     ) {
         RankTabs(
@@ -199,11 +200,11 @@ private fun RankList(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            start = 12.dp,
-            end = 12.dp,
-            top = 8.dp,
+            start = MikomiSpacing.Md,
+            end = MikomiSpacing.Md,
+            top = MikomiSpacing.Sm,
             // 导航栏留白由 BaseScreenLayout 统一消费，这里只补悬浮栏的避让余量。
-            bottom = 96.dp,
+            bottom = FloatingBarClearance,
         ),
         verticalArrangement = Arrangement.spacedBy(RankCardSpacing),
     ) {
@@ -235,10 +236,10 @@ private fun RankCardSkeletonList(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            start = 12.dp,
-            end = 12.dp,
-            top = 8.dp,
-            bottom = 96.dp,
+            start = MikomiSpacing.Md,
+            end = MikomiSpacing.Md,
+            top = MikomiSpacing.Sm,
+            bottom = FloatingBarClearance,
         ),
         verticalArrangement = Arrangement.spacedBy(RankCardSpacing),
     ) {
@@ -263,7 +264,14 @@ private enum class RankType(@param:StringRes val labelRes: Int) {
 private val RefreshIndicatorSize = 20.dp
 
 /** 顶栏刷新进度环的线宽。 */
-private val RefreshIndicatorStroke = 2.dp
+private val RefreshIndicatorStroke = MikomiStroke.Thick
+
+/**
+ * 列表底部为悬浮排序栏留出的避让余量。
+ *
+ * 与首页同因：导航栏留白由 `BaseScreenLayout` 消费，这里只补悬浮栏压住列表的那一段。
+ */
+private val FloatingBarClearance = 96.dp
 
 /** 骨架列表的卡片数量（多于一屏，保证任何屏幕高度都填满）。 */
 private const val SkeletonCardCount = 8

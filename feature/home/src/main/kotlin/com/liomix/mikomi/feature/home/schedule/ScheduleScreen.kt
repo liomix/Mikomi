@@ -102,7 +102,7 @@ fun ScheduleScreen(
         onBackClick = onBackClick,
         // 内容自带滚动（标签栏固定 + Pager 内的 LazyColumn），骨架不再套一层垂直滚动。
         scrollable = false,
-        contentPadding = PaddingValues(0.dp),
+        contentPadding = PaddingValues(MikomiSpacing.None),
         verticalArrangement = Arrangement.Top,
     ) {
         // 各状态都撑满剩余高度：weight 而不是 fillMaxSize，
@@ -243,13 +243,13 @@ private fun DayList(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            start = 12.dp,
-            end = 12.dp,
-            top = 8.dp,
+            start = MikomiSpacing.Md,
+            end = MikomiSpacing.Md,
+            top = MikomiSpacing.Sm,
             // 导航栏留白由 BaseScreenLayout 统一消费，这里只补列表自己的收尾余量。
-            bottom = 24.dp,
+            bottom = MikomiSpacing.Xl,
         ),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
     ) {
         items(
             items = entries,
@@ -290,7 +290,7 @@ private fun ScheduleAnimeRow(
             modifier = Modifier.padding(start = MikomiSpacing.Sm, top = MikomiSpacing.Sm, end = MikomiSpacing.Md, bottom = MikomiSpacing.Sm),
             // 信息区顶部与封面顶部对齐（不再整体垂直居中）。
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
         ) {
             AnimeCoverImage(
                 url = anime.coverUrl,
@@ -446,13 +446,13 @@ private fun ScheduleSkeleton(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = MikomiSpacing.Md, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(horizontal = MikomiSpacing.Md, vertical = MikomiSpacing.Compact),
+            verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
         ) {
             repeat(6) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     SkeletonBox(

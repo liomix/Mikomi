@@ -61,7 +61,9 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
@@ -111,7 +113,7 @@ internal fun SearchBrowseSection(
     LazyColumn(
         state = listState,
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 24.dp),
+        contentPadding = PaddingValues(bottom = MikomiSpacing.Xl),
     ) {
         if (state.history.isNotEmpty()) {
             item(key = "history_header") {
@@ -203,7 +205,7 @@ private fun SectionHeader(
             imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(MikomiSizes.IconSm),
         )
         Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
         Text(
@@ -297,12 +299,12 @@ private fun HistoryTab(
             .widthIn(max = CHIP_MAX_WIDTH),
         shape = CircleShape,
         color = Color.Transparent,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(MikomiStroke.Thin, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Box(
             modifier = Modifier
                 .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-                .padding(horizontal = 14.dp, vertical = MikomiSpacing.Sm),
+                .padding(horizontal = MikomiSpacing.Gutter, vertical = MikomiSpacing.Sm),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -328,10 +330,15 @@ private fun ExpandTab(
         modifier = modifier.heightIn(min = CHIP_MIN_HEIGHT),
         shape = CircleShape,
         color = Color.Transparent,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(MikomiStroke.Thin, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
-            modifier = Modifier.padding(start = 14.dp, end = 10.dp, top = MikomiSpacing.Sm, bottom = MikomiSpacing.Sm),
+            modifier = Modifier.padding(
+                start = MikomiSpacing.Gutter,
+                end = MikomiSpacing.Compact,
+                top = MikomiSpacing.Sm,
+                bottom = MikomiSpacing.Sm,
+            ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -346,7 +353,7 @@ private fun ExpandTab(
                 imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(MikomiSizes.IconSm),
             )
         }
     }
@@ -445,7 +452,7 @@ private fun HotRow(
                 enabled = false,
             )
             if (item.updateText.isNotBlank()) {
-                Spacer(modifier = Modifier.height(3.dp))
+                Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
                 Text(
                     text = item.updateText,
                     style = MaterialTheme.typography.labelSmall,
@@ -455,7 +462,7 @@ private fun HotRow(
                 )
             }
             if (item.currentEpisodes > 0 || item.score != null || item.playCount > 0) {
-                Spacer(modifier = Modifier.height(3.dp))
+                Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
                 HotMeta(item = item)
             }
         }
@@ -537,14 +544,14 @@ private fun HotSkeletonCard(modifier: Modifier = Modifier) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = MikomiSpacing.Sm),
+                    .padding(horizontal = MikomiSpacing.Gutter, vertical = MikomiSpacing.Sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SkeletonBox(
                     modifier = Modifier.size(width = 22.dp, height = 16.dp),
                     shape = RoundedCornerShape(MikomiRadius.Xs),
                 )
-                Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.width(MikomiSpacing.Md))
                 SkeletonBox(
                     modifier = Modifier.size(width = 36.dp, height = 54.dp),
                     shape = RoundedCornerShape(MikomiRadius.Sm),
@@ -552,7 +559,7 @@ private fun HotSkeletonCard(modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.width(MikomiSpacing.Md))
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(7.dp),
+                    verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Tight),
                 ) {
                     SkeletonBox(
                         modifier = Modifier
@@ -582,7 +589,7 @@ private fun HintCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 36.dp),
+                .padding(vertical = MikomiSpacing.Xxl),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -605,7 +612,7 @@ private fun RetryCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 28.dp),
+                .padding(vertical = MikomiSpacing.Xl),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(

@@ -245,7 +245,9 @@ private fun DimensPreview() {
             "Xs" to MikomiSpacing.Xs,
             "Tight" to MikomiSpacing.Tight,
             "Sm" to MikomiSpacing.Sm,
+            "Compact" to MikomiSpacing.Compact,
             "Md" to MikomiSpacing.Md,
+            "Gutter" to MikomiSpacing.Gutter,
             "Lg" to MikomiSpacing.Lg,
             "Room" to MikomiSpacing.Room,
             "Xl" to MikomiSpacing.Xl,
@@ -308,6 +310,32 @@ private fun DimensPreview() {
                             modifier = Modifier.padding(top = MikomiSpacing.Xxs),
                         )
                     }
+                }
+            }
+
+            SectionTitle("线宽")
+            for ((name, value) in listOf(
+                "Thin" to MikomiStroke.Thin,
+                "Medium" to MikomiStroke.Medium,
+                "Thick" to MikomiStroke.Thick,
+            )) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.width(48.dp),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(120.dp)
+                            .height(value)
+                            .background(MaterialTheme.colorScheme.outline),
+                    )
+                    Text(
+                        text = "${value.value}dp",
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(start = MikomiSpacing.Sm),
+                    )
                 }
             }
 

@@ -16,17 +16,38 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import java.util.concurrent.ConcurrentHashMap
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80,
-)
+/*
+ * ---- 基准方案 ----
+ *
+ * M3 的 `lightColorScheme()` / `darkColorScheme()` 不是「空白骨架」，它带着一整套紫：
+ * `secondaryContainer` = #E8DEF8、`tertiary` = #7D5260、`outline` = #79747E、
+ * `inverseSurface` = #313033。之前这里只覆盖了 primary 一族与表面层级，
+ * 于是那些紫每隔一阵就从某个 M3 组件里漏出来一次 —— FilterChip 的选中态、
+ * FilledTonalButton 的底、夜间的 outline 描边，都曾经在页面上出现过。
+ *
+ * 现在基准方案只当槽位骨架用，颜色分为三份来源，一个都不留：
+ * - primary 一族 ← [ThemePalette]（用户可切换的五套配色）；
+ * - secondary / tertiary 一族 ← 中性色（本项目只有一个强调色，就是主色）；
+ * - 表面 / 描边 ← 下面的 `withDaySurfaces` / `withNightSurfaces`。
+ */
+private val BaseLightColorScheme = lightColorScheme()
+private val BaseDarkColorScheme = darkColorScheme()
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40,
-)
+/** 第二强调色：中性灰。不进任何主色作用域，只用来区分层级。 */
+private val SecondaryDay = Color(0xFF5C5C60)
+private val SecondaryNight = Color(0xFFC8C8CC)
+
+/** 第三强调色：比 secondary 更淡的中性，仅用于「第三层提示」。 */
+private val TertiaryDay = Color(0xFF76767A)
+private val TertiaryNight = Color(0xFF9A9A9F)
+
+/** 中性容器：FilterChip 未选中底、分段控件底。 */
+private val TertiaryContainerDay = Color(0xFFE4E4E7)
+private val TertiaryContainerNight = Color(0xFF303035)
+
+/** 中性容器上的前景。 */
+private val OnNeutralDay = Color(0xFF1A1A1C)
+private val OnNeutralNight = Color(0xFFEDEDF0)
 
 /** 预设配色下 primary 上的前景色：四种预设主色都偏亮，统一用黑字以满足 4.5:1 对比度。 */
 private val PaletteOnPrimary = Color(0xFF000000)
@@ -50,6 +71,9 @@ private fun ColorScheme.withNightSurfaces(): ColorScheme = copy(
     surfaceContainerHigh = Color(0xFF212121),
     surfaceContainerHighest = Color(0xFF262626),
     surfaceVariant = Color(0xFF2A2A2A),
+    // 描边：M3 默认的 #938F99 / #49454F 都带紫，压在纯黑上会读成「脏灰」。
+    outline = Color(0xFF8A8A8F),
+    outlineVariant = Color(0xFF3A3A3E),
 )
 
 /**
@@ -205,12 +229,12 @@ fun warmUpColorSchemes() {
     }
 }
 
-/** 真正的方案构建：主色按模式改写，表面层级按模式锁定。 */
+/** 真正的方案构建：主色按模式改写，中性色与表面层级按模式锁定。 */
 private fun buildColorScheme(darkTheme: Boolean, palette: ThemePalette): ColorScheme {
     // 所有配色（含默认蓝色）都用预设主色覆盖基础方案，其余语义色保持不变。
     // 主色在日 / 夜保持同一色值并把夜间版本自动提亮到可读对比度，
     // 只有容器色按模式区分，避免深色界面出现大块亮色。
-    val colorScheme = (if (darkTheme) DarkColorScheme else LightColorScheme).copy(
+    val colorScheme = (if (darkTheme) BaseDarkColorScheme else BaseLightColorScheme).copy(
         primary = if (darkTheme) palette.lightPrimary.forNight() else palette.lightPrimary,
         onPrimary = PaletteOnPrimary,
         primaryContainer = if (darkTheme) {
@@ -223,6 +247,30 @@ private fun buildColorScheme(darkTheme: Boolean, palette: ThemePalette): ColorSc
         } else {
             palette.lightOnPrimaryContainer
         },
+        // 次要色与容器：容器一律取主色容器，让「选中态」在整套主题里长得一致；
+        // 纯色（secondary / tertiary）取中性，避免出现第二个强调色。
+        secondary = if (darkTheme) SecondaryNight else SecondaryDay,
+        onSecondary = if (darkTheme) OnNeutralDay else Color.White,
+        secondaryContainer = if (darkTheme) {
+            palette.darkPrimaryContainer
+        } else {
+            palette.lightPrimaryContainer
+        },
+        onSecondaryContainer = if (darkTheme) {
+            palette.darkOnPrimaryContainer
+        } else {
+            palette.lightOnPrimaryContainer
+        },
+        tertiary = if (darkTheme) TertiaryNight else TertiaryDay,
+        onTertiary = if (darkTheme) OnNeutralDay else Color.White,
+        tertiaryContainer = if (darkTheme) TertiaryContainerNight else TertiaryContainerDay,
+        onTertiaryContainer = if (darkTheme) OnNeutralNight else OnNeutralDay,
+        // 反色面：Snackbar 一类「浮在页面之上的深色条」用它，别让 M3 的 #313033 紫调漏出来。
+        inverseSurface = if (darkTheme) Color(0xFFEDEDF0) else Color(0xFF2E2E32),
+        inverseOnSurface = if (darkTheme) OnNeutralDay else Color(0xFFF5F5F7),
+        inversePrimary = palette.lightPrimary,
+        // 色调高度（tonal elevation）的着色源：不写就取 M3 默认的紫。
+        surfaceTint = palette.lightPrimary,
     )
 
     // 表面层级按模式锁定：夜间纯黑底 + #181818 卡片；日间浅灰底 + 纯白卡片。

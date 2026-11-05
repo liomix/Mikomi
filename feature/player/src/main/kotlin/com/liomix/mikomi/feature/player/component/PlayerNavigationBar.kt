@@ -98,7 +98,7 @@ internal fun PlayerNavigationBar(
             selectedIndex = selectedTab.ordinal,
             onSelect = { index -> onTabSelected(PlayerTab.entries[index]) },
             containerColor = Color.Transparent,
-            contentPadding = PaddingValues(0.dp),
+            contentPadding = PaddingValues(MikomiSpacing.None),
             itemSpacing = 2.dp,
             itemStyle = TabItemStyle(
                 height = 32.dp,
@@ -210,7 +210,7 @@ private fun SourceChip(
             .semantics { contentDescription = "$sourceDescription $label" },
     ) {
         Row(
-            modifier = Modifier.padding(start = MikomiSpacing.Xs, end = 10.dp),
+            modifier = Modifier.padding(start = MikomiSpacing.Xs, end = MikomiSpacing.Compact),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -227,7 +227,7 @@ private fun SourceChip(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
-            Spacer(modifier = Modifier.width(5.dp))
+            Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,

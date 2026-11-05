@@ -80,8 +80,18 @@ data class MikomiTagColor(
  *
  * @param fill 压在封面 / 深色渐变上的金属色。够亮才醒目。
  * @param outline 描边色。浅色封面（天空、雪地）会把金属色糊掉，靠它勾出字形。
- * @param ink 浅色页面上作为**文字**用的颜色。金属色在白底上只有 1.2:1 的对比度，
- *   直接当文字是读不出来的，所以另备一档压暗的。
+ * @param ink 浅色页面上作为**文字**用的颜色。
+ *
+ * ## ink 为什么这么暗
+ *
+ * 金属色在白底上只有 1.2~1.6:1，直接当文字读不出来，所以另备一档压暗的。
+ * 而「压暗多少」以前是目测的 —— 金的 ink 取 #F2B705，压在 `background`(#F1F1F3) 上只有
+ * **1.61:1**，银 2.27、铜 3.05，三个都低于正文门槛。搜索页的排名数字因此一直是「有形状、
+ * 看不清」的状态。
+ *
+ * 现在每一档都按「压在 #F1F1F3 上 ≥ 4.5:1」反算：金 #856500（4.82）、银 #5F6B76（4.83）、
+ * 铜 #8A4E17（5.85）。色相保持不变，只是明度压到底 —— 名次的可读性优先于「金属感」，
+ * 因为金属感由 [fill] 在封面上承担，[ink] 只负责在浅底上被读出来。
  */
 @Immutable
 data class MikomiRankColor(
@@ -150,7 +160,15 @@ data class MikomiMediaColors(
  */
 @Immutable
 data class MikomiColors(
-    /** 评分与收藏共用的金色。 */
+    /**
+     * 评分与收藏共用的金色。
+     *
+     * **只允许压在图像上**（封面、banner、Video 遮罩）：这个金在白底上只有 1.63:1，
+     * 在 `background`(#F1F1F3) 上 1.45:1 —— 当文字用是读不出来的。
+     * 目前三处调用（详情头部、首页 banner、搜索封面）都压在图上，符合这个约束；
+     * 将来若要在浅色卡片上显示评分，别用它，用 `onSurface` 配这个金色图标，
+     * 或者先给 [MikomiColors] 补一档 `ratingInk`（做法同 [MikomiRankColor.ink]）。
+     */
     val rating: Color,
     /** 红色标签。 */
     val tagRed: MikomiTagColor,
@@ -254,17 +272,20 @@ private val TagNeutralNight = MikomiTagColor(Color(0xFF2C2C31), Color(0xFFC7C7CC
 private val RankFirst = MikomiRankColor(
     fill = Color(0xFFFFD700),
     outline = Color(0xFF4A3700),
-    ink = Color(0xFFF2B705),
+    // 压在 #F1F1F3 上 4.82:1，压在纯白卡片上 5.44:1。
+    ink = Color(0xFF856500),
 )
 private val RankSecond = MikomiRankColor(
     fill = Color(0xFFC9D3DE),
     outline = Color(0xFF39414B),
-    ink = Color(0xFF9AA3AD),
+    // 4.83:1 / 5.45:1
+    ink = Color(0xFF5F6B76),
 )
 private val RankThird = MikomiRankColor(
     fill = Color(0xFFD98719),
     outline = Color(0xFF4B2A00),
-    ink = Color(0xFFC07A3E),
+    // 5.85:1 / 6.60:1
+    ink = Color(0xFF8A4E17),
 )
 
 /** 骨架底色透明度：浅色 8.6% 黑（Telegram `setAlpha(listSelector, 22)`）。 */

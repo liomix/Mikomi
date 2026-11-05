@@ -98,7 +98,7 @@ fun ThemeScreen(
                     Spacer(modifier = Modifier.height(MikomiSpacing.Lg))
                     LazyRow(
                         modifier = Modifier.selectableGroup(),
-                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        contentPadding = PaddingValues(horizontal = MikomiSpacing.Room),
                         horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
                     ) {
                         items(
@@ -142,7 +142,7 @@ fun ThemeScreen(
                         // 已废弃的 id，直接比字符串会导致「一个都不选中」。
                         val currentHero = TransitionStyle.fromId(transitionStyleId)
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            contentPadding = PaddingValues(horizontal = MikomiSpacing.Lg),
                             horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
                         ) {
                             items(
@@ -178,7 +178,7 @@ fun ThemeScreen(
                     )
                     Spacer(modifier = Modifier.height(MikomiSpacing.Lg))
                     LazyRow(
-                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        contentPadding = PaddingValues(horizontal = MikomiSpacing.Room),
                         horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Room),
                     ) {
                         items(
@@ -204,7 +204,7 @@ fun ThemeScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(start = MikomiSpacing.Xl, end = MikomiSpacing.Xl, bottom = 28.dp),
+                .padding(start = MikomiSpacing.Xl, end = MikomiSpacing.Xl, bottom = MikomiSpacing.Xl),
         )
     }
 }
@@ -287,14 +287,14 @@ private fun EffectGroup(
             shape = RoundedCornerShape(MikomiRadius.Xxl),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
-            Column(modifier = Modifier.padding(vertical = 14.dp)) {
+            Column(modifier = Modifier.padding(vertical = MikomiSpacing.Gutter)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = MikomiSpacing.Lg),
                 )
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(MikomiSpacing.Compact))
                 content()
             }
         }

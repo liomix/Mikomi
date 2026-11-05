@@ -198,7 +198,7 @@ internal fun DetailHeader(
                                 coords.info = it
                                 reportInfoBottom()
                             },
-                        verticalArrangement = Arrangement.spacedBy(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Lg),
                     ) {
                         anime.airDate?.let { airDate ->
                             HeaderInfoBlock(
@@ -364,7 +364,7 @@ private fun HeaderInfoSkeleton(
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Lg),
     ) {
         repeat(3) {
             Column(verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xs)) {
@@ -430,7 +430,7 @@ private fun RatingBlock(
                 tint = MikomiTheme.colors.rating,
                 modifier = Modifier.size(24.dp),
             )
-            Spacer(modifier = Modifier.size(4.dp))
+            Spacer(modifier = Modifier.size(MikomiSpacing.Xs))
             Text(
                 text = String.format(Locale.ROOT, "%.1f", rating),
                 style = MaterialTheme.typography.titleLarge.copy(

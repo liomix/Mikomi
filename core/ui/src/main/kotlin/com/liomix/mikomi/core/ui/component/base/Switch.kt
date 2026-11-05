@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,7 +24,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
@@ -33,6 +31,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiShadowColor
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import kotlin.math.roundToInt
@@ -67,9 +66,6 @@ private val ThumbTravel = ThumbWidth / 2
  * 塞在开关行里（`onCheckedChange = null`）时不用这个尺寸，整行本身就是点击目标。
  */
 private val TouchTargetHeight = MikomiSizes.TouchTarget
-
-/** 圆角取满 = CSS 的 `border-radius: 20px`（大于半高时会被浏览器夹到胶囊形）。 */
-private val SwitchShape: Shape = RoundedCornerShape(percent = 50)
 
 /** CSS 的 `transition: .3s`，缓动也是 `ease`（不是 Material 的 FastOutSlowIn）。 */
 private const val SwitchAnimMillis = MikomiMotion.Duration.Long
@@ -196,7 +192,7 @@ fun Switch(
         Box(
             modifier = Modifier
                 .size(width = TrackWidth, height = TrackHeight)
-                .clip(SwitchShape)
+                .clip(MikomiPillShape)
                 .background(trackColor)
                 // 内阴影必须夹在「底色」和「拨片」之间：`drawBehind` 画的正是子项之前那一刻，
                 // 所以阴影盖得住底色、又压不到拨片上（CSS 的 inset shadow 也是这样被 ::before 盖住的）。
@@ -206,7 +202,7 @@ fun Switch(
             Box(
                 modifier = Modifier
                     .padding(SwitchInset)
-                    .clip(SwitchShape),
+                    .clip(MikomiPillShape),
             ) {
                 Box(
                     modifier = Modifier
@@ -216,12 +212,12 @@ fun Switch(
                         // 这正是 CSS 里 `overflow: hidden` 裁掉 `box-shadow` 的结果，也是这个造型的「厚度」来源。
                         .shadow(
                             elevation = ThumbShadowElevation,
-                            shape = SwitchShape,
+                            shape = MikomiPillShape,
                             clip = false,
                             ambientColor = MikomiShadowColor,
                             spotColor = MikomiShadowColor,
                         )
-                        .background(colors.thumb, SwitchShape),
+                        .background(colors.thumb, MikomiPillShape),
                 )
             }
         }

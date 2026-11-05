@@ -32,6 +32,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 
 /** 元信息徽标的小圆角：它是「贴住文字的一块底」，不是胶囊。 */
 private val MetaShape: Shape = RoundedCornerShape(MikomiRadius.Sm)
@@ -182,7 +183,7 @@ fun Tag(
         shape = shape,
         color = containerColor,
         contentColor = contentColor,
-        border = borderColor?.let { BorderStroke(1.dp, animatedBorderColor) },
+        border = borderColor?.let { BorderStroke(MikomiStroke.Thin, animatedBorderColor) },
     ) {
         Box(
             modifier = Modifier
@@ -209,15 +210,29 @@ private val TagStyle.defaultShape: Shape
         TagStyle.Meta -> MetaShape
     }
 
+/**
+ * 两套实测内边距，留在这里而不上提成 token。
+ *
+ * 它们回答的是「这枚标签自己有多胖」，不是「布局要留多少呼吸」—— 上提成共用 token
+ * 之后，调 Tag 的手感会连带改到别的控件。判别方法同 `MikomiSpacing` 的说明：
+ * 这个数字变了，是整页的节奏变了，还是只有这一个控件变了。
+ */
+private val SelectableHorizontalPadding = 18.dp
+private val MetaHorizontalPadding = 5.dp
+private val MetaVerticalPadding = 1.dp
+
 /** 三套规格的内边距。可选中的那套左右留白更大，因为它是控件而不是文字块。 */
 private val TagStyle.defaultContentPadding: PaddingValues
     get() = when (this) {
-        TagStyle.Selectable -> PaddingValues(horizontal = 18.dp)
+        TagStyle.Selectable -> PaddingValues(horizontal = SelectableHorizontalPadding)
         TagStyle.Content -> PaddingValues(
             horizontal = MikomiSpacing.Lg,
             vertical = MikomiSpacing.Sm,
         )
-        TagStyle.Meta -> PaddingValues(horizontal = 5.dp, vertical = 1.dp)
+        TagStyle.Meta -> PaddingValues(
+            horizontal = MetaHorizontalPadding,
+            vertical = MetaVerticalPadding,
+        )
     }
 
 /** 三套规格的最小高度：只有控件需要撑到 40dp，只读标签跟着文字走。 */

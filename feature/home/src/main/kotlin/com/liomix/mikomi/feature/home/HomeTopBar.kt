@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 
 /**
@@ -99,14 +100,14 @@ fun HomeTopBar(
                     .fillMaxSize()
                     // 14 / 18 / 8 全部对齐巡礼页搜索条：同样的内缩、同样的图标尺寸，
                     // 两处搜索框并排看是同一个东西。
-                    .padding(horizontal = 14.dp),
+                    .padding(horizontal = MikomiSpacing.Gutter),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Search,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(MikomiSizes.IconSm),
                 )
                 Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
                 Text(

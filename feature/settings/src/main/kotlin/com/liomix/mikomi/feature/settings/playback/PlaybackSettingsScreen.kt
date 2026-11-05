@@ -51,8 +51,8 @@ fun PlaybackSettingsScreen(
                 description = stringResource(R.string.settings_playback_default_speed_desc),
             ) {
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(horizontal = MikomiSpacing.Room),
+                    horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
                 ) {
                     items(
                         items = PlayerPlaybackSettings.SpeedOptions,
@@ -78,8 +78,8 @@ fun PlaybackSettingsScreen(
                 description = stringResource(R.string.settings_playback_long_press_desc),
             ) {
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(horizontal = MikomiSpacing.Room),
+                    horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
                 ) {
                     items(
                         items = PlayerPlaybackSettings.LongPressOptions,
@@ -105,8 +105,8 @@ fun PlaybackSettingsScreen(
                 description = stringResource(R.string.settings_playback_seek_sweep_desc),
             ) {
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(horizontal = MikomiSpacing.Room),
+                    horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
                 ) {
                     items(
                         items = PlayerPlaybackSettings.SeekSweepOptions,
@@ -152,7 +152,12 @@ private fun SettingsSection(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = MikomiSpacing.Room, end = MikomiSpacing.Room, top = MikomiSpacing.Xs, bottom = 14.dp),
+                modifier = Modifier.padding(
+                    start = MikomiSpacing.Room,
+                    end = MikomiSpacing.Room,
+                    top = MikomiSpacing.Xs,
+                    bottom = MikomiSpacing.Gutter,
+                ),
             )
             content()
         }

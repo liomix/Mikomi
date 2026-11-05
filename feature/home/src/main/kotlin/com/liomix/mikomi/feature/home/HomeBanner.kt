@@ -56,6 +56,7 @@ import androidx.compose.ui.util.lerp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.model.Anime
@@ -296,11 +297,11 @@ private fun RatingPill(
 ) {
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(percent = 50))
+            .clip(MikomiPillShape)
             .background(MikomiTheme.colors.media.surface)
-            .padding(horizontal = MikomiSpacing.Sm, vertical = 3.dp),
+            .padding(horizontal = MikomiSpacing.Sm, vertical = MikomiSpacing.Xxs),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Xxs),
     ) {
         Icon(
             imageVector = Icons.Filled.Star,

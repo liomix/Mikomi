@@ -163,7 +163,7 @@ private fun <T> CreditGrid(
     // 每列 2 个卡片，横向滚动；列数 = ceil(items.size / 2)。
     val columnCount = (items.size + 1) / 2
     LazyRow(
-        contentPadding = PaddingValues(0.dp),
+        contentPadding = PaddingValues(MikomiSpacing.None),
         horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
     ) {
         items(count = columnCount, key = { it }) { columnIndex ->
@@ -346,7 +346,12 @@ private fun RelationBadge(
             color = badge.content,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = MikomiSpacing.Xs, vertical = 1.dp),
+            modifier = Modifier.padding(
+                horizontal = MikomiSpacing.Xs,
+                // design-ok: 徽标的光学补偿 —— labelSmall 的行高已经够，这里只补一丝呼吸，
+                // 换成 Sm 会把整枚徽标撑高、把同一行的名字挤得上下不齐。
+                vertical = 1.dp,
+            ),
         )
     }
 }

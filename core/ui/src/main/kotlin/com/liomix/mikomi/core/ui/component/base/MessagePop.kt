@@ -62,7 +62,7 @@ data class MikomiToastData(
  *         modifier = Modifier
  *             .align(Alignment.BottomCenter)
  *             .windowInsetsPadding(WindowInsets.navigationBars)
- *             .padding(horizontal = MikomiSpacing.Xl, bottom = 28.dp),
+ *             .padding(horizontal = MikomiSpacing.Xl, bottom = MikomiSpacing.Xl),
  *     )
  * }
  * ```

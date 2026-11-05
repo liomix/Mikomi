@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.R
@@ -155,7 +156,7 @@ fun PlgTstStoreScreen(
                 }
             },
             scrollable = false,
-            contentPadding = PaddingValues(0.dp),
+            contentPadding = PaddingValues(MikomiSpacing.None),
             verticalArrangement = Arrangement.Top,
         ) {
             SearchField(query = uiState.query, onQueryChange = onQueryChange)
@@ -216,8 +217,8 @@ fun PlgTstStoreScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .windowInsetsPadding(WindowInsets.navigationBars),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Md),
+                        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
                     ) {
                         items(
                             items = visibleItems,
@@ -380,7 +381,7 @@ private fun StoreItemCard(
         color = colors.surfaceContainerLow,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = MikomiSpacing.Md),
+            modifier = Modifier.padding(horizontal = MikomiSpacing.Gutter, vertical = MikomiSpacing.Md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             StatusTile(status = status)
@@ -405,7 +406,7 @@ private fun StoreItemCard(
                     )
                 }
                 if (meta != null) {
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
                     Text(
                         text = meta,
                         style = MaterialTheme.typography.bodySmall,
@@ -478,7 +479,7 @@ private fun StoreAction(
         ) {
             CircularProgressIndicator(
                 modifier = Modifier.size(14.dp),
-                strokeWidth = 2.dp,
+                strokeWidth = MikomiStroke.Thick,
                 color = colors.primary,
             )
             Spacer(modifier = Modifier.width(MikomiSpacing.Tight))
@@ -548,7 +549,7 @@ private fun StoreTag(
             text = text,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = MikomiSpacing.Sm, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = MikomiSpacing.Sm, vertical = MikomiSpacing.Xxs),
         )
     }
 }
@@ -616,7 +617,7 @@ private fun StoreSkeleton() {
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Md),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
     ) {
         repeat(5) { index ->
             Row(
@@ -624,7 +625,7 @@ private fun StoreSkeleton() {
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(MikomiRadius.Xxl))
                     .background(colors.surfaceContainerLow)
-                    .padding(horizontal = 14.dp, vertical = MikomiSpacing.Md),
+                    .padding(horizontal = MikomiSpacing.Gutter, vertical = MikomiSpacing.Md),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SkeletonBox(
@@ -665,4 +666,4 @@ private fun formatUpdatedAt(millis: Long): String? {
 }
 
 /** 行尾按钮的左右内边距：比默认更窄，「安装」两字不用撑成一个大按钮。 */
-private val ActionContentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp)
+private val ActionContentPadding = PaddingValues(horizontal = MikomiSpacing.Gutter)

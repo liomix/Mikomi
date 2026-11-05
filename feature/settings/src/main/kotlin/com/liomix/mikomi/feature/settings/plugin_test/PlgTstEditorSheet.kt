@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.InvalidVdoPlgSourceException
 import com.liomix.mikomi.feature.settings.R
@@ -82,7 +83,7 @@ fun PlgTstEditorSheet(
                     fontWeight = FontWeight.Bold,
                     color = colors.onSurface,
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(MikomiSpacing.Compact))
                 Text(
                     // 插件名同时是文件名，改 JSON 里的 name 就等于改名，所以它必须是显眼的一等信息。
                     text = state.ruleName,
@@ -106,7 +107,7 @@ fun PlgTstEditorSheet(
                     if (state.saving) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
+                            strokeWidth = MikomiStroke.Thick,
                         )
                     } else {
                         Text(stringResource(R.string.settings_plg_tst_editor_save))
@@ -122,7 +123,7 @@ fun PlgTstEditorSheet(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Spacer(modifier = Modifier.height(MikomiSpacing.Xxxl))
-                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = MikomiStroke.Thick)
                 }
 
                 state.missing -> Text(
@@ -133,7 +134,7 @@ fun PlgTstEditorSheet(
                 )
 
                 else -> {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(MikomiSpacing.Compact))
                     EditorError(reason = state.reason, failure = state.failure)
                     OutlinedTextField(
                         value = state.text,

@@ -62,8 +62,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.ui.component.base.Tag
 import com.liomix.mikomi.core.ui.component.base.TagColors
 import com.liomix.mikomi.core.ui.component.base.TagStyle
@@ -306,7 +308,7 @@ private fun FamilyTabRow(
         modifier = Modifier
             .fillMaxWidth()
             .selectableGroup(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp),
+        contentPadding = PaddingValues(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Xxs),
         horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
     ) {
         items(items = families, key = { it.name }) { family ->
@@ -355,7 +357,7 @@ private fun FamilyTab(
     Row(
         modifier = Modifier
             .height(36.dp)
-            .clip(RoundedCornerShape(percent = 50))
+            .clip(MikomiPillShape)
             .background(containerColor)
             // 触控区就是看到的胶囊，不额外外扩。
             .selectable(selected = selected, role = Role.Tab, onClick = onClick)
@@ -652,7 +654,7 @@ private fun StatusDot(
         SourceAvailability.CHECKING -> CircularProgressIndicator(
             modifier = Modifier.size(spinnerSize),
             color = MaterialTheme.colorScheme.primary,
-            strokeWidth = 1.5.dp,
+            strokeWidth = MikomiStroke.Medium,
         )
 
         SourceAvailability.NO_RESULT -> Box(

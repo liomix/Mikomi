@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.model.RankEntry
 import com.liomix.mikomi.core.designsystem.theme.MikomiShadowColor
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
@@ -84,7 +85,7 @@ internal fun RankAnimeCard(
         color = Color.Transparent,
         contentColor = MikomiTheme.colors.media.content,
         border = BorderStroke(
-            width = 1.dp,
+            width = MikomiStroke.Thin,
             // 前三名用描边色勾一圈：压在封面上时金属色本身就够亮，描边只做收边。
             color = rankOutline(rank)?.copy(alpha = 0.55f) ?: MikomiTheme.colors.media.outline,
         ),

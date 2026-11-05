@@ -429,7 +429,7 @@ fun ProfileScreen(
                 onSettingsClick = onSettingsClick,
             )
 
-            Spacer(modifier = Modifier.height(21.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Room))
 
             ProfileTabs(
                 palette = palette,
@@ -438,7 +438,7 @@ fun ProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(modifier = Modifier.height(13.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Md))
 
             ProfileTabContent(
                 state = contentState,
@@ -516,6 +516,9 @@ private val CollapsedBottomGap = 16.dp
 private val ContentBottomGap = 14.dp
 
 /** 动作卡高度，同时决定照片下沿的位置（照片底边 = 卡片下沿）。 */
+/** 收拢态姓名/简介的左右让位：照片两侧要留出圆形头像的收口，文字不能压到弧上。 */
+private val CollapsedTextInset = 56.dp
+
 private val ActionCardHeight = 54.dp
 
 /** 展开态下名字块底边与照片下沿的距离。 */
@@ -747,9 +750,9 @@ private fun ProfileNameOverlay(
                 color = palette.title,
                 style = MikomiTextStyles.DisplayName,
                 maxLines = 1,
-                modifier = Modifier.padding(horizontal = 56.dp),
+                modifier = Modifier.padding(horizontal = CollapsedTextInset),
             )
-            Spacer(modifier = Modifier.height(3.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
             Text(
                 text = stringResource(R.string.profile_bio),
                 color = palette.secondary,
@@ -757,7 +760,7 @@ private fun ProfileNameOverlay(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
-                    .padding(horizontal = 56.dp)
+                    .padding(horizontal = CollapsedTextInset)
                     .graphicsLayer { alpha = (1f - progress() / 0.4f).coerceIn(0f, 1f) },
             )
         }
@@ -767,7 +770,7 @@ private fun ProfileNameOverlay(
             horizontalAlignment = Alignment.Start,
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = 18.dp)
+                .padding(start = MikomiSpacing.Lg)
                 .offset {
                     val bottom = photoBottom() - NameBottomInset.toPx()
                     IntOffset(0, -(heightPx - bottom).roundToInt())
@@ -815,12 +818,12 @@ private fun ActionCardsRow(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(7.dp),
+        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Tight),
         modifier = modifier
             .fillMaxWidth()
             // 撑满态整排消失：只留昵称与简介。
             .graphicsLayer { alpha = (1f - expand()).coerceIn(0f, 1f) }
-            .padding(horizontal = 14.dp),
+            .padding(horizontal = MikomiSpacing.Gutter),
     ) {
         ActionCard(
             palette = palette,
@@ -881,7 +884,7 @@ private fun ActionCard(
             tint = palette.title,
             modifier = Modifier.size(20.dp),
         )
-        Spacer(modifier = Modifier.height(3.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
         Text(
             text = label,
             color = palette.title,

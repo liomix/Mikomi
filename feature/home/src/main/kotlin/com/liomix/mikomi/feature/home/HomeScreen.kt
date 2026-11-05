@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.business.AnimePosterCard
 import com.liomix.mikomi.core.ui.component.base.ErrorState
@@ -75,13 +76,22 @@ private fun rememberHomeContentPadding(): PaddingValues {
     val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     return remember(statusBarInset) {
         PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            top = statusBarInset + 4.dp,
-            bottom = 112.dp,
+            start = MikomiSpacing.Lg,
+            end = MikomiSpacing.Lg,
+            top = statusBarInset + MikomiSpacing.Xs,
+            bottom = ContentBottomClearance,
         )
     }
 }
+
+/**
+ * 列表底部为悬浮分类栏留出的避让余量。
+ *
+ * 导航栏留白由 `BaseScreenLayout` 统一消费，这里只补**悬浮栏**压住列表的那一段，
+ * 所以它不是一个间距节拍 —— 悬浮栏多高它就是多少，上提成 `MikomiSpacing` 反而会
+ * 让「改页面留白」连带把悬浮栏的避让改坏。
+ */
+private val ContentBottomClearance = 112.dp
 
 private const val LOAD_MORE_THRESHOLD = 3
 

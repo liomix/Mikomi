@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -60,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.lerp
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
@@ -191,7 +191,7 @@ private data class TabBarVisuals(
 
 private val LocalTabBarVisuals = compositionLocalOf {
     TabBarVisuals(
-        shape = RoundedCornerShape(percent = 50),
+        shape = MikomiPillShape,
         style = TabItemStyle(),
         colors = TabColors(Color.Transparent, Color.Unspecified, Color.Unspecified, Color.Unspecified),
     )
@@ -230,9 +230,9 @@ fun TabBar(
     selectedContentColor: Color = MaterialTheme.colorScheme.primary,
     unselectedContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     hoveredContentColor: Color = MaterialTheme.colorScheme.onSurface,
-    shape: Shape = RoundedCornerShape(percent = 50),
+    shape: Shape = MikomiPillShape,
     elevation: Dp = 0.dp,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = MikomiSpacing.Compact, vertical = MikomiSpacing.Xs),
     itemSpacing: Dp = 14.dp,
     itemStyle: TabItemStyle = TabItemStyle.compact(),
     content: @Composable RowScope.() -> Unit,

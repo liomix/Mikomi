@@ -138,7 +138,7 @@ private fun EntryRow(
                     .size(22.dp),
             )
         }
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(MikomiSpacing.Md))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,

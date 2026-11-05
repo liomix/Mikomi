@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
+import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.data.video.VdoStreamSniffer
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -303,7 +304,7 @@ internal fun PlayerWebView(
                 modifier = Modifier
                     .align(Alignment.Center)
                     .size(26.dp),
-                strokeWidth = 2.dp,
+                strokeWidth = MikomiStroke.Thick,
                 color = MikomiMedia.content,
             )
         }

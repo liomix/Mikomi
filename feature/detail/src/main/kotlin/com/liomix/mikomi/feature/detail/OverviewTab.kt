@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.base.Tag
@@ -164,7 +165,7 @@ private fun ExpandChip(
 ) {
     Surface(
         shape = RoundedCornerShape(MikomiRadius.Xxl),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(MikomiStroke.Thin, MaterialTheme.colorScheme.outlineVariant),
         color = MaterialTheme.colorScheme.surface,
         modifier = modifier,
     ) {
@@ -181,7 +182,7 @@ private fun ExpandChip(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(modifier = Modifier.size(4.dp))
+            Spacer(modifier = Modifier.size(MikomiSpacing.Xs))
             Icon(
                 imageVector = if (expanded) Icons.Outlined.Remove else Icons.Outlined.Add,
                 contentDescription = null,

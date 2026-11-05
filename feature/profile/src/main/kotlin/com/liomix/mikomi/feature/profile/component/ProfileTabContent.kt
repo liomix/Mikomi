@@ -26,6 +26,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 
 /** 首屏占位行数：2 行 × 3 列 = 6 个占位格。 */
 private const val INITIAL_ROWS = 2
@@ -117,7 +119,7 @@ private fun MediaRow(dividerColor: Color, skeletonColor: Color, isFirst: Boolean
                         color = dividerColor,
                         start = Offset(step * i, 0f),
                         end = Offset(step * i, size.height),
-                        strokeWidth = 1.dp.toPx(),
+                        strokeWidth = MikomiStroke.Thin.toPx(),
                     )
                 }
                 // 首行上方不画横线，其余行画一条，和 Telegram 的媒体网格一致。
@@ -126,18 +128,18 @@ private fun MediaRow(dividerColor: Color, skeletonColor: Color, isFirst: Boolean
                         color = dividerColor,
                         start = Offset(0f, 0f),
                         end = Offset(size.width, 0f),
-                        strokeWidth = 1.dp.toPx(),
+                        strokeWidth = MikomiStroke.Thin.toPx(),
                     )
                 }
             },
-        horizontalArrangement = Arrangement.spacedBy(0.dp),
+        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.None),
     ) {
         repeat(3) {
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .padding(10.dp),
+                    .padding(MikomiSpacing.Compact),
             ) {
                 Box(
                     modifier = Modifier

@@ -124,7 +124,7 @@ private fun TeasingCommentItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = MikomiSpacing.Lg, vertical = 14.dp),
+            .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Gutter),
     ) {
         TeasingAvatar(url = comment.user.avatarUrl, name = comment.user.displayName)
         Spacer(modifier = Modifier.width(MikomiSpacing.Md))
@@ -306,7 +306,7 @@ private fun TeasingSkeletonItem(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = MikomiSpacing.Lg, vertical = 14.dp),
+            .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Gutter),
     ) {
         SkeletonBox(
             modifier = Modifier.size(TEASING_AVATAR_SIZE),

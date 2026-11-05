@@ -90,7 +90,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.model.VdoPlgContent
 import com.liomix.mikomi.core.ui.component.base.Switch
 import com.liomix.mikomi.core.ui.component.base.Tag
@@ -412,7 +414,7 @@ private fun PluginCard(
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(22.dp),
-                        strokeWidth = 2.dp,
+                        strokeWidth = MikomiStroke.Thick,
                     )
                 }
 
@@ -578,7 +580,7 @@ private fun PluginRow(
             )
         }
 
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(MikomiSpacing.Compact))
         Switch(
             checked = plugin.enabled,
             onCheckedChange = null,
@@ -784,7 +786,7 @@ private fun PluginTestSheet(
                 TestSummaryChip(running = state.running, report = report)
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Md))
             StageRow(
                 label = stringResource(R.string.settings_plg_tst_test_stage_search),
                 result = report?.search,
@@ -847,10 +849,10 @@ private fun PluginTestSheet(
                 if (state.running) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
+                        strokeWidth = MikomiStroke.Thick,
                         color = colors.onPrimary,
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(MikomiSpacing.Compact))
                 }
                 Text(stringResource(R.string.settings_plg_tst_test_run))
             }
@@ -892,7 +894,7 @@ private fun TestSummaryChip(running: Boolean, report: VdoPlgTestReport?) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(horizontal = MikomiSpacing.Sm, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = MikomiSpacing.Sm, vertical = MikomiSpacing.Xxs),
         )
     }
 }
@@ -921,7 +923,7 @@ private fun StageRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 7.dp),
+            .padding(vertical = MikomiSpacing.Tight),
         verticalAlignment = Alignment.Top,
     ) {
         when {
@@ -929,7 +931,7 @@ private fun StageRow(
                 modifier = Modifier
                     .padding(top = MikomiSpacing.Xxs)
                     .size(16.dp),
-                strokeWidth = 2.dp,
+                strokeWidth = MikomiStroke.Thick,
             )
 
             else -> Icon(
@@ -942,10 +944,10 @@ private fun StageRow(
                 tint = tint,
                 modifier = Modifier
                     .padding(top = MikomiSpacing.Xxs)
-                    .size(18.dp),
+                    .size(MikomiSizes.IconSm),
             )
         }
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(MikomiSpacing.Compact))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,
@@ -1114,7 +1116,7 @@ private fun MirrorPickerDialog(
                                 role = Role.RadioButton,
                                 onClick = { onSelect(mirror) },
                             )
-                            .padding(vertical = 10.dp),
+                            .padding(vertical = MikomiSpacing.Compact),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(selected = selected, onClick = null)
@@ -1189,7 +1191,7 @@ private fun AddPluginSheet(
                             },
                         )
                         .clickable { onSelect(method) }
-                        .padding(horizontal = MikomiSpacing.Md, vertical = 14.dp),
+                        .padding(horizontal = MikomiSpacing.Md, vertical = MikomiSpacing.Gutter),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Surface(
@@ -1205,7 +1207,7 @@ private fun AddPluginSheet(
                                 .size(22.dp),
                         )
                     }
-                    Spacer(modifier = Modifier.width(14.dp))
+                    Spacer(modifier = Modifier.width(MikomiSpacing.Md))
                     Text(
                         text = stringResource(method.titleRes),
                         style = MaterialTheme.typography.titleMedium,

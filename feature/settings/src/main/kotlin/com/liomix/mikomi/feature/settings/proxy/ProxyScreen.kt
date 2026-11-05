@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.model.BangumiApiMode
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.R
@@ -97,7 +98,7 @@ fun ProxyScreen(
                 SettingsCardHeader(stringResource(R.string.settings_proxy_mode_section))
                 Column(
                     modifier = Modifier.padding(start = MikomiSpacing.Lg, end = MikomiSpacing.Lg, bottom = MikomiSpacing.Room),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
                 ) {
                     ModeOption(
                         title = stringResource(R.string.settings_proxy_mode_direct),
@@ -214,7 +215,7 @@ private fun MirrorAddressCard(
                     if (testing) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(14.dp),
-                            strokeWidth = 2.dp,
+                            strokeWidth = MikomiStroke.Thick,
                             color = LocalContentColor.current,
                         )
                         Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
@@ -223,7 +224,7 @@ private fun MirrorAddressCard(
                         Text(text = stringResource(R.string.settings_proxy_test))
                     }
                 }
-                Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.width(MikomiSpacing.Md))
                 MirrorTestLabel(
                     result = uiState.mirrorTest,
                     modifier = Modifier.weight(1f),
@@ -310,10 +311,15 @@ private fun ModeOption(
             ),
         shape = OptionShape,
         color = containerColor,
-        border = BorderStroke(1.dp, borderColor),
+        border = BorderStroke(MikomiStroke.Thin, borderColor),
     ) {
         Row(
-            modifier = Modifier.padding(start = MikomiSpacing.Tight, end = 14.dp, top = 10.dp, bottom = 10.dp),
+            modifier = Modifier.padding(
+                start = MikomiSpacing.Tight,
+                end = MikomiSpacing.Gutter,
+                top = MikomiSpacing.Compact,
+                bottom = MikomiSpacing.Compact,
+            ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // 点击交给整行，圆点只作为状态指示。

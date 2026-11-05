@@ -137,7 +137,7 @@ data class PressButtonStyle(
          */
         val Elevated: PressButtonStyle = PressButtonStyle(
             shape = RoundedCornerShape(MikomiRadius.Xl),
-            contentPadding = PaddingValues(horizontal = 20.dp),
+            contentPadding = PaddingValues(horizontal = MikomiSpacing.Room),
             minHeight = 56.dp,
             elevation = MikomiElevation.Floating,
             tone = PressButtonTone.Tonal,

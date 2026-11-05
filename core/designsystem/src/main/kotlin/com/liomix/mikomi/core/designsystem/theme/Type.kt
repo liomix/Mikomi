@@ -6,6 +6,18 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
+/**
+ * 正文与标题的字体族。
+ *
+ * 单独拿出来是因为它是**唯一一个「换字体会波及全部 23 个槽位」的值**：
+ * 之前每个 `TextStyle` 各写一次 `FontFamily.Default`（这里 15 处、[MikomiTextStyles] 里 12 处），
+ * 想接入一款品牌中文字体，得改 27 行且必然漏掉一两行 —— 漏掉的那一行会在页面上
+ * 莫名其妙地用系统字体，而且没人看得出来为什么只有那段文字不一样。
+ *
+ * 现在换字体只改这一个 `val`。等宽那一支（[MikomiTextStyles.Code]）不走这里。
+ */
+val MikomiFontFamily: FontFamily = FontFamily.Default
+
 /*
  * 字阶。
  *
@@ -38,21 +50,21 @@ import androidx.compose.ui.unit.sp
 val Typography = Typography(
     // ---- 展示级：整屏只有一处，用于空态插画旁的巨大数字 ----
     displayLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 57.sp,
         lineHeight = 64.sp,
         letterSpacing = 0.sp,
     ),
     displayMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 45.sp,
         lineHeight = 52.sp,
         letterSpacing = 0.sp,
     ),
     displaySmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 36.sp,
         lineHeight = 44.sp,
@@ -61,21 +73,21 @@ val Typography = Typography(
 
     // ---- 标题级：页面标题、区块标题 ----
     headlineLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 32.sp,
         lineHeight = 40.sp,
         letterSpacing = 0.sp,
     ),
     headlineMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 28.sp,
         lineHeight = 36.sp,
         letterSpacing = 0.sp,
     ),
     headlineSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 24.sp,
         lineHeight = 32.sp,
@@ -84,21 +96,21 @@ val Typography = Typography(
 
     // ---- 小标题级：卡片标题、按钮文字、列表行主文案 ----
     titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 20.sp,
         lineHeight = 28.sp,
         letterSpacing = 0.sp,
     ),
     titleMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.sp,
     ),
     titleSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
@@ -107,21 +119,21 @@ val Typography = Typography(
 
     // ---- 正文级：简介、评论这类需要连续读的段落 ----
     bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.sp,
     ),
     bodyMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.sp,
     ),
     bodySmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp,
@@ -130,21 +142,21 @@ val Typography = Typography(
 
     // ---- 标签级：按钮、标签、徽标。比正文重一档，因为它们通常是短词 ----
     labelLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.sp,
     ),
     labelMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.sp,
     ),
     labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
         lineHeight = 16.sp,
@@ -182,7 +194,7 @@ object MikomiTextStyles {
      * 顶栏标题需要压住底下的内容，光靠字号不够。
      */
     val TopBarTitle: TextStyle = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 20.sp,
         lineHeight = 26.sp,
@@ -196,7 +208,7 @@ object MikomiTextStyles {
      * 但不需要像顶栏那样成为整个屏幕的锚点。
      */
     val SectionTitle: TextStyle = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 18.sp,
         lineHeight = 24.sp,
@@ -210,7 +222,7 @@ object MikomiTextStyles {
      * 用 16 会和主标题抢注意力，用 14 又跌进「辅助信息」的档位。
      */
     val BodySecondary: TextStyle = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
         lineHeight = 23.sp,
@@ -224,7 +236,7 @@ object MikomiTextStyles {
      * 13sp 是「最小但还能读」的位置，也是 Telegram 用得最多的小字档。
      */
     val Caption: TextStyle = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 13.sp,
         lineHeight = 18.sp,
@@ -239,7 +251,7 @@ object MikomiTextStyles {
      * 半磅的差别在手机上不可见，但 17.5 会让「字阶表里到底有没有这一档」永远说不清。
      */
     val DisplayName: TextStyle = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 18.sp,
         lineHeight = 22.sp,
@@ -250,7 +262,7 @@ object MikomiTextStyles {
      * 媒体标题：全屏播放器顶部的剧集名 —— 压在画面上，所以比同档正文重一档。
      */
     val MediaTitle: TextStyle = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 18.sp,
         lineHeight = 24.sp,
@@ -259,7 +271,7 @@ object MikomiTextStyles {
 
     /** 媒体副标题：全屏播放器里的线路名、剧集号。 */
     val MediaSubtitle: TextStyle = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 15.sp,
         lineHeight = 20.sp,
@@ -273,7 +285,7 @@ object MikomiTextStyles {
      * 也正因为如此，它在 HUD 里只出现一次（底板中央），不会变成一种正文样式。
      */
     val HudTime: TextStyle = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
         lineHeight = 26.sp,
@@ -288,7 +300,7 @@ object MikomiTextStyles {
      * 并排看却像没对齐。
      */
     val IconLabel: TextStyle = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 16.sp,
@@ -302,7 +314,7 @@ object MikomiTextStyles {
      * 14sp 时三字标题偏窄、15sp 时四字标题会挤，14.5 是两个都成立的唯一值。
      */
     val TabLabel: TextStyle = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 14.5.sp,
         lineHeight = 18.sp,
@@ -337,7 +349,7 @@ object MikomiTextStyles {
 
     /** 一位数名次。 */
     private val RankNumberLarge: TextStyle = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 42.sp,
         lineHeight = 46.sp,
@@ -346,7 +358,7 @@ object MikomiTextStyles {
 
     /** 两位数名次。 */
     private val RankNumberMedium: TextStyle = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 34.sp,
         lineHeight = 38.sp,
@@ -355,7 +367,7 @@ object MikomiTextStyles {
 
     /** 三位数名次。 */
     private val RankNumberSmall: TextStyle = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = MikomiFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 26.sp,
         lineHeight = 30.sp,

@@ -58,7 +58,7 @@ fun CommunityScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.padding(
                 start = MikomiSpacing.Room,
                 end = MikomiSpacing.Room,
-                top = 14.dp,
+                top = MikomiSpacing.Gutter,
             ),
         )
 
@@ -77,7 +77,7 @@ fun CommunityScreen(modifier: Modifier = Modifier) {
 private fun CommunityEmptyState(modifier: Modifier = Modifier) {
     val colorScheme = MaterialTheme.colorScheme
     Column(
-        modifier = modifier.padding(horizontal = 40.dp),
+        modifier = modifier.padding(horizontal = MikomiSpacing.Xxl),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
@@ -86,7 +86,7 @@ private fun CommunityEmptyState(modifier: Modifier = Modifier) {
             tint = colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
             modifier = Modifier.size(MikomiSizes.AvatarMd),
         )
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Md))
         Text(
             text = stringResource(R.string.community_empty_title),
             color = colorScheme.onSurface,

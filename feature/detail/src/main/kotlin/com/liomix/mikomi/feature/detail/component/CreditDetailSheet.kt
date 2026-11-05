@@ -64,6 +64,15 @@ private val DETAIL_IMAGE_HEIGHT = 180.dp
 private val COMMENT_AVATAR_SIZE = 48.dp
 
 /**
+ * 回复区缩进 = 一级评论的头像 + 头像与正文的间隙。
+ *
+ * 写成加法而不是 60dp：这两个值任何一个变了（头像调大、间隙改成 Sm），
+ * 回复的首字都会自动跟着正文首字走；写死 60 的话它会在某次调参后错开几像素，
+ * 而这种错位没人会专门去发现。
+ */
+private val ReplyIndent = COMMENT_AVATAR_SIZE + MikomiSpacing.Md
+
+/**
  * 主创详情底部弹层：两个 Tab（人物资料 / 吐槽箱）。
  *
  * 对齐 Dart 版 `DetailPopover`：ModalBottomSheet 顶部圆角，
@@ -234,7 +243,7 @@ private fun CreditCommentList(
             } else {
                 LazyColumn(
                     modifier = modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(MikomiSpacing.Lg),
                     verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xl),
                 ) {
                     items(
@@ -288,7 +297,7 @@ private fun CommentItem(
             Surface(
                 onClick = { expanded = !expanded },
                 color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.padding(start = 60.dp),
+                modifier = Modifier.padding(start = ReplyIndent),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     HorizontalDivider(
@@ -321,7 +330,7 @@ private fun CommentItem(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 60.dp, bottom = MikomiSpacing.Lg),
+                        .padding(start = ReplyIndent, bottom = MikomiSpacing.Lg),
                 ) {
                     CommentAvatar(url = reply.user.avatarUrl, size = 36.dp)
                     Spacer(modifier = Modifier.width(MikomiSpacing.Md))

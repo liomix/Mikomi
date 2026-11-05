@@ -75,7 +75,7 @@ internal fun SearchSuggestionList(
             } else {
                 LazyColumn(
                     modifier = modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp),
+                    contentPadding = PaddingValues(vertical = MikomiSpacing.Sm),
                 ) {
                     items(
                         items = suggestions,
@@ -113,7 +113,7 @@ private fun SuggestionItem(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = MikomiSpacing.Lg, vertical = 14.dp),
+            .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Gutter),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -169,7 +169,7 @@ private fun SuggestionSkeleton(modifier: Modifier = Modifier) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = MikomiSpacing.Lg, vertical = 14.dp),
+                    .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Gutter),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SkeletonBox(

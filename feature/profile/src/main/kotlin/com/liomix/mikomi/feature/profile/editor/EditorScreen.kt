@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.ui.component.base.SideBarPop
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.profile.R
@@ -145,7 +146,12 @@ fun EditorScreen(
             },
             // 键盘留白只加在内容区：顶栏不能被输入法顶上去。
             contentModifier = Modifier.imePadding(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+            contentPadding = PaddingValues(
+                start = MikomiSpacing.Lg,
+                end = MikomiSpacing.Lg,
+                top = MikomiSpacing.Sm,
+                bottom = MikomiSpacing.Xl,
+            ),
         ) {
             AvatarSection(
                 onPickAvatarClick = onPickAvatarClick,
@@ -260,7 +266,7 @@ private fun FieldCard(
         shape = CardShape,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         border = BorderStroke(
-            width = 1.dp,
+            width = MikomiStroke.Thin,
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
         ),
     ) {
@@ -292,7 +298,7 @@ private fun ValueRow(
             // 先 clickable 再 padding：点击区因此包住这一整行（含左右 20dp 留白），
             // 一直贴到卡片边缘与圆角，而不是只到文字为止。
             .clickable(onClick = onClick)
-            .padding(horizontal = MikomiSpacing.Room, vertical = 15.dp),
+            .padding(horizontal = MikomiSpacing.Room, vertical = MikomiSpacing.Lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RowLabel(text = label)
@@ -332,7 +338,7 @@ private fun BioRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = MikomiSpacing.Room, vertical = 15.dp),
+            .padding(horizontal = MikomiSpacing.Room, vertical = MikomiSpacing.Lg),
         verticalAlignment = Alignment.Top,
     ) {
         RowLabel(text = label)
@@ -418,7 +424,7 @@ private fun EditorPanel(
                 placeholder = stringResource(R.string.profile_editor_name_placeholder),
             )
         }
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Compact))
         Text(
             text = stringResource(
                 when (target) {
@@ -472,7 +478,7 @@ private fun PanelTextField(
             }
         }
         HorizontalDivider(
-            thickness = 1.dp,
+            thickness = MikomiStroke.Thin,
             color = colors.outlineVariant.copy(alpha = 0.6f),
         )
     }

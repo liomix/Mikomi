@@ -91,6 +91,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.media.MikomiPlayer
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
@@ -115,6 +116,9 @@ private val ControlGap = 6.dp
 
 /** 跨组间距（播放组 ↔ 弹幕组）：比组内大，靠疏密把「哪些是一伙的」讲清楚。 */
 private val GroupGap = 12.dp
+
+/** 32dp 小号按钮的左右内边距：两字标签既不贴边、也不显空。 */
+private val SmallButtonHorizontalPadding = 18.dp
 
 private val ControlShape = RoundedCornerShape(MikomiRadius.Md)
 
@@ -525,10 +529,10 @@ private fun SniffCover(modifier: Modifier = Modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator(
                 modifier = Modifier.size(26.dp),
-                strokeWidth = 2.dp,
+                strokeWidth = MikomiStroke.Thick,
                 color = MikomiMedia.content,
             )
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Compact))
             Text(
                 text = stringResource(R.string.player_web_sniffing),
                 style = MaterialTheme.typography.labelMedium,
@@ -585,7 +589,7 @@ private fun PlayerStatusOverlay(
                     Button(
                         onClick = onRetry,
                         modifier = Modifier.height(32.dp),
-                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 0.dp),
+                        contentPadding = PaddingValues(horizontal = SmallButtonHorizontalPadding),
                     ) {
                         Text(
                             text = stringResource(R.string.player_retry),
@@ -599,7 +603,7 @@ private fun PlayerStatusOverlay(
                         TextButton(
                             onClick = onPlayInWebPage,
                             modifier = Modifier.height(32.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                            contentPadding = PaddingValues(horizontal = MikomiSpacing.Md),
                         ) {
                             Text(
                                 text = stringResource(R.string.player_web_play),
@@ -614,10 +618,10 @@ private fun PlayerStatusOverlay(
             loading -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(26.dp),
-                    strokeWidth = 2.dp,
+                    strokeWidth = MikomiStroke.Thick,
                     color = MikomiMedia.content,
                 )
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(MikomiSpacing.Compact))
                 Text(
                     text = stringResource(R.string.player_resolving),
                     style = MaterialTheme.typography.labelMedium,
@@ -637,7 +641,7 @@ private fun BufferingIndicator(playback: PlayerPlaybackState, visible: Boolean) 
     if (!visible || !playback.isBuffering) return
     CircularProgressIndicator(
         modifier = Modifier.size(26.dp),
-        strokeWidth = 2.dp,
+        strokeWidth = MikomiStroke.Thick,
         color = MikomiMedia.content,
     )
 }
@@ -930,7 +934,7 @@ private fun CompactControls(
             onScrubbingChange = onScrubbingChange,
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = 10.dp),
+                .padding(horizontal = MikomiSpacing.Compact),
         )
         TimeText(playback = playback, isDuration = true, style = timeStyle)
         ControlIconButton(
@@ -995,7 +999,7 @@ private fun FullscreenControls(
                 onScrubbingChange = onScrubbingChange,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 10.dp),
+                    .padding(horizontal = MikomiSpacing.Compact),
             )
             TimeText(playback = playback, isDuration = true, style = timeStyle)
         }
@@ -1232,7 +1236,7 @@ private fun SpeedChip(
                     // 0.75x ↔ 1.0x 切换时胶囊宽度不跳。
                     fontFeatureSettings = "tnum",
                 ),
-                modifier = Modifier.padding(horizontal = 10.dp),
+                modifier = Modifier.padding(horizontal = MikomiSpacing.Compact),
             )
         }
 

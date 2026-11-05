@@ -65,6 +65,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.feature.settings.R
@@ -575,7 +576,7 @@ private fun StoreStateView(
             imageVector = icon,
             contentDescription = null,
             tint = colors.onSurfaceVariant,
-            modifier = Modifier.size(40.dp),
+            modifier = Modifier.size(MikomiSizes.AvatarMd),
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(

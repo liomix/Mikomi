@@ -25,6 +25,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
 
 /**
@@ -51,9 +54,13 @@ fun CommunityScreen(modifier: Modifier = Modifier) {
         Text(
             text = stringResource(R.string.community_title),
             color = MaterialTheme.colorScheme.onSurface,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp),
+            // 页面内大标题：字阶取 headlineSmall（24sp），只把字重提到 SemiBold。
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
+            modifier = Modifier.padding(
+                start = MikomiSpacing.Room,
+                end = MikomiSpacing.Room,
+                top = 14.dp,
+            ),
         )
 
         Box(
@@ -78,21 +85,19 @@ private fun CommunityEmptyState(modifier: Modifier = Modifier) {
             imageVector = Icons.Outlined.Forum,
             contentDescription = null,
             tint = colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
-            modifier = Modifier.size(40.dp),
+            modifier = Modifier.size(MikomiSizes.AvatarMd),
         )
         Spacer(modifier = Modifier.height(14.dp))
         Text(
             text = stringResource(R.string.community_empty_title),
             color = colorScheme.onSurface,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Medium,
+            style = MikomiTextStyles.BodySecondary.copy(fontWeight = FontWeight.Medium),
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = stringResource(R.string.community_empty_body),
             color = colorScheme.onSurfaceVariant,
-            fontSize = 13.sp,
-            lineHeight = 19.sp,
+            style = MikomiTextStyles.Caption,
             textAlign = TextAlign.Center,
         )
     }

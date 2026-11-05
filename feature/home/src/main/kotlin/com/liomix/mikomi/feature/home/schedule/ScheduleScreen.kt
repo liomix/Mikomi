@@ -29,11 +29,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.model.AirTime
 import com.liomix.mikomi.core.model.AirTimePrecision
 import com.liomix.mikomi.core.model.ScheduleEntry
-import com.liomix.mikomi.core.ui.component.business.AnimeCoverImage
-import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.core.ui.component.base.EmptyState
 import com.liomix.mikomi.core.ui.component.base.ErrorState
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
@@ -41,6 +40,8 @@ import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.base.Tab
 import com.liomix.mikomi.core.ui.component.base.TabBar
 import com.liomix.mikomi.core.ui.component.base.TabItemStyle
+import com.liomix.mikomi.core.ui.component.business.AnimeCoverImage
+import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.home.R
 import java.util.Calendar
 import java.util.Locale
@@ -384,7 +385,7 @@ private fun RatingDot(
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.primaryContainer,
-        modifier = modifier.size(40.dp),
+        modifier = modifier.size(MikomiSizes.AvatarMd),
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -421,7 +422,7 @@ private fun ScheduleSkeleton(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp),
+                        .height(MikomiSizes.RowDouble),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {

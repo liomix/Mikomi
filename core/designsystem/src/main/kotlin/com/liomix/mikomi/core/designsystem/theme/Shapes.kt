@@ -26,7 +26,7 @@ val MikomiPillShape: Shape = RoundedCornerShape(percent = 50)
 val MikomiShapes = Shapes(
     /** 4dp：贴边的小块（进度条、极小的角标）。 */
     extraSmall = RoundedCornerShape(MikomiRadius.Xs),
-    /** 8dp：骨架块、列表封面。 */
+    /** 10dp：骨架块、列表封面、图片。 */
     small = RoundedCornerShape(MikomiRadius.Md),
     /** 12dp：中等卡片、输入框。 */
     medium = RoundedCornerShape(MikomiRadius.Lg),

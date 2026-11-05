@@ -24,8 +24,16 @@ import androidx.compose.ui.unit.sp
  * 才不会粘在一起。中文是等宽方块字，额外字距只会让「番剧详情」四个字看起来是散的，
  * 标题尤其明显。所以这里全部归零 —— 这也是 Material 官方 CJK 指南的做法。
  *
- * 字号与行高沿用 Material 3 的基线，不在这轮里动：它们是**已经跑在所有页面里**的数值，
- * 改一行就会让几十个页面重新折行。要调字号，改这张表，一次只调一档，再回归验证。
+ * ## 字号与行高
+ *
+ * 字号按 Telegram 的骨架校正：它把 16sp 当默认正文（`SharedConfig.fontSize = 16`），
+ * 20sp 当主标题，中间 18 / 15 / 14 / 13 / 12 各有明确分工。本表里 `titleLarge` 因此
+ * 从 22sp 收到 **20sp** —— 原来那一档比页面里的一级标题还大，层级是反的。
+ * 装不进 15 个槽位的 18 / 15 / 13 三档见 [MikomiTextStyles]。
+ *
+ * **行高不跟 TG**：TG 的行高是西文的紧凑值（约 1.3 倍），中文方块字上下都有留白，
+ * 1.3 倍会让两行贴在一起。这里保留 Material 的 1.4~1.5 倍 —— 这是语言差异，
+ * 不是设计系统的差异，照搬会导致整站文字发挤。
  */
 val Typography = Typography(
     // ---- 展示级：整屏只有一处，用于空态插画旁的巨大数字 ----
@@ -78,7 +86,7 @@ val Typography = Typography(
     titleLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
+        fontSize = 20.sp,
         lineHeight = 28.sp,
         letterSpacing = 0.sp,
     ),
@@ -147,26 +155,79 @@ val Typography = Typography(
 /**
  * M3 十五个槽位装不下的样式。
  *
- * 只收「跨组件复用、且不是某个槽位改一改」的那几个。页面里一次性的字形微调
- * （封面标题的投影、榜单数字的花体）留原地，别往这里堆 —— 那会把字阶变成杂物间。
+ * ## 为什么这几档要单独存在
  *
- * 这里用普通 object 而不是 CompositionLocal：字阶切换不是运行时的需求
- * （没有「这个子树换一套字号」的场景），做成 `CompositionLocal` 只会让每次读取
- * 多一次订阅。自定义字体接入时，记得连同这里一起改。
+ * Material 的字阶是**层级式**的（display → headline → title → body → label，每级三档，
+ * 跨度很大），适合「一屏里只有两三级文字」的营销页；Telegram 的字阶是**场景式**的
+ * （20 标题 / 18 区块 / 16 正文 / 15 次级正文 / 14 副标题 / 13 辅助 / 12 最小），
+ * 步进只有 1~2sp，因为它一屏里要放下标题、副标题、时间、状态、预览五行不同的字。
+ *
+ * 本项目是信息密集的列表界面（番剧列表、播放器选集、设置项），更接近后者。
+ * 所以 M3 那 15 个槽位按层级保留（大标题、封面标题用它），**中间密集的那几档补在这里** ——
+ * 18 / 15 / 13 三档在 TG 的 `setTextSize` 统计里分别是 79 / 180 / 194 次，
+ * 都是真实高频需求，而 M3 的字阶里根本没有它们的位置。
+ *
+ * ## 什么不该进这里
+ *
+ * 页面里一次性的字形微调（封面标题的投影、榜单数字的花体）留原地。
+ * 判别方法：换掉它，是「这个页面看起来不对了」，还是「这类内容看起来不对了」——
+ * 后者才该上提。
  */
 object MikomiTextStyles {
 
     /**
      * 二级页面顶栏标题。
      *
-     * 不用 `titleLarge`（22sp）：顶栏只有 54dp 高，两字标题用 22sp 会顶满上下留白，
-     * 而且比页面里的一级标题还大，层级是反的。19sp + Bold 是「够醒目但不压人」的那一档。
+     * 20sp Bold，与 Telegram 的 `ActionBar` 标题同档。不用 `titleLarge`（Normal 字重）：
+     * 顶栏标题需要压住底下的内容，光靠字号不够。
      */
     val TopBarTitle: TextStyle = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Bold,
-        fontSize = 19.sp,
+        fontSize = 20.sp,
         lineHeight = 26.sp,
+        letterSpacing = 0.sp,
+    )
+
+    /**
+     * 区块标题：首页分区标题、「相关作品」「制作人员」这类分节名。
+     *
+     * 18sp Bold。比 [TopBarTitle] 小一档、比正文大一档 —— 它需要「划分段落」，
+     * 但不需要像顶栏那样成为整个屏幕的锚点。
+     */
+    val SectionTitle: TextStyle = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Bold,
+        fontSize = 18.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.sp,
+    )
+
+    /**
+     * 次级正文：简介、评论这类「成段但不必是最重要信息」的文字。
+     *
+     * 15sp。16 和 14 之间差 2sp，但在这个位置上就是这 1sp 的事 ——
+     * 用 16 会和主标题抢注意力，用 14 又跌进「辅助信息」的档位。
+     */
+    val BodySecondary: TextStyle = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 15.sp,
+        lineHeight = 23.sp,
+        letterSpacing = 0.sp,
+    )
+
+    /**
+     * 辅助说明：更新时间、来源、计数这类「读得到但不需要被记住」的文字。
+     *
+     * 13sp。`bodySmall`（12sp）在中文下偏小 —— 汉字笔画在 12sp 已经糊成一团，
+     * 13sp 是「最小但还能读」的位置，也是 Telegram 用得最多的小字档。
+     */
+    val Caption: TextStyle = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
         letterSpacing = 0.sp,
     )
 }

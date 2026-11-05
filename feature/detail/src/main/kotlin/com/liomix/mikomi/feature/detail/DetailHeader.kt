@@ -53,6 +53,7 @@ import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
@@ -150,7 +151,11 @@ internal fun DetailHeader(
                 .windowInsetsPadding(WindowInsets.statusBars)
                 // 状态栏 inset 之后不再留额外上边距：标题紧贴状态栏下沿，
                 // 封面与信息列同在一个 Column 里，会一起上移，间距保持不变。
-                .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
+                .padding(
+                    start = MikomiSpacing.Room,
+                    end = MikomiSpacing.Room,
+                    bottom = MikomiSpacing.Room,
+                ),
         ) {
             // 标题：单行，超宽时无限横向滚动（与 Dart 版 ScrollingText 一致）。
             ScrollingText(
@@ -161,11 +166,11 @@ internal fun DetailHeader(
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Room))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Room),
             ) {
                 // 左侧封面（飞行终点：与列表卡封面同一个 key，点进来时封面飞到这里）。
                 AsyncImage(
@@ -393,7 +398,6 @@ private fun HeaderInfoBlock(
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge.copy(
-                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
             ),
@@ -428,7 +432,6 @@ private fun RatingBlock(
             Text(
                 text = String.format(Locale.ROOT, "%.1f", rating),
                 style = MaterialTheme.typography.titleLarge.copy(
-                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                 ),

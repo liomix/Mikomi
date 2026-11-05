@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.feature.player.R
 
 /**
@@ -45,7 +46,7 @@ internal fun CommentSection(modifier: Modifier = Modifier) {
                 imageVector = Icons.Rounded.Forum,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(MikomiSizes.AvatarMd),
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(

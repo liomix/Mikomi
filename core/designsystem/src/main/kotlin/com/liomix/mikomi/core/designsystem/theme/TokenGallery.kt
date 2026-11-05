@@ -170,7 +170,11 @@ private fun TypeScalePreview() {
                 }
             }
             SectionTitle("补充样式")
-            Text(text = "顶栏标题 · TopBarTitle", style = MikomiTextStyles.TopBarTitle)
+            // 18 / 15 / 13 三档在 M3 的 15 个槽位里没有位置，但对信息密集的列表是刚需。
+            Text(text = "区块标题 · SectionTitle 18", style = MikomiTextStyles.SectionTitle)
+            Text(text = "顶栏标题 · TopBarTitle 20", style = MikomiTextStyles.TopBarTitle)
+            Text(text = "次级正文 · BodySecondary 15", style = MikomiTextStyles.BodySecondary)
+            Text(text = "辅助说明 · Caption 13", style = MikomiTextStyles.Caption)
         }
     }
 }
@@ -182,9 +186,11 @@ private fun DimensPreview() {
         val spacings = listOf(
             "Xxs" to MikomiSpacing.Xxs,
             "Xs" to MikomiSpacing.Xs,
+            "Tight" to MikomiSpacing.Tight,
             "Sm" to MikomiSpacing.Sm,
             "Md" to MikomiSpacing.Md,
             "Lg" to MikomiSpacing.Lg,
+            "Room" to MikomiSpacing.Room,
             "Xl" to MikomiSpacing.Xl,
             "Xxl" to MikomiSpacing.Xxl,
         )
@@ -267,6 +273,37 @@ private fun DimensPreview() {
                             modifier = Modifier.padding(MikomiSpacing.Sm),
                         )
                     }
+                }
+            }
+
+            SectionTitle("结构尺寸")
+            // 图标与行高是 TG 体系里最容易被各页面各写一份的两类数字。
+            for ((name, value) in listOf(
+                "IconSm" to MikomiSizes.IconSm,
+                "IconMd" to MikomiSizes.IconMd,
+                "AvatarMd" to MikomiSizes.AvatarMd,
+                "RowDouble" to MikomiSizes.RowDouble,
+            )) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.width(72.dp),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .height(value)
+                            .width(value)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceContainerHigh,
+                                RoundedCornerShape(MikomiRadius.Xs),
+                            ),
+                    )
+                    Text(
+                        text = "${value.value.toInt()}dp",
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(start = MikomiSpacing.Sm),
+                    )
                 }
             }
         }

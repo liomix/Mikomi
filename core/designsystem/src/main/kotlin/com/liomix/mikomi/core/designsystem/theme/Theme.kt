@@ -1,5 +1,6 @@
 package com.liomix.mikomi.core.designsystem.theme
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.LocalContentColor
@@ -100,6 +101,11 @@ fun MikomiTheme(
     val palette = ThemePalette.fromId(colorSchemeId)
     // 按（模式 + 配色）取缓存：切日夜时这里是一次 Map 命中，不再重算方案。
     val theme = remember(darkTheme, palette) { resolveTheme(darkTheme, palette) }
+    // 按压层：中性墨色 + Telegram 的 9.8%，理由见 `Indication.kt`。
+    val rippleColor = remember(theme) {
+        theme.colorScheme.onBackground.copy(alpha = MikomiMotion.Pressed.OverlayAlpha)
+    }
+    val indication = rememberMikomiIndication(rippleColor)
 
     MaterialTheme(
         colorScheme = theme.colorScheme,
@@ -110,9 +116,14 @@ fun MikomiTheme(
         // 只有 Surface 内部才会按背景推导内容色。页面中直接放在 Box/Column 里的
         // Text、Icon 因此会一直是黑色（夜间不可读）。这里统一兜底为 onBackground，
         // Surface 内部仍会用自己的 contentColor 覆盖。
+        //
+        // LocalIndication 一并在这里下发：这样全仓的 clickable / Surface(onClick)
+        // 都用同一套按压反馈，调用点不必逐个配置。
         CompositionLocalProvider(
             LocalContentColor provides theme.colorScheme.onBackground,
             LocalMikomiColors provides theme.colors,
+            LocalMikomiRippleColor provides rippleColor,
+            LocalIndication provides indication,
             content = content,
         )
     }

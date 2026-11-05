@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 
 /**
@@ -49,7 +50,7 @@ fun AnimePosterCard(
             // 把「骨架 → 灰块 → 封面」接成「骨架 → 扫光 → 封面」。
             shimmerWhileLoading = true,
         )
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Tight))
         ScrollingText(
             text = title,
             style = MaterialTheme.typography.labelMedium,

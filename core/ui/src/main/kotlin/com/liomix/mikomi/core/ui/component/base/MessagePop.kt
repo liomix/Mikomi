@@ -31,6 +31,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiElevation
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 
@@ -126,7 +127,7 @@ fun MikomiToast(
 private val TOAST_ICON_SIZE = 28.dp
 
 /** 弹窗圆角。 */
-private val TOAST_CORNER = 20.dp
+private val TOAST_CORNER = MikomiRadius.Xxl
 
 /** 弹窗最大宽度，避免长文案铺满整屏。 */
 private val TOAST_MAX_WIDTH = 360.dp

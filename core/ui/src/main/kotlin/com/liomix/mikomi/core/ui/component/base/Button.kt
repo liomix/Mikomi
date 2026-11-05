@@ -114,7 +114,7 @@ data class PressButtonStyle(
     /** 配色走向。 */
     val tone: PressButtonTone,
     /** 前导图标尺寸。 */
-    val iconSize: Dp = MikomiSizes.IconLg,
+    val iconSize: Dp = MikomiSizes.IconMd,
     /** 图标与文字之间的距离。 */
     val iconGap: Dp = MikomiSpacing.Md,
 ) {
@@ -255,7 +255,7 @@ fun PressIconButton(
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
     contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     size: Dp = MikomiSizes.TouchTarget,
-    iconSize: Dp = MikomiSizes.IconLg,
+    iconSize: Dp = MikomiSizes.IconMd,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val scheme = MaterialTheme.colorScheme

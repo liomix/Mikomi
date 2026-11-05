@@ -106,7 +106,7 @@ data class TabItemStyle(
         @Composable
         fun navigation(): TabItemStyle = TabItemStyle(
             orientation = TabOrientation.Vertical,
-            iconSize = MikomiSizes.IconLg,
+            iconSize = MikomiSizes.IconMd,
             iconLabelSpacing = 2.dp,
             horizontalPadding = 12.dp,
             verticalPadding = 6.dp,

@@ -1,5 +1,10 @@
-package com.liomix.mikomi.core.ui.component
+package com.liomix.mikomi.core.ui.component.base
 
+import android.graphics.Canvas
+import android.graphics.LinearGradient
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.Shader
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -225,21 +230,21 @@ private class SkeletonSweepPaint(
     sweep: Color,
     gradientWidth: Float,
 ) {
-    private val matrix = android.graphics.Matrix()
-    private val shader = android.graphics.LinearGradient(
+    private val matrix = Matrix()
+    private val shader = LinearGradient(
         0f,
         0f,
         gradientWidth,
         0f,
         intArrayOf(base.toArgb(), sweep.toArgb(), sweep.toArgb(), base.toArgb()),
         floatArrayOf(0f, 0.4f, 0.6f, 1f),
-        android.graphics.Shader.TileMode.CLAMP,
+        Shader.TileMode.CLAMP,
     )
-    private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         this.shader = this@SkeletonSweepPaint.shader
     }
 
-    fun draw(canvas: android.graphics.Canvas, width: Float, height: Float, translateX: Float) {
+    fun draw(canvas: Canvas, width: Float, height: Float, translateX: Float) {
         matrix.setTranslate(translateX, 0f)
         shader.setLocalMatrix(matrix)
         canvas.drawRect(0f, 0f, width, height, paint)

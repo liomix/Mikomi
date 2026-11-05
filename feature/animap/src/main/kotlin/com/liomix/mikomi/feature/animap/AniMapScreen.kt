@@ -44,7 +44,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.liomix.mikomi.core.navigation.ImmersionBridge
-import com.liomix.mikomi.core.ui.component.LottieLoading
+import com.liomix.mikomi.core.ui.component.base.LottieLoading
 
 /** 巡礼地图（anitabi）页面地址。 */
 const val ANIMAP_URL = "https://www.anitabi.cn/map?c=138.5098%2C37.2073&z=5.2"

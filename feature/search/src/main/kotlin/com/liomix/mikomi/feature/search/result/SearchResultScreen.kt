@@ -17,11 +17,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.ui.component.AnimePosterCard
-import com.liomix.mikomi.core.ui.component.PosterCardSkeleton
-import com.liomix.mikomi.core.ui.component.PosterSkeletonRow
-import com.liomix.mikomi.core.ui.component.SkeletonBox
-import com.liomix.mikomi.core.ui.component.SkeletonShimmer
+import com.liomix.mikomi.core.ui.component.business.AnimePosterCard
+import com.liomix.mikomi.core.ui.component.business.PosterCardSkeleton
+import com.liomix.mikomi.core.ui.component.business.PosterSkeletonRow
+import com.liomix.mikomi.core.ui.component.base.SkeletonShimmer
 import com.liomix.mikomi.feature.search.LoadState
 import com.liomix.mikomi.feature.search.R
 import com.liomix.mikomi.feature.search.SearchCenteredHint

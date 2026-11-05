@@ -25,12 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.RankEntry
-import com.liomix.mikomi.core.ui.component.BaseScreenLayout
-import com.liomix.mikomi.core.ui.component.ErrorState
-import com.liomix.mikomi.core.ui.component.SkeletonBox
-import com.liomix.mikomi.core.ui.component.Tab
-import com.liomix.mikomi.core.ui.component.TabBar
-import com.liomix.mikomi.core.ui.component.TabItemStyle
+import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
+import com.liomix.mikomi.core.ui.component.base.ErrorState
+import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.component.base.Tab
+import com.liomix.mikomi.core.ui.component.base.TabBar
+import com.liomix.mikomi.core.ui.component.base.TabItemStyle
 import com.liomix.mikomi.feature.home.R
 import kotlinx.coroutines.launch
 

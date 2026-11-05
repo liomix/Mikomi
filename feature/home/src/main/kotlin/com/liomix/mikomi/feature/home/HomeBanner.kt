@@ -58,9 +58,9 @@ import androidx.compose.ui.platform.LocalContext
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.ui.component.ScrollingText
-import com.liomix.mikomi.core.ui.component.SkeletonBox
-import com.liomix.mikomi.core.ui.component.skeletonBaseColor
+import com.liomix.mikomi.core.ui.component.base.ScrollingText
+import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.component.base.skeletonBaseColor
 import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.delay

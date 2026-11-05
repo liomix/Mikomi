@@ -61,6 +61,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
+import com.liomix.mikomi.core.ui.component.base.Tag
+import com.liomix.mikomi.core.ui.component.base.TagColors
+import com.liomix.mikomi.core.ui.component.base.TagStyle
 import com.liomix.mikomi.data.video.VdoSourceFamily
 import com.liomix.mikomi.feature.player.PlaybackMode
 import com.liomix.mikomi.feature.player.PlayerLine
@@ -586,21 +589,16 @@ private fun PlayerSource.statusText(): String = when (availability) {
 /** 清晰度小标：只在线路上报了清晰度时出现。 */
 @Composable
 private fun QualityTag(quality: String) {
-    Box(
-        modifier = Modifier
-            .background(
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                shape = RoundedCornerShape(4.dp),
-            )
-            .padding(horizontal = 5.dp, vertical = 1.dp),
-    ) {
-        Text(
-            text = quality,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Medium,
-        )
-    }
+    Tag(
+        text = quality,
+        style = TagStyle.Meta,
+        colors = TagColors(
+            container = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+            content = MaterialTheme.colorScheme.primary,
+        ),
+        shape = RoundedCornerShape(4.dp),
+        textStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+    )
 }
 
 /**
@@ -612,26 +610,21 @@ private fun QualityTag(quality: String) {
  */
 @Composable
 private fun CapabilityTag(mode: PlaybackMode) {
-    Box(
-        modifier = Modifier
-            .background(
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.10f),
-                shape = RoundedCornerShape(4.dp),
-            )
-            .padding(horizontal = 5.dp, vertical = 1.dp),
-    ) {
-        Text(
-            text = stringResource(
-                when (mode) {
-                    PlaybackMode.NATIVE -> R.string.player_line_capability_direct
-                    PlaybackMode.WEB -> R.string.player_line_capability_web
-                },
-            ),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Medium,
-        )
-    }
+    Tag(
+        text = stringResource(
+            when (mode) {
+                PlaybackMode.NATIVE -> R.string.player_line_capability_direct
+                PlaybackMode.WEB -> R.string.player_line_capability_web
+            },
+        ),
+        style = TagStyle.Meta,
+        colors = TagColors(
+            container = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.10f),
+            content = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+        shape = RoundedCornerShape(4.dp),
+        textStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+    )
 }
 
 /**

@@ -53,9 +53,9 @@ import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.ui.component.ScrollingText
-import com.liomix.mikomi.core.ui.component.SkeletonBox
-import com.liomix.mikomi.core.ui.component.heroTarget
+import com.liomix.mikomi.core.ui.component.base.ScrollingText
+import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.component.business.heroTarget
 import java.util.Locale
 
 /** 详情页封面圆角（飞行时会与列表卡的 8dp 之间插值）。 */

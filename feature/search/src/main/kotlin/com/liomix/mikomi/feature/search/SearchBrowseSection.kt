@@ -59,12 +59,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.AniRpbHotItem
-import com.liomix.mikomi.core.ui.component.AnimeCoverImage
-import com.liomix.mikomi.core.ui.component.ScrollingText
-import com.liomix.mikomi.core.ui.component.SkeletonBox
-import com.liomix.mikomi.core.ui.component.Tab
-import com.liomix.mikomi.core.ui.component.TabBar
-import com.liomix.mikomi.core.ui.component.TabItemStyle
+import com.liomix.mikomi.core.ui.component.business.AnimeCoverImage
+import com.liomix.mikomi.core.ui.component.base.ScrollingText
+import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.component.base.Tab
+import com.liomix.mikomi.core.ui.component.base.TabBar
+import com.liomix.mikomi.core.ui.component.base.TabItemStyle
 import java.util.Locale
 
 /** 历史未展开时最多显示的 tag 数。 */

@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.liomix.mikomi.core.ui.component.MikomiToastData
+import com.liomix.mikomi.core.ui.component.base.MikomiToastData
 import kotlinx.coroutines.delay
 
 /** 主题设置 Route（有状态）：收集配色 / 夜间模式 / 桌面图标，变更写入偏好。 */

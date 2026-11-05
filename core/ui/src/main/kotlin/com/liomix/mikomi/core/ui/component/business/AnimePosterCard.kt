@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component
+package com.liomix.mikomi.core.ui.component.business
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.ui.component.base.ScrollingText
 
 /**
  * 番剧海报卡：2:3 封面 + 单行滚动标题。

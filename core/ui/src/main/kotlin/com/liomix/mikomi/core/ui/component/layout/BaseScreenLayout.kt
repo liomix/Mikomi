@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component
+package com.liomix.mikomi.core.ui.component.layout
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background

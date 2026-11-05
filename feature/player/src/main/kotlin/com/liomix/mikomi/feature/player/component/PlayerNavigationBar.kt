@@ -35,9 +35,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.ui.component.Tab
-import com.liomix.mikomi.core.ui.component.TabBar
-import com.liomix.mikomi.core.ui.component.TabItemStyle
+import com.liomix.mikomi.core.ui.component.base.Tab
+import com.liomix.mikomi.core.ui.component.base.TabBar
+import com.liomix.mikomi.core.ui.component.base.TabItemStyle
 import com.liomix.mikomi.feature.player.PlayerTab
 import com.liomix.mikomi.feature.player.R
 

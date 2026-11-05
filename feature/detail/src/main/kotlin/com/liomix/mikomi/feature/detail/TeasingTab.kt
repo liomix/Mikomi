@@ -37,8 +37,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.model.TeasingComment
-import com.liomix.mikomi.core.ui.component.SkeletonBox
-import com.liomix.mikomi.core.ui.component.SkeletonShimmer
+import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.component.base.SkeletonShimmer
 
 /** 吐槽头像直径（对齐 Dart 版 40）。 */
 private val TEASING_AVATAR_SIZE = 40.dp

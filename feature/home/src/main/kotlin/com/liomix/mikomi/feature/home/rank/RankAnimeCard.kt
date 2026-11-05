@@ -37,8 +37,8 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.liomix.mikomi.core.model.RankEntry
-import com.liomix.mikomi.core.ui.component.ScrollingText
-import com.liomix.mikomi.core.ui.component.SkeletonBox
+import com.liomix.mikomi.core.ui.component.base.ScrollingText
+import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 
 /**
  * 排名卡片：封面铺底 + 名次 + 标题。

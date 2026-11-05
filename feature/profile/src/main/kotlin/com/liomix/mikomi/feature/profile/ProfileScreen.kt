@@ -81,9 +81,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.liomix.mikomi.core.ui.component.MikomiNavBarBottomSpace
-import com.liomix.mikomi.core.ui.component.Tab
-import com.liomix.mikomi.core.ui.component.TabBar
+import com.liomix.mikomi.core.ui.component.base.Tab
+import com.liomix.mikomi.core.ui.component.base.TabBar
+import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
 import com.liomix.mikomi.feature.profile.component.ProfileTabContent
 import com.liomix.mikomi.feature.profile.component.rememberProfileTabContentState
 import kotlin.math.roundToInt
@@ -343,11 +343,12 @@ fun ProfileScreen(
         val headerHeightPx = with(density) { headerHeight.toPx() }
 
         // 卡片下沿停在悬浮导航栏上沿 14dp：底栏占位 = 系统导航栏 inset + 栏体 + 底部外边距。
+        // 栏体那部分是壳下发的（LocalBottomBarSpace），这里不关心底部浮着什么。
         val navBarInset = WindowInsets
             .navigationBars
             .asPaddingValues()
             .calculateBottomPadding()
-        val contentBottomSpace = navBarInset + MikomiNavBarBottomSpace + ContentBottomGap
+        val contentBottomSpace = navBarInset + LocalBottomBarSpace.current + ContentBottomGap
         val barHeightPx = with(density) { barHeight.toPx() }
         val actionCardHeightPx = with(density) { ActionCardHeight.toPx() }
         val photoInsetPx = with(density) { PhotoBottomInset.toPx() }

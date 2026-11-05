@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component
+package com.liomix.mikomi.navigation
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,6 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.ui.component.base.Tab
+import com.liomix.mikomi.core.ui.component.base.TabBar
+import com.liomix.mikomi.core.ui.component.base.TabItemStyle
 
 /** 选中项容器的不透明度（primary 淡化，承托同色图标与文字）。 */
 private const val SELECTED_CONTAINER_ALPHA = 0.14f
@@ -19,7 +22,8 @@ val MikomiNavBarMargin = 12.dp
  * 悬浮导航栏栏体高度。
  *
  * = 图标 24 + 图文间距 2 + 文字行高（labelMedium 16sp）16 + 单项上下内边距 12 + 容器上下内边距 8。
- * 页面要给底栏让位时请用 [MikomiNavBarBottomSpace]，不要自己再算一遍。
+ * 页面要给底栏让位时请用 [MikomiNavBarBottomSpace]（经由 `LocalBottomBarSpace` 下发），
+ * 不要自己再算一遍。
  */
 val MikomiNavBarBodyHeight = 62.dp
 
@@ -41,6 +45,10 @@ data class MikomiNavItem(
 
 /**
  * 悬浮胶囊式底部导航栏。
+ *
+ * 这是**本 App 的底栏**，不是可复用组件：胶囊形状、primary 指示器、无阴影这些都是应用外观
+ * 身份的一部分，只服务 [MikomiNavHost]，所以住在 app 模块里，而不是 `core:ui`。
+ * 真正通用的是它底下的 [TabBar]（参数化、无品牌决定）。
  *
  * 复用 [TabBar] 的滑动指示器与动效：选中项是一颗在条目之间滑动的胶囊，
  * 触摸范围、指示器矩形、实测矩形三者一致；图标在选中态切换为实心变体。

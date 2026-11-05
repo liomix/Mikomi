@@ -48,9 +48,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.liomix.mikomi.R
-import com.liomix.mikomi.core.ui.component.MikomiNavItem
-import com.liomix.mikomi.core.ui.component.MikomiNavBarMargin
-import com.liomix.mikomi.core.ui.component.MikomiNavigationBar
+import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.navigation.AniMapDestination
 import com.liomix.mikomi.core.navigation.DetailDestination
@@ -60,9 +58,9 @@ import com.liomix.mikomi.core.navigation.ImmersionBridge
 import com.liomix.mikomi.core.navigation.Navigator
 import com.liomix.mikomi.core.navigation.ProfileDestination
 import com.liomix.mikomi.core.navigation.topLevelDestinations
-import com.liomix.mikomi.core.ui.component.HeroFlightController
-import com.liomix.mikomi.core.ui.component.HeroFlightOverlay
-import com.liomix.mikomi.core.ui.component.LocalHeroFlightController
+import com.liomix.mikomi.core.ui.component.business.HeroFlightController
+import com.liomix.mikomi.core.ui.component.business.HeroFlightOverlay
+import com.liomix.mikomi.core.ui.component.business.LocalHeroFlightController
 import com.liomix.mikomi.feature.animap.AniMapWarmer
 
 /** 进入巡礼页后自动隐藏底部导航栏的延时（毫秒）：不靠滑动判定，进页面 2s 后自动进入沉浸。 */
@@ -275,6 +273,8 @@ fun MikomiNavHost(
         }
         CompositionLocalProvider(
             LocalHeroFlightController provides heroController,
+            // 底栏占多高由壳告诉页面，页面不必知道那是一条导航栏 —— 见 LocalBottomBarSpace。
+            LocalBottomBarSpace provides MikomiNavBarBottomSpace,
             // 只影响「首次组合」那一瞬间的页面：装饰器会把它冻结，之后不再跟变。
             LocalPageMotionDirection provides motionDirection,
         ) {

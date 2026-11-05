@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component
+package com.liomix.mikomi.core.ui.component.base
 
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedVisibility

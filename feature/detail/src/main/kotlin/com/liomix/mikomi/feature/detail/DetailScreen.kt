@@ -66,8 +66,8 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.ui.component.ErrorState
-import com.liomix.mikomi.core.ui.component.SkeletonBox
+import com.liomix.mikomi.core.ui.component.base.ErrorState
+import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import kotlin.math.roundToInt
 
 /** 头部完整高度（展开态）。 */

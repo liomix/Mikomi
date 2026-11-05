@@ -14,8 +14,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
-import com.liomix.mikomi.core.ui.component.Capsule
-import com.liomix.mikomi.core.ui.component.BaseScreenLayout
+import com.liomix.mikomi.core.ui.component.base.Tag
+import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardSection
@@ -24,7 +24,7 @@ import java.util.Locale
 /**
  * 播放设置页（无状态）。
  *
- * 三段设置都是「一组里单选一个」，所以统一用胶囊：[Capsule] 的选中态是主色淡底 +
+ * 三段设置都是「一组里单选一个」，所以统一用标签：[Tag] 的选中态是主色淡底 +
  * 主色描边，比下拉菜单更适合这种一眼就能看完全部档位的场景——选之前就知道还有哪些可选。
  *
  * 每一项下面都写一句这个设置**具体改变什么**（不是复述标题）：
@@ -58,7 +58,7 @@ fun PlaybackSettingsScreen(
                         key = { speed -> speed.toString() },
                         contentType = { "speed" },
                     ) { speed ->
-                        Capsule(
+                        Tag(
                             text = stringResource(
                                 R.string.settings_playback_speed_value,
                                 formatValue(speed),
@@ -85,7 +85,7 @@ fun PlaybackSettingsScreen(
                         key = { speed -> "long$speed" },
                         contentType = { "long_press" },
                     ) { speed ->
-                        Capsule(
+                        Tag(
                             text = stringResource(
                                 R.string.settings_playback_speed_value,
                                 formatValue(speed),
@@ -112,7 +112,7 @@ fun PlaybackSettingsScreen(
                         key = { seconds -> "sweep$seconds" },
                         contentType = { "seek_sweep" },
                     ) { seconds ->
-                        Capsule(
+                        Tag(
                             text = stringResource(R.string.settings_playback_seconds, seconds),
                             selected = seconds == settings.seekSweepSeconds,
                             onClick = { onSelectSeekSweepSeconds(seconds) },

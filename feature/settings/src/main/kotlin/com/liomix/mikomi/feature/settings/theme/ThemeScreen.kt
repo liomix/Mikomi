@@ -37,10 +37,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
 import com.liomix.mikomi.core.model.TransitionStyle
-import com.liomix.mikomi.core.ui.component.BaseScreenLayout
-import com.liomix.mikomi.core.ui.component.Capsule
-import com.liomix.mikomi.core.ui.component.MikomiToast
-import com.liomix.mikomi.core.ui.component.MikomiToastData
+import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
+import com.liomix.mikomi.core.ui.component.base.Tag
+import com.liomix.mikomi.core.ui.component.base.MikomiToast
+import com.liomix.mikomi.core.ui.component.base.MikomiToastData
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.component.BAndWSwitch
 import com.liomix.mikomi.feature.settings.component.SettingsCard
@@ -147,7 +147,7 @@ fun ThemeScreen(
                                 key = { style -> style.id },
                                 contentType = { "hero" },
                             ) { style ->
-                                Capsule(
+                                Tag(
                                     text = stringResource(style.labelRes),
                                     selected = currentHero == style,
                                     onClick = { onSelectTransitionStyle(style.id) },

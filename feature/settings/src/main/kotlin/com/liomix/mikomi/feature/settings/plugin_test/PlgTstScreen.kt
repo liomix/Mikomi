@@ -1,9 +1,11 @@
 package com.liomix.mikomi.feature.settings.plugin_test
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -56,7 +58,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -89,7 +90,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.liomix.mikomi.core.model.VdoPlgContent
-import com.liomix.mikomi.core.ui.component.BaseScreenLayout
+import com.liomix.mikomi.core.ui.component.base.Switch
+import com.liomix.mikomi.core.ui.component.base.Tag
+import com.liomix.mikomi.core.ui.component.base.TagStyle
+import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.data.video.VdoFailureReason
 import com.liomix.mikomi.data.video.VdoStreamKind
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgStageResult
@@ -510,9 +514,12 @@ private fun PluginCard(
 /**
  * 一行插件源：名称 + 版本 + 更新态 + 站点，右侧启停开关与更多菜单。
  *
- * 整行走 [Modifier.toggleable]（`Role.Switch`）而不是 `clickable`：
- * 无障碍会把整行报成开关而不是按钮，同时开关自己不吃点击（`onCheckedChange = null`），
- * 否则点开关会触发两次——真机上表现为「点了没反应」。
+ * 整行就是那个开关：走 [Modifier.toggleable]（`Role.Switch`）而不是 `clickable`，
+ * 无障碍把整行报成一个开关（不是按钮 + 开关两个节点），点文字、点开关、点空白都是同一次切换。
+ *
+ * [Switch] 在这里传 `onCheckedChange = null`：它退化成纯视觉、**不挂任何手势**，
+ * 所以点它身上会穿透到整行；同时把行的 [MutableInteractionSource] 递进去，
+ * 按下去拨片照样「张开」，反馈不缺。
  *
  * 长按拖动时把 [toggleable] 的写入挡掉：拖动结束的那一下偶尔仍会被判成点击，
  * 这里挡比事后修状态便宜。
@@ -529,12 +536,18 @@ private fun PluginRow(
 ) {
     val colors = MaterialTheme.colorScheme
     var menuOpen by remember { mutableStateOf(false) }
+    // 一行只有一个手势源：整行 toggleable，开关只做视觉、借这个源显示「张开」。
+    // 开关自己不再挂手势 —— 之前那种「开关只读」的写法会吞掉点在自己身上的触摸，
+    // 真机上就是「点开关没反应，只有点文字才切」。
+    val rowInteraction = remember { MutableInteractionSource() }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .toggleable(
                 value = plugin.enabled,
+                interactionSource = rowInteraction,
+                indication = LocalIndication.current,
                 role = Role.Switch,
                 onValueChange = { if (!dragging) onToggle() },
             )
@@ -550,10 +563,9 @@ private fun PluginRow(
                     color = if (plugin.enabled) colors.onSurface else colors.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                TagChip(
+                Tag(
                     text = stringResource(R.string.settings_plg_tst_version, plugin.version),
-                    background = colors.surfaceContainerHigh,
-                    foreground = colors.onSurfaceVariant,
+                    style = TagStyle.Meta,
                 )
             }
             Spacer(modifier = Modifier.height(2.dp))
@@ -565,7 +577,11 @@ private fun PluginRow(
         }
 
         Spacer(modifier = Modifier.width(10.dp))
-        Switch(checked = plugin.enabled, onCheckedChange = null)
+        Switch(
+            checked = plugin.enabled,
+            onCheckedChange = null,
+            interactionSource = rowInteraction,
+        )
 
         Box {
             IconButton(onClick = { menuOpen = true }) {
@@ -1222,26 +1238,6 @@ private enum class AddMethod(
         titleRes = R.string.settings_plg_tst_add_create,
         icon = Icons.Rounded.EditNote,
     ),
-}
-
-/** 版本号这类小标签：压住字号，避免和插件名抢注意力。 */
-@Composable
-private fun TagChip(
-    text: String,
-    background: Color,
-    foreground: Color,
-) {
-    Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = background,
-        contentColor = foreground,
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
-        )
-    }
 }
 
 /** 副标题：作者（可缺省）+ 站点 host。写完整 URL 太长，host 足够认出来源。 */

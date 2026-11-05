@@ -32,12 +32,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.ui.component.AnimePosterCard
-import com.liomix.mikomi.core.ui.component.ErrorState
-import com.liomix.mikomi.core.ui.component.PosterCardSkeleton
-import com.liomix.mikomi.core.ui.component.PosterSkeletonRow
-import com.liomix.mikomi.core.ui.component.SkeletonBox
-import com.liomix.mikomi.core.ui.component.SkeletonShimmer
+import com.liomix.mikomi.core.ui.component.business.AnimePosterCard
+import com.liomix.mikomi.core.ui.component.base.ErrorState
+import com.liomix.mikomi.core.ui.component.business.PosterCardSkeleton
+import com.liomix.mikomi.core.ui.component.business.PosterSkeletonRow
+import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.component.base.SkeletonShimmer
 import kotlinx.coroutines.delay
 
 /** 网格最小列宽：手机竖屏约 3 列，宽屏自动增加列数（Dart 版为固定 3 列）。 */

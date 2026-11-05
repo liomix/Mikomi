@@ -79,7 +79,7 @@ class ThemeViewModel @Inject constructor(
             initialValue = TransitionStyle.Translate.id,
         )
 
-    /** 一次性提示，由 UI 层用 [com.liomix.mikomi.core.ui.component.MikomiToast] 呈现。 */
+    /** 一次性提示，由 UI 层用 [com.liomix.mikomi.core.ui.component.base.MikomiToast] 呈现。 */
     private val _toasts = MutableSharedFlow<ThemeToast>(extraBufferCapacity = 1)
     val toasts: SharedFlow<ThemeToast> = _toasts.asSharedFlow()
 

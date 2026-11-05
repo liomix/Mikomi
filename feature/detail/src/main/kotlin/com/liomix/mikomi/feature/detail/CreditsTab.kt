@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,14 +28,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.model.AnimeCharacter
 import com.liomix.mikomi.core.model.StaffMember
-import com.liomix.mikomi.core.ui.component.EmptyState
-import com.liomix.mikomi.core.ui.component.ScrollingText
-import com.liomix.mikomi.core.ui.component.SkeletonBox
+import com.liomix.mikomi.core.ui.component.base.EmptyState
+import com.liomix.mikomi.core.ui.component.base.ScrollingText
+import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.component.base.Tag
+import com.liomix.mikomi.core.ui.component.base.TagColors
+import com.liomix.mikomi.core.ui.component.base.TagStyle
 
 /** 主创卡片固定宽度（名字无限滚动 + 关系 badge 需要更宽空间）。 */
 private val CREDIT_CARD_WIDTH = 180.dp
@@ -317,20 +318,15 @@ private fun RelationBadge(
     modifier: Modifier = Modifier,
 ) {
     val (container, content) = creditBadgeColors(text)
-    Surface(
-        shape = RoundedCornerShape(4.dp),
-        color = container,
+    Tag(
+        text = text,
         modifier = modifier,
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            color = content,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-        )
-    }
+        style = TagStyle.Meta,
+        colors = TagColors(container = container, content = content),
+        shape = RoundedCornerShape(4.dp),
+        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 1.dp),
+        maxLines = 1,
+    )
 }
 
 /**

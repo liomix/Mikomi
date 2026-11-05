@@ -35,7 +35,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.ui.component.SkeletonBox
+import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.component.base.Tag
 
 /** 简介最多展示行数。 */
 private const val MAX_SYNOPSIS_LINES = 4
@@ -123,7 +124,7 @@ internal fun OverviewTab(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     visibleTags.forEach { tag ->
-                        TagChip(tag = tag)
+                        Tag(text = tag)
                     }
                     if (anime.genres.size > MAX_VISIBLE_TAGS) {
                         ExpandChip(
@@ -150,26 +151,6 @@ private fun ExpandToggle(
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.clickable(onClick = onClick),
     )
-}
-
-@Composable
-private fun TagChip(
-    tag: String,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        color = MaterialTheme.colorScheme.surface,
-        modifier = modifier,
-    ) {
-        Text(
-            text = tag,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        )
-    }
 }
 
 @Composable

@@ -51,8 +51,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.ui.component.BaseScreenLayout
-import com.liomix.mikomi.core.ui.component.SideBarPop
+import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
+import com.liomix.mikomi.core.ui.component.base.SideBarPop
 import com.liomix.mikomi.feature.profile.R
 
 /** 昵称字数上限。 */

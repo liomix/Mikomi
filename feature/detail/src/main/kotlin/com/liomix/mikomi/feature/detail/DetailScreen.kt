@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -35,8 +34,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -67,7 +64,12 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.base.ErrorState
+import com.liomix.mikomi.core.ui.component.base.PressButton
+import com.liomix.mikomi.core.ui.component.base.PressButtonStyle
+import com.liomix.mikomi.core.ui.component.base.PressIconButton
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.feature.detail.component.CreditDetailSheet
+import com.liomix.mikomi.feature.detail.component.CreditsTab
 import kotlin.math.roundToInt
 
 /** 头部完整高度（展开态）。 */
@@ -418,7 +420,13 @@ private fun BottomActions(
             isFavorite = isFavorite,
             onClick = onToggleFavorite,
         )
-        FollowButton(onClick = onFollowClick)
+        // 追番按钮：对齐 Dart 版 PlayButton —— 播放图标 + 文案，浮在内容之上。
+        PressButton(
+            text = stringResource(R.string.detail_follow),
+            onClick = onFollowClick,
+            leadingIcon = Icons.Filled.PlayArrow,
+            style = PressButtonStyle.Elevated,
+        )
     }
 }
 
@@ -474,11 +482,16 @@ private fun FavoriteButton(
     }
 
     Box(modifier = modifier.size(FAVORITE_BUTTON_SIZE)) {
-        Surface(
+        // 形状是圆的、图标是星星，但按下/松手的节奏和追番按钮完全一样（共用 pressScale）。
+        PressIconButton(
+            // 图标全程不撤：动画后段粒子已经散得差不多，撤掉图标会留下半秒空窗，
+            // 看着像按钮没响应；叠在一起反而像「星星被点亮」。
+            icon = if (isFavorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+            contentDescription = stringResource(contentDescriptionRes),
             onClick = onClick,
-            modifier = Modifier.fillMaxSize(),
-            shape = CircleShape,
-            color = if (isFavorite) {
+            size = FAVORITE_BUTTON_SIZE,
+            iconSize = 26.dp,
+            containerColor = if (isFavorite) {
                 MaterialTheme.colorScheme.primary
             } else {
                 MaterialTheme.colorScheme.surfaceContainerHighest
@@ -486,18 +499,8 @@ private fun FavoriteButton(
             // 星标固定金色：空心的描边和点满的填充是同一个色，只换字形不换颜色，
             // 这样「点没点」只看形状，不会被两套配色搅乱。
             contentColor = FavoriteStarColor,
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = if (isFavorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
-                    contentDescription = stringResource(contentDescriptionRes),
-                    // 图标全程不撤：动画后段粒子已经散得差不多，撤掉图标会留下半秒空窗，
-                    // 看着像按钮没响应；叠在一起反而像「星星被点亮」。
-                    modifier = Modifier.size(26.dp),
-                )
-            }
-        }
-        // 动画是 Surface 的兄弟节点：按钮被 clip 成圆形，星级要能飞出这个圆才好看。
+        )
+        // 动画是按钮的兄弟节点：按钮被 clip 成圆形，星级要能飞出这个圆才好看。
         if (bursting && loaded != null) {
             LottieAnimation(
                 composition = loaded,
@@ -515,35 +518,6 @@ private fun FavoriteButton(
  * 每次新建都会让 `rememberLottieComposition` 的 key 变化、重新走一遍加载。
  */
 private val StarCollectSpec = LottieCompositionSpec.RawRes(R.raw.star_collect)
-
-/** 追番按钮：扩展 FAB（播放图标 + 文案），对齐 Dart 版 PlayButton。 */
-@Composable
-private fun FollowButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    ExtendedFloatingActionButton(
-        onClick = onClick,
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shape = RoundedCornerShape(16.dp),
-        icon = {
-            Icon(
-                imageVector = Icons.Filled.PlayArrow,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-            )
-        },
-        text = {
-            Text(
-                text = stringResource(R.string.detail_follow),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-        },
-    )
-}
 
 /** 普通内容 Tab 的滚动容器（概述 / 主创等非懒加载内容）。 */
 @Composable

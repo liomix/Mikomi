@@ -1,4 +1,4 @@
-package com.liomix.mikomi.feature.detail
+package com.liomix.mikomi.feature.detail.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,9 +26,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.model.AnimeCharacter
@@ -35,9 +38,8 @@ import com.liomix.mikomi.core.model.StaffMember
 import com.liomix.mikomi.core.ui.component.base.EmptyState
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
-import com.liomix.mikomi.core.ui.component.base.Tag
-import com.liomix.mikomi.core.ui.component.base.TagColors
-import com.liomix.mikomi.core.ui.component.base.TagStyle
+import com.liomix.mikomi.feature.detail.AnimeCreditsUiState
+import com.liomix.mikomi.feature.detail.R
 
 /** 主创卡片固定宽度（名字无限滚动 + 关系 badge 需要更宽空间）。 */
 private val CREDIT_CARD_WIDTH = 180.dp
@@ -47,6 +49,9 @@ private val CREDIT_CARD_HEIGHT = 80.dp
 
 /** 头像直径。 */
 private val AVATAR_SIZE = 60.dp
+
+/** 关系/职位徽标的圆角：小圆角底片，不是胶囊（理由见 [RelationBadge]）。 */
+private val RelationBadgeShape: Shape = RoundedCornerShape(4.dp)
 
 /**
  * 主创 Tab：角色 + 制作人员两个区块，横向两列卡片。
@@ -154,7 +159,7 @@ private fun <T> CreditGrid(
 ) {
     // 每列 2 个卡片，横向滚动；列数 = ceil(items.size / 2)。
     val columnCount = (items.size + 1) / 2
-    androidx.compose.foundation.lazy.LazyRow(
+    LazyRow(
         contentPadding = PaddingValues(0.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -312,21 +317,35 @@ private fun Avatar(
     }
 }
 
+/**
+ * 关系/职位小徽标：名字后面那枚「主角 / 导演」。
+ *
+ * 它不复用 `core:ui` 的 `Tag`：颜色来自本页那张关键词配色表，尺寸也只服务
+ * 「和名字挤在同一行」这一种场景。要搬进通用层，就得为它开三个覆盖参数
+ * （颜色 / 圆角 / 内边距），等于把一个用例的偏好写进公共 API。
+ */
 @Composable
 private fun RelationBadge(
     text: String,
     modifier: Modifier = Modifier,
 ) {
     val (container, content) = creditBadgeColors(text)
-    Tag(
-        text = text,
+    Surface(
+        // 4dp 圆角而不是胶囊：它是「贴着文字的底片」，和右侧名字同处一行时，
+        // 胶囊的圆头会让它显得比名字更重。
+        shape = RelationBadgeShape,
+        color = container,
         modifier = modifier,
-        style = TagStyle.Meta,
-        colors = TagColors(container = container, content = content),
-        shape = RoundedCornerShape(4.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 1.dp),
-        maxLines = 1,
-    )
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = content,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+        )
+    }
 }
 
 /**

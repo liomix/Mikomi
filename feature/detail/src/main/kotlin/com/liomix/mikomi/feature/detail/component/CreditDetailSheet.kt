@@ -1,8 +1,9 @@
-package com.liomix.mikomi.feature.detail
+package com.liomix.mikomi.feature.detail.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,11 +42,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.model.CreditComment
 import com.liomix.mikomi.core.model.CreditDetail
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.feature.detail.CreditCommentsUiState
+import com.liomix.mikomi.feature.detail.CreditDetailUiState
+import com.liomix.mikomi.feature.detail.R
+import com.liomix.mikomi.feature.detail.formatRelativeTime
 
 /** 头像尺寸（对齐 Dart 版 120x180 竖版）。 */
 private val DETAIL_IMAGE_WIDTH = 120.dp
@@ -225,7 +231,7 @@ private fun CreditCommentList(
             } else {
                 LazyColumn(
                     modifier = modifier.fillMaxSize(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                    contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
                     items(
@@ -345,7 +351,7 @@ private fun CommentItem(
 @Composable
 private fun CommentAvatar(
     url: String?,
-    size: androidx.compose.ui.unit.Dp,
+    size: Dp,
     modifier: Modifier = Modifier,
 ) {
     Surface(

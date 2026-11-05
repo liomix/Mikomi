@@ -58,6 +58,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.lerp
@@ -79,7 +82,7 @@ enum class TabOrientation { Horizontal, Vertical }
 data class TabItemStyle(
     val orientation: TabOrientation = TabOrientation.Horizontal,
     val height: Dp? = null,
-    val iconSize: Dp = 18.dp,
+    val iconSize: Dp = MikomiSizes.IconSm,
     val iconLabelSpacing: Dp = 5.dp,
     val horizontalPadding: Dp = 8.dp,
     val verticalPadding: Dp = 3.dp,
@@ -91,7 +94,7 @@ data class TabItemStyle(
     companion object {
         /** 个人资料页那种紧凑图标标签：18dp 图标 + 14.5sp 文字。 */
         fun compact(): TabItemStyle = TabItemStyle(
-            iconSize = 18.dp,
+            iconSize = MikomiSizes.IconSm,
             iconLabelSpacing = 5.dp,
             horizontalPadding = 8.dp,
             verticalPadding = 3.dp,
@@ -103,7 +106,7 @@ data class TabItemStyle(
         @Composable
         fun navigation(): TabItemStyle = TabItemStyle(
             orientation = TabOrientation.Vertical,
-            iconSize = 24.dp,
+            iconSize = MikomiSizes.IconLg,
             iconLabelSpacing = 2.dp,
             horizontalPadding = 12.dp,
             verticalPadding = 6.dp,
@@ -415,13 +418,13 @@ private fun decelerate(t: Float): Float = sin(t * HalfPi)
  * 切换时长：Flutter `TabController.animationDuration` 的默认值（`kTabScrollDuration`）。
  * 追番页没有传 `animationDuration`，所以走的就是这个 300ms。
  */
-private const val IndicatorSwapMillis = 300
+private const val IndicatorSwapMillis = MikomiMotion.Duration.Long
 
 /** 整体进度的缓动：Flutter `TabController.animateTo` 的默认 `Curves.ease`。 */
 private val IndicatorSwapEasing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
 
 /** 指示器从「还没量到边界」到可见的淡入时长；只跑一次，不影响切换动效。 */
-private const val IndicatorFadeMillis = 120
+private const val IndicatorFadeMillis = MikomiMotion.Duration.Fast
 
 /**
  * 单个标签：图标（可选）+ 文字（可选第二行副标题），整块可点。
@@ -575,7 +578,7 @@ private fun TabLabel(
         )
     }
     if (supportingText != null) {
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
         Text(
             text = supportingText,
             style = style.supportingStyle ?: style.labelStyle,
@@ -588,4 +591,4 @@ private fun TabLabel(
 }
 
 /** 内容色过渡时长：只影响颜色，不参与指示器位移。 */
-private const val ColorAnimMillis = 150
+private const val ColorAnimMillis = MikomiMotion.Duration.Short

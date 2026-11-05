@@ -59,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.model.AniRpbHotItem
+import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.ui.component.business.AnimeCoverImage
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
@@ -483,7 +484,7 @@ private fun HotMeta(
             Icon(
                 imageVector = Icons.Filled.Star,
                 contentDescription = null,
-                tint = RatingColor,
+                tint = MikomiTheme.colors.rating,
                 modifier = Modifier.size(11.dp),
             )
             Spacer(modifier = Modifier.width(2.dp))
@@ -615,19 +616,14 @@ private fun RetryCard(
     }
 }
 
-/** 排名文字色：前三名金/银/铜，其余低对比中性色。 */
+/**
+ * 排名文字色：前三名金/银/铜，其余低对比中性色。
+ *
+ * 名次色取自设计系统（`MikomiColors.rank`）的 `ink` 那一档 —— 名次色有 fill（压在封面上）
+ * 与 ink（当文字用）两种，金属色在白底上只有 1.2:1 的对比度，直接当文字读不出来。
+ */
 @Composable
-private fun rankColor(rank: Int): Color = when (rank) {
-    1 -> GoldColor
-    2 -> SilverColor
-    3 -> BronzeColor
-    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-}
-
-/** 评星星色。 */
-internal val RatingColor = Color(0xFFFFB300)
-
-private val GoldColor = Color(0xFFF2B705)
-private val SilverColor = Color(0xFF9AA3AD)
-private val BronzeColor = Color(0xFFC07A3E)
+private fun rankColor(rank: Int): Color =
+    MikomiTheme.colors.rank(rank)?.ink
+        ?: MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
 

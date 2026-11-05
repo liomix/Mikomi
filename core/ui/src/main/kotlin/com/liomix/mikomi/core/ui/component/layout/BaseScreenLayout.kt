@@ -30,12 +30,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.ui.R
 
 /**
@@ -46,10 +46,13 @@ import com.liomix.mikomi.core.ui.R
  */
 object BaseScreenDefaults {
     /** 内容区四周留白。 */
-    val ContentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+    val ContentPadding: PaddingValues = PaddingValues(
+        horizontal = MikomiSpacing.Lg,
+        vertical = MikomiSpacing.Sm,
+    )
 
     /** 内容子项之间的纵向间距。 */
-    val SectionSpacing: Arrangement.Vertical = Arrangement.spacedBy(16.dp)
+    val SectionSpacing: Arrangement.Vertical = Arrangement.spacedBy(MikomiSpacing.Lg)
 }
 
 /**
@@ -59,17 +62,14 @@ object BaseScreenDefaults {
  * 应该在设计系统里改，而不是在某个页面里传一组只对该页生效的数字。
  */
 private object TopBarDefaults {
-    /** 顶栏内容高度，不含状态栏。比 Material 默认的 64dp 矮一档，内容区能多露出一行。 */
-    val Height = 54.dp
+    /** 顶栏内容高度，不含状态栏。 */
+    val Height = MikomiSizes.TopBarHeight
 
     /** 返回箭头的视觉尺寸。默认 24dp 在一行顶栏里偏笨重。 */
-    val IconSize = 20.dp
-
-    /** 标题字号。Material 的 `titleLarge` 是 22sp，放在两字标题上过大。 */
-    val TitleSize = 19.sp
+    val IconSize = MikomiSizes.IconMd
 
     /** 右侧多个动作之间的间距。 */
-    val ActionSpacing = 4.dp
+    val ActionSpacing = MikomiSpacing.Xs
 }
 
 /**
@@ -204,9 +204,8 @@ private fun BaseScreenTopBar(
         val titlePlaceable = subcompose(TitleSlotKey) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontSize = TopBarDefaults.TitleSize,
-                fontWeight = FontWeight.Bold,
+                // 字阶来自设计系统：19sp Bold，是「顶栏」这一档，不是 titleLarge 改小一档。
+                style = MikomiTextStyles.TopBarTitle,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

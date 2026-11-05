@@ -37,6 +37,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.liomix.mikomi.core.model.RankEntry
+import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 
@@ -211,20 +212,19 @@ private fun CoverBackdrop(
 }
 
 /** 前三名对应的金 / 银 / 铜高亮色，其余统一冷灰。 */
-private fun rankAccent(rank: Int): Color = when (rank) {
-    1 -> RankGold
-    2 -> RankSilver
-    3 -> RankBronze
-    else -> RankCoolGray
-}
+/**
+ * 名次填色：前三名取设计系统的金属色（金 / 银 / 铜），第 4 名起用亮灰。
+ *
+ * 金属色分 fill / outline / ink 三档，这里是 `fill`（压在封面上的那一档）：
+ * 银色因此是偏冷的浅金属灰而不是近白 —— 近白压在浅色封面（天空、雪地）上几乎消失。
+ */
+@Composable
+private fun rankAccent(rank: Int): Color =
+    MikomiTheme.colors.rank(rank)?.fill ?: RankCoolGray
 
 /** 前三名对应的描边色；第 4 名起无描边（返回 null）。 */
-private fun rankOutline(rank: Int): Color? = when (rank) {
-    1 -> RankGoldOutline
-    2 -> RankSilverOutline
-    3 -> RankBronzeOutline
-    else -> null
-}
+@Composable
+private fun rankOutline(rank: Int): Color? = MikomiTheme.colors.rank(rank)?.outline
 
 /** 卡片正文色：压在封面上的亮色文字。 */
 private val RankCardContent = Color(0xFFF5F7FA)
@@ -301,23 +301,8 @@ private val SingleDigitFontSize = 42.sp
 private val DoubleDigitFontSize = 34.sp
 private val TripleDigitFontSize = 26.sp
 
-/**
- * 名次配色：高亮金属色（金 / 银 / 铜）。
- *
- * 银色取偏冷的浅金属灰而不是近白：近白压在浅色封面（天空、雪地）上几乎
- * 消失，这里压深一档，靠 [RankNumberOutline] 的勾边在两边都站得住。
- */
-private val RankGold = Color(0xFFFFD700)
-private val RankSilver = Color(0xFFC9D3DE)
-private val RankBronze = Color(0xFFD98719)
-
 /** 第 4 名起的统一亮灰（靠 [RankNumberShadow] 在亮底上勾轮廓）。 */
 private val RankCoolGray = Color(0xFFE9EDF2)
-
-/** 前三名的描边色：各自取一枚比填色深很多的同色系，勾边不抢色。 */
-private val RankGoldOutline = Color(0xFF4A3700)
-private val RankSilverOutline = Color(0xFF39414B)
-private val RankBronzeOutline = Color(0xFF4B2A00)
 
 /** 描边宽度：细到只勾轮廓，粗了会把金属色挤没。 */
 private val RankNumberOutlineWidth = 1.2.dp

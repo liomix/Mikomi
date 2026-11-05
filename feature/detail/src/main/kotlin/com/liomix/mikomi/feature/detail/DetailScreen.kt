@@ -63,6 +63,7 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.ui.component.base.ErrorState
 import com.liomix.mikomi.core.ui.component.base.PressButton
 import com.liomix.mikomi.core.ui.component.base.PressButtonStyle
@@ -124,9 +125,6 @@ private val FAVORITE_BUTTON_SIZE = 48.dp
  * 0.88 是「看得出底色、又不影响文字对比度」的平衡点（浅色主题下接近白，深色主题下接近 #181818）。
  */
 private const val TAB_BAR_ALPHA = 0.88f
-
-/** 收藏星标的固定金色（描边态与填充态共用）。 */
-private val FavoriteStarColor = Color(0xFFFFBD29)
 
 /**
  * 详情页。
@@ -499,8 +497,9 @@ private fun FavoriteButton(
                 MaterialTheme.colorScheme.surfaceContainerHighest
             },
             // 星标固定金色：空心的描边和点满的填充是同一个色，只换字形不换颜色，
-            // 这样「点没点」只看形状，不会被两套配色搅乱。
-            contentColor = FavoriteStarColor,
+            // 这样「点没点」只看形状，不会被两套配色搅乱。色值取自设计系统的评分金 ——
+            // 收藏星与评分星同色，否则同一屏里两个「金」会显得其中一个发脏。
+            contentColor = MikomiTheme.colors.rating,
         )
         // 动画是按钮的兄弟节点：按钮被 clip 成圆形，星级要能飞出这个圆才好看。
         if (bursting && loaded != null) {

@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import coil3.compose.AsyncImage
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
@@ -31,7 +31,7 @@ import com.liomix.mikomi.core.ui.component.base.skeletonBaseColor
 private const val MAX_RETRY = 3
 
 /** 封面圆角：列表卡用 8dp，详情页封面用 14dp；飞行时两者之间插值。 */
-private val COVER_CORNER_RADIUS = 8.dp
+private val COVER_CORNER_RADIUS = MikomiRadius.Md
 
 /** 部分图片 CDN（AniRpb 的 meituan 图床）会拒绝非浏览器 User-Agent。 */
 private val BROWSER_HEADERS = NetworkHeaders.Builder().apply {

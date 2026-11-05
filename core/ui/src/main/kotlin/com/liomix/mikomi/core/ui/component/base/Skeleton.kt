@@ -7,7 +7,6 @@ import android.graphics.Paint
 import android.graphics.Shader
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -22,12 +21,13 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 
 /**
  * 骨架屏基础块：带扫光动画的占位块。
@@ -52,7 +52,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun SkeletonBox(
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(8.dp),
+    shape: Shape = RoundedCornerShape(MikomiRadius.Md),
     baseColor: Color? = null,
     sweepColor: Color? = null,
 ) {
@@ -70,9 +70,13 @@ fun SkeletonBox(
  *
  * 给「图片还没画出来」的容器垫底用：与骨架块完全同色，所以骨架 → 图片的过渡里
  * 任何一帧都不会露出页面底色（也就是「空白块」）。见 `AnimeCoverImage`。
+ *
+ * 取色来自设计系统（`MikomiTheme.colors.skeletonBase`），不再由本文件按
+ * 「onSurface 加多少 alpha」现算 —— 否则同一套墨色会在骨架、封面占位、分页提示
+ * 三个地方各写一份系数，改一处另外两处就不跟。
  */
 @Composable
-fun skeletonBaseColor(): Color = rememberSkeletonColors().base
+fun skeletonBaseColor(): Color = MikomiTheme.colors.skeletonBase
 
 /**
  * 一屏骨架共用的扫光参数。
@@ -117,13 +121,13 @@ fun SkeletonShimmer(content: @Composable () -> Unit) {
  */
 @Composable
 fun Modifier.shimmer(
-    shape: Shape = RoundedCornerShape(8.dp),
+    shape: Shape = RoundedCornerShape(MikomiRadius.Md),
     baseColor: Color? = null,
     sweepColor: Color? = null,
 ): Modifier {
-    val colors = rememberSkeletonColors()
-    val base = baseColor ?: colors.base
-    val sweep = sweepColor ?: colors.sweep
+    val colors = MikomiTheme.colors
+    val base = baseColor ?: colors.skeletonBase
+    val sweep = sweepColor ?: colors.skeletonSweep
 
     // 容器提供了共享时间线就复用它，否则自建一条（单块骨架的常见场景）。
     val shared = LocalShimmerSweep.current
@@ -198,27 +202,6 @@ private fun rememberShimmerProgress(cycleMillis: Int): State<Float> {
     return progress
 }
 
-/** 骨架的两种墨色：底色与扫光亮带。 */
-private class SkeletonColors(val base: Color, val sweep: Color)
-
-/**
- * 骨架配色：色相统一取 `onSurface`，深浅两套只是同一支笔的不同不透明度。
- *
- * Telegram 的底色是 `listSelector`（5.9% 黑）再抬到 alpha 22：浅色 8.6% 黑、夜间 9.4% 白；
- * 亮带在浅色里是更淡的 3.5%（等于「擦亮」），夜间是更亮的 12% 白。
- */
-@Composable
-private fun rememberSkeletonColors(): SkeletonColors {
-    val ink = MaterialTheme.colorScheme.onSurface
-    val night = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    return remember(ink, night) {
-        SkeletonColors(
-            base = ink.copy(alpha = if (night) NightBaseAlpha else DayBaseAlpha),
-            sweep = ink.copy(alpha = if (night) NightSweepAlpha else DaySweepAlpha),
-        )
-    }
-}
-
 /**
  * 一块骨架的扫光画笔。
  *
@@ -257,14 +240,3 @@ private val SweepGradientWidth = 200.dp
 /** 扫光每平移一个列表宽所需的时间（Telegram `dt * width / 400`）。 */
 private const val SweepPerWidthMillis = 400f
 
-/** 浅色底色：Telegram `setAlpha(listSelector, 22)`。 */
-private const val DayBaseAlpha = 22f / 255f
-
-/** 浅色亮带：Telegram 把 listSelector 与 3/255 白混合后得到 alpha 9，这里取同量级。 */
-private const val DaySweepAlpha = 9f / 255f
-
-/** 夜间底色：Telegram `setAlpha(listSelector, 24)`。 */
-private const val NightBaseAlpha = 24f / 255f
-
-/** 夜间亮带：Telegram alpha 31 的白。 */
-private const val NightSweepAlpha = 31f / 255f

@@ -58,6 +58,7 @@ import androidx.compose.ui.platform.LocalContext
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.base.skeletonBaseColor
@@ -304,7 +305,7 @@ private fun RatingPill(
         Icon(
             imageVector = Icons.Filled.Star,
             contentDescription = null,
-            tint = Color(0xFFFFC107),
+            tint = MikomiTheme.colors.rating,
             modifier = Modifier.size(13.dp),
         )
         Text(

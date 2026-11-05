@@ -37,6 +37,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiElevation
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import kotlin.math.abs
@@ -49,7 +51,7 @@ object BottomPopDefaults {
     val Anchors: List<Float> = listOf(0.5f, 0.92f)
 
     /** 面板顶部两个圆角。 */
-    val CornerSize = 28.dp
+    val CornerSize = MikomiRadius.Sheet
 
     /** 顶部抓手的宽 / 高。 */
     val HandleWidth = 36.dp
@@ -276,8 +278,8 @@ fun BottomPop(
                     topEnd = BottomPopDefaults.CornerSize,
                 ),
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
-                tonalElevation = 3.dp,
-                shadowElevation = 12.dp,
+                tonalElevation = MikomiElevation.Raised,
+                shadowElevation = MikomiElevation.Sheet,
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     SheetHandle()

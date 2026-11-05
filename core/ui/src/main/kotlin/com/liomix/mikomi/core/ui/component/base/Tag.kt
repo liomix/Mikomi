@@ -27,15 +27,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-
-/** 胶囊形状（百分比圆角）：常量，避免每次组合都新建 Shape。 */
-private val PillShape: Shape = RoundedCornerShape(percent = 50)
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 
 /** 元信息徽标的小圆角：它是「贴住文字的一块底」，不是胶囊。 */
-private val MetaShape: Shape = RoundedCornerShape(6.dp)
+private val MetaShape: Shape = RoundedCornerShape(MikomiRadius.Sm)
 
 /** 选中态 / 未选中态切换时的颜色过渡时长。 */
-private const val ColorAnimMillis = 180
+private const val ColorAnimMillis = MikomiMotion.Duration.Short
 
 /** 选中底色透明度：浅色染主色，避免实心块视觉重量过重（看起来像主按钮）。 */
 private const val ContainerAlphaSelected = 0.14f
@@ -47,7 +49,7 @@ private const val BorderAlphaSelected = 0.55f
 private const val BorderAlphaUnselected = 0.7f
 
 /** 可选中标签的高度，同时就是它的触控高度（见文件末尾的破例说明）。 */
-private val SelectableHeight = 40.dp
+private val SelectableHeight = MikomiSizes.ChipHeight
 
 /**
  * 标签配色。
@@ -203,7 +205,7 @@ fun Tag(
 /** 三套规格的形状。 */
 private val TagStyle.defaultShape: Shape
     get() = when (this) {
-        TagStyle.Selectable, TagStyle.Content -> PillShape
+        TagStyle.Selectable, TagStyle.Content -> MikomiPillShape
         TagStyle.Meta -> MetaShape
     }
 
@@ -211,7 +213,10 @@ private val TagStyle.defaultShape: Shape
 private val TagStyle.defaultContentPadding: PaddingValues
     get() = when (this) {
         TagStyle.Selectable -> PaddingValues(horizontal = 18.dp)
-        TagStyle.Content -> PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+        TagStyle.Content -> PaddingValues(
+            horizontal = MikomiSpacing.Lg,
+            vertical = MikomiSpacing.Sm,
+        )
         TagStyle.Meta -> PaddingValues(horizontal = 5.dp, vertical = 1.dp)
     }
 

@@ -8,6 +8,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
@@ -58,7 +59,7 @@ private fun ColorScheme.withNightSurfaces(): ColorScheme = copy(
  * 与夜间「深底稍亮卡片」的思路保持一致，卡片在两种模式下都有清晰边界。
  *
  * 容器色、描边色一并去掉了 M3 默认的紫调（原值是 `#F5EFF9` / `#E6E0E9` / `#DDD7E1` /
- * `#CAC4D0`）——底色中性化之后，紫调的 Tab 底、输入框描边会明显「串色」。
+ * `#CAC4D0`）—— 底色中性化之后，紫调的 Tab 底、输入框描边会明显「串色」。
  * 亮度阶梯保持与 M3 相同的相对关系：background 低于 surfaceContainer，
  * High / Highest 比表面更暗，用于未选中 chip、进度轨道这类强调块。
  */
@@ -83,6 +84,10 @@ private fun ColorScheme.withDaySurfaces(): ColorScheme = copy(
 /**
  * 应用主题。
  *
+ * 这是设计系统的唯一入口：颜色（[ColorScheme] + [MikomiColors]）、字号（[Typography]）、
+ * 形状（[MikomiShapes]）都在这里下发。页面和组件只需要读 `MaterialTheme.*` /
+ * [MikomiTheme.colors] / [MikomiTextStyles]，不自己 new 一套数值。
+ *
  * @param colorSchemeId 用户选择的配色预设 id（见 [ThemePalette]）；
  *   默认 `default` 为蓝色，不再跟随系统动态取色，保证默认外观统一。
  */
@@ -94,44 +99,86 @@ fun MikomiTheme(
 ) {
     val palette = ThemePalette.fromId(colorSchemeId)
     // 按（模式 + 配色）取缓存：切日夜时这里是一次 Map 命中，不再重算方案。
-    val colorScheme = remember(darkTheme, palette) { resolveColorScheme(darkTheme, palette) }
+    val theme = remember(darkTheme, palette) { resolveTheme(darkTheme, palette) }
 
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = theme.colorScheme,
         typography = Typography,
+        shapes = MikomiShapes,
     ) {
         // MaterialTheme 本身不设置 LocalContentColor（默认黑色），
         // 只有 Surface 内部才会按背景推导内容色。页面中直接放在 Box/Column 里的
         // Text、Icon 因此会一直是黑色（夜间不可读）。这里统一兜底为 onBackground，
         // Surface 内部仍会用自己的 contentColor 覆盖。
         CompositionLocalProvider(
-            LocalContentColor provides colorScheme.onBackground,
+            LocalContentColor provides theme.colorScheme.onBackground,
+            LocalMikomiColors provides theme.colors,
             content = content,
         )
     }
 }
 
 /**
+ * 设计系统的取值入口。
+ *
+ * 只放「必须有主题才能读到」的东西；间距、圆角、动效都是编译期常量，
+ * 直接用 [MikomiSpacing] / [MikomiRadius] / [MikomiMotion] 即可，不必经过这里。
+ */
+object MikomiTheme {
+
+    /**
+     * M3 之外的语义色（评分金、标签色板、名次色、骨架墨色）。
+     *
+     * 目录上先查 `MaterialTheme.colorScheme`，那里没有对应的「意思」时才来这里。
+     * 需要在某个子树里换一套（沉浸页、播放器浮层）时，直接覆写 [LocalMikomiColors]：
+     *
+     * ```kotlin
+     * val immersive = MikomiTheme.colors.copy(rating = Color(0xFFFFE082))
+     * CompositionLocalProvider(LocalMikomiColors provides immersive) { PlayerHud() }
+     * ```
+     */
+    val colors: MikomiColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalMikomiColors.current
+}
+
+/**
+ * 一套解析完成的主题：M3 配色 + 扩展色。
+ *
+ * 两者必须一起解析、一起缓存 —— 扩展色里的骨架墨色取自 [ColorScheme.onSurface]，
+ * 分开算就会出现「配色换了、骨架还是上一套的墨」这种半新半旧的状态。
+ */
+private class ResolvedTheme(
+    val colorScheme: ColorScheme,
+    val colors: MikomiColors,
+)
+
+/**
  * 已解析方案的缓存，键是「模式 + 配色 id」。
  *
- * 一个方案要付三笔账：`darkColorScheme()` / `lightColorScheme()` 的首次类初始化、
- * 夜间主色为凑对比度做的多次 `lerp` + `luminance` 循环、以及三次 `ColorScheme.copy`。
+ * 一个方案要付三笔账：`darkColorScheme()` / `lightColorScheme()` 的首次类初始化、夜间主色为
+ * 凑对比度做的多次 `lerp` + `luminance` 循环、以及三次 `ColorScheme.copy`。
  * 单看都是微秒级，但它们全落在「点下日夜开关」那一帧上，冷启动后第一次切换就会被感知成顿挫。
  * 缓存之后同一套方案只算一次，App 启动时再用 [warmUpColorSchemes] 把账提前付掉。
  */
-private val ResolvedSchemes = ConcurrentHashMap<SchemeKey, ColorScheme>()
+private val ResolvedThemes = ConcurrentHashMap<SchemeKey, ResolvedTheme>()
 
 private data class SchemeKey(val darkTheme: Boolean, val colorSchemeId: String)
 
 /**
- * 取（必要时构建）一套可直接交给 `MaterialTheme` 的完整配色。
+ * 取（必要时构建）一套可直接交给 `MaterialTheme` 的完整主题。
  *
  * 纯函数，不依赖 Compose 运行时，可以从任意线程调用 —— 预热正是跑在后台线程上的。
  * 结果不可变，并发重复构建同一个 key 只会多算一次，不会写坏缓存。
  */
-private fun resolveColorScheme(darkTheme: Boolean, palette: ThemePalette): ColorScheme =
-    ResolvedSchemes.getOrPut(SchemeKey(darkTheme, palette.id)) {
-        buildColorScheme(darkTheme, palette)
+private fun resolveTheme(darkTheme: Boolean, palette: ThemePalette): ResolvedTheme =
+    ResolvedThemes.getOrPut(SchemeKey(darkTheme, palette.id)) {
+        val colorScheme = buildColorScheme(darkTheme, palette)
+        ResolvedTheme(
+            colorScheme = colorScheme,
+            colors = resolveMikomiColors(colorScheme, dark = darkTheme),
+        )
     }
 
 /**
@@ -142,8 +189,8 @@ private fun resolveColorScheme(darkTheme: Boolean, palette: ThemePalette): Color
  */
 fun warmUpColorSchemes() {
     for (palette in ThemePalette.entries) {
-        resolveColorScheme(darkTheme = false, palette = palette)
-        resolveColorScheme(darkTheme = true, palette = palette)
+        resolveTheme(darkTheme = false, palette = palette)
+        resolveTheme(darkTheme = true, palette = palette)
     }
 }
 

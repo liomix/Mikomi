@@ -53,6 +53,7 @@ import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.business.heroTarget
@@ -420,7 +421,7 @@ private fun RatingBlock(
             Icon(
                 imageVector = Icons.Filled.Star,
                 contentDescription = null,
-                tint = Color(0xFFFFC107),
+                tint = MikomiTheme.colors.rating,
                 modifier = Modifier.size(24.dp),
             )
             Spacer(modifier = Modifier.size(4.dp))

@@ -1,0 +1,280 @@
+package com.liomix.mikomi.core.designsystem.theme
+
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
+
+/*
+ * M3 之外的语义色。
+ *
+ * ## 为什么不硬塞进 ColorScheme
+ *
+ * `ColorScheme` 的槽位是 Material 定义好的 31 个，它们回答的是「轮廓用什么色、容器用什么色」。
+ * 「评分星是金色」「第三名用铜色」「骨架块用 8.6% 的墨」这些答案它没有槽位可以放，
+ * 于是它们此前散落在各个 feature 里 —— 评分星出现过 `#FFC107` 与 `#FFB300` 两个值，
+ * 名次金出现过 `#FFD700` 与 `#F2B705` 两个值，同一块屏幕上就会互相打架。
+ *
+ * 这里补的是 M3 **缺的那一类**：跨页面复用的语义色。它不是第二套 ColorScheme，
+ * 目录上先查 `colorScheme`，查不到「这个意思」时才来这里。
+ *
+ * ## 为什么可以局部覆写
+ *
+ * 通过 [LocalMikomiColors] 下发（而不是全局单例），任意子树都能换一套 —— 这是从
+ * Telegram 的 `Theme.ResourcesProvider` 学来的能力：暗色播放器、地图浮层这类沉浸场景
+ * 需要「在这个子树里，评分星更亮、骨架更黑」，而不用为此新增一套全局主题。
+ * 常规页面直接读 [MikomiTheme.colors] 即可。
+ */
+
+/**
+ * 标签色相。
+ *
+ * 只描述**颜色**，不描述**含义** —— 「主角」对应哪个色相是业务知识，留在调用方
+ * （见 `CreditsTab` 的关键词表）；designsystem 只负责「红色标签在日间长什么样、
+ * 夜间长什么样」。分开之后，同一个红色可以被关系标签、状态标签、错误标记共用。
+ */
+enum class MikomiTagHue {
+    /** 红：警示、第一主角。 */
+    Red,
+
+    /** 蓝：信息、第二主角。 */
+    Blue,
+
+    /** 紫：特殊、客串。 */
+    Violet,
+
+    /** 琥珀：提示、原作。 */
+    Amber,
+
+    /** 珊瑚：次警示、导演。 */
+    Coral,
+
+    /** 青：中性偏冷、系列构成。 */
+    Teal,
+
+    /** 绿：成功、角色设计。 */
+    Green,
+
+    /** 品红：强调、音乐。 */
+    Magenta,
+
+    /** 中性：未命中任何语义时的兜底。 */
+    Neutral,
+}
+
+/**
+ * 一枚标签的配色（浅底 + 深字）。
+ *
+ * 对比度约束：`content` 在 `container` 上不低于 4.5:1，两套模式各自成立 ——
+ * 夜间不是把日间色简单压暗，而是重新选的一组「深底 + 亮字」。
+ */
+@Immutable
+data class MikomiTagColor(
+    val container: Color,
+    val content: Color,
+)
+
+/**
+ * 名次配色。
+ *
+ * @param fill 压在封面 / 深色渐变上的金属色。够亮才醒目。
+ * @param outline 描边色。浅色封面（天空、雪地）会把金属色糊掉，靠它勾出字形。
+ * @param ink 浅色页面上作为**文字**用的颜色。金属色在白底上只有 1.2:1 的对比度，
+ *   直接当文字是读不出来的，所以另备一档压暗的。
+ */
+@Immutable
+data class MikomiRankColor(
+    val fill: Color,
+    val outline: Color,
+    val ink: Color,
+)
+
+/**
+ * M3 之外的全部语义色。
+ *
+ * 由 [MikomiTheme] 按「配色 + 日/夜」解析一次并缓存，通过 [LocalMikomiColors] 下发。
+ * 值对象本身不可变，`copy` 出来即可在子树里覆写其中几项。
+ */
+@Immutable
+data class MikomiColors(
+    /** 评分与收藏共用的金色。 */
+    val rating: Color,
+    /** 红色标签。 */
+    val tagRed: MikomiTagColor,
+    /** 蓝色标签。 */
+    val tagBlue: MikomiTagColor,
+    /** 紫色标签。 */
+    val tagViolet: MikomiTagColor,
+    /** 琥珀色标签。 */
+    val tagAmber: MikomiTagColor,
+    /** 珊瑚色标签。 */
+    val tagCoral: MikomiTagColor,
+    /** 青色标签。 */
+    val tagTeal: MikomiTagColor,
+    /** 绿色标签。 */
+    val tagGreen: MikomiTagColor,
+    /** 品红色标签。 */
+    val tagMagenta: MikomiTagColor,
+    /** 中性标签：未命中语义时的兜底。 */
+    val tagNeutral: MikomiTagColor,
+    /** 第一名（金）。 */
+    val rankFirst: MikomiRankColor,
+    /** 第二名（银）。 */
+    val rankSecond: MikomiRankColor,
+    /** 第三名（铜）。 */
+    val rankThird: MikomiRankColor,
+    /** 骨架块底色：半透明墨色，与页面底色同源。 */
+    val skeletonBase: Color,
+    /** 骨架扫光亮带：比底色更亮一档。 */
+    val skeletonSweep: Color,
+) {
+    /** 按色相取标签配色。 */
+    fun tag(hue: MikomiTagHue): MikomiTagColor = when (hue) {
+        MikomiTagHue.Red -> tagRed
+        MikomiTagHue.Blue -> tagBlue
+        MikomiTagHue.Violet -> tagViolet
+        MikomiTagHue.Amber -> tagAmber
+        MikomiTagHue.Coral -> tagCoral
+        MikomiTagHue.Teal -> tagTeal
+        MikomiTagHue.Green -> tagGreen
+        MikomiTagHue.Magenta -> tagMagenta
+        MikomiTagHue.Neutral -> tagNeutral
+    }
+
+    /**
+     * 按名次取名次配色；三名之后返回 `null`（用中性色）。
+     *
+     * 返回可空而不是给一个 `default`，是因为第 4 名起的样式**完全不同**
+     * （亮灰 + 投影，而不是金属色 + 描边），调用方本来就要走另一条分支。
+     */
+    fun rank(place: Int): MikomiRankColor? = when (place) {
+        1 -> rankFirst
+        2 -> rankSecond
+        3 -> rankThird
+        else -> null
+    }
+}
+
+/*
+ * ---- 原始值（primitive）----
+ *
+ * 上面那层的每个字段都从这里取色，改色只改这一段。命名按色相 + 明度用途，
+ * 不带任何页面名 —— 一旦叫 `creditsRed`，下一个用它的人就得先猜它凭什么属于 credits。
+ */
+
+/** 评分金：Material Amber 500。 */
+private val Gold = Color(0xFFFFC107)
+
+/** 标签日间：浅底 + 深字，全部 ≥ 4.5:1。 */
+private val TagRedDay = MikomiTagColor(Color(0xFFFFE0E0), Color(0xFFB3261E))
+private val TagBlueDay = MikomiTagColor(Color(0xFFD6E4FF), Color(0xFF1A56C7))
+private val TagVioletDay = MikomiTagColor(Color(0xFFE8DFFF), Color(0xFF5A2FA6))
+private val TagAmberDay = MikomiTagColor(Color(0xFFFFE8C7), Color(0xFF8A4B00))
+private val TagCoralDay = MikomiTagColor(Color(0xFFFFD9D2), Color(0xFFA52714))
+private val TagTealDay = MikomiTagColor(Color(0xFFD0F0E8), Color(0xFF0B6B5A))
+private val TagGreenDay = MikomiTagColor(Color(0xFFDDF2D2), Color(0xFF2E6B1E))
+private val TagMagentaDay = MikomiTagColor(Color(0xFFF5DDF5), Color(0xFF7A2B7A))
+private val TagNeutralDay = MikomiTagColor(Color(0xFFE8EAED), Color(0xFF4A5568))
+
+/**
+ * 标签夜间：深底 + 亮字。
+ *
+ * 不是把日间色压暗 —— 浅底 #FFE0E0 压在纯黑页面上是一块发光板，会盖过内容本身。
+ * 这里每个色相各自取「同色相的深色容器 + 同色相的亮色文字」，
+ * 容器亮度落在 surface(#181818) 附近，只靠色相区分，不靠亮度抢眼。
+ */
+private val TagRedNight = MikomiTagColor(Color(0xFF4A2320), Color(0xFFFFB4AB))
+private val TagBlueNight = MikomiTagColor(Color(0xFF1B3A5C), Color(0xFFA8C8FF))
+private val TagVioletNight = MikomiTagColor(Color(0xFF33255C), Color(0xFFD0BCFF))
+private val TagAmberNight = MikomiTagColor(Color(0xFF4A3210), Color(0xFFFFD79A))
+private val TagCoralNight = MikomiTagColor(Color(0xFF4A2820), Color(0xFFFFB59E))
+private val TagTealNight = MikomiTagColor(Color(0xFF123C36), Color(0xFF8EE0D0))
+private val TagGreenNight = MikomiTagColor(Color(0xFF243C18), Color(0xFFB6E39A))
+private val TagMagentaNight = MikomiTagColor(Color(0xFF42204A), Color(0xFFF0B6F5))
+private val TagNeutralNight = MikomiTagColor(Color(0xFF2C2C31), Color(0xFFC7C7CC))
+
+/** 名次：金属填充、描边、页面文字色三档。 */
+private val RankFirst = MikomiRankColor(
+    fill = Color(0xFFFFD700),
+    outline = Color(0xFF4A3700),
+    ink = Color(0xFFF2B705),
+)
+private val RankSecond = MikomiRankColor(
+    fill = Color(0xFFC9D3DE),
+    outline = Color(0xFF39414B),
+    ink = Color(0xFF9AA3AD),
+)
+private val RankThird = MikomiRankColor(
+    fill = Color(0xFFD98719),
+    outline = Color(0xFF4B2A00),
+    ink = Color(0xFFC07A3E),
+)
+
+/** 骨架底色透明度：浅色 8.6% 黑（Telegram `setAlpha(listSelector, 22)`）。 */
+private const val SkeletonDayBaseAlpha = 22f / 255f
+
+/** 骨架亮带透明度：浅色 3.5% 黑。 */
+private const val SkeletonDaySweepAlpha = 9f / 255f
+
+/** 骨架底色透明度：夜间 9.4% 白。 */
+private const val SkeletonNightBaseAlpha = 24f / 255f
+
+/** 骨架亮带透明度：夜间 12% 白。 */
+private const val SkeletonNightSweepAlpha = 31f / 255f
+
+/**
+ * 解析一套扩展色。
+ *
+ * 纯函数、不依赖组合运行时，可以从任意线程调用（`warmUpColorSchemes` 就在后台线程上跑）。
+ * 骨架色需要 [ColorScheme] 是因为它取 `onSurface` 的色相：夜里是白墨、白天是黑墨，
+ * 而「夜不夜」不能只看传入的布尔量 —— 主题里可能配了深色的日间方案。
+ */
+internal fun resolveMikomiColors(scheme: ColorScheme, dark: Boolean): MikomiColors {
+    val ink = scheme.onSurface
+    return MikomiColors(
+        rating = Gold,
+        tagRed = if (dark) TagRedNight else TagRedDay,
+        tagBlue = if (dark) TagBlueNight else TagBlueDay,
+        tagViolet = if (dark) TagVioletNight else TagVioletDay,
+        tagAmber = if (dark) TagAmberNight else TagAmberDay,
+        tagCoral = if (dark) TagCoralNight else TagCoralDay,
+        tagTeal = if (dark) TagTealNight else TagTealDay,
+        tagGreen = if (dark) TagGreenNight else TagGreenDay,
+        tagMagenta = if (dark) TagMagentaNight else TagMagentaDay,
+        tagNeutral = if (dark) TagNeutralNight else TagNeutralDay,
+        rankFirst = RankFirst,
+        rankSecond = RankSecond,
+        rankThird = RankThird,
+        skeletonBase = ink.copy(
+            alpha = if (dark) SkeletonNightBaseAlpha else SkeletonDayBaseAlpha,
+        ),
+        skeletonSweep = ink.copy(
+            alpha = if (dark) SkeletonNightSweepAlpha else SkeletonDaySweepAlpha,
+        ),
+    )
+}
+
+/**
+ * 无主题时的兜底。
+ *
+ * 组件应该总是跑在 [MikomiTheme] 之下；但预览、单测、或者某个页面忘了包主题时，
+ * 读色不该直接抛异常（Telegram 的 `getColorOrDefault` 就是这个思路）。
+ * 兜底用浅色的默认方案，视觉上等同于 M3 默认主题。
+ */
+private val FallbackColors: MikomiColors by lazy {
+    resolveMikomiColors(lightColorScheme(), dark = false)
+}
+
+/**
+ * 当前子树生效的扩展色。
+ *
+ * 常规读取请用 [MikomiTheme.colors]；只有需要**局部覆写**时才直接用它：
+ *
+ * ```kotlin
+ * // 播放器浮层：在这个子树里评分星更亮、骨架更黑
+ * val immersive = MikomiTheme.colors.copy(rating = Color(0xFFFFE082))
+ * CompositionLocalProvider(LocalMikomiColors provides immersive) { PlayerHud() }
+ * ```
+ */
+val LocalMikomiColors = staticCompositionLocalOf { FallbackColors }

@@ -37,6 +37,10 @@ import com.liomix.mikomi.core.model.AnimeCharacter
 import com.liomix.mikomi.core.model.StaffMember
 import com.liomix.mikomi.core.ui.component.base.EmptyState
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiTagColor
+import com.liomix.mikomi.core.designsystem.theme.MikomiTagHue
+import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 
 /** 主创卡片固定宽度（名字无限滚动 + 关系 badge 需要更宽空间）。 */
@@ -49,7 +53,7 @@ private val CREDIT_CARD_HEIGHT = 80.dp
 private val AVATAR_SIZE = 60.dp
 
 /** 关系/职位徽标的圆角：小圆角底片，不是胶囊（理由见 [RelationBadge]）。 */
-private val RelationBadgeShape: Shape = RoundedCornerShape(4.dp)
+private val RelationBadgeShape: Shape = RoundedCornerShape(MikomiRadius.Xs)
 
 /**
  * 主创 Tab：角色 + 制作人员两个区块，横向两列卡片。
@@ -327,18 +331,18 @@ private fun RelationBadge(
     text: String,
     modifier: Modifier = Modifier,
 ) {
-    val (container, content) = creditBadgeColors(text)
+    val badge = creditBadgeColors(text)
     Surface(
         // 4dp 圆角而不是胶囊：它是「贴着文字的底片」，和右侧名字同处一行时，
         // 胶囊的圆头会让它显得比名字更重。
         shape = RelationBadgeShape,
-        color = container,
+        color = badge.container,
         modifier = modifier,
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall,
-            color = content,
+            color = badge.content,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
@@ -347,66 +351,38 @@ private fun RelationBadge(
 }
 
 /**
- * 关系/职位标签语义配色（浅底 + 深字，保证文字对比度 ≥ 4.5:1）。
+ * 关系/职位标签语义配色。
+ *
+ * **色值不在这张表里**。「主角是红的」是业务知识，留在本页；「红色标签在日间长什么样、
+ * 夜间长什么样」是设计系统的知识，放在 `MikomiColors.tag(hue)`。分开之后同一套红色能被
+ * 别处的状态标签复用，日夜各自有对应的一档 —— 这里原来那张浅底色板在夜间会变成一块
+ * 压在纯黑页面上的发光板，正是因为色值只有日间一份。
  *
  * 对齐 UX 规范：颜色不单独承载信息（标签文字本身即语义），仅作视觉增强；
- * 角色关系与制作人员职位各一套柔和色，未命中回退中性灰。
+ * 角色关系与制作人员职位各一套色相，未命中回退中性灰。
  */
-private fun creditBadgeColors(text: String): Pair<Color, Color> {
-    val style = CREDIT_BADGE_STYLES.entries.firstOrNull { (keyword, _) ->
+@Composable
+private fun creditBadgeColors(text: String): MikomiTagColor =
+    MikomiTheme.colors.tag(creditHue(text))
+
+/** 关键词 → 色相。命中即取色，未命中兜底中性灰。 */
+private fun creditHue(text: String): MikomiTagHue =
+    CREDIT_BADGE_HUES.entries.firstOrNull { (keyword, _) ->
         text.contains(keyword)
-    }?.value ?: NeutralBadgeStyle
-    return style.container to style.content
-}
+    }?.value ?: MikomiTagHue.Neutral
 
-/** 标签样式：底色 + 文字色。 */
-private data class CreditBadgeStyle(
-    val container: Color,
-    val content: Color,
-)
-
-/** 标签配色表（关键词命中即取色；「其他」兜底中性灰）。 */
-private val CREDIT_BADGE_STYLES = linkedMapOf(
+/** 标签色相表：只说「这个职位属于哪个红」，不说「红是多少号」。 */
+private val CREDIT_BADGE_HUES = linkedMapOf(
     // 角色关系。
-    "主角" to CreditBadgeStyle(
-        container = Color(0xFFFFE0E0),
-        content = Color(0xFFB3261E),
-    ),
-    "配角" to CreditBadgeStyle(
-        container = Color(0xFFD6E4FF),
-        content = Color(0xFF1A56C7),
-    ),
-    "客串" to CreditBadgeStyle(
-        container = Color(0xFFE8DFFF),
-        content = Color(0xFF5A2FA6),
-    ),
+    "主角" to MikomiTagHue.Red,
+    "配角" to MikomiTagHue.Blue,
+    "客串" to MikomiTagHue.Violet,
     // 制作人员职位。
-    "原作" to CreditBadgeStyle(
-        container = Color(0xFFFFE8C7),
-        content = Color(0xFF8A4B00),
-    ),
-    "导演" to CreditBadgeStyle(
-        container = Color(0xFFFFD9D2),
-        content = Color(0xFFA52714),
-    ),
-    "系列构成" to CreditBadgeStyle(
-        container = Color(0xFFD0F0E8),
-        content = Color(0xFF0B6B5A),
-    ),
-    "角色设计" to CreditBadgeStyle(
-        container = Color(0xFFDDF2D2),
-        content = Color(0xFF2E6B1E),
-    ),
-    "音乐" to CreditBadgeStyle(
-        container = Color(0xFFF5DDF5),
-        content = Color(0xFF7A2B7A),
-    ),
-)
-
-/** 未匹配关键词时的中性灰兜底。 */
-private val NeutralBadgeStyle = CreditBadgeStyle(
-    container = Color(0xFFE8EAED),
-    content = Color(0xFF4A5568),
+    "原作" to MikomiTagHue.Amber,
+    "导演" to MikomiTagHue.Coral,
+    "系列构成" to MikomiTagHue.Teal,
+    "角色设计" to MikomiTagHue.Green,
+    "音乐" to MikomiTagHue.Magenta,
 )
 
 /** 主创骨架屏：角色 + 制作人员各两排卡片占位。 */

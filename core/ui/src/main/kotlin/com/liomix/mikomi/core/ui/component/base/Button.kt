@@ -1,7 +1,5 @@
 package com.liomix.mikomi.core.ui.component.base
 
-import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.InteractionSource
@@ -36,52 +34,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiElevation
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 
 /*
- * 按压形变的四个数值，全部照抄 Telegram 的 `ButtonBounce`（`ui/Components/ButtonBounce.java`）：
- * 默认构造 `new ButtonBounce(view)` → 按下 60ms、松手 350ms、过冲 5.0；各调用点的
- * `getScale(0.1f)`（Telegram 里出现最多的一档）说明按下缩到 0.9。
- * 「按压感」这种东西推不出来，只能对着一个公认手感好的实现抄 —— 所以这里不自己取整。
+ * 按压形变直接取设计系统的 [MikomiMotion.Press]：按下 60ms、松手 350ms、过冲 5.0，
+ * 全部照抄 Telegram 的 `ButtonBounce`（`ui/Components/ButtonBounce.java`）。
+ * 「按压感」这种东西推不出来，只能对着一个公认手感好的实现抄 —— 所以不自己取整。
  */
-
-/** 按下时缩到的比例：Telegram 的 `getScale(0.1f)`，即缩掉 10%。 */
-private const val PressedScale = 0.90f
-
-/** 压下去的时长。60ms 只有三四帧，手指刚压到底就已经缩完了。 */
-private const val PressInMillis = 60
-
-/** 松手回弹的时长。350ms 里只有前 200ms 在动，后面是过冲后的收尾。 */
-private const val ReleaseMillis = 350
-
-/**
- * 回弹过冲量，对应 Android 的 `OvershootInterpolator(5f)`。
- *
- * 5 听起来夸张，但它作用在「0.9 → 1.0」这段 10% 的差上，实际最高只到 1.051 ——
- * 正好是「看得到弹一下、又不会觉得按钮长大了」。这就是 Telegram 按钮那股韧劲的来源。
- */
-private const val ReleaseOvershoot = 5f
-
-/** 按下去的缓动：Telegram 的 `CubicBezierInterpolator.DEFAULT`，即 CSS 的 `ease`。 */
-private val PressEasing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
-
-/**
- * 松手的缓动：把 Android `OvershootInterpolator` 的公式原样搬过来。
- *
- * 不用 Compose 的弹簧有两个原因：弹簧是**多次衰减振荡**，收尾会有一串几乎看不见的抖动；
- * 而 Overshoot 是**单峰**曲线，冲过 1.0 一次就回来，读起来更干净，也才和 Telegram 一致。
- */
-private val ReleaseEasing: Easing = object : Easing {
-    override fun transform(fraction: Float): Float {
-        val t = fraction - 1f
-        return t * t * ((ReleaseOvershoot + 1f) * t + ReleaseOvershoot) + 1f
-    }
-}
-
-/** 禁用态底色透明度（M3 规范值）。 */
-private const val DisabledContainerAlpha = 0.12f
-
-/** 禁用态文字透明度（M3 规范值）。 */
-private const val DisabledContentAlpha = 0.38f
 
 /**
  * 按压形变：按下缩小、松手弹回。
@@ -105,11 +69,14 @@ fun Modifier.pressScale(
     val pressed by interactionSource.collectIsPressedAsState()
     val pressing = pressed && enabled
     val scale = animateFloatAsState(
-        targetValue = if (pressing) PressedScale else 1f,
+        targetValue = if (pressing) MikomiMotion.Press.Scale else 1f,
         animationSpec = if (pressing) {
-            tween(durationMillis = PressInMillis, easing = PressEasing)
+            tween(durationMillis = MikomiMotion.Press.InMillis, easing = MikomiMotion.Curve.Press)
         } else {
-            tween(durationMillis = ReleaseMillis, easing = ReleaseEasing)
+            tween(
+                durationMillis = MikomiMotion.Press.ReleaseMillis,
+                easing = MikomiMotion.Curve.Overshoot,
+            )
         },
         label = "pressScale",
     )
@@ -147,17 +114,17 @@ data class PressButtonStyle(
     /** 配色走向。 */
     val tone: PressButtonTone,
     /** 前导图标尺寸。 */
-    val iconSize: Dp = 24.dp,
+    val iconSize: Dp = MikomiSizes.IconLg,
     /** 图标与文字之间的距离。 */
-    val iconGap: Dp = 12.dp,
+    val iconGap: Dp = MikomiSpacing.Md,
 ) {
     companion object {
         /** 页面内主操作：胶囊实心主色，48dp，无阴影。 */
         val Filled: PressButtonStyle = PressButtonStyle(
-            shape = RoundedCornerShape(percent = 50),
-            contentPadding = PaddingValues(horizontal = 24.dp),
-            minHeight = 48.dp,
-            elevation = 0.dp,
+            shape = MikomiPillShape,
+            contentPadding = PaddingValues(horizontal = MikomiSpacing.Xl),
+            minHeight = MikomiSizes.ButtonHeight,
+            elevation = MikomiElevation.Flat,
             tone = PressButtonTone.Primary,
         )
 
@@ -165,13 +132,14 @@ data class PressButtonStyle(
          * 悬浮操作：56dp、16dp 圆角、浅主色 + 6dp 阴影。
          *
          * 数值取自 M3 的扩展 FAB（`ExtendedFloatingActionButton`），这样从 FAB 换成
-         * [PressButton] 时尺寸和位置都不用动。
+         * [PressButton] 时尺寸和位置都不用动。左右留白 20dp 与 56dp 高度是绑在一起的一对
+         * 规格（高度减两倍留白 = 一个字高），所以不拆成 token。
          */
         val Elevated: PressButtonStyle = PressButtonStyle(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(MikomiRadius.Xl),
             contentPadding = PaddingValues(horizontal = 20.dp),
             minHeight = 56.dp,
-            elevation = 6.dp,
+            elevation = MikomiElevation.Floating,
             tone = PressButtonTone.Tonal,
         )
     }
@@ -210,12 +178,12 @@ fun PressButton(
 
     val scheme = MaterialTheme.colorScheme
     val containerColor = when {
-        !enabled -> scheme.onSurface.copy(alpha = DisabledContainerAlpha)
+        !enabled -> scheme.onSurface.copy(alpha = MikomiMotion.Disabled.ContainerAlpha)
         style.tone == PressButtonTone.Primary -> scheme.primary
         else -> scheme.primaryContainer
     }
     val contentColor = when {
-        !enabled -> scheme.onSurface.copy(alpha = DisabledContentAlpha)
+        !enabled -> scheme.onSurface.copy(alpha = MikomiMotion.Disabled.ContentAlpha)
         style.tone == PressButtonTone.Primary -> scheme.onPrimary
         else -> scheme.onPrimaryContainer
     }
@@ -286,8 +254,8 @@ fun PressIconButton(
     enabled: Boolean = true,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
     contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    size: Dp = 48.dp,
-    iconSize: Dp = 24.dp,
+    size: Dp = MikomiSizes.TouchTarget,
+    iconSize: Dp = MikomiSizes.IconLg,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val scheme = MaterialTheme.colorScheme
@@ -297,8 +265,16 @@ fun PressIconButton(
         modifier = modifier.pressScale(interactionSource, enabled),
         enabled = enabled,
         shape = CircleShape,
-        color = if (enabled) containerColor else scheme.onSurface.copy(alpha = DisabledContainerAlpha),
-        contentColor = if (enabled) contentColor else scheme.onSurface.copy(alpha = DisabledContentAlpha),
+        color = if (enabled) {
+            containerColor
+        } else {
+            scheme.onSurface.copy(alpha = MikomiMotion.Disabled.ContainerAlpha)
+        },
+        contentColor = if (enabled) {
+            contentColor
+        } else {
+            scheme.onSurface.copy(alpha = MikomiMotion.Disabled.ContentAlpha)
+        },
         interactionSource = interactionSource,
     ) {
         Box(

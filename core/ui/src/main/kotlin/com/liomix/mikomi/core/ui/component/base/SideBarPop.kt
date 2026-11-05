@@ -27,6 +27,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiElevation
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 
@@ -58,13 +61,13 @@ object SideBarPopDefaults {
     const val MaxWidthFraction = 0.86f
 
     /** 面板靠屏幕内侧的两个圆角。贴边那侧不圆，否则会露出底下的页面。 */
-    val CornerSize = 24.dp
+    val CornerSize = MikomiRadius.Xxl
 
     /** 入场时长。 */
-    const val EnterMillis = 240
+    const val EnterMillis = MikomiMotion.Duration.Medium
 
     /** 退场时长。比入场短，关闭动作要显得更利落。 */
-    const val ExitMillis = 180
+    const val ExitMillis = MikomiMotion.Duration.Short
 
     /** 遮罩最深不透明度。再深就看不清底下的页面了。 */
     const val ScrimAlpha = 0.32f
@@ -185,8 +188,8 @@ fun SideBarPop(
                     },
                 shape = side.panelShape(),
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
-                tonalElevation = 3.dp,
-                shadowElevation = 8.dp,
+                tonalElevation = MikomiElevation.Raised,
+                shadowElevation = MikomiElevation.Overlay,
             ) {
                 Column(modifier = Modifier.fillMaxSize(), content = content)
             }

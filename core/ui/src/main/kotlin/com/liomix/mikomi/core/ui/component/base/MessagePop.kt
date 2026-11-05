@@ -30,6 +30,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiElevation
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 
 /**
  * 提示弹窗内容。
@@ -86,13 +89,16 @@ fun MikomiToast(
         Surface(
             shape = RoundedCornerShape(TOAST_CORNER),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = 3.dp,
-            shadowElevation = 6.dp,
+            tonalElevation = MikomiElevation.Raised,
+            shadowElevation = MikomiElevation.Floating,
         ) {
             Row(
                 modifier = Modifier
                     .widthIn(max = TOAST_MAX_WIDTH)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(
+                        horizontal = MikomiSpacing.Lg,
+                        vertical = MikomiSpacing.Md,
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (content.iconRes != null) {
@@ -102,7 +108,7 @@ fun MikomiToast(
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.size(TOAST_ICON_SIZE),
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(MikomiSpacing.Md))
                 }
                 Text(
                     text = content.message,
@@ -125,6 +131,8 @@ private val TOAST_CORNER = 20.dp
 /** 弹窗最大宽度，避免长文案铺满整屏。 */
 private val TOAST_MAX_WIDTH = 360.dp
 
-private const val TOAST_ENTER_MILLIS = 200
+/** 入场时长。退场比它短：关闭动作要显得更利落。 */
+private const val TOAST_ENTER_MILLIS = MikomiMotion.Duration.Medium
 
-private const val TOAST_EXIT_MILLIS = 160
+/** 退场时长。 */
+private const val TOAST_EXIT_MILLIS = MikomiMotion.Duration.Short

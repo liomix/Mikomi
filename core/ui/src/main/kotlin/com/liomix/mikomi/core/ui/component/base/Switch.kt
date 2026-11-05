@@ -1,7 +1,7 @@
 package com.liomix.mikomi.core.ui.component.base
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -32,6 +32,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import kotlin.math.roundToInt
 
 /**
@@ -63,14 +65,14 @@ private val ThumbTravel = ThumbWidth / 2
  * 所以点击槽做到 48dp、轨道 20dp 居中：手指好点，画面还是缩过的 CSS 比例。
  * 塞在开关行里（`onCheckedChange = null`）时不用这个尺寸，整行本身就是点击目标。
  */
-private val TouchTargetHeight = 48.dp
+private val TouchTargetHeight = MikomiSizes.TouchTarget
 
 /** 圆角取满 = CSS 的 `border-radius: 20px`（大于半高时会被浏览器夹到胶囊形）。 */
 private val SwitchShape: Shape = RoundedCornerShape(percent = 50)
 
 /** CSS 的 `transition: .3s`，缓动也是 `ease`（不是 Material 的 FastOutSlowIn）。 */
-private const val SwitchAnimMillis = 300
-private val SwitchEasing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
+private const val SwitchAnimMillis = MikomiMotion.Duration.Long
+private val SwitchEasing: Easing = MikomiMotion.Curve.Press
 
 /** 拨片的投影：CSS `0 0 10px 3px rgb(0 0 0 / 25%)`，随尺寸一起减半。 */
 private val ThumbShadowElevation = 2.dp

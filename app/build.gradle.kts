@@ -25,6 +25,7 @@ dependencies {
     implementation(project(":core:navigation"))
     implementation(project(":feature:home"))
     implementation(project(":feature:animap"))
+    implementation(project(":feature:community"))
     implementation(project(":feature:profile"))
     implementation(project(":feature:search"))
     implementation(project(":feature:detail"))

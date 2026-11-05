@@ -23,9 +23,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Person
@@ -51,6 +53,7 @@ import com.liomix.mikomi.R
 import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.navigation.AniMapDestination
+import com.liomix.mikomi.core.navigation.CommunityDestination
 import com.liomix.mikomi.core.navigation.DetailDestination
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.HomeDestination
@@ -86,10 +89,11 @@ fun MikomiNavHost(
 ) {
     val homeLabel = stringResource(R.string.nav_home)
     val aniMapLabel = stringResource(R.string.nav_animap)
+    val communityLabel = stringResource(R.string.nav_community)
     val profileLabel = stringResource(R.string.nav_profile)
 
-    // 从左到右：首页 / 巡礼地图 / 我的
-    val navItems = remember(homeLabel, aniMapLabel, profileLabel) {
+    // 从左到右：首页 / 巡礼地图 / 社区 / 我的
+    val navItems = remember(homeLabel, aniMapLabel, communityLabel, profileLabel) {
         listOf(
             MikomiNavItem(
                 key = HomeDestination,
@@ -102,6 +106,12 @@ fun MikomiNavHost(
                 icon = Icons.Outlined.Map,
                 selectedIcon = Icons.Filled.Map,
                 label = aniMapLabel,
+            ),
+            MikomiNavItem(
+                key = CommunityDestination,
+                icon = Icons.Outlined.Forum,
+                selectedIcon = Icons.Filled.Forum,
+                label = communityLabel,
             ),
             MikomiNavItem(
                 key = ProfileDestination,
@@ -311,8 +321,11 @@ fun MikomiNavHost(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                // 外边距由 core:ui 的常量统一给出，页面按同一份规格给底栏让位。
-                .padding(horizontal = 20.dp, vertical = MikomiNavBarMargin)
+                // 外边距由导航栏自己的常量给出（16dp 左右 / 8dp 底部），页面按同一份规格给底栏让位。
+                .padding(
+                    horizontal = MikomiNavBarHorizontalMargin,
+                    vertical = MikomiNavBarBottomMargin,
+                )
                 .widthIn(max = 520.dp),
         ) {
             MikomiNavigationBar(

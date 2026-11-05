@@ -162,7 +162,8 @@ core:navigation
  └── ImmersionBridge      跨 entry 的沉浸状态桥（巡礼页专用）
 
 app:navigation
- └── MikomiNavHost.kt     装配 NavDisplay + 底部导航栏 + 沉浸/返回协调
+ ├── MikomiNavHost.kt     装配 NavDisplay + 底部导航栏 + 沉浸/返回协调
+ └── MikomiNavigationBar.kt  本 App 专属的悬浮底栏（不依赖 core:ui 的通用 Tab 组件）
 ```
 
 **路由定义**全部为 `@Serializable` 的 `NavKey`，禁止字符串拼接：
@@ -175,7 +176,7 @@ data class PlayerDestination(val animeId: String, val episodeId: String) : NavKe
 
 **关键设计**：
 
-- **顶级目的地**：`HomeDestination` / `AniMapDestination` / `ProfileDestination`（`topLevelDestinations`）
+- **顶级目的地**：`HomeDestination` / `AniMapDestination` / `CommunityDestination` / `ProfileDestination`（`topLevelDestinations`）
 - **返回栈**：单一 `SnapshotStateList<NavKey>`，`Navigator.goBack()` 在根页面返回 `false`，由调用方交给系统退出应用
 - **多模块装配**：每个 feature 提供自己的 `entryProvider`，`MikomiNavHost` 遍历 `EntryProviderInstaller` 注入
 - **沉浸式协调**：`ImmersionBridge` 作为权威副本存于 Activity Retained 作用域，跨 entry 重建与配置变更存活
@@ -228,7 +229,8 @@ app/src/main/kotlin/com/liomix/mikomi/
 ├── MikomiApp.kt           @HiltAndroidApp Application
 ├── MainActivity.kt        setContent 前 enableEdgeToEdge()
 └── navigation/
-    └── MikomiNavHost.kt   NavDisplay + 底部导航 + 沉浸/返回协调
+    ├── MikomiNavHost.kt   NavDisplay + 底部导航 + 沉浸/返回协调
+    └── MikomiNavigationBar.kt  悬浮底栏（56dp 卡片 / 48dp 条目 / 24dp 胶囊）
 ```
 
 ### `core` — 基础能力层
@@ -236,8 +238,8 @@ app/src/main/kotlin/com/liomix/mikomi/
 | 模块 | 关键内容 |
 |------|----------|
 | `core:model` | 领域模型：`Anime` / `Episode` / `VideoSource` / `Comment` / `Credits` / `Rank` / `Schedule` / `Library` / `UserPreferences`。**纯 Kotlin，无 Android 依赖** |
-| `core:common` | `@Dispatcher(IO/Default)` 调度器限定符 + `DispatchersModule` |
-| `core:designsystem` | `theme/`（`Color` / `Theme` / `ThemePalette` / `Type`）+ `MikomiNavigationBar` |
+| `core:common` | `@Dispatcher(IO/Default)` 调度器限定符 + `DispatchersModule`；`util/`（`formatRelativeTime` 相对时间格式化） |
+| `core:designsystem` | `theme/`（`Color` / `Theme` / `ThemePalette` / `Type`） |
 | `core:ui` | 共享组件：`AnimeCoverImage` / `AnimePosterCard` / `Skeleton` / `StateViews` / `MikomiToast` / `ScrollingText` |
 | `core:navigation` | `Routes` / `Navigator` / `NavigationModule` / `EntryProviderInstaller` / `ImmersionBridge` |
 | `core:database` | `MikomiDatabase`（6 Entity，v5）+ `dao/` + `entity/` + `migration/` |
@@ -274,6 +276,7 @@ data/anime/
 |------|----------|
 | `feature:home` | 推荐位、排行榜、新番时间表、分类浏览（`HomeRoute` / `RankRoute` / `ScheduleRoute`） |
 | `feature:animap` | 圣地巡礼地图（WebView 承载 + 沉浸式） |
+| `feature:community` | 社区（只读：条目讨论 / 影评，当前为骨架） |
 | `feature:profile` | 个人主页 |
 | `feature:search` | 搜索、搜索建议、结果页（`SearchRoute` / `SearchResultRoute`） |
 | `feature:detail` | 番剧详情（Overview / Credits / Teasing 多 Tab） |

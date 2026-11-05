@@ -11,6 +11,9 @@ data object HomeDestination : NavKey
 data object AniMapDestination : NavKey
 
 @Serializable
+data object CommunityDestination : NavKey
+
+@Serializable
 data object ProfileDestination : NavKey
 
 /** 二级目的地路由（由顶级页面内跳转）。 */
@@ -74,5 +77,6 @@ data class PlayerDestination(val animeId: String, val episodeId: String) : NavKe
 val topLevelDestinations: Set<NavKey> = setOf(
     HomeDestination,
     AniMapDestination,
+    CommunityDestination,
     ProfileDestination,
 )

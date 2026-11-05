@@ -2,6 +2,7 @@
     <string name="app_name">Mikomi</string>
     <string name="nav_home">首页</string>
     <string name="nav_animap">巡礼地图</string>
+    <string name="nav_community">社区</string>
     <string name="nav_profile">我的</string>
     <string name="nav_search">搜索</string>
     <string name="nav_library">追番</string>

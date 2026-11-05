@@ -44,6 +44,7 @@ include(":data:user")
 
 include(":feature:home")
 include(":feature:animap")
+include(":feature:community")
 include(":feature:profile")
 include(":feature:search")
 include(":feature:detail")

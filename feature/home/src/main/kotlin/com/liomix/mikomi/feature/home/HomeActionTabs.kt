@@ -26,6 +26,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 
 /** 首页快捷入口动作。 */
 enum class HomeQuickAction {
@@ -64,11 +66,11 @@ fun HomeActionTabs(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(MikomiRadius.Lg),
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         Row(
-            modifier = Modifier.padding(vertical = 12.dp),
+            modifier = Modifier.padding(vertical = MikomiSpacing.Md),
             horizontalArrangement = Arrangement.SpaceAround,
         ) {
             HOME_ACTIONS.forEach { item ->
@@ -91,9 +93,9 @@ private fun ActionButton(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(MikomiRadius.Md))
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Sm),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
@@ -102,7 +104,7 @@ private fun ActionButton(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(28.dp),
         )
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Tight))
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,

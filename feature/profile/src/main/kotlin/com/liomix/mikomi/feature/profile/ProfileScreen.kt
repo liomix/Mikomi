@@ -1,7 +1,6 @@
 package com.liomix.mikomi.feature.profile
 
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -49,8 +48,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -61,8 +60,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -73,14 +72,17 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.ui.component.base.Tab
 import com.liomix.mikomi.core.ui.component.base.TabBar
 import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
@@ -139,7 +141,7 @@ fun ProfileScreen(
     // armed 一变就自动跑展开/收起动画；这个值只在布局/绘制阶段读，不逐帧重组。
     val snapState = animateFloatAsState(
         targetValue = if (armed) 1f else 0f,
-        animationSpec = tween(durationMillis = SnapMillis, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = SnapMillis, easing = MikomiMotion.Curve.Standard),
         label = "profileSnap",
     )
     val snap: () -> Float = { snapState.value }
@@ -573,12 +575,12 @@ private fun ProfileTopBar(
             onClick = onNotificationsClick,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 4.dp, bottom = 4.dp),
+                .padding(end = MikomiSpacing.Xs, bottom = MikomiSpacing.Xs),
         ) {
             Icon(
                 imageVector = Icons.Outlined.Email,
                 contentDescription = stringResource(R.string.profile_notifications_entry),
-                tint = lerp(palette.title, Color.White, tintStep.value.coerceIn(0f, 1f)),
+                tint = lerp(palette.title, MikomiMedia.content, tintStep.value.coerceIn(0f, 1f)),
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -743,8 +745,7 @@ private fun ProfileNameOverlay(
             Text(
                 text = stringResource(R.string.profile_name),
                 color = palette.title,
-                fontSize = 17.5.sp,
-                fontWeight = FontWeight.Bold,
+                style = MikomiTextStyles.DisplayName,
                 maxLines = 1,
                 modifier = Modifier.padding(horizontal = 56.dp),
             )
@@ -752,7 +753,7 @@ private fun ProfileNameOverlay(
             Text(
                 text = stringResource(R.string.profile_bio),
                 color = palette.secondary,
-                fontSize = 13.5.sp,
+                style = MikomiTextStyles.Caption,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
@@ -775,16 +776,15 @@ private fun ProfileNameOverlay(
         ) {
             Text(
                 text = stringResource(R.string.profile_name),
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
+                color = MikomiMedia.content,
+                style = MikomiTextStyles.TopBarTitle,
                 maxLines = 1,
             )
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
             Text(
                 text = stringResource(R.string.profile_bio),
-                color = Color.White.copy(alpha = 0.85f),
-                fontSize = 13.sp,
+                color = MikomiMedia.contentSecondary,
+                style = MikomiTextStyles.Caption,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -871,7 +871,7 @@ private fun ActionCard(
                 scaleX = scale
                 scaleY = scale
             }
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(MikomiRadius.Xl))
             .background(palette.card)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
     ) {
@@ -885,8 +885,7 @@ private fun ActionCard(
         Text(
             text = label,
             color = palette.title,
-            fontSize = 12.5.sp,
-            fontWeight = FontWeight.SemiBold,
+            style = MikomiTextStyles.IconLabel,
             maxLines = 1,
         )
     }

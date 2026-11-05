@@ -26,6 +26,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardHeader
@@ -118,13 +120,13 @@ private fun EntryRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(MikomiRadius.Xl))
             .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = MikomiSpacing.Room, vertical = MikomiSpacing.Lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(MikomiRadius.Lg),
             color = colors.primary.copy(alpha = 0.12f),
             contentColor = colors.primary,
         ) {
@@ -132,7 +134,7 @@ private fun EntryRow(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier
-                    .padding(8.dp)
+                    .padding(MikomiSpacing.Sm)
                     .size(22.dp),
             )
         }
@@ -149,7 +151,7 @@ private fun EntryRow(
                 color = colors.onSurfaceVariant,
             )
         }
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,

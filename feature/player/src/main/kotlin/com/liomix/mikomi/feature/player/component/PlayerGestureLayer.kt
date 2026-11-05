@@ -38,7 +38,6 @@ import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -53,17 +52,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
 import com.liomix.mikomi.feature.player.PlayerPlaybackState
 import kotlin.math.abs
@@ -95,10 +94,10 @@ private const val BRIGHTNESS_LOW_FRACTION = 0.2f
  * 白色半透明两种画面都稳：暗画面上是一块柔和的亮块，亮画面上靠 0.85 的不透度
  * 仍能拉开层次。半透明而不是实白，是为了不把底下正在看的内容挖掉一块。
  */
-private val HudContainer = Color.White.copy(alpha = 0.85f)
+private val HudContainer = MikomiMedia.overlayContainer
 
 /** 白底上的内容色。近黑而非纯黑：0.85 的白上纯黑偏硬，读起来像警告。 */
-private val HudContent = Color.Black.copy(alpha = 0.88f)
+private val HudContent = MikomiMedia.overlayContent
 
 /** HUD 图标：比控制层的图标大一档，一眼能看清，不靠文字补。 */
 private val HudIconSize = 32.dp
@@ -109,9 +108,7 @@ private val HudCornerRadius = 12.dp
 private val HudValueTrackWidth = 84.dp
 
 /** 快进 / 快退读数：`00:00/00:00`，比控制条正文大一号。 */
-private val HudTimeFontSize = 22.sp
-
-private val HudTimeLineHeight = 26.sp
+private val HudTimeStyle = MikomiTextStyles.HudTime
 
 /**
  * HUD 需要让开的安全区：状态栏 / 刘海。
@@ -486,12 +483,9 @@ private fun PlayerGestureHudView(
                 // 图标块不需要——图形本身四周是空的，圆角只削到它的空白角。
                 modifier = Modifier.padding(horizontal = 10.dp),
                 // `tnum`：等宽数字。拖动时数字每帧都在变，比例数字会让整块左右抖。
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = HudTimeFontSize,
-                    lineHeight = HudTimeLineHeight,
-                    fontWeight = FontWeight.Medium,
-                    fontFeatureSettings = "tnum",
-                ),
+                // 字阶取设计系统的 HUD 档（22sp Bold），这里只把数字换成等宽 `tnum`——
+                // 拖动时数字每帧都在变，比例数字会让整块左右抖。
+                style = HudTimeStyle.copy(fontFeatureSettings = "tnum"),
                 color = HudContent,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
@@ -516,7 +510,7 @@ private fun PlayerGestureHudView(
 private fun ValueTrack(fraction: Float) {
     val animated by animateFloatAsState(
         targetValue = fraction.coerceIn(0f, 1f),
-        animationSpec = tween(durationMillis = 80),
+        animationSpec = tween(durationMillis = MikomiMotion.Duration.Instant),
         label = "playerGestureValue",
     )
     Canvas(

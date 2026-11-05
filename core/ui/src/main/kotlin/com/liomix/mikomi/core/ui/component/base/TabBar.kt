@@ -2,7 +2,6 @@ package com.liomix.mikomi.core.ui.component.base
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -30,8 +29,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -58,12 +57,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.util.lerp
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.toSize
-import androidx.compose.ui.util.lerp
+import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -86,7 +85,7 @@ data class TabItemStyle(
     val iconLabelSpacing: Dp = 5.dp,
     val horizontalPadding: Dp = 8.dp,
     val verticalPadding: Dp = 3.dp,
-    val labelStyle: TextStyle = TextStyle(fontSize = 14.5.sp),
+    val labelStyle: TextStyle = MikomiTextStyles.TabLabel,
     val supportingStyle: TextStyle? = null,
     /** 未选中时的字重；选中态固定 SemiBold，一次切换只重排一次文字。 */
     val labelWeight: FontWeight = FontWeight.Normal,
@@ -98,7 +97,7 @@ data class TabItemStyle(
             iconLabelSpacing = 5.dp,
             horizontalPadding = 8.dp,
             verticalPadding = 3.dp,
-            labelStyle = TextStyle(fontSize = 14.5.sp),
+            labelStyle = MikomiTextStyles.TabLabel,
             labelWeight = FontWeight.SemiBold,
         )
 
@@ -421,7 +420,7 @@ private fun decelerate(t: Float): Float = sin(t * HalfPi)
 private const val IndicatorSwapMillis = MikomiMotion.Duration.Long
 
 /** 整体进度的缓动：Flutter `TabController.animateTo` 的默认 `Curves.ease`。 */
-private val IndicatorSwapEasing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
+private val IndicatorSwapEasing = MikomiMotion.Curve.Standard
 
 /** 指示器从「还没量到边界」到可见的淡入时长；只跑一次，不影响切换动效。 */
 private const val IndicatorFadeMillis = MikomiMotion.Duration.Fast

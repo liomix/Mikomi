@@ -31,6 +31,9 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 
@@ -110,7 +113,7 @@ private fun SuggestionItem(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = MikomiSpacing.Lg, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -119,7 +122,7 @@ private fun SuggestionItem(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp),
         )
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(MikomiSpacing.Md))
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
@@ -128,7 +131,7 @@ private fun SuggestionItem(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(MikomiSpacing.Md))
         Icon(
             imageVector = Icons.Outlined.NorthWest,
             contentDescription = null,
@@ -160,25 +163,25 @@ private fun SuggestionSkeleton(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(vertical = 8.dp),
+            .padding(vertical = MikomiSpacing.Sm),
     ) {
         repeat(SUGGESTION_SKELETON_COUNT) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                    .padding(horizontal = MikomiSpacing.Lg, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SkeletonBox(
                     modifier = Modifier.size(20.dp),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(MikomiRadius.Md),
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(MikomiSpacing.Md))
                 SkeletonBox(
                     modifier = Modifier
                         .fillMaxWidth(0.6f)
                         .height(14.dp),
-                    shape = RoundedCornerShape(7.dp),
+                    shape = MikomiPillShape,
                 )
             }
         }

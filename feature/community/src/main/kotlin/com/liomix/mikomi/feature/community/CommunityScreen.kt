@@ -24,7 +24,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
@@ -93,7 +92,7 @@ private fun CommunityEmptyState(modifier: Modifier = Modifier) {
             color = colorScheme.onSurface,
             style = MikomiTextStyles.BodySecondary.copy(fontWeight = FontWeight.Medium),
         )
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Tight))
         Text(
             text = stringResource(R.string.community_empty_body),
             color = colorScheme.onSurfaceVariant,

@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 
 /**
  * 顶栏高度：与巡礼页搜索条完全一致（`AniMapSearchBar` 的 `SearchBarHeight = 40.dp`）。
@@ -82,7 +83,7 @@ fun HomeTopBar(
             }
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(MikomiSpacing.Md))
 
         Surface(
             shape = CircleShape,
@@ -107,7 +108,7 @@ fun HomeTopBar(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp),
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
                 Text(
                     text = searchHint,
                     style = MaterialTheme.typography.bodyMedium,

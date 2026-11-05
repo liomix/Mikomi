@@ -35,12 +35,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
 import com.liomix.mikomi.core.model.TransitionStyle
-import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
-import com.liomix.mikomi.core.ui.component.base.Tag
 import com.liomix.mikomi.core.ui.component.base.MikomiToast
 import com.liomix.mikomi.core.ui.component.base.MikomiToastData
+import com.liomix.mikomi.core.ui.component.base.Tag
+import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.component.BAndWSwitch
 import com.liomix.mikomi.feature.settings.component.SettingsCard
@@ -87,16 +90,16 @@ fun ThemeScreen(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(
-                            start = 20.dp,
-                            end = 20.dp,
-                            top = 20.dp,
+                            start = MikomiSpacing.Room,
+                            end = MikomiSpacing.Room,
+                            top = MikomiSpacing.Room,
                         ),
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(MikomiSpacing.Lg))
                     LazyRow(
                         modifier = Modifier.selectableGroup(),
                         contentPadding = PaddingValues(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
                     ) {
                         items(
                             items = ThemePalette.entries,
@@ -110,7 +113,7 @@ fun ThemeScreen(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(MikomiSpacing.Md))
                 }
 
                 // 黑白（日 / 夜）切换：动画与交互由组件内部完成。
@@ -128,19 +131,19 @@ fun ThemeScreen(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(
-                            start = 20.dp,
-                            end = 20.dp,
-                            top = 20.dp,
+                            start = MikomiSpacing.Room,
+                            end = MikomiSpacing.Room,
+                            top = MikomiSpacing.Room,
                         ),
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(MikomiSpacing.Md))
                     EffectGroup(title = stringResource(R.string.settings_effect_hero)) {
                         // 用解析后的枚举比较：老版本存过 standard / fade / scale 这类
                         // 已废弃的 id，直接比字符串会导致「一个都不选中」。
                         val currentHero = TransitionStyle.fromId(transitionStyleId)
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
                         ) {
                             items(
                                 items = TransitionStyle.entries,
@@ -155,7 +158,7 @@ fun ThemeScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(MikomiSpacing.Room))
                 }
             }
 
@@ -168,15 +171,15 @@ fun ThemeScreen(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(
-                            start = 20.dp,
-                            end = 20.dp,
-                            top = 20.dp,
+                            start = MikomiSpacing.Room,
+                            end = MikomiSpacing.Room,
+                            top = MikomiSpacing.Room,
                         ),
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(MikomiSpacing.Lg))
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Room),
                     ) {
                         items(
                             items = AppIconStyle.entries,
@@ -190,7 +193,7 @@ fun ThemeScreen(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(MikomiSpacing.Room))
                 }
             }
         }
@@ -201,7 +204,7 @@ fun ThemeScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(start = 24.dp, end = 24.dp, bottom = 28.dp),
+                .padding(start = MikomiSpacing.Xl, end = MikomiSpacing.Xl, bottom = 28.dp),
         )
     }
 }
@@ -235,11 +238,12 @@ private fun AppIconOption(
                 .border(
                     width = if (selected) APP_ICON_SELECTED_BORDER else 0.dp,
                     color = borderColor,
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(MikomiRadius.Xxl),
                 )
                 .padding(APP_ICON_SELECTED_BORDER)
-                .clip(RoundedCornerShape(21.dp))
-                .background(APP_ICON_PREVIEW_BACKGROUND)
+                // 内圆角比外圆角小一档：同心圆角要「外减内边距」，否则描边会被挤成月牙。
+                .clip(RoundedCornerShape(MikomiRadius.Xl))
+                .background(MikomiTheme.colors.previewCanvas)
                 // 点击与涟漪都限制在图标区域内，名称不参与触控。
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center,
@@ -253,7 +257,7 @@ private fun AppIconOption(
                     .padding(APP_ICON_FOREGROUND_PADDING),
             )
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
         Text(
             text = stringResource(style.labelRes),
             style = MaterialTheme.typography.labelMedium,
@@ -269,8 +273,7 @@ private val APP_ICON_FOREGROUND_PADDING = 10.dp
 /** 应用图标选项的选中描边宽度（色卡已改成 Telegram 那套，这里保持图标选项原有的观感）。 */
 private val APP_ICON_SELECTED_BORDER = 3.dp
 
-/** 预览底色：与真实启动图标的白底保持一致。 */
-private val APP_ICON_PREVIEW_BACKGROUND = Color(0xFFFEFEFE)
+/** 预览底色：与真实启动图标的白底保持一致 —— 所以它取「预览画布」这一档，不跟主题走。 */
 
 /** 动态效果里的一个分组：浅色子卡片 + 标题 + 选项行。 */
 @Composable
@@ -278,10 +281,10 @@ private fun EffectGroup(
     title: String,
     content: @Composable () -> Unit,
 ) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+    Column(modifier = Modifier.padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Tight)) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(MikomiRadius.Xxl),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             Column(modifier = Modifier.padding(vertical = 14.dp)) {
@@ -289,7 +292,7 @@ private fun EffectGroup(
                     text = title,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    modifier = Modifier.padding(horizontal = MikomiSpacing.Lg),
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 content()

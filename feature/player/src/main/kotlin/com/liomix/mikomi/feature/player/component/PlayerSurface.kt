@@ -84,10 +84,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.media.MikomiPlayer
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
 import com.liomix.mikomi.feature.player.PlaybackMode
@@ -96,9 +100,9 @@ import com.liomix.mikomi.feature.player.PlayerFailureReason
 import com.liomix.mikomi.feature.player.PlayerPlaybackState
 import com.liomix.mikomi.feature.player.PlayerVideoScale
 import com.liomix.mikomi.feature.player.R
+import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
-import java.util.Locale
 
 /** 进度条可触控高度（视觉轨道只有 3dp，其余是给手指的余量）。 */
 private val SeekBarHeight = 40.dp
@@ -112,7 +116,7 @@ private val ControlGap = 6.dp
 /** 跨组间距（播放组 ↔ 弹幕组）：比组内大，靠疏密把「哪些是一伙的」讲清楚。 */
 private val GroupGap = 12.dp
 
-private val ControlShape = RoundedCornerShape(10.dp)
+private val ControlShape = RoundedCornerShape(MikomiRadius.Md)
 
 private val ControlIconSize = 20.dp
 
@@ -124,7 +128,7 @@ private val ControlIconSize = 20.dp
 private val FullActionsMinWidth = 430.dp
 
 /** 按钮底：视频画面上不用主题 surface（夜间会被压成黑色，跟画面糊在一起）。 */
-private val ControlContainer = Color.White.copy(alpha = 0.14f)
+private val ControlContainer = MikomiMedia.surface
 
 /**
  * 主操作（播放/暂停）的底：比同排按钮亮一档。
@@ -132,7 +136,7 @@ private val ControlContainer = Color.White.copy(alpha = 0.14f)
  * 不用主题 primary 做实心块：这一行是压在画面上的单色控制条，插一个彩色按钮会抢掉
  * 画面本身；「亮一档」既有层级又不会跳出这套白字遮罩。主色只留给**状态**（弹幕开启）。
  */
-private val ProminentControlContainer = Color.White.copy(alpha = 0.28f)
+private val ProminentControlContainer = MikomiMedia.surfaceProminent
 
 /** 不可用按钮的透明度。控制层整体隐藏时父级 alpha 已经是 0，这里的 0.38 不会露出来。 */
 private const val DISABLED_ALPHA = 0.38f
@@ -145,13 +149,13 @@ private val SpeedOptions = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f)
 // 遮罩与占位画面都是常量：写成顶层值，组合时一次都不再分配。
 // 之前是在组合里现算 `Brush.verticalGradient(...)`，虽然只是小对象，但每帧重组都在扔垃圾。
 private val TopScrim = Brush.verticalGradient(
-    colors = listOf(Color.Black.copy(alpha = 0.62f), Color.Transparent),
+    colors = listOf(MikomiMedia.scrimSoft, Color.Transparent),
 )
 private val BottomScrim = Brush.verticalGradient(
-    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.72f)),
+    colors = listOf(Color.Transparent, MikomiMedia.scrim),
 )
 private val PlaceholderFrame = Brush.linearGradient(
-    colors = listOf(Color(0xFF14161B), Color(0xFF05060A)),
+    colors = listOf(MikomiMedia.backdropTop, MikomiMedia.backdropBottom),
 )
 
 /**
@@ -303,7 +307,7 @@ internal fun PlayerSurface(
 
     Box(
         modifier = modifier
-            .background(Color.Black),
+            .background(MikomiMedia.void),
     ) {
         if (mode == PlaybackMode.WEB && webUrl != null) {
             // 网页播放：顶栏与网页**分区**，不是叠层。
@@ -447,7 +451,7 @@ internal fun PlayerSurface(
                     },
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
-                        .padding(end = 6.dp),
+                        .padding(end = MikomiSpacing.Tight),
                 )
             }
         }
@@ -510,7 +514,7 @@ private fun PlayerVideo(
 private fun SniffCover(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .background(Color.Black)
+            .background(MikomiMedia.void)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -522,13 +526,13 @@ private fun SniffCover(modifier: Modifier = Modifier) {
             CircularProgressIndicator(
                 modifier = Modifier.size(26.dp),
                 strokeWidth = 2.dp,
-                color = Color.White,
+                color = MikomiMedia.content,
             )
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = stringResource(R.string.player_web_sniffing),
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.72f),
+                color = MikomiMedia.contentSecondary,
             )
         }
     }
@@ -555,26 +559,26 @@ private fun PlayerStatusOverlay(
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         when {
             failure != null -> Column(
-                modifier = Modifier.padding(horizontal = 32.dp),
+                modifier = Modifier.padding(horizontal = MikomiSpacing.Xxl),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Icon(
                     imageVector = Icons.Rounded.ErrorOutline,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.85f),
+                    tint = MikomiMedia.contentSecondary,
                     modifier = Modifier.size(24.dp),
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
                 Text(
                     text = stringResource(failure.reason.messageRes()),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White,
+                    color = MikomiMedia.content,
                     textAlign = TextAlign.Center,
                 )
                 // 这里**不显示** `failure.detail`。它装的是播放页地址或 XPath 字段名，
                 // 是给开发者看的调试信息：一长串 URL 摆在用户面前既看不懂，又把这一屏撑得很难看。
                 // 需要排查的时候去看日志，别让用户替我们读堆栈。
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(MikomiSpacing.Md))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // 失败态的两个按钮做小一号（32dp / labelMedium）：
                     // 它们是「接着怎么办」的出口，不是这一屏的主角，不该比一句话还抢眼。
@@ -591,7 +595,7 @@ private fun PlayerStatusOverlay(
                     // 「用网页播放」是**退出**主路径的选择，画成次按钮：不抢重试的位置，
                     // 但必须在失败这一屏给出来——否则那类「要人点一下才起播」的站就完全没路走了。
                     if (webPageAvailable) {
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
                         TextButton(
                             onClick = onPlayInWebPage,
                             modifier = Modifier.height(32.dp),
@@ -600,7 +604,7 @@ private fun PlayerStatusOverlay(
                             Text(
                                 text = stringResource(R.string.player_web_play),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = Color.White.copy(alpha = 0.8f),
+                                color = MikomiMedia.contentSecondary,
                             )
                         }
                     }
@@ -611,13 +615,13 @@ private fun PlayerStatusOverlay(
                 CircularProgressIndicator(
                     modifier = Modifier.size(26.dp),
                     strokeWidth = 2.dp,
-                    color = Color.White,
+                    color = MikomiMedia.content,
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = stringResource(R.string.player_resolving),
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.72f),
+                    color = MikomiMedia.contentSecondary,
                 )
             }
 
@@ -634,7 +638,7 @@ private fun BufferingIndicator(playback: PlayerPlaybackState, visible: Boolean) 
     CircularProgressIndicator(
         modifier = Modifier.size(26.dp),
         strokeWidth = 2.dp,
-        color = Color.White.copy(alpha = 0.9f),
+        color = MikomiMedia.content,
     )
 }
 
@@ -659,7 +663,7 @@ private fun PlayerLockButton(
             locked -> 0.55f
             else -> 1f
         },
-        animationSpec = tween(durationMillis = 180),
+        animationSpec = tween(durationMillis = MikomiMotion.Duration.Short),
         label = "playerLockAlpha",
     )
     ControlSlot(
@@ -668,14 +672,14 @@ private fun PlayerLockButton(
         modifier = modifier
             .size(ControlSize)
             .graphicsLayer { this.alpha = alpha },
-        containerColor = if (locked) Color.White.copy(alpha = 0.22f) else ControlContainer,
+        containerColor = if (locked) MikomiMedia.surfaceProminent else ControlContainer,
     ) {
         Icon(
             imageVector = if (locked) Icons.Rounded.Lock else Icons.Rounded.LockOpen,
             contentDescription = stringResource(
                 if (locked) R.string.player_unlock else R.string.player_lock,
             ),
-            tint = Color.White,
+            tint = MikomiMedia.content,
             modifier = Modifier.size(ControlIconSize),
         )
     }
@@ -733,17 +737,17 @@ private fun PlayerTopOverlay(
             .fillMaxWidth()
             .background(TopScrim)
             .windowInsetsPadding(insets)
-            .padding(start = 4.dp, end = 4.dp, top = 2.dp, bottom = 20.dp),
+            .padding(start = MikomiSpacing.Xs, end = MikomiSpacing.Xs, top = MikomiSpacing.Xxs, bottom = MikomiSpacing.Room),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBackClick, enabled = enabled) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                 contentDescription = stringResource(R.string.player_back),
-                tint = Color.White,
+                tint = MikomiMedia.content,
             )
         }
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
         Column(modifier = Modifier.weight(1f)) {
             // 全屏字号对齐 Dart-Mikomi 的全屏控制条：标题 18sp / 副标题 15sp，都 w600 / 0.8。
             // 用主题字号派生（copy 只改 font size 与行高），字族、字距、字重仍跟主题走，
@@ -751,25 +755,25 @@ private fun PlayerTopOverlay(
             Text(
                 text = title,
                 style = if (fullscreen) {
-                    MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 24.sp)
+                    MikomiTextStyles.MediaTitle
                 } else {
                     MaterialTheme.typography.titleMedium
                 },
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White,
+                color = MikomiMedia.content,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             if (subtitle.isNotBlank()) {
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
                 Text(
                     text = subtitle,
                     style = if (fullscreen) {
-                        MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp, lineHeight = 20.sp)
+                        MikomiTextStyles.MediaSubtitle
                     } else {
                         MaterialTheme.typography.labelMedium
                     },
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = MikomiMedia.contentSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -780,7 +784,7 @@ private fun PlayerTopOverlay(
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.PlaylistPlay,
                     contentDescription = stringResource(R.string.player_episode_picker),
-                    tint = Color.White,
+                    tint = MikomiMedia.content,
                 )
             }
             IconButton(onClick = onToggleFullscreen, enabled = enabled) {
@@ -789,7 +793,7 @@ private fun PlayerTopOverlay(
                     contentDescription = stringResource(
                         if (fullscreen) R.string.player_exit_fullscreen else R.string.player_fullscreen,
                     ),
-                    tint = Color.White,
+                    tint = MikomiMedia.content,
                 )
             }
         } else {
@@ -797,7 +801,7 @@ private fun PlayerTopOverlay(
                 Icon(
                     imageVector = Icons.Rounded.MoreVert,
                     contentDescription = stringResource(R.string.player_settings),
-                    tint = Color.White,
+                    tint = MikomiMedia.content,
                 )
             }
         }
@@ -839,7 +843,7 @@ private fun PlayerBottomControls(
     modifier: Modifier = Modifier,
 ) {
     val timeStyle = MaterialTheme.typography.labelMedium.copy(
-        color = Color.White,
+        color = MikomiMedia.content,
         // 等宽数字：秒数变化时文字宽度不跳。
         fontFeatureSettings = "tnum",
     )
@@ -902,14 +906,14 @@ private fun CompactControls(
     // 小屏这一行是「一眼看清播到哪」，时间用 labelLarge 而不是全屏那行的 labelMedium：
     // 播放器在页面里只有一小块，字号跟着缩就很难读。
     val timeStyle = MaterialTheme.typography.labelLarge.copy(
-        color = Color.White,
+        color = MikomiMedia.content,
         fontFeatureSettings = "tnum",
     )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+            .padding(horizontal = MikomiSpacing.Xs, vertical = MikomiSpacing.Xxs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         PlayPauseButton(
@@ -977,11 +981,11 @@ private fun FullscreenControls(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 6.dp)
-            .padding(bottom = 4.dp),
+            .padding(horizontal = MikomiSpacing.Tight)
+            .padding(bottom = MikomiSpacing.Xs),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 6.dp),
+            modifier = Modifier.padding(horizontal = MikomiSpacing.Tight),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TimeText(playback = playback, isDuration = false, style = timeStyle)
@@ -999,7 +1003,7 @@ private fun FullscreenControls(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 2.dp),
+                .padding(top = MikomiSpacing.Xxs),
         ) {
             // 宽度不够时收起中间几枚：分屏/小窗里全屏宽度可能只有 360dp，
             // 硬排会把「退出全屏」挤到屏幕外（用户就只剩手势可退）。
@@ -1133,7 +1137,7 @@ private fun ControlIconButton(
         Icon(
             imageVector = imageVector,
             contentDescription = contentDescription,
-            tint = if (active) MaterialTheme.colorScheme.primary else Color.White,
+            tint = if (active) MaterialTheme.colorScheme.primary else MikomiMedia.content,
             modifier = Modifier.size(ControlIconSize),
         )
     }
@@ -1156,7 +1160,7 @@ private fun ControlIconButton(
         Icon(
             painter = painter,
             contentDescription = contentDescription,
-            tint = if (active) MaterialTheme.colorScheme.primary else Color.White,
+            tint = if (active) MaterialTheme.colorScheme.primary else MikomiMedia.content,
             modifier = Modifier.size(ControlIconSize + 2.dp),
         )
     }
@@ -1194,7 +1198,7 @@ private fun PlayPauseButton(
             contentDescription = stringResource(
                 if (isPlaying) R.string.player_pause else R.string.player_play,
             ),
-            tint = Color.White,
+            tint = MikomiMedia.content,
             modifier = Modifier.size(iconSize),
         )
     }
@@ -1224,7 +1228,7 @@ private fun SpeedChip(
             Text(
                 text = stringResource(R.string.player_speed_value, formatSpeed(speed)),
                 style = MaterialTheme.typography.labelLarge.copy(
-                    color = Color.White,
+                    color = MikomiMedia.content,
                     // 0.75x ↔ 1.0x 切换时胶囊宽度不跳。
                     fontFeatureSettings = "tnum",
                 ),
@@ -1281,7 +1285,7 @@ private fun VideoScaleMenu(
             Icon(
                 imageVector = Icons.Rounded.FitScreen,
                 contentDescription = stringResource(R.string.player_scale_current, currentLabel),
-                tint = Color.White,
+                tint = MikomiMedia.content,
                 modifier = Modifier.size(ControlIconSize),
             )
         }
@@ -1383,14 +1387,14 @@ private fun PlayerSeekBar(
 
         // 底色 → 缓冲 → 已播放，三层同高叠画，比三条独立轨道省两次绘制调用。
         drawRoundRect(
-            color = Color.White.copy(alpha = 0.26f),
+            color = MikomiMedia.track,
             topLeft = Offset(0f, top),
             size = Size(size.width, trackHeight),
             cornerRadius = corner,
         )
         if (buffered > progress) {
             drawRoundRect(
-                color = Color.White.copy(alpha = 0.42f),
+                color = MikomiMedia.trackBuffered,
                 topLeft = Offset(0f, top),
                 size = Size(size.width * buffered, trackHeight),
                 cornerRadius = corner,
@@ -1398,12 +1402,16 @@ private fun PlayerSeekBar(
         }
         val playedWidth = size.width * progress
         drawRoundRect(
-            color = Color.White,
+            color = MikomiMedia.content,
             topLeft = Offset(0f, top),
             size = Size(playedWidth, trackHeight),
             cornerRadius = corner,
         )
-        drawCircle(color = Color.White, radius = 5.dp.toPx(), center = Offset(playedWidth, centerY))
+        drawCircle(
+            color = MikomiMedia.content,
+            radius = 5.dp.toPx(),
+            center = Offset(playedWidth, centerY),
+        )
     }
 }
 

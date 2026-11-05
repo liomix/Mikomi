@@ -3,7 +3,6 @@ package com.liomix.mikomi.feature.settings.component
 import androidx.annotation.RawRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
@@ -41,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
 import com.liomix.mikomi.feature.settings.R
 import kotlinx.coroutines.delay
@@ -247,7 +248,7 @@ private fun SwatchEmoji(
             progress.snapTo(0f)
             progress.animateTo(
                 targetValue = 1f,
-                animationSpec = tween(durationMillis = durationMillis, easing = LinearEasing),
+                animationSpec = tween(durationMillis = durationMillis, easing = MikomiMotion.Curve.Linear),
             )
         }
     }
@@ -336,7 +337,7 @@ private const val SELECTION_MILLIS = 250
  * 只用来交代边界 —— 色斑压到浅底上时边缘容易糊掉；正常观感下不该被注意到。
  */
 private val SWATCH_INNER_BORDER = 1.dp
-private val SWATCH_INNER_BORDER_COLOR = Color(0x20E3E3E3)
+private val SWATCH_INNER_BORDER_COLOR = MikomiMedia.outline
 
 /** 径向色斑的半径（相对色卡短边）：太小色心会缩成一个点，太大又整片糊成单色。 */
 private const val SPOT_RADIUS_RATIO = 0.72f

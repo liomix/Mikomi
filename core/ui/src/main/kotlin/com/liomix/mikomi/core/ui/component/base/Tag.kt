@@ -103,7 +103,7 @@ enum class TagStyle {
  *     text = "v1.2.3",
  *     style = TagStyle.Meta,
  *     colors = TagColors(container = …, content = …),
- *     shape = RoundedCornerShape(4.dp),
+ *     shape = RoundedCornerShape(MikomiRadius.Xs),
  *     textStyle = MaterialTheme.typography.labelSmall,
  *     contentPadding = PaddingValues(horizontal = 4.dp, vertical = 1.dp),
  * )

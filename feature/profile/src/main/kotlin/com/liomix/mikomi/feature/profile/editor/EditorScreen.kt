@@ -51,8 +51,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.ui.component.base.SideBarPop
+import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.profile.R
 
 /** 昵称字数上限。 */
@@ -65,7 +67,7 @@ private const val HandleLimit = 20
 private const val BioLimit = 70
 
 /** 卡片圆角（与设置页一致）。 */
-private val CardShape = RoundedCornerShape(24.dp)
+private val CardShape = RoundedCornerShape(MikomiRadius.Xxl)
 
 /** 头像直径。 */
 private val AvatarSize = 96.dp
@@ -227,7 +229,7 @@ private fun AvatarSection(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .background(colors.background, CircleShape)
-                .padding(2.dp),
+                .padding(MikomiSpacing.Xxs),
         ) {
             Surface(
                 shape = CircleShape,
@@ -290,7 +292,7 @@ private fun ValueRow(
             // 先 clickable 再 padding：点击区因此包住这一整行（含左右 20dp 留白），
             // 一直贴到卡片边缘与圆角，而不是只到文字为止。
             .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 15.dp),
+            .padding(horizontal = MikomiSpacing.Room, vertical = 15.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RowLabel(text = label)
@@ -330,7 +332,7 @@ private fun BioRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 15.dp),
+            .padding(horizontal = MikomiSpacing.Room, vertical = 15.dp),
         verticalAlignment = Alignment.Top,
     ) {
         RowLabel(text = label)
@@ -393,7 +395,7 @@ private fun EditorPanel(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.systemBars)
-            .padding(horizontal = 24.dp, vertical = 20.dp),
+            .padding(horizontal = MikomiSpacing.Xl, vertical = MikomiSpacing.Room),
     ) {
         Text(
             text = stringResource(target.labelRes),
@@ -401,7 +403,7 @@ private fun EditorPanel(
             fontWeight = FontWeight.SemiBold,
             color = colors.onSurface,
         )
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Room))
         when (target) {
             EditorTarget.Handle -> PanelTextField(
                 value = handle,
@@ -427,7 +429,7 @@ private fun EditorPanel(
             style = MaterialTheme.typography.bodySmall,
             color = colors.onSurfaceVariant,
         )
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Room))
         Button(
             onClick = onDoneClick,
             modifier = Modifier.fillMaxWidth(),
@@ -455,7 +457,7 @@ private fun PanelTextField(
                 onValueChange = onValueChange,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                    .padding(bottom = MikomiSpacing.Sm),
                 textStyle = textStyle.copy(color = colors.onSurface),
                 singleLine = true,
                 cursorBrush = SolidColor(colors.primary),

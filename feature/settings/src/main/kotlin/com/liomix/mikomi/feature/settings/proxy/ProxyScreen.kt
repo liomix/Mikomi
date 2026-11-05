@@ -41,6 +41,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.BangumiApiMode
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.R
@@ -49,10 +51,10 @@ import com.liomix.mikomi.feature.settings.component.SettingsCardHeader
 import com.liomix.mikomi.feature.settings.component.SettingsCardSection
 
 /** 选项卡片的圆角。 */
-private val OptionShape = RoundedCornerShape(18.dp)
+private val OptionShape = RoundedCornerShape(MikomiRadius.Xxl)
 
 /** 输入框圆角。 */
-private val FieldShape = RoundedCornerShape(14.dp)
+private val FieldShape = RoundedCornerShape(MikomiRadius.Xl)
 
 /** 选项选中/取消时的颜色过渡时长。 */
 private const val OptionAnimMillis = 180
@@ -94,7 +96,7 @@ fun ProxyScreen(
             SettingsCardSection {
                 SettingsCardHeader(stringResource(R.string.settings_proxy_mode_section))
                 Column(
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 20.dp),
+                    modifier = Modifier.padding(start = MikomiSpacing.Lg, end = MikomiSpacing.Lg, bottom = MikomiSpacing.Room),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     ModeOption(
@@ -130,7 +132,7 @@ fun ProxyScreen(
                     text = stringResource(R.string.settings_proxy_about_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
+                    modifier = Modifier.padding(start = MikomiSpacing.Room, end = MikomiSpacing.Room, bottom = MikomiSpacing.Room),
                 )
             }
         }
@@ -156,7 +158,7 @@ private fun MirrorAddressCard(
                 onValueChange = onMirrorUrlChange,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = MikomiSpacing.Room),
                 enabled = enabled,
                 singleLine = true,
                 shape = FieldShape,
@@ -202,7 +204,7 @@ private fun MirrorAddressCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 20.dp),
+                    .padding(start = MikomiSpacing.Room, end = MikomiSpacing.Room, top = MikomiSpacing.Xs, bottom = MikomiSpacing.Room),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 OutlinedButton(
@@ -215,7 +217,7 @@ private fun MirrorAddressCard(
                             strokeWidth = 2.dp,
                             color = LocalContentColor.current,
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
                         Text(text = stringResource(R.string.settings_proxy_testing))
                     } else {
                         Text(text = stringResource(R.string.settings_proxy_test))
@@ -311,12 +313,12 @@ private fun ModeOption(
         border = BorderStroke(1.dp, borderColor),
     ) {
         Row(
-            modifier = Modifier.padding(start = 6.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+            modifier = Modifier.padding(start = MikomiSpacing.Tight, end = 14.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // 点击交给整行，圆点只作为状态指示。
             RadioButton(selected = selected, onClick = null)
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
@@ -324,7 +326,7 @@ private fun ModeOption(
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                     color = if (selected) colors.primary else colors.onSurface,
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,

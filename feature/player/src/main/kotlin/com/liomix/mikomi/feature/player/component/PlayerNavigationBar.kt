@@ -35,6 +35,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.ui.component.base.Tab
 import com.liomix.mikomi.core.ui.component.base.TabBar
 import com.liomix.mikomi.core.ui.component.base.TabItemStyle
@@ -89,7 +91,7 @@ internal fun PlayerNavigationBar(
         modifier = modifier
             .fillMaxWidth()
             .height(PlayerBarHeight)
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = MikomiSpacing.Md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TabBar(
@@ -113,7 +115,7 @@ internal fun PlayerNavigationBar(
         Row(
             // 触控区收紧到圆本身后，间距必须补回来：之前靠 48dp 热区外扩，
             // 视觉间距是「2 + 4+4」；现在热区=视觉，直接给 8dp。
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CircleAction(
@@ -154,7 +156,7 @@ private fun CircleAction(
         } else {
             MaterialTheme.colorScheme.surfaceContainerHigh
         },
-        animationSpec = tween(durationMillis = 150),
+        animationSpec = tween(durationMillis = MikomiMotion.Duration.Fast),
         label = "playerActionBackground",
     )
     val tint by animateColorAsState(
@@ -163,7 +165,7 @@ private fun CircleAction(
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         },
-        animationSpec = tween(durationMillis = 150),
+        animationSpec = tween(durationMillis = MikomiMotion.Duration.Fast),
         label = "playerActionTint",
     )
 
@@ -208,7 +210,7 @@ private fun SourceChip(
             .semantics { contentDescription = "$sourceDescription $label" },
     ) {
         Row(
-            modifier = Modifier.padding(start = 4.dp, end = 10.dp),
+            modifier = Modifier.padding(start = MikomiSpacing.Xs, end = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(

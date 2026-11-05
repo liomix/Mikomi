@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.base.SkeletonShimmer
 
@@ -31,14 +33,14 @@ fun PosterCardSkeleton(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f),
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(MikomiRadius.Md),
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
         SkeletonBox(
             modifier = Modifier
                 .fillMaxWidth(0.7f)
                 .height(12.dp),
-            shape = RoundedCornerShape(4.dp),
+            shape = RoundedCornerShape(MikomiRadius.Xs),
         )
     }
 }

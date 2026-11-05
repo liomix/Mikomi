@@ -31,8 +31,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiElevation
-import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 
 /**
@@ -62,7 +62,7 @@ data class MikomiToastData(
  *         modifier = Modifier
  *             .align(Alignment.BottomCenter)
  *             .windowInsetsPadding(WindowInsets.navigationBars)
- *             .padding(horizontal = 24.dp, bottom = 28.dp),
+ *             .padding(horizontal = MikomiSpacing.Xl, bottom = 28.dp),
  *     )
  * }
  * ```

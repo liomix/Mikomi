@@ -230,4 +230,135 @@ object MikomiTextStyles {
         lineHeight = 18.sp,
         letterSpacing = 0.sp,
     )
+
+    /**
+     * 名字：个人页、作者位这类「以人名为主体」的一行。
+     *
+     * 18sp Bold，与 [SectionTitle] 同档不同义 —— 它不需要划分段落，只需要在头像旁边
+     * 立得住。原来这里写的是 17.5sp（对着 Dart-Mikomi 逐像素量的），收进字阶时归到 18：
+     * 半磅的差别在手机上不可见，但 17.5 会让「字阶表里到底有没有这一档」永远说不清。
+     */
+    val DisplayName: TextStyle = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Bold,
+        fontSize = 18.sp,
+        lineHeight = 22.sp,
+        letterSpacing = 0.sp,
+    )
+
+    /**
+     * 媒体标题：全屏播放器顶部的剧集名 —— 压在画面上，所以比同档正文重一档。
+     */
+    val MediaTitle: TextStyle = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 18.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.sp,
+    )
+
+    /** 媒体副标题：全屏播放器里的线路名、剧集号。 */
+    val MediaSubtitle: TextStyle = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 15.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.sp,
+    )
+
+    /**
+     * 播放器 HUD 的读数：快进秒数、音量百分比、亮度百分比。
+     *
+     * 22sp Bold。它不是正文，是「一瞥就要读到的数字」，所以比周围任何文字都大一档；
+     * 也正因为如此，它在 HUD 里只出现一次（底板中央），不会变成一种正文样式。
+     */
+    val HudTime: TextStyle = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Bold,
+        fontSize = 22.sp,
+        lineHeight = 26.sp,
+        letterSpacing = 0.sp,
+    )
+
+    /**
+     * 图标下方的短标签：底栏条目、个人页快捷入口。
+     *
+     * 12sp Medium。这类标签的宽度由「几个汉字 × 字号」决定，是整个底栏布局的基准，
+     * 所以它必须是 token —— 之前底栏量出 12sp、个人页量出 12.5sp，两处差半磅，
+     * 并排看却像没对齐。
+     */
+    val IconLabel: TextStyle = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.sp,
+    )
+
+    /**
+     * 页内横向 Tab 的文字。
+     *
+     * 14.5sp。这一档是被布局逼出来的：Tab 条目宽度按文字实测计算（见 `TabBar`），
+     * 14sp 时三字标题偏窄、15sp 时四字标题会挤，14.5 是两个都成立的唯一值。
+     */
+    val TabLabel: TextStyle = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 14.5.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.sp,
+    )
+
+    /**
+     * 代码：规则编辑框、JSON 预览。
+     *
+     * 等宽字体不能沿用默认行高 —— 默认行高下花括号和逗号会挤在一起，而这类文本
+     * 全是短行，放宽到 18sp 才看得出结构。
+     */
+    val Code: TextStyle = TextStyle(
+        fontFamily = FontFamily.Monospace,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.sp,
+    )
+
+    /**
+     * 名次数字：位数越多收一档。
+     *
+     * 名次区宽度是固定的（个位与十位要居中对齐），三位数用两位数那档会顶出边界。
+     * 阶梯放在这里而不是榜单组件里，是因为搜索页的排名圆标也要用同一套。
+     */
+    fun rankNumber(rank: Int): TextStyle = when {
+        rank >= 100 -> RankNumberSmall
+        rank >= 10 -> RankNumberMedium
+        else -> RankNumberLarge
+    }
+
+    /** 一位数名次。 */
+    private val RankNumberLarge: TextStyle = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Bold,
+        fontSize = 42.sp,
+        lineHeight = 46.sp,
+        letterSpacing = 0.sp,
+    )
+
+    /** 两位数名次。 */
+    private val RankNumberMedium: TextStyle = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Bold,
+        fontSize = 34.sp,
+        lineHeight = 38.sp,
+        letterSpacing = 0.sp,
+    )
+
+    /** 三位数名次。 */
+    private val RankNumberSmall: TextStyle = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Bold,
+        fontSize = 26.sp,
+        lineHeight = 30.sp,
+        letterSpacing = 0.sp,
+    )
 }

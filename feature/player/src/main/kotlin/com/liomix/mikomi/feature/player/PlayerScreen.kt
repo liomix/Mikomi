@@ -18,12 +18,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.min
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.media.MikomiPlayer
+import com.liomix.mikomi.feature.player.component.CommentSection
+import com.liomix.mikomi.feature.player.component.EpisodeSection
 import com.liomix.mikomi.feature.player.component.PlaybackSourceSheet
 import com.liomix.mikomi.feature.player.component.PlayerHost
 import com.liomix.mikomi.feature.player.component.PlayerNavigationBar
-import com.liomix.mikomi.feature.player.component.CommentSection
-import com.liomix.mikomi.feature.player.component.EpisodeSection
 
 /** 播放器最大占比：横屏/大屏时不把整页吃掉，保证选集区始终可见。 */
 private const val PLAYER_MAX_HEIGHT_RATIO = 0.45f
@@ -125,7 +126,7 @@ fun PlayerScreen(
                 Crossfade(
                     targetState = state.tab,
                     modifier = Modifier.weight(1f),
-                    animationSpec = tween(durationMillis = 180),
+                    animationSpec = tween(durationMillis = MikomiMotion.Duration.Short),
                     label = "playerTabContent",
                 ) { tab ->
                     when (tab) {

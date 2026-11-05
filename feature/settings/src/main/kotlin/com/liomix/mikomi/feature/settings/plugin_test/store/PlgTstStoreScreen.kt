@@ -65,9 +65,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
-import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.R
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -170,7 +172,7 @@ fun PlgTstStoreScreen(
                     text = stringResource(R.string.settings_store_stale),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = MikomiSpacing.Room, vertical = MikomiSpacing.Tight),
                 )
             }
 
@@ -260,7 +262,7 @@ private fun SearchField(
         onValueChange = onQueryChange,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Xs),
         placeholder = { Text(stringResource(R.string.settings_store_search_hint)) },
         leadingIcon = {
             Icon(imageVector = Icons.Rounded.Search, contentDescription = null)
@@ -276,7 +278,7 @@ private fun SearchField(
             }
         },
         singleLine = true,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(MikomiRadius.Xl),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
     )
 }
@@ -295,8 +297,8 @@ private fun FilterRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Xs),
+        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
     ) {
         PlgTstStoreFilter.entries.forEach { filter ->
             FilterChip(
@@ -374,15 +376,15 @@ private fun StoreItemCard(
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(MikomiRadius.Xxl),
         color = colors.surfaceContainerLow,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = MikomiSpacing.Md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             StatusTile(status = status)
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(MikomiSpacing.Md))
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -395,7 +397,7 @@ private fun StoreItemCard(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
                     StoreTag(
                         text = stringResource(R.string.settings_store_version, item.version),
                         background = colors.surfaceContainerHigh,
@@ -413,7 +415,7 @@ private fun StoreItemCard(
                     )
                 }
                 if (item.antiCrawler) {
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(MikomiSpacing.Tight))
                     StoreTag(
                         text = stringResource(R.string.settings_store_anti_crawler),
                         background = colors.tertiaryContainer,
@@ -422,7 +424,7 @@ private fun StoreItemCard(
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(MikomiSpacing.Md))
             StoreAction(
                 status = status,
                 installing = installing,
@@ -440,7 +442,7 @@ private fun StatusTile(status: PlgTstStoreStatus) {
 
     Surface(
         modifier = Modifier.size(44.dp),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(MikomiRadius.Xl),
         color = if (installed) colors.surfaceContainerHigh else colors.primary.copy(alpha = 0.12f),
         contentColor = if (installed) colors.onSurfaceVariant else colors.primary,
     ) {
@@ -479,7 +481,7 @@ private fun StoreAction(
                 strokeWidth = 2.dp,
                 color = colors.primary,
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(MikomiSpacing.Tight))
             Text(
                 text = stringResource(
                     if (status == PlgTstStoreStatus.Update) {
@@ -498,7 +500,7 @@ private fun StoreAction(
                 tint = colors.onSurfaceVariant,
                 modifier = Modifier.size(16.dp),
             )
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
             Text(
                 text = stringResource(R.string.settings_store_installed),
                 style = MaterialTheme.typography.labelLarge,
@@ -516,7 +518,7 @@ private fun StoreAction(
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(MikomiSpacing.Tight))
             Text(
                 text = stringResource(
                     if (status == PlgTstStoreStatus.Update) {
@@ -538,7 +540,7 @@ private fun StoreTag(
     foreground: Color,
 ) {
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(MikomiRadius.Md),
         color = background,
         contentColor = foreground,
     ) {
@@ -546,7 +548,7 @@ private fun StoreTag(
             text = text,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = MikomiSpacing.Sm, vertical = 3.dp),
         )
     }
 }
@@ -568,7 +570,7 @@ private fun StoreStateView(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 32.dp),
+            .padding(horizontal = MikomiSpacing.Xxl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -578,7 +580,7 @@ private fun StoreStateView(
             tint = colors.onSurfaceVariant,
             modifier = Modifier.size(MikomiSizes.AvatarMd),
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Md))
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
@@ -586,7 +588,7 @@ private fun StoreStateView(
             textAlign = TextAlign.Center,
         )
         if (description != null) {
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Tight))
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
@@ -595,7 +597,7 @@ private fun StoreStateView(
             )
         }
         if (action != null) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Lg))
             action()
         }
     }
@@ -613,23 +615,23 @@ private fun StoreSkeleton() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Md),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         repeat(5) { index ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(MikomiRadius.Xxl))
                     .background(colors.surfaceContainerLow)
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(horizontal = 14.dp, vertical = MikomiSpacing.Md),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SkeletonBox(
                     modifier = Modifier.size(44.dp),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(MikomiRadius.Xl),
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(MikomiSpacing.Md))
                 Column(modifier = Modifier.weight(1f)) {
                     // 宽度交替，看起来像真实的名称长短，不像一排等长色块。
                     SkeletonBox(
@@ -637,19 +639,19 @@ private fun StoreSkeleton() {
                             .fillMaxWidth(if (index % 2 == 0) 0.42f else 0.56f)
                             .height(14.dp),
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
                     SkeletonBox(
                         modifier = Modifier
                             .fillMaxWidth(0.72f)
                             .height(10.dp),
                     )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(MikomiSpacing.Md))
                 SkeletonBox(
                     modifier = Modifier
                         .width(64.dp)
                         .height(32.dp),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(MikomiRadius.Xxl),
                 )
             }
         }

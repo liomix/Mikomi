@@ -29,7 +29,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.AirTime
 import com.liomix.mikomi.core.model.AirTimePrecision
 import com.liomix.mikomi.core.model.ScheduleEntry
@@ -156,7 +159,7 @@ private fun ScheduleContent(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = MikomiSpacing.Md, vertical = MikomiSpacing.Sm),
         )
 
         HorizontalPager(
@@ -279,12 +282,12 @@ private fun ScheduleAnimeRow(
 
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(MikomiRadius.Lg),
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier.padding(start = 8.dp, top = 8.dp, end = 12.dp, bottom = 8.dp),
+            modifier = Modifier.padding(start = MikomiSpacing.Sm, top = MikomiSpacing.Sm, end = MikomiSpacing.Md, bottom = MikomiSpacing.Sm),
             // 信息区顶部与封面顶部对齐（不再整体垂直居中）。
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -298,7 +301,7 @@ private fun ScheduleAnimeRow(
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Tight),
             ) {
                 ScrollingText(
                     text = anime.title,
@@ -309,7 +312,7 @@ private fun ScheduleAnimeRow(
                 if (episodeLabel.isNotBlank() || scheduleLabel.isNotBlank()) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
                     ) {
                         if (episodeLabel.isNotBlank()) {
                             Text(
@@ -412,11 +415,11 @@ private fun ScheduleSkeleton(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(horizontal = MikomiSpacing.Md, vertical = MikomiSpacing.Sm)
                 .clip(RoundedCornerShape(TAB_ROW_CORNER_RADIUS))
                 .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = 4.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                .padding(horizontal = MikomiSpacing.Xs, vertical = MikomiSpacing.Xs),
+            horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Xs),
         ) {
             repeat(DAYS_IN_WEEK) {
                 Column(
@@ -428,13 +431,13 @@ private fun ScheduleSkeleton(
                 ) {
                     SkeletonBox(
                         modifier = Modifier.size(width = 16.dp, height = 16.dp),
-                        shape = RoundedCornerShape(5.dp),
+                        shape = RoundedCornerShape(MikomiRadius.Sm),
                     )
                     SkeletonBox(
                         modifier = Modifier
-                            .padding(top = 6.dp)
+                            .padding(top = MikomiSpacing.Tight)
                             .size(width = 30.dp, height = 10.dp),
-                        shape = RoundedCornerShape(5.dp),
+                        shape = MikomiPillShape,
                     )
                 }
             }
@@ -443,7 +446,7 @@ private fun ScheduleSkeleton(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = MikomiSpacing.Md, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             repeat(6) {
@@ -454,23 +457,23 @@ private fun ScheduleSkeleton(
                 ) {
                     SkeletonBox(
                         modifier = Modifier.size(width = 80.dp, height = 120.dp),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(MikomiRadius.Md),
                     )
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
                     ) {
                         SkeletonBox(
                             modifier = Modifier.fillMaxWidth(0.7f).height(14.dp),
-                            shape = RoundedCornerShape(7.dp),
+                            shape = MikomiPillShape,
                         )
                         SkeletonBox(
                             modifier = Modifier.fillMaxWidth(0.9f).height(10.dp),
-                            shape = RoundedCornerShape(5.dp),
+                            shape = MikomiPillShape,
                         )
                         SkeletonBox(
                             modifier = Modifier.fillMaxWidth(0.5f).height(10.dp),
-                            shape = RoundedCornerShape(5.dp),
+                            shape = MikomiPillShape,
                         )
                     }
                 }

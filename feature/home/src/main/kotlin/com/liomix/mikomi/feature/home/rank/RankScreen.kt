@@ -24,13 +24,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.RankEntry
-import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.core.ui.component.base.ErrorState
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.base.Tab
 import com.liomix.mikomi.core.ui.component.base.TabBar
 import com.liomix.mikomi.core.ui.component.base.TabItemStyle
+import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.home.R
 import kotlinx.coroutines.launch
 
@@ -135,7 +136,7 @@ private fun RankTabs(
         onSelect = onSelect,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Md),
         itemStyle = TabItemStyle.text(),
         itemSpacing = 0.dp,
     ) {

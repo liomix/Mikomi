@@ -30,13 +30,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.liomix.mikomi.core.model.RankEntry
+import com.liomix.mikomi.core.designsystem.theme.MikomiShadowColor
+import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
@@ -82,11 +82,11 @@ internal fun RankAnimeCard(
         shape = RoundedCornerShape(RankCardCorner),
         // 卡片本身不铺底色：有封面时是整张封面，无封面时留空交给页面骨架屏。
         color = Color.Transparent,
-        contentColor = RankCardContent,
+        contentColor = MikomiTheme.colors.media.content,
         border = BorderStroke(
             width = 1.dp,
             // 前三名用描边色勾一圈：压在封面上时金属色本身就够亮，描边只做收边。
-            color = rankOutline(rank)?.copy(alpha = 0.55f) ?: RankBorderColor,
+            color = rankOutline(rank)?.copy(alpha = 0.55f) ?: MikomiTheme.colors.media.outline,
         ),
         shadowElevation = if (isTopRank) TopRankShadow else 0.dp,
         modifier = modifier
@@ -120,7 +120,7 @@ internal fun RankAnimeCard(
                     enabled = false,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        color = RankCardContent,
+                        color = MikomiTheme.colors.media.content,
                         shadow = RankTitleShadow,
                     ),
                     modifier = Modifier.weight(1f),
@@ -147,11 +147,12 @@ private fun RankNumber(
     val accent = rankAccent(rank)
     val outlineColor = rankOutline(rank)
     val outlineStyle = rememberRankNumberOutline()
-    val style = MaterialTheme.typography.headlineMedium.copy(
+    // 字号阶梯（42 / 34 / 26）住在设计系统里：搜索页的排名圆标用的是同一套，
+    // 两处各写一份就会出现「同一个第 12 名，两个页面大小不同」。
+    val style = MikomiTextStyles.rankNumber(rank).copy(
         fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Black,
         fontStyle = FontStyle.Italic,
-        fontSize = rankFontSize(rank),
     )
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
@@ -220,14 +221,11 @@ private fun CoverBackdrop(
  */
 @Composable
 private fun rankAccent(rank: Int): Color =
-    MikomiTheme.colors.rank(rank)?.fill ?: RankCoolGray
+    MikomiTheme.colors.rank(rank)?.fill ?: MikomiTheme.colors.media.content
 
 /** 前三名对应的描边色；第 4 名起无描边（返回 null）。 */
 @Composable
 private fun rankOutline(rank: Int): Color? = MikomiTheme.colors.rank(rank)?.outline
-
-/** 卡片正文色：压在封面上的亮色文字。 */
-private val RankCardContent = Color(0xFFF5F7FA)
 
 /**
  * 标题文字的深色描影。
@@ -236,14 +234,14 @@ private val RankCardContent = Color(0xFFF5F7FA)
  * 所以垫一层黑色描影勾出轮廓（与名次数字同一套做法），比加一层白雾干净。
  */
 private val RankTitleShadow = Shadow(
-    color = Color.Black.copy(alpha = 0.8f),
+    color = MikomiShadowColor.copy(alpha = 0.8f),
     offset = Offset(0f, 1.5f),
     blurRadius = 8f,
 )
 
 /** 名次文字的深色描影：亮底封面（草地、天空）上靠它勾住轮廓。 */
 private val RankNumberShadow = Shadow(
-    color = Color.Black.copy(alpha = 0.65f),
+    color = MikomiShadowColor.copy(alpha = 0.65f),
     offset = Offset(0f, 2f),
     blurRadius = 9f,
 )
@@ -281,29 +279,6 @@ private val TopRankShadow = 4.dp
 /** 前三名高亮名次的最大名次。 */
 private const val TopRankHighlight = 3
 
-/** 名次进入两位数 / 三位数的最小值（此时字号收一档）。 */
-private const val DoubleDigitThreshold = 10
-private const val TripleDigitThreshold = 100
-
-/**
- * 名次字号：位数越多收得越小。
- *
- * 名次区宽度固定为 [RankNumberWidth]，`100` 用两位数那档（34sp）会顶出边界，
- * 所以三位数单独再收一档。
- */
-private fun rankFontSize(rank: Int): TextUnit = when {
-    rank >= TripleDigitThreshold -> TripleDigitFontSize
-    rank >= DoubleDigitThreshold -> DoubleDigitFontSize
-    else -> SingleDigitFontSize
-}
-
-private val SingleDigitFontSize = 42.sp
-private val DoubleDigitFontSize = 34.sp
-private val TripleDigitFontSize = 26.sp
-
-/** 第 4 名起的统一亮灰（靠 [RankNumberShadow] 在亮底上勾轮廓）。 */
-private val RankCoolGray = Color(0xFFE9EDF2)
-
 /** 描边宽度：细到只勾轮廓，粗了会把金属色挤没。 */
 private val RankNumberOutlineWidth = 1.2.dp
 
@@ -318,6 +293,3 @@ private fun rememberRankNumberOutline(): Stroke {
         )
     }
 }
-
-/** 非前三名卡片的细边框：压在封面上，用浅色描一圈区分相邻卡片。 */
-private val RankBorderColor = Color.White.copy(alpha = 0.14f)

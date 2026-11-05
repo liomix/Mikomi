@@ -1,7 +1,6 @@
 package com.liomix.mikomi.core.ui.component.business
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -27,6 +26,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.model.TransitionStyle
 
 /**
@@ -320,7 +320,7 @@ fun HeroFlightOverlay(
             targetValue = 1f,
             animationSpec = tween(
                 durationMillis = FLIGHT_DURATION_MILLIS,
-                easing = FastOutSlowInEasing,
+                easing = MikomiMotion.Curve.Standard,
             ),
         )
         controller.finish(flightId)

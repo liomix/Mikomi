@@ -25,7 +25,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -33,14 +32,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiTagColor
+import com.liomix.mikomi.core.designsystem.theme.MikomiTagHue
+import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.model.AnimeCharacter
 import com.liomix.mikomi.core.model.StaffMember
 import com.liomix.mikomi.core.ui.component.base.EmptyState
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
-import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
-import com.liomix.mikomi.core.designsystem.theme.MikomiTagColor
-import com.liomix.mikomi.core.designsystem.theme.MikomiTagHue
-import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 
 /** 主创卡片固定宽度（名字无限滚动 + 关系 badge 需要更宽空间）。 */
@@ -109,8 +110,8 @@ private fun CreditsContent(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(32.dp),
+            .padding(MikomiSpacing.Lg),
+        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xxl),
     ) {
         // 角色区块。
         SectionTitle(text = stringResource(R.string.detail_characters))
@@ -163,10 +164,10 @@ private fun <T> CreditGrid(
     val columnCount = (items.size + 1) / 2
     LazyRow(
         contentPadding = PaddingValues(0.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
     ) {
         items(count = columnCount, key = { it }) { columnIndex ->
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm)) {
                 val firstIndex = columnIndex * 2
                 itemContent(items[firstIndex])
                 val secondIndex = firstIndex + 1
@@ -189,18 +190,18 @@ private fun CharacterCard(
         modifier = modifier
             .width(CREDIT_CARD_WIDTH)
             .height(CREDIT_CARD_HEIGHT),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(MikomiRadius.Lg),
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         Row(
-            modifier = Modifier.padding(8.dp),
+            modifier = Modifier.padding(MikomiSpacing.Sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Avatar(
                 url = character.images?.grid ?: character.images?.medium,
                 contentDescription = character.name,
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // 名字：单行无限滚动（超宽自动横向滚动，对齐 Dart 版 ScrollingText）。
@@ -212,11 +213,11 @@ private fun CharacterCard(
                         modifier = Modifier.weight(1f, fill = false),
                         enabled = false,
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
                     RelationBadge(text = character.relation)
                 }
                 character.voiceActors.firstOrNull()?.let { actor ->
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(MikomiSpacing.Xs))
                     ScrollingText(
                         text = actor.name,
                         style = MaterialTheme.typography.labelSmall.copy(
@@ -241,18 +242,18 @@ private fun StaffCard(
         modifier = modifier
             .width(CREDIT_CARD_WIDTH)
             .height(CREDIT_CARD_HEIGHT),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(MikomiRadius.Lg),
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         Row(
-            modifier = Modifier.padding(8.dp),
+            modifier = Modifier.padding(MikomiSpacing.Sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Avatar(
                 url = member.images?.grid ?: member.images?.medium,
                 contentDescription = member.displayName,
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // 名字：单行无限滚动。
@@ -265,14 +266,14 @@ private fun StaffCard(
                         enabled = false,
                     )
                     if (member.positionText.isNotEmpty()) {
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
                         RelationBadge(text = member.positionText)
                     }
                 }
                 if (member.localizedName?.isNotBlank() == true &&
                     member.localizedName != member.name
                 ) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(MikomiSpacing.Xs))
                     ScrollingText(
                         text = member.name,
                         style = MaterialTheme.typography.labelSmall.copy(
@@ -303,7 +304,7 @@ private fun Avatar(
                 contentDescription = contentDescription,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
-                    .padding(12.dp)
+                    .padding(MikomiSpacing.Md)
                     .size(30.dp),
             )
         } else {
@@ -345,7 +346,7 @@ private fun RelationBadge(
             color = badge.content,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+            modifier = Modifier.padding(horizontal = MikomiSpacing.Xs, vertical = 1.dp),
         )
     }
 }
@@ -393,17 +394,17 @@ private fun CreditsSkeleton(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(32.dp),
+            .padding(MikomiSpacing.Lg),
+        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xxl),
     ) {
         SkeletonBox(
             modifier = Modifier.size(width = 48.dp, height = 18.dp),
-            shape = RoundedCornerShape(9.dp),
+            shape = MikomiPillShape,
         )
         CreditSkeletonRow()
         SkeletonBox(
             modifier = Modifier.size(width = 72.dp, height = 18.dp),
-            shape = RoundedCornerShape(9.dp),
+            shape = MikomiPillShape,
         )
         CreditSkeletonRow()
     }
@@ -411,15 +412,15 @@ private fun CreditsSkeleton(
 
 @Composable
 private fun CreditSkeletonRow() {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm)) {
         repeat(2) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Md)) {
                 repeat(3) {
                     SkeletonBox(
                         modifier = Modifier
                             .width(CREDIT_CARD_WIDTH)
                             .height(76.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(MikomiRadius.Lg),
                     )
                 }
             }

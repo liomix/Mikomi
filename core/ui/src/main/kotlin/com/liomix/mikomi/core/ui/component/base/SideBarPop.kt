@@ -1,6 +1,5 @@
 package com.liomix.mikomi.core.ui.component.base
 
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.rememberTransition
@@ -27,11 +26,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import com.liomix.mikomi.core.designsystem.theme.MikomiElevation
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
 
 /**
  * 侧栏弹窗贴的是哪一侧。
@@ -131,7 +130,7 @@ fun SideBarPop(
                 } else {
                     SideBarPopDefaults.ExitMillis
                 },
-                easing = FastOutSlowInEasing,
+                easing = MikomiMotion.Curve.Standard,
             )
         },
         label = "progress",

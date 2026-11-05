@@ -58,14 +58,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.model.AniRpbHotItem
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
-import com.liomix.mikomi.core.ui.component.business.AnimeCoverImage
+import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.base.Tab
 import com.liomix.mikomi.core.ui.component.base.TabBar
 import com.liomix.mikomi.core.ui.component.base.TabItemStyle
+import com.liomix.mikomi.core.ui.component.business.AnimeCoverImage
 import java.util.Locale
 
 /** 历史未展开时最多显示的 tag 数。 */
@@ -192,7 +196,7 @@ private fun SectionHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 8.dp, top = topPadding, bottom = 8.dp),
+            .padding(start = MikomiSpacing.Lg, end = MikomiSpacing.Sm, top = topPadding, bottom = MikomiSpacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -201,7 +205,7 @@ private fun SectionHeader(
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(18.dp),
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
@@ -224,7 +228,7 @@ private fun HotTabs(
         onSelect = { index -> onSelect(SearchHotTab.entries[index]) },
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Xs),
         itemStyle = TabItemStyle.text(),
         itemSpacing = 0.dp,
     ) {
@@ -259,10 +263,10 @@ private fun HistoryTags(
     FlowRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = MikomiSpacing.Lg)
             .animateContentSize(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
+        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
     ) {
         visible.forEach { keyword ->
             HistoryTab(
@@ -298,7 +302,7 @@ private fun HistoryTab(
         Box(
             modifier = Modifier
                 .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-                .padding(horizontal = 14.dp, vertical = 8.dp),
+                .padding(horizontal = 14.dp, vertical = MikomiSpacing.Sm),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -327,7 +331,7 @@ private fun ExpandTab(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
-            modifier = Modifier.padding(start = 14.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
+            modifier = Modifier.padding(start = 14.dp, end = 10.dp, top = MikomiSpacing.Sm, bottom = MikomiSpacing.Sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -337,7 +341,7 @@ private fun ExpandTab(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Spacer(modifier = Modifier.width(2.dp))
+            Spacer(modifier = Modifier.width(MikomiSpacing.Xxs))
             Icon(
                 imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                 contentDescription = null,
@@ -359,12 +363,12 @@ private fun HotRankingCard(
     LaunchedEffect(Unit) { revealed = true }
     val alpha by animateFloatAsState(
         targetValue = if (revealed) 1f else 0f,
-        animationSpec = tween(durationMillis = 260),
+        animationSpec = tween(durationMillis = MikomiMotion.Duration.Medium),
         label = "hotAlpha",
     )
     val offsetY by animateFloatAsState(
         targetValue = if (revealed) 0f else 16f,
-        animationSpec = tween(durationMillis = 260),
+        animationSpec = tween(durationMillis = MikomiMotion.Duration.Medium),
         label = "hotOffset",
     )
 
@@ -390,13 +394,13 @@ private fun BillboardSurface(
     content: @Composable () -> Unit,
 ) {
     Surface(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(MikomiRadius.Xxl),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = MikomiSpacing.Lg),
     ) {
-        Column(modifier = Modifier.padding(vertical = 6.dp)) {
+        Column(modifier = Modifier.padding(vertical = MikomiSpacing.Tight)) {
             content()
         }
     }
@@ -412,10 +416,10 @@ private fun HotRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 6.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .padding(horizontal = MikomiSpacing.Tight)
+            .clip(RoundedCornerShape(MikomiRadius.Xl))
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 8.dp),
+            .padding(horizontal = MikomiSpacing.Sm, vertical = MikomiSpacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -425,14 +429,14 @@ private fun HotRow(
             color = rankColor(item.rank),
             modifier = Modifier.width(28.dp),
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
         AnimeCoverImage(
             url = item.coverUrl,
             contentDescription = item.title,
             modifier = Modifier.width(40.dp),
             browserUserAgent = true,
         )
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(MikomiSpacing.Md))
         Column(modifier = Modifier.weight(1f)) {
             ScrollingText(
                 text = item.title,
@@ -487,7 +491,7 @@ private fun HotMeta(
                 tint = MikomiTheme.colors.rating,
                 modifier = Modifier.size(11.dp),
             )
-            Spacer(modifier = Modifier.width(2.dp))
+            Spacer(modifier = Modifier.width(MikomiSpacing.Xxs))
             Text(
                 text = String.format(Locale.ROOT, "%.1f", item.score),
                 style = MaterialTheme.typography.labelSmall,
@@ -533,19 +537,19 @@ private fun HotSkeletonCard(modifier: Modifier = Modifier) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                    .padding(horizontal = 14.dp, vertical = MikomiSpacing.Sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SkeletonBox(
                     modifier = Modifier.size(width = 22.dp, height = 16.dp),
-                    shape = RoundedCornerShape(4.dp),
+                    shape = RoundedCornerShape(MikomiRadius.Xs),
                 )
                 Spacer(modifier = Modifier.width(14.dp))
                 SkeletonBox(
                     modifier = Modifier.size(width = 36.dp, height = 54.dp),
-                    shape = RoundedCornerShape(6.dp),
+                    shape = RoundedCornerShape(MikomiRadius.Sm),
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(MikomiSpacing.Md))
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(7.dp),
@@ -554,13 +558,13 @@ private fun HotSkeletonCard(modifier: Modifier = Modifier) {
                         modifier = Modifier
                             .fillMaxWidth(0.6f)
                             .height(14.dp),
-                        shape = RoundedCornerShape(7.dp),
+                        shape = MikomiPillShape,
                     )
                     SkeletonBox(
                         modifier = Modifier
                             .fillMaxWidth(0.25f)
                             .height(11.dp),
-                        shape = RoundedCornerShape(6.dp),
+                        shape = RoundedCornerShape(MikomiRadius.Sm),
                     )
                 }
             }

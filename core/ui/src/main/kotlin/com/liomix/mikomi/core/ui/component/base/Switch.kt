@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiShadowColor
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import kotlin.math.roundToInt
 
@@ -86,7 +87,7 @@ private val InnerShadowBlur = 5.dp
  * CSS 写的是 25% 黑，但那是模糊后的**峰值**：10px 的模糊会把边缘那圈的 alpha 摊薄到一半左右，
  * 落在屏幕上大约 12%。这里直接按摊薄后的值给，横竖两道渐变在角上叠一次刚好回到 25% 附近。
  */
-private val InnerShadowColor = Color.Black.copy(alpha = 0.13f)
+private val InnerShadowColor = MikomiShadowColor.copy(alpha = 0.13f)
 
 /** 禁用态的整块不透明度（Material 的 38% 在这里偏虚，拨片本来就浅，取 45% 才看得出「灰下去」。 */
 private const val DisabledAlpha = 0.45f
@@ -217,8 +218,8 @@ fun Switch(
                             elevation = ThumbShadowElevation,
                             shape = SwitchShape,
                             clip = false,
-                            ambientColor = Color.Black,
-                            spotColor = Color.Black,
+                            ambientColor = MikomiShadowColor,
+                            spotColor = MikomiShadowColor,
                         )
                         .background(colors.thumb, SwitchShape),
                 )

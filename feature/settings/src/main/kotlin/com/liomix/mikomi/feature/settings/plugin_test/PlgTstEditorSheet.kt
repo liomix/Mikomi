@@ -29,11 +29,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.InvalidVdoPlgSourceException
 import com.liomix.mikomi.feature.settings.R
 
@@ -71,8 +72,8 @@ fun PlgTstEditorSheet(
                 .fillMaxWidth()
                 .fillMaxHeight(0.92f)
                 .imePadding()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 12.dp),
+                .padding(horizontal = MikomiSpacing.Lg)
+                .padding(bottom = MikomiSpacing.Md),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -120,7 +121,7 @@ fun PlgTstEditorSheet(
                         .weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Spacer(modifier = Modifier.height(48.dp))
+                    Spacer(modifier = Modifier.height(MikomiSpacing.Xxxl))
                     CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
                 }
 
@@ -128,7 +129,7 @@ fun PlgTstEditorSheet(
                     text = stringResource(R.string.settings_plg_tst_editor_missing),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 24.dp),
+                    modifier = Modifier.padding(vertical = MikomiSpacing.Xl),
                 )
 
                 else -> {
@@ -140,13 +141,10 @@ fun PlgTstEditorSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        shape = RoundedCornerShape(16.dp),
-                        textStyle = MaterialTheme.typography.bodySmall.copy(
-                            fontFamily = FontFamily.Monospace,
-                            // 等宽字体在默认行高下挤成一团，JSON 又全是短行，放宽一点更好认结构。
-                            lineHeight = 18.sp,
-                            fontSize = 12.sp,
-                        ),
+                        shape = RoundedCornerShape(MikomiRadius.Xl),
+                        // 等宽字体在默认行高下挤成一团，JSON 又全是短行，
+                        // 设计系统里单列了「代码」这一档（Monospace / 12sp / 行高 18）。
+                        textStyle = MikomiTextStyles.Code,
                         // 不设 label：面板里只有这一个输入框，标签纯属占地方。
                         placeholder = null,
                     )
@@ -170,17 +168,17 @@ private fun EditorError(
 
     val colors = MaterialTheme.colorScheme
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(MikomiRadius.Lg),
         color = colors.errorContainer,
         contentColor = colors.onErrorContainer,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp),
+            .padding(bottom = MikomiSpacing.Sm),
     ) {
         Text(
             text = message,
             style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = MikomiSpacing.Md, vertical = MikomiSpacing.Sm),
         )
     }
 }

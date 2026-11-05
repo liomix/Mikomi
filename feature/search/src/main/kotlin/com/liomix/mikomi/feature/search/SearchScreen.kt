@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.model.AniRpbHotItem
 
 /**
@@ -58,7 +59,7 @@ fun SearchScreen(
         ) {
             Crossfade(
                 targetState = state.phase,
-                animationSpec = tween(durationMillis = 180),
+                animationSpec = tween(durationMillis = MikomiMotion.Duration.Short),
                 label = "searchPhase",
             ) { phase ->
                 when (phase) {

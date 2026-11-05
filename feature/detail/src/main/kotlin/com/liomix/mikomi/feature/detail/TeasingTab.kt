@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Person
@@ -37,6 +36,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.common.util.formatRelativeTime
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.TeasingComment
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.base.SkeletonShimmer
@@ -123,10 +124,10 @@ private fun TeasingCommentItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = MikomiSpacing.Lg, vertical = 14.dp),
     ) {
         TeasingAvatar(url = comment.user.avatarUrl, name = comment.user.displayName)
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(MikomiSpacing.Md))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -137,14 +138,14 @@ private fun TeasingCommentItem(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
                 Text(
                     text = formatRelativeTime(comment.createdAt),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Tight))
             Text(
                 text = comment.content,
                 style = MaterialTheme.typography.bodyMedium.copy(
@@ -172,7 +173,7 @@ private fun TeasingAvatar(
                 contentDescription = name,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
-                    .padding(8.dp)
+                    .padding(MikomiSpacing.Sm)
                     .fillMaxSize(),
             )
         } else {
@@ -200,7 +201,7 @@ private fun TeasingFooter(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
+                    .padding(vertical = MikomiSpacing.Lg),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -237,7 +238,7 @@ private fun TeasingFooter(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
+                    .padding(vertical = MikomiSpacing.Lg),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -262,7 +263,7 @@ private fun TeasingStatusBlock(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = MikomiSpacing.Lg),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -272,14 +273,14 @@ private fun TeasingStatusBlock(
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
             modifier = Modifier.size(56.dp),
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Lg))
         Text(
             text = message,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (actionLabel != null && onAction != null) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
             TextButton(onClick = onAction) {
                 Text(text = actionLabel)
             }
@@ -305,34 +306,34 @@ private fun TeasingSkeletonItem(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = MikomiSpacing.Lg, vertical = 14.dp),
     ) {
         SkeletonBox(
             modifier = Modifier.size(TEASING_AVATAR_SIZE),
             shape = CircleShape,
         )
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(MikomiSpacing.Md))
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
         ) {
             SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth(0.35f)
                     .height(13.dp),
-                shape = RoundedCornerShape(7.dp),
+                shape = MikomiPillShape,
             )
             SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(13.dp),
-                shape = RoundedCornerShape(7.dp),
+                shape = MikomiPillShape,
             )
             SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth(0.65f)
                     .height(13.dp),
-                shape = RoundedCornerShape(7.dp),
+                shape = MikomiPillShape,
             )
         }
     }

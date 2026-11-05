@@ -46,6 +46,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.common.util.formatRelativeTime
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.CreditComment
 import com.liomix.mikomi.core.model.CreditDetail
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
@@ -135,7 +138,7 @@ private fun CreditDetailContent(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(MikomiSpacing.Lg),
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             // 左侧竖版头像。
@@ -146,9 +149,9 @@ private fun CreditDetailContent(
                 modifier = Modifier
                     .width(DETAIL_IMAGE_WIDTH)
                     .height(DETAIL_IMAGE_HEIGHT)
-                    .clip(RoundedCornerShape(8.dp)),
+                    .clip(RoundedCornerShape(MikomiRadius.Md)),
             )
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(MikomiSpacing.Lg))
             // 右侧信息。
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -157,7 +160,7 @@ private fun CreditDetailContent(
                     fontWeight = FontWeight.Bold,
                 )
                 detail.localizedName?.takeIf { it.isNotBlank() }?.let { nameCn ->
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(MikomiSpacing.Xs))
                     Text(
                         text = nameCn,
                         style = MaterialTheme.typography.bodyMedium,
@@ -165,13 +168,13 @@ private fun CreditDetailContent(
                     )
                 }
                 // 基本信息：始终显示标题，内容为空时显示「暂无」。
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(MikomiSpacing.Lg))
                 Text(
                     text = stringResource(R.string.detail_credit_basic_info),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
                 Text(
                     text = detail.info?.takeIf { it.isNotBlank() }
                         ?: stringResource(R.string.detail_no_basic_info),
@@ -184,13 +187,13 @@ private fun CreditDetailContent(
         }
 
         detail.summary?.takeIf { it.isNotBlank() }?.let { summary ->
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Lg))
             Text(
                 text = stringResource(R.string.detail_credit_summary),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
             Text(
                 text = summary,
                 style = MaterialTheme.typography.bodySmall.copy(
@@ -200,7 +203,7 @@ private fun CreditDetailContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Xl))
     }
 }
 
@@ -232,7 +235,7 @@ private fun CreditCommentList(
                 LazyColumn(
                     modifier = modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xl),
                 ) {
                     items(
                         items = state.comments,
@@ -257,21 +260,21 @@ private fun CommentItem(
     Column(modifier = modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth()) {
             CommentAvatar(url = comment.user.avatarUrl, size = COMMENT_AVATAR_SIZE)
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(MikomiSpacing.Md))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = comment.user.displayName,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(MikomiSpacing.Tight))
                 Text(
                     text = comment.content,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.5f,
                     ),
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
                 Text(
                     text = formatRelativeTime(comment.createdAt),
                     style = MaterialTheme.typography.labelSmall,
@@ -281,7 +284,7 @@ private fun CommentItem(
         }
 
         if (hasReplies) {
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Md))
             Surface(
                 onClick = { expanded = !expanded },
                 color = MaterialTheme.colorScheme.surface,
@@ -292,7 +295,7 @@ private fun CommentItem(
                         modifier = Modifier.width(40.dp),
                         color = MaterialTheme.colorScheme.outlineVariant,
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
                     Text(
                         text = stringResource(
                             if (expanded) R.string.detail_collapse_replies else R.string.detail_expand_replies,
@@ -301,7 +304,7 @@ private fun CommentItem(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
                     Icon(
                         imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                         contentDescription = null,
@@ -313,29 +316,29 @@ private fun CommentItem(
         }
 
         if (expanded && hasReplies) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Lg))
             comment.replies.forEach { reply ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 60.dp, bottom = 16.dp),
+                        .padding(start = 60.dp, bottom = MikomiSpacing.Lg),
                 ) {
                     CommentAvatar(url = reply.user.avatarUrl, size = 36.dp)
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(MikomiSpacing.Md))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = reply.user.displayName,
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Medium,
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(MikomiSpacing.Xs))
                         Text(
                             text = reply.content,
                             style = MaterialTheme.typography.bodySmall.copy(
                                 lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.5f,
                             ),
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(MikomiSpacing.Tight))
                         Text(
                             text = formatRelativeTime(reply.createdAt),
                             style = MaterialTheme.typography.labelSmall,
@@ -365,7 +368,7 @@ private fun CommentAvatar(
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
-                    .padding(8.dp)
+                    .padding(MikomiSpacing.Sm)
                     .fillMaxSize(),
             )
         } else {
@@ -388,60 +391,60 @@ private fun CreditDetailSkeleton(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(MikomiSpacing.Lg),
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             SkeletonBox(
                 modifier = Modifier
                     .width(DETAIL_IMAGE_WIDTH)
                     .height(DETAIL_IMAGE_HEIGHT),
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(MikomiRadius.Md),
             )
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(MikomiSpacing.Lg))
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
             ) {
                 SkeletonBox(
                     modifier = Modifier
                         .fillMaxWidth(0.6f)
                         .height(18.dp),
-                    shape = RoundedCornerShape(9.dp),
+                    shape = MikomiPillShape,
                 )
                 SkeletonBox(
                     modifier = Modifier
                         .fillMaxWidth(0.4f)
                         .height(14.dp),
-                    shape = RoundedCornerShape(7.dp),
+                    shape = MikomiPillShape,
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
                 SkeletonBox(
                     modifier = Modifier
                         .fillMaxWidth(0.5f)
                         .height(14.dp),
-                    shape = RoundedCornerShape(7.dp),
+                    shape = MikomiPillShape,
                 )
                 SkeletonBox(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(13.dp),
-                    shape = RoundedCornerShape(7.dp),
+                    shape = MikomiPillShape,
                 )
                 SkeletonBox(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(13.dp),
-                    shape = RoundedCornerShape(7.dp),
+                    shape = MikomiPillShape,
                 )
                 SkeletonBox(
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
                         .height(13.dp),
-                    shape = RoundedCornerShape(7.dp),
+                    shape = MikomiPillShape,
                 )
             }
         }
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Xl))
     }
 }
 
@@ -452,8 +455,8 @@ private fun CommentsSkeleton(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+            .padding(MikomiSpacing.Lg),
+        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xl),
     ) {
         repeat(5) {
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -461,34 +464,34 @@ private fun CommentsSkeleton(
                     modifier = Modifier.size(COMMENT_AVATAR_SIZE),
                     shape = CircleShape,
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(MikomiSpacing.Md))
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
                 ) {
                     SkeletonBox(
                         modifier = Modifier
                             .fillMaxWidth(0.4f)
                             .height(14.dp),
-                        shape = RoundedCornerShape(7.dp),
+                        shape = MikomiPillShape,
                     )
                     SkeletonBox(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(13.dp),
-                        shape = RoundedCornerShape(7.dp),
+                        shape = MikomiPillShape,
                     )
                     SkeletonBox(
                         modifier = Modifier
                             .fillMaxWidth(0.7f)
                             .height(13.dp),
-                        shape = RoundedCornerShape(7.dp),
+                        shape = MikomiPillShape,
                     )
                     SkeletonBox(
                         modifier = Modifier
                             .fillMaxWidth(0.3f)
                             .height(12.dp),
-                        shape = RoundedCornerShape(6.dp),
+                        shape = RoundedCornerShape(MikomiRadius.Sm),
                     )
                 }
             }
@@ -503,7 +506,7 @@ private fun CreditDetailError(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 48.dp),
+            .padding(vertical = MikomiSpacing.Xxxl),
         contentAlignment = Alignment.Center,
     ) {
         Text(

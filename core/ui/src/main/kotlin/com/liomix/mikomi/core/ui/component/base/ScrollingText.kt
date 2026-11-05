@@ -1,6 +1,5 @@
 package com.liomix.mikomi.core.ui.component.base
 
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
@@ -18,6 +17,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import kotlinx.coroutines.delay
 
 /**
@@ -81,7 +81,7 @@ fun ScrollingText(
             delay(START_PAUSE_MILLIS)
             scrollState.animateScrollTo(
                 value = maxScroll,
-                animationSpec = tween(durationMillis = SCROLL_MILLIS, easing = LinearEasing),
+                animationSpec = tween(durationMillis = SCROLL_MILLIS, easing = MikomiMotion.Curve.Linear),
             )
             delay(END_PAUSE_MILLIS)
         }

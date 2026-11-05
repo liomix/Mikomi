@@ -20,8 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.feature.player.R
 
 /**
@@ -48,7 +48,7 @@ internal fun CommentSection(modifier: Modifier = Modifier) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
                 modifier = Modifier.size(MikomiSizes.AvatarMd),
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Md))
             Text(
                 text = stringResource(R.string.player_comments_placeholder),
                 style = MaterialTheme.typography.bodyMedium,

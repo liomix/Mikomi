@@ -34,6 +34,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.base.Tag
@@ -70,8 +73,8 @@ internal fun OverviewTab(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+            .padding(MikomiSpacing.Lg),
+        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xl),
     ) {
         // 简介。
         Column(
@@ -81,7 +84,7 @@ internal fun OverviewTab(
                     stiffness = Spring.StiffnessLow,
                 ),
             ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
         ) {
             Text(
                 text = stringResource(R.string.detail_synopsis),
@@ -108,7 +111,7 @@ internal fun OverviewTab(
 
         // 标签。
         if (anime.genres.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md)) {
                 Text(
                     text = stringResource(R.string.detail_tags),
                     style = MaterialTheme.typography.titleMedium,
@@ -120,8 +123,8 @@ internal fun OverviewTab(
                     anime.genres.take(MAX_VISIBLE_TAGS)
                 }
                 FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
+                    verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
                 ) {
                     visibleTags.forEach { tag ->
                         Tag(text = tag)
@@ -160,7 +163,7 @@ private fun ExpandChip(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(MikomiRadius.Xxl),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         color = MaterialTheme.colorScheme.surface,
         modifier = modifier,
@@ -168,7 +171,7 @@ private fun ExpandChip(
         Row(
             modifier = Modifier
                 .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -197,43 +200,43 @@ private fun OverviewSkeleton(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+            .padding(MikomiSpacing.Lg),
+        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xl),
     ) {
         // 简介标题 + 段落骨架。
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md)) {
             SkeletonBox(
                 modifier = Modifier.size(width = 48.dp, height = 18.dp),
-                shape = RoundedCornerShape(9.dp),
+                shape = MikomiPillShape,
             )
             SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(14.dp),
-                shape = RoundedCornerShape(7.dp),
+                shape = MikomiPillShape,
             )
             SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(14.dp),
-                shape = RoundedCornerShape(7.dp),
+                shape = MikomiPillShape,
             )
             SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
                     .height(14.dp),
-                shape = RoundedCornerShape(7.dp),
+                shape = MikomiPillShape,
             )
         }
         // 标签标题 + chip 骨架。
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md)) {
             SkeletonBox(
                 modifier = Modifier.size(width = 48.dp, height = 18.dp),
-                shape = RoundedCornerShape(9.dp),
+                shape = MikomiPillShape,
             )
             FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
+                verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
             ) {
                 repeat(6) { index ->
                     SkeletonBox(
@@ -241,7 +244,7 @@ private fun OverviewSkeleton(
                             width = (56 + (index % 3) * 20).dp,
                             height = 32.dp,
                         ),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(MikomiRadius.Xl),
                     )
                 }
             }

@@ -95,6 +95,26 @@ private fun PaletteGallery() {
         SwatchRow("名次 ink", listOf(colors.rankFirst.ink, colors.rankSecond.ink, colors.rankThird.ink))
         SwatchRow("骨架", listOf(colors.skeletonBase, colors.skeletonSweep))
 
+        // 媒体族是常量，但要垫在深底上才看得见（白字压在白画布上等于没有）。
+        SectionTitle("媒体前景（压在封面 / 视频上）")
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.media.backdrop, RoundedCornerShape(MikomiRadius.Md))
+                .padding(MikomiSpacing.Sm),
+            verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xxs),
+        ) {
+            MediaLine("content", colors.media.content)
+            MediaLine("contentSecondary", colors.media.contentSecondary)
+            MediaLine("contentTertiary", colors.media.contentTertiary)
+            MediaLine("surface / outline", colors.media.surface)
+            MediaLine("track / trackBuffered", colors.media.trackBuffered)
+        }
+        SwatchRow(
+            "遮罩与浮层",
+            listOf(colors.media.scrim, colors.media.scrimSoft, colors.media.overlayContainer),
+        )
+
         SectionTitle("标签样例（底色 + 文字）")
         Column(verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xs)) {
             for (hue in MikomiTagHue.entries) {
@@ -115,6 +135,24 @@ private fun PaletteGallery() {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun MediaLine(label: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(width = 28.dp, height = 14.dp)
+                .background(color, RoundedCornerShape(MikomiRadius.Xs))
+                .border(0.5.dp, MikomiMedia.outline, RoundedCornerShape(MikomiRadius.Xs)),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MikomiMedia.contentSecondary,
+            modifier = Modifier.padding(start = MikomiSpacing.Sm),
+        )
     }
 }
 
@@ -175,6 +213,25 @@ private fun TypeScalePreview() {
             Text(text = "顶栏标题 · TopBarTitle 20", style = MikomiTextStyles.TopBarTitle)
             Text(text = "次级正文 · BodySecondary 15", style = MikomiTextStyles.BodySecondary)
             Text(text = "辅助说明 · Caption 13", style = MikomiTextStyles.Caption)
+            Text(text = "名字 · DisplayName 18", style = MikomiTextStyles.DisplayName)
+            Text(text = "媒体标题 · MediaTitle 18", style = MikomiTextStyles.MediaTitle)
+            Text(text = "媒体副标题 · MediaSubtitle 15", style = MikomiTextStyles.MediaSubtitle)
+            Text(text = "HUD 读数 · HudTime 22", style = MikomiTextStyles.HudTime)
+            Text(text = "图标标签 · IconLabel 12", style = MikomiTextStyles.IconLabel)
+            Text(text = "页内 Tab · TabLabel 14.5", style = MikomiTextStyles.TabLabel)
+            Text(text = "{\"rule\": \"xpath\"} · Code 12", style = MikomiTextStyles.Code)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                for (rank in listOf(1, 12, 128)) {
+                    Text(text = rank.toString(), style = MikomiTextStyles.rankNumber(rank))
+                }
+                Text(
+                    text = "名次数字 42 / 34 / 26",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
         }
     }
 }

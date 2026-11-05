@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 
 /** 设置卡片圆角。 */
 private val CardCorner = 24.dp
@@ -67,8 +68,8 @@ fun SettingsCardHeader(
         modifier = modifier.padding(
             start = SectionHorizontalPadding,
             end = SectionHorizontalPadding,
-            top = 20.dp,
-            bottom = 12.dp,
+            top = MikomiSpacing.Room,
+            bottom = MikomiSpacing.Md,
         ),
     )
 }

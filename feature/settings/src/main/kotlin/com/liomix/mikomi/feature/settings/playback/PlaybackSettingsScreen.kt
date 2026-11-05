@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
 import com.liomix.mikomi.core.ui.component.base.Tag
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
@@ -126,7 +127,7 @@ fun PlaybackSettingsScreen(
             text = stringResource(R.string.settings_playback_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = MikomiSpacing.Sm, vertical = MikomiSpacing.Xs),
         )
     }
 }
@@ -139,19 +140,19 @@ private fun SettingsSection(
     content: @Composable () -> Unit,
 ) {
     SettingsCardSection {
-        Column(modifier = Modifier.padding(top = 20.dp, bottom = 20.dp)) {
+        Column(modifier = Modifier.padding(top = MikomiSpacing.Room, bottom = MikomiSpacing.Room)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 20.dp),
+                modifier = Modifier.padding(horizontal = MikomiSpacing.Room),
             )
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 14.dp),
+                modifier = Modifier.padding(start = MikomiSpacing.Room, end = MikomiSpacing.Room, top = MikomiSpacing.Xs, bottom = 14.dp),
             )
             content()
         }

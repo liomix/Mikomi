@@ -1,7 +1,6 @@
 package com.liomix.mikomi.feature.settings.component
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
@@ -32,6 +31,7 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.liomix.mikomi.core.designsystem.theme.LocalNightModeToggleController
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.feature.settings.R
 
 /**
@@ -67,7 +67,7 @@ fun BAndWSwitch(
     }
     val frame by animateFloatAsState(
         targetValue = if (darkMode) PROGRESS_SUN else PROGRESS_MOON,
-        animationSpec = tween(durationMillis = durationMillis, easing = LinearEasing),
+        animationSpec = tween(durationMillis = durationMillis, easing = MikomiMotion.Curve.Linear),
         label = "nightModeLottieProgress",
     )
 

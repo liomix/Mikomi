@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 
 /** 首屏占位行数：2 行 × 3 列 = 6 个占位格。 */
 private const val INITIAL_ROWS = 2
@@ -141,7 +142,7 @@ private fun MediaRow(dividerColor: Color, skeletonColor: Color, isFirst: Boolean
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(MikomiRadius.Md))
                         .background(skeletonColor),
                 )
             }

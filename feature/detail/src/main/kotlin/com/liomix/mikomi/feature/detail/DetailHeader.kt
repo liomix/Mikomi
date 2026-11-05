@@ -47,14 +47,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
-import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
+import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.business.heroTarget
@@ -79,8 +80,6 @@ private val DETAIL_BACKDROP_BLUR = 40.dp
  * 头部正文固定是白字，所以底必须永远是深的：日间页面底色是 #F1F1F3，封面失败或尚未解码时
  * 若直接透出页面底色，白字会看不见。这里用一层中性深灰兜底，两种主题下都够暗。
  */
-private val DETAIL_BACKDROP_FALLBACK = Color(0xFF26262A)
-
 /**
  * 橡皮筋接缝的渐隐带高度。
  *
@@ -162,7 +161,7 @@ internal fun DetailHeader(
                 text = anime.title,
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = MikomiTheme.colors.media.content,
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -249,7 +248,7 @@ internal fun DetailHeader(
  * 淡入会在这 ~100ms 里逐帧重跑一次大面积模糊，那是唯一会把成本带进帧里的写法，
  * 而头部本来就随整页转场一起出现，硬切看不出来。
  *
- * 低于 Android 12 时 `Modifier.blur` 不生效（原图直出），此时只有 [DETAIL_BACKDROP_FALLBACK]
+ * 低于 Android 12 时 `Modifier.blur` 不生效（原图直出），此时只有 `media.backdrop`
  * 兜底，白字能否看清取决于封面本身亮度。
  *
  * 失败态不额外画占位：`error` 由 Coil 交回空 painter，露出的就是兜底底色。
@@ -265,7 +264,7 @@ private fun DetailBackdrop(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(DETAIL_BACKDROP_FALLBACK),
+                .background(MikomiTheme.colors.media.backdrop),
         )
         Image(
             painter = painter,
@@ -320,6 +319,9 @@ internal fun HeaderEdgeBackdrop(
                     this@drawWithContent.drawContent()
                     // 前 dy 原样，最后 fadePx 一路化到全透明；两个端点之外由 CLAMP 接管，
                     // 所以这条遮罩只会影响接缝那几 dp。
+                    //
+                    // 这里的黑色**不是配色**：DstIn 只取画笔的 alpha 通道，「黑」代表
+                    // 「这一段原样保留」。所以它不取任何 token，取色器里也不该把它算成硬编码。
                     drawRect(
                         brush = Brush.verticalGradient(
                             0f to Color.Black,
@@ -365,14 +367,14 @@ private fun HeaderInfoSkeleton(
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         repeat(3) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xs)) {
                 SkeletonBox(
                     modifier = Modifier.size(width = 56.dp, height = 14.dp),
-                    shape = RoundedCornerShape(7.dp),
+                    shape = MikomiPillShape,
                 )
                 SkeletonBox(
                     modifier = Modifier.size(width = 72.dp, height = 20.dp),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(MikomiRadius.Md),
                 )
             }
         }
@@ -388,18 +390,19 @@ private fun HeaderInfoBlock(
         if (label != null) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = 14.sp,
-                    color = Color.White.copy(alpha = 0.7f),
+                // bodyMedium 本身就是 14sp：原来写的是「bodySmall 再抬到 14」，
+                // 等于一边用 12sp 的行高一边用 14sp 的字号。这里直接选对槽位。
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = MikomiTheme.colors.media.contentSecondary,
                 ),
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Xs))
         }
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = MikomiTheme.colors.media.content,
             ),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -415,12 +418,11 @@ private fun RatingBlock(
     Column {
         Text(
             text = stringResource(R.string.detail_rating_count, ratingCount),
-            style = MaterialTheme.typography.bodySmall.copy(
-                fontSize = 14.sp,
-                color = Color.White.copy(alpha = 0.7f),
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = MikomiTheme.colors.media.contentSecondary,
             ),
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(MikomiSpacing.Xs))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Filled.Star,
@@ -433,7 +435,7 @@ private fun RatingBlock(
                 text = String.format(Locale.ROOT, "%.1f", rating),
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = MikomiTheme.colors.media.content,
                 ),
             )
         }

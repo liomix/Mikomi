@@ -91,6 +91,58 @@ data class MikomiRankColor(
 )
 
 /**
+ * 压在图像 / 视频上的那一套色。
+ *
+ * ## 为什么单列一族
+ *
+ * 这一族的取值**不随主题变**：封面上是白字，白天夜里都是白字；视频的信箱区是黑的，
+ * 换成浅色主题它还是黑的。所以它们既不属于 `ColorScheme`，也不该跟着日/夜解析。
+ *
+ * 但它们也不该是 `Color.White` —— 一旦页面直接写白色，就必然出现「这里 0.7、那里 0.72、
+ * 另一处 0.8」的分裂（本轮清理前，全仓有 0.45 / 0.7 / 0.72 / 0.8 / 0.85 / 0.9 六种白，
+ * 全部用来表达同样的「次级文字」）。收成三档之后，某个位置该用第几档是可判定的。
+ *
+ * 布局约定：`content` 是主文字与图标；`contentSecondary` 是副标题、时间、说明；
+ * `contentTertiary` 是占位与「有但不强调」的信息。再往下不存在第四档 ——
+ * 比 [contentTertiary] 还淡的字在画面上已经读不出来，那不是层次，是丢失信息。
+ */
+@Immutable
+data class MikomiMediaColors(
+    /** 主文字与图标：纯白。压在任何封面上都要读得出来。 */
+    val content: Color,
+    /** 次级文字：副标题、简介、时间。 */
+    val contentSecondary: Color,
+    /** 三级文字：占位、单位、非活跃刻度。 */
+    val contentTertiary: Color,
+    /** 压在图上的描边与分隔线（14% 白）：交代边界，不该被注意到。 */
+    val outline: Color,
+    /** 浮动控件的容器底色（14% 白）：返回按钮、控制条按钮的底。 */
+    val surface: Color,
+    /** 强调容器（28% 白）：按下态、已开启的开关。 */
+    val surfaceProminent: Color,
+    /** 底部渐变遮罩的深端（72% 黑）：让白色控件在亮画面上也站得住。 */
+    val scrim: Color,
+    /** 顶部渐变遮罩的浅端（62% 黑）。 */
+    val scrimSoft: Color,
+    /** 视频信箱区与播放器底层：纯黑。黑边不该被看成一块内容。 */
+    val void: Color,
+    /** 图像尚未到达时的兜底深灰：比黑浅一档，看得出「这里会有一张图」。 */
+    val backdrop: Color,
+    /** 播放器背景渐变的顶端（近黑偏冷）。 */
+    val backdropTop: Color,
+    /** 播放器背景渐变的底端。 */
+    val backdropBottom: Color,
+    /** 浅色浮层底板（85% 白）：音量/亮度 HUD —— 暗画面上的深色底板会消失。 */
+    val overlayContainer: Color,
+    /** 浅色浮层上的内容色：近黑而非纯黑，压在 85% 白上纯黑偏硬。 */
+    val overlayContent: Color,
+    /** 进度条未填充段（26% 白）。 */
+    val track: Color,
+    /** 进度条已缓冲段（42% 白）。 */
+    val trackBuffered: Color,
+)
+
+/**
  * M3 之外的全部语义色。
  *
  * 由 [MikomiTheme] 按「配色 + 日/夜」解析一次并缓存，通过 [LocalMikomiColors] 下发。
@@ -128,6 +180,10 @@ data class MikomiColors(
     val skeletonBase: Color,
     /** 骨架扫光亮带：比底色更亮一档。 */
     val skeletonSweep: Color,
+    /** 压在图像 / 视频上的整套前景色。 */
+    val media: MikomiMediaColors,
+    /** 预览画布：展示「真实世界里长什么样」的东西（应用图标、主题色卡）时的固定浅底。 */
+    val previewCanvas: Color,
 ) {
     /** 按色相取标签配色。 */
     fun tag(hue: MikomiTagHue): MikomiTagColor = when (hue) {
@@ -224,6 +280,49 @@ private const val SkeletonNightBaseAlpha = 24f / 255f
 private const val SkeletonNightSweepAlpha = 31f / 255f
 
 /**
+ * 压在图像 / 视频上的颜色族。
+ *
+ * **这个族是常量，不是主题色**：它描述的是「白色压在封面上」这件事，与日/夜无关。
+ * 因此它同时以两种方式暴露：
+ *
+ * - `MikomiTheme.colors.media` —— 常规读法，并且可以在子树里用 `copy` 覆写
+ *   （例如把某个播放主题整体压暖）；
+ * - `MikomiMedia` —— 非组合位置的读法。遮罩渐变、文字阴影这类值写在顶层 `val` 里，
+ *   组合期一次都不重新分配，读不到 `CompositionLocal`。
+ */
+val MikomiMedia: MikomiMediaColors = MikomiMediaColors(
+    content = Color.White,
+    contentSecondary = Color.White.copy(alpha = 0.76f),
+    contentTertiary = Color.White.copy(alpha = 0.45f),
+    outline = Color.White.copy(alpha = 0.14f),
+    surface = Color.White.copy(alpha = 0.14f),
+    surfaceProminent = Color.White.copy(alpha = 0.28f),
+    scrim = Color.Black.copy(alpha = 0.72f),
+    scrimSoft = Color.Black.copy(alpha = 0.62f),
+    void = Color.Black,
+    backdrop = Color(0xFF26262A),
+    backdropTop = Color(0xFF14161B),
+    backdropBottom = Color(0xFF05060A),
+    overlayContainer = Color.White.copy(alpha = 0.85f),
+    overlayContent = Color.Black.copy(alpha = 0.88f),
+    track = Color.White.copy(alpha = 0.26f),
+    trackBuffered = Color.White.copy(alpha = 0.42f),
+)
+
+/** 应用图标预览底色：与真实启动图标的白底一致，所以不能跟主题走。 */
+private val PreviewCanvas = Color(0xFFFEFEFE)
+
+/**
+ * 绘制阴影用的恒定黑。
+ *
+ * 阴影不随主题变 —— 夜间的阴影也还是黑的（夜里看到的阴影是「没有光」，不是「白色的暗」）。
+ * 单独做成顶层常量而不是挂在 [MikomiColors] 上，是因为它常被用在**非组合**的位置：
+ * `TextStyle(shadow = Shadow(...))`、`Modifier.shadow(ambientColor = ...)` 这类
+ * 对象初始化在组合之外，读不到 `CompositionLocal`。
+ */
+val MikomiShadowColor: Color = Color.Black
+
+/**
  * 解析一套扩展色。
  *
  * 纯函数、不依赖组合运行时，可以从任意线程调用（`warmUpColorSchemes` 就在后台线程上跑）。
@@ -252,6 +351,8 @@ internal fun resolveMikomiColors(scheme: ColorScheme, dark: Boolean): MikomiColo
         skeletonSweep = ink.copy(
             alpha = if (dark) SkeletonNightSweepAlpha else SkeletonDaySweepAlpha,
         ),
+        media = MikomiMedia,
+        previewCanvas = PreviewCanvas,
     )
 }
 

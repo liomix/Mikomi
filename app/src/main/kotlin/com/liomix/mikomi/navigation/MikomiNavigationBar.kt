@@ -2,7 +2,6 @@ package com.liomix.mikomi.navigation
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -45,9 +44,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.lerp
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import kotlin.math.roundToInt
 
 /**
@@ -135,7 +135,7 @@ private const val SelectedContainerAlpha = 0.10f
 private const val ContentColorMillis = 140
 
 /** 胶囊滑动时长。Telegram 的实际曲线没测，这里用通用减速曲线。 */
-private const val IndicatorMillis = 220
+private const val IndicatorMillis = MikomiMotion.Duration.Short
 
 /** 胶囊与单项统一的形状：`percent = 50` 恒为胶囊，与高度自动吻合。 */
 private val NavBarPillShape = RoundedCornerShape(percent = 50)
@@ -197,8 +197,7 @@ private fun NavBarItem(
         Text(
             text = item.label,
             color = contentColor,
-            fontSize = 12.sp,
-            lineHeight = 13.sp,
+            style = MikomiTextStyles.IconLabel,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -236,7 +235,7 @@ private fun NavBarIndicator(
         progress.snapTo(0f)
         progress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = IndicatorMillis, easing = FastOutSlowInEasing),
+            animationSpec = tween(durationMillis = IndicatorMillis, easing = MikomiMotion.Curve.Emphasized),
         )
     }
 

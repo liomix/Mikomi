@@ -1,7 +1,6 @@
 package com.liomix.mikomi.feature.home
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -48,17 +47,18 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
-import androidx.compose.ui.graphics.painter.ColorPainter
-import androidx.compose.ui.platform.LocalContext
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
-import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
+import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.base.skeletonBaseColor
@@ -183,7 +183,7 @@ private fun BannerItem(
     )
     val corner by animateDpAsState(
         targetValue = if (isPressed) BANNER_CORNER_PRESSED else BANNER_CORNER,
-        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = MikomiMotion.Duration.Short, easing = MikomiMotion.Curve.Standard),
         label = "bannerPressCorner",
     )
 
@@ -257,7 +257,7 @@ private fun BannerItem(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
                             0.35f to Color.Transparent,
-                            1f to Color.Black.copy(alpha = 0.72f),
+                            1f to MikomiTheme.colors.media.scrim,
                         ),
                     ),
                 ),
@@ -270,9 +270,9 @@ private fun BannerItem(
         ) {
             ScrollingText(
                 text = anime.title,
+                // 字距不加：中文方块字加 0.1sp 只会让标题看起来是散的（见 `Type.kt`）。
                 style = MaterialTheme.typography.titleMedium.copy(
-                    letterSpacing = 0.1.sp, // 标题字距微调，更精致
-                    color = Color.White,
+                    color = MikomiTheme.colors.media.content,
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -297,8 +297,8 @@ private fun RatingPill(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(percent = 50))
-            .background(Color.White.copy(alpha = 0.18f))
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            .background(MikomiTheme.colors.media.surface)
+            .padding(horizontal = MikomiSpacing.Sm, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {
@@ -312,7 +312,7 @@ private fun RatingPill(
             text = rating,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
-            color = Color.White,
+            color = MikomiTheme.colors.media.content,
         )
     }
 }
@@ -348,11 +348,11 @@ private fun PagerIndicator(
             )
             val color by animateColorAsState(
                 targetValue = if (selected) {
-                    Color.White.copy(alpha = 0.95f)
+                    MikomiTheme.colors.media.content
                 } else {
-                    Color.White.copy(alpha = 0.45f)
+                    MikomiTheme.colors.media.contentTertiary
                 },
-                animationSpec = tween(durationMillis = 200),
+                animationSpec = tween(durationMillis = MikomiMotion.Duration.Short),
                 label = "indicatorColor",
             )
 

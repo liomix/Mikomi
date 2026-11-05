@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.ContextWrapper
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -62,8 +61,12 @@ import androidx.core.view.WindowCompat
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
+import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.base.ErrorState
 import com.liomix.mikomi.core.ui.component.base.PressButton
 import com.liomix.mikomi.core.ui.component.base.PressButtonStyle
@@ -347,38 +350,38 @@ private fun DetailLoadingSkeleton(
                 .background(MaterialTheme.colorScheme.surfaceContainerLow)
                 .windowInsetsPadding(WindowInsets.statusBars)
                 // 与真实头部一致：状态栏之下不再留额外上边距。
-                .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
+                .padding(start = MikomiSpacing.Room, end = MikomiSpacing.Room, bottom = MikomiSpacing.Room),
         ) {
             SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth(0.55f)
                     .height(26.dp),
-                shape = RoundedCornerShape(13.dp),
+                shape = MikomiPillShape,
             )
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(MikomiSpacing.Room))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Room),
             ) {
                 SkeletonBox(
                     modifier = Modifier
                         .weight(1f)
                         .aspectRatio(2f / 3f),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(MikomiRadius.Xl),
                 )
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(18.dp),
                 ) {
                     repeat(3) {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xs)) {
                             SkeletonBox(
                                 modifier = Modifier.size(width = 56.dp, height = 14.dp),
-                                shape = RoundedCornerShape(7.dp),
+                                shape = MikomiPillShape,
                             )
                             SkeletonBox(
                                 modifier = Modifier.size(width = 84.dp, height = 20.dp),
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(MikomiRadius.Md),
                             )
                         }
                     }
@@ -386,15 +389,15 @@ private fun DetailLoadingSkeleton(
             }
         }
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(horizontal = MikomiSpacing.Room, vertical = MikomiSpacing.Xl),
+            verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
         ) {
             repeat(4) { index ->
                 SkeletonBox(
                     modifier = Modifier
                         .fillMaxWidth(if (index == 3) 0.6f else 1f)
                         .height(14.dp),
-                    shape = RoundedCornerShape(7.dp),
+                    shape = MikomiPillShape,
                 )
             }
         }
@@ -412,9 +415,9 @@ private fun BottomActions(
     Column(
         modifier = modifier
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(end = 20.dp, bottom = 24.dp),
+            .padding(end = MikomiSpacing.Room, bottom = MikomiSpacing.Xl),
         horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
     ) {
         FavoriteButton(
             isFavorite = isFavorite,
@@ -475,7 +478,7 @@ private fun FavoriteButton(
             targetValue = 1f,
             animationSpec = tween(
                 durationMillis = loaded.duration.toInt().coerceAtLeast(1),
-                easing = LinearEasing,
+                easing = MikomiMotion.Curve.Linear,
             ),
         )
         bursting = false
@@ -567,7 +570,7 @@ private fun DetailTabBar(
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
                     },
-                    animationSpec = tween(durationMillis = 200),
+                    animationSpec = tween(durationMillis = MikomiMotion.Duration.Short),
                     label = "tabTextColor",
                 )
                 Tab(

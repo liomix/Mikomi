@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.lerp
+import com.liomix.mikomi.core.designsystem.spec.MikomiNavBarSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
@@ -91,14 +92,14 @@ fun MikomiNavigationBar(
 
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(NavBarCornerRadius),
+        shape = RoundedCornerShape(MikomiNavBarSpec.CornerRadius),
         color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
-        Box(modifier = Modifier.padding(NavBarInnerPadding)) {
+        Box(modifier = Modifier.padding(MikomiNavBarSpec.InnerPadding)) {
             NavBarIndicator(
                 bounds = bounds,
                 selectedIndex = selectedIndex,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = SelectedContainerAlpha),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = MikomiNavBarSpec.SelectedContainerAlpha),
             )
             Row(
                 modifier = Modifier
@@ -129,12 +130,6 @@ data class MikomiNavItem(
     val label: String,
 )
 
-/** 选中胶囊底色：`primary` 淡化。Telegram 实测约 8%（#EBF6FD on white）。 */
-private const val SelectedContainerAlpha = 0.10f
-
-/** 选中/未选中内容色的过渡时长；只改颜色，不动布局。 */
-private const val ContentColorMillis = 140
-
 /** 胶囊滑动时长。Telegram 的实际曲线没测，这里用通用减速曲线。 */
 private const val IndicatorMillis = MikomiMotion.Duration.Short
 
@@ -156,7 +151,7 @@ private fun NavBarItem(
     val interactionSource = remember { MutableInteractionSource() }
     val contentColor by animateColorAsState(
         targetValue = if (selected) colorScheme.primary else colorScheme.onSurfaceVariant,
-        animationSpec = tween(durationMillis = ContentColorMillis),
+        animationSpec = tween(durationMillis = MikomiNavBarSpec.ContentColorMillis),
         label = "navBarItemColor",
     )
 
@@ -172,7 +167,7 @@ private fun NavBarItem(
                     bounds[index] = rect
                 }
             }
-            .height(NavBarItemHeight)
+            .height(MikomiNavBarSpec.ItemHeight)
             .clip(MikomiPillShape)
             .selectable(
                 selected = selected,
@@ -181,7 +176,7 @@ private fun NavBarItem(
                 role = Role.Tab,
                 onClick = onClick,
             )
-            .padding(horizontal = NavBarItemHorizontalPadding),
+            .padding(horizontal = MikomiNavBarSpec.ItemHorizontalPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -189,9 +184,9 @@ private fun NavBarItem(
             imageVector = if (selected) item.selectedIcon else item.icon,
             contentDescription = null,
             tint = contentColor,
-            modifier = Modifier.size(NavBarIconSize),
+            modifier = Modifier.size(MikomiNavBarSpec.IconSize),
         )
-        Spacer(modifier = Modifier.height(NavBarIconLabelGap))
+        Spacer(modifier = Modifier.height(MikomiNavBarSpec.IconLabelGap))
         Text(
             text = item.label,
             color = contentColor,
@@ -275,21 +270,15 @@ private fun indicatorRect(
     )
 }
 
-/** 栏体高度：48dp 单项 + 上下各 4dp 内边距。 */
-val MikomiNavBarBodyHeight = 56.dp
+/** 栏体高度。数值与理由见 `MikomiNavBarSpec.BodyHeight`。 */
+val MikomiNavBarBodyHeight = MikomiNavBarSpec.BodyHeight
 
 /** 栏体距屏幕左右的外边距。 */
-val MikomiNavBarHorizontalMargin = 16.dp
+val MikomiNavBarHorizontalMargin = MikomiNavBarSpec.HorizontalMargin
 
 /** 栏体距屏幕底部（系统导航栏之上）的外边距。 */
-val MikomiNavBarBottomMargin = 8.dp
+val MikomiNavBarBottomMargin = MikomiNavBarSpec.BottomMargin
 
 /** 栏体从屏幕下沿往上占用的高度（栏体 + 底部外边距，**不含**系统导航栏 inset）。 */
 val MikomiNavBarBottomSpace = MikomiNavBarBottomMargin + MikomiNavBarBodyHeight
 
-private val NavBarCornerRadius = 28.dp
-private val NavBarInnerPadding = 4.dp
-private val NavBarItemHeight = 48.dp
-private val NavBarItemHorizontalPadding = 24.dp
-private val NavBarIconSize = 24.dp
-private val NavBarIconLabelGap = 3.dp

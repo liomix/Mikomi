@@ -23,6 +23,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.spec.MikomiNavBarSpec
+import com.liomix.mikomi.core.designsystem.spec.MikomiPlayerSpec
+import com.liomix.mikomi.core.designsystem.spec.MikomiSwitchSpec
+import com.liomix.mikomi.core.designsystem.spec.MikomiTagSpec
+import java.util.Locale
 
 /*
  * 设计系统目录（Design System Gallery）。
@@ -91,8 +96,8 @@ private fun PaletteGallery() {
             "标签文字",
             MikomiTagHue.entries.map { colors.tag(it).content },
         )
-        SwatchRow("名次 fill", listOf(colors.rankFirst.fill, colors.rankSecond.fill, colors.rankThird.fill))
-        SwatchRow("名次 ink", listOf(colors.rankFirst.ink, colors.rankSecond.ink, colors.rankThird.ink))
+        SwatchRow("名次 fill", listOf(colors.ranks.first.fill, colors.ranks.second.fill, colors.ranks.third.fill))
+        SwatchRow("名次 ink", listOf(colors.ranks.first.ink, colors.ranks.second.ink, colors.ranks.third.ink))
         SwatchRow("骨架", listOf(colors.skeletonBase, colors.skeletonSweep))
 
         // 媒体族是常量，但要垫在深底上才看得见（白字压在白画布上等于没有）。
@@ -135,6 +140,122 @@ private fun PaletteGallery() {
                 }
             }
         }
+
+        SectionTitle("对比度（不达标标红）")
+        val failures = auditContrast(colors, MaterialTheme.colorScheme).count { !it.passes }
+        Text(
+            text = if (failures == 0) {
+                "全部达标"
+            } else {
+                "$failures 对不达标 —— 完整清单见「对比度」预览"
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = if (failures == 0) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.error
+            },
+        )
+    }
+}
+
+@Preview(name = "对比度 · 日间", widthDp = 400, heightDp = 900, showBackground = true)
+@Composable
+private fun ContrastDayPreview() {
+    MikomiTheme(darkTheme = false) { ContrastGallery() }
+}
+
+@Preview(name = "对比度 · 夜间", widthDp = 400, heightDp = 900, showBackground = true)
+@Composable
+private fun ContrastNightPreview() {
+    MikomiTheme(darkTheme = true) { ContrastGallery() }
+}
+
+/**
+ * 对比度验收页。
+ *
+ * 这里会**故意抛出异常**：任何一对不达标都让预览失败。理由和 `tokenAudit` 一致 ——
+ * 约束写在注释里等于没有约束，名次 ink 就是「注释写了、值算错了、一年没人发现」的例子。
+ * 想看色板而不是修色值时，用旁边的「色板」预览，那边只展示不拦截。
+ */
+@Composable
+private fun ContrastGallery() {
+    val checks = auditContrast(MikomiTheme.colors, MaterialTheme.colorScheme)
+    val failed = checks.filter { !it.passes }
+
+    check(failed.isEmpty()) {
+        "对比度不达标：\n" + failed.joinToString("\n") {
+            "  ${it.name} —— ${formatRatio(it.ratio)} < ${formatRatio(it.min)}"
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(MikomiSpacing.Lg),
+        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
+    ) {
+        SectionTitle("对比度 · ${checks.size} 对全部达标")
+        for (check in checks) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
+            ) {
+                // 色块：左前景、右背景，一眼看到这行在说哪两个颜色。
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .background(check.foreground, RoundedCornerShape(MikomiRadius.Xs)),
+                )
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .background(check.background, RoundedCornerShape(MikomiRadius.Xs))
+                        .border(
+                            MikomiStroke.Thin,
+                            MaterialTheme.colorScheme.outlineVariant,
+                            RoundedCornerShape(MikomiRadius.Xs),
+                        ),
+                )
+                Text(
+                    text = check.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = "${formatRatio(check.ratio)} / ${formatRatio(check.min)}",
+                    style = MikomiTextStyles.Code,
+                    color = if (check.passes) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    },
+                )
+            }
+        }
+    }
+}
+
+/** 对比度保留两位小数。上层已保证不达标会抛异常，所以这里只管好看。 */
+private fun formatRatio(value: Float): String =
+    String.format(Locale.US, "%.2f", value)
+
+/** 一行「规格名 → 数值」，用于组件规格一节。 */
+@Composable
+private fun SpecLine(name: String, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = name,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.width(96.dp),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -145,7 +266,7 @@ private fun MediaLine(label: String, color: Color) {
             modifier = Modifier
                 .size(width = 28.dp, height = 14.dp)
                 .background(color, RoundedCornerShape(MikomiRadius.Xs))
-                .border(0.5.dp, MikomiMedia.outline, RoundedCornerShape(MikomiRadius.Xs)),
+                .border(MikomiStroke.Thin, MikomiMedia.outline, RoundedCornerShape(MikomiRadius.Xs)),
         )
         Text(
             text = label,
@@ -167,7 +288,7 @@ private fun SwatchRow(label: String, colors: List<Color>) {
                         .size(width = 28.dp, height = 20.dp)
                         .background(color, RoundedCornerShape(MikomiRadius.Xs))
                         // 浅色与页面底接近时没有这圈描边就看不见块本身。
-                        .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(MikomiRadius.Xs)),
+                        .border(MikomiStroke.Thin, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(MikomiRadius.Xs)),
                 )
             }
         }
@@ -240,28 +361,10 @@ private fun TypeScalePreview() {
 @Composable
 private fun DimensPreview() {
     MikomiTheme {
-        val spacings = listOf(
-            "Xxs" to MikomiSpacing.Xxs,
-            "Xs" to MikomiSpacing.Xs,
-            "Tight" to MikomiSpacing.Tight,
-            "Sm" to MikomiSpacing.Sm,
-            "Compact" to MikomiSpacing.Compact,
-            "Md" to MikomiSpacing.Md,
-            "Gutter" to MikomiSpacing.Gutter,
-            "Lg" to MikomiSpacing.Lg,
-            "Room" to MikomiSpacing.Room,
-            "Xl" to MikomiSpacing.Xl,
-            "Xxl" to MikomiSpacing.Xxl,
-        )
-        val radii = listOf(
-            "Xs" to MikomiRadius.Xs,
-            "Sm" to MikomiRadius.Sm,
-            "Md" to MikomiRadius.Md,
-            "Lg" to MikomiRadius.Lg,
-            "Xl" to MikomiRadius.Xl,
-            "Xxl" to MikomiRadius.Xxl,
-            "Sheet" to MikomiRadius.Sheet,
-        )
+        // 档位清单直接读 token 自带的表，不再手抄 —— 手抄过的那一版漏掉了
+        // None 与 Xxxl（48dp）两档，漏掉的刻度等于没人会用。
+        val spacings = MikomiSpacing.steps
+        val radii = MikomiRadius.steps
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -270,21 +373,21 @@ private fun DimensPreview() {
             verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
         ) {
             SectionTitle("间距")
-            for ((name, value) in spacings) {
+            for (step in spacings) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = name,
+                        text = step.name,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.width(48.dp),
                     )
                     Box(
                         modifier = Modifier
-                            .width(value)
+                            .width(step.value)
                             .height(12.dp)
                             .background(MaterialTheme.colorScheme.primary),
                     )
                     Text(
-                        text = "${value.value.toInt()}dp",
+                        text = step.label,
                         style = MaterialTheme.typography.labelSmall,
                         textAlign = TextAlign.End,
                         modifier = Modifier.padding(start = MikomiSpacing.Sm),
@@ -294,18 +397,18 @@ private fun DimensPreview() {
 
             SectionTitle("圆角")
             Row(horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm)) {
-                for ((name, value) in radii) {
+                for (step in radii) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
                             modifier = Modifier
                                 .size(34.dp)
                                 .background(
                                     MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    RoundedCornerShape(value),
+                                    RoundedCornerShape(step.value),
                                 ),
                         )
                         Text(
-                            text = name,
+                            text = step.name,
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.padding(top = MikomiSpacing.Xxs),
                         )
@@ -314,46 +417,83 @@ private fun DimensPreview() {
             }
 
             SectionTitle("线宽")
-            for ((name, value) in listOf(
-                "Thin" to MikomiStroke.Thin,
-                "Medium" to MikomiStroke.Medium,
-                "Thick" to MikomiStroke.Thick,
-            )) {
+            for (step in MikomiStroke.steps) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = name,
+                        text = step.name,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.width(48.dp),
                     )
                     Box(
                         modifier = Modifier
                             .width(120.dp)
-                            .height(value)
+                            .height(step.value)
                             .background(MaterialTheme.colorScheme.outline),
                     )
                     Text(
-                        text = "${value.value}dp",
+                        text = step.label,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.padding(start = MikomiSpacing.Sm),
                     )
                 }
             }
 
+            SectionTitle("动效时长")
+            // 曲线不是数值，没法摊平成一格一格；这里只登记时长，曲线见 `MikomiMotion.Curve` 的注释。
+            Row(horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm)) {
+                for (step in MikomiMotion.Duration.steps) {
+                    Surface(
+                        shape = RoundedCornerShape(MikomiRadius.Sm),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    ) {
+                        Text(
+                            text = step.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(
+                                horizontal = MikomiSpacing.Sm,
+                                vertical = MikomiSpacing.Xxs,
+                            ),
+                        )
+                    }
+                }
+            }
+
+            SectionTitle("组件规格（spec 层）")
+            // 数值从 `spec/ComponentSpec.kt` 插值，不手写 —— 手写过的那一版漏过档位。
+            // 这里只列每组的「一个代表规格」，完整清单在 ComponentSpec.kt 里。
+            SpecLine(
+                "开关轨道",
+                "${MikomiSwitchSpec.TrackWidth.value.toInt()} × ${MikomiSwitchSpec.TrackHeight.value.toInt()}dp",
+            )
+            SpecLine(
+                "标签胶囊",
+                "高 ${MikomiSizes.ChipHeight.value.toInt()}dp / 横内边距 " +
+                    "${MikomiTagSpec.SelectableHorizontalPadding.value.toInt()}dp",
+            )
+            SpecLine(
+                "底栏",
+                "${MikomiNavBarSpec.BodyHeight.value.toInt()}dp / 圆角 ${MikomiNavBarSpec.CornerRadius.value.toInt()} / " +
+                    "条目 ${MikomiNavBarSpec.ItemHeight.value.toInt()}dp",
+            )
+            SpecLine(
+                "播放器控制钮",
+                "${MikomiPlayerSpec.ControlSize.value.toInt()}dp / 图标 " +
+                    "${MikomiPlayerSpec.ControlIconSize.value.toInt()} / 间隙 " +
+                    "${MikomiPlayerSpec.ControlGap.value.toInt()}dp",
+            )
+
             SectionTitle("投影")
             Row(horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm)) {
-                for ((name, value) in listOf(
-                    "Flat" to MikomiElevation.Flat,
-                    "Raised" to MikomiElevation.Raised,
-                    "Floating" to MikomiElevation.Floating,
-                    "Sheet" to MikomiElevation.Sheet,
-                )) {
+                // 手抄的那一版漏了 Overlay（8dp）—— 所以这里读 steps。行尾补上数值，
+                // 因为 0 / 3 / 6 / 8 在屏幕上很难用眼睛分辨，目录必须把数写出来。
+                for (step in MikomiElevation.steps) {
                     Surface(
                         shape = RoundedCornerShape(MikomiRadius.Md),
                         color = MaterialTheme.colorScheme.surface,
-                        shadowElevation = value,
+                        shadowElevation = step.value,
                     ) {
                         Text(
-                            text = name,
+                            text = step.label,
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.padding(MikomiSpacing.Sm),
                         )
@@ -363,29 +503,24 @@ private fun DimensPreview() {
 
             SectionTitle("结构尺寸")
             // 图标与行高是 TG 体系里最容易被各页面各写一份的两类数字。
-            for ((name, value) in listOf(
-                "IconSm" to MikomiSizes.IconSm,
-                "IconMd" to MikomiSizes.IconMd,
-                "AvatarMd" to MikomiSizes.AvatarMd,
-                "RowDouble" to MikomiSizes.RowDouble,
-            )) {
+            for (step in MikomiSizes.steps) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = name,
+                        text = step.name,
                         style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.width(72.dp),
+                        modifier = Modifier.width(88.dp),
                     )
                     Box(
                         modifier = Modifier
-                            .height(value)
-                            .width(value)
+                            .height(step.value)
+                            .width(step.value)
                             .background(
                                 MaterialTheme.colorScheme.surfaceContainerHigh,
                                 RoundedCornerShape(MikomiRadius.Xs),
                             ),
                     )
                     Text(
-                        text = "${value.value.toInt()}dp",
+                        text = step.label,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.padding(start = MikomiSpacing.Sm),
                     )

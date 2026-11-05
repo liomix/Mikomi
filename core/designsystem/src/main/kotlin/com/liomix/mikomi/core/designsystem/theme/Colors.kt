@@ -153,10 +153,74 @@ data class MikomiMediaColors(
 )
 
 /**
+ * 九个色相的标签色板。
+ *
+ * ## 为什么是一个字段而不是九个
+ *
+ * 上一版的 `MikomiColors` 有 `tagRed` / `tagBlue` / … 九个平铺字段，`rankFirst/Second/Third`
+ * 又三个。它们是**同一张色板的九个格子**，平铺之后有三个坏处：
+ *
+ * 1. 加一个色相（比如「靛」）要改 `MikomiColors` 的构造签名、`copy` 的行为、
+ *    以及 `resolveMikomiColors` 里那一长串 `if (dark) … else …`；
+ * 2. `copy` 出来做局部覆写时，九个字段里改哪个是「九个选择」而不是「一张表」；
+ * 3. 语义色对象一屏看不完，`MikomiColors` 的字段数会随着「再加一个语义色」一直涨。
+ *
+ * 收成一张表之后，加色相只动 [MikomiTagHue] 与这张表，`MikomiColors` 的签名不动。
+ * 用 `Map` 而不是九个字段，是拿一点点查表开销换「结构不随内容膨胀」——
+ * 一次主题解析只建一次表，之后每次读取都是一次哈希。
+ */
+@Immutable
+data class MikomiTagColors(
+    private val byHue: Map<MikomiTagHue, MikomiTagColor>,
+) {
+    init {
+        // 漏一个色相就让它在解析主题时立刻炸，而不是等到某个用户翻到那个标签才
+        // `NoSuchElementException`。色板是编译期常量表，漏项属于写错，不属于运行时状况。
+        val missing = MikomiTagHue.entries.filterNot { byHue.containsKey(it) }
+        require(missing.isEmpty()) { "标签色板缺少色相：$missing" }
+    }
+
+    /** 按色相取一套配色。表里一定有全部色相（构造时校验），所以不会抛 `NoSuchElement`。 */
+    operator fun get(hue: MikomiTagHue): MikomiTagColor = byHue.getValue(hue)
+}
+
+/**
+ * 前三名的配色。
+ *
+ * 只到三名：第 4 名起的样式完全不同（中性灰 + 投影，而不是金属色 + 描边），
+ * 调用方本来就要走另一条分支 —— 见 [of] 返回可空而不是给一个默认值。
+ */
+@Immutable
+data class MikomiRanks(
+    val first: MikomiRankColor,
+    val second: MikomiRankColor,
+    val third: MikomiRankColor,
+) {
+    /** 按名次取配色；三名之后返回 `null`。 */
+    fun of(place: Int): MikomiRankColor? = when (place) {
+        1 -> first
+        2 -> second
+        3 -> third
+        else -> null
+    }
+}
+
+/**
  * M3 之外的全部语义色。
  *
  * 由 [MikomiTheme] 按「配色 + 日/夜」解析一次并缓存，通过 [LocalMikomiColors] 下发。
  * 值对象本身不可变，`copy` 出来即可在子树里覆写其中几项。
+ *
+ * ## 字段是按「族」分组的
+ *
+ * 上一版把所有语义色平铺成 22 个字段（九个标签、三个名次各占一格），于是每加一个
+ * 语义色就把这个类撑宽一行。现在按族归拢：[tags] 是一张九格色板、[ranks] 是前三名、
+ * [media] 是压在图像上的一整套前景色。顶层只剩「单值」的语义色。
+ *
+ * 新增颜色的判断顺序：
+ * 1. `MaterialTheme.colorScheme` 里有对应槽位 → 不要往这里加；
+ * 2. 属于某个已有的族（又一个标签色相、又一个名次） → 加进那个族，别在顶层开口子；
+ * 3. 确实是新的单值语义（像「搜索高亮」） → 才加顶层字段，并在 `TokenGallery` 登记。
  */
 @Immutable
 data class MikomiColors(
@@ -167,33 +231,16 @@ data class MikomiColors(
      * 在 `background`(#F1F1F3) 上 1.45:1 —— 当文字用是读不出来的。
      * 目前三处调用（详情头部、首页 banner、搜索封面）都压在图上，符合这个约束；
      * 将来若要在浅色卡片上显示评分，别用它，用 `onSurface` 配这个金色图标，
-     * 或者先给 [MikomiColors] 补一档 `ratingInk`（做法同 [MikomiRankColor.ink]）。
+     * 或者先补一档 `ratingInk`（做法同 [MikomiRankColor.ink]）。
+     *
+     * 这条约束现在**有机器在查**：`TokenGallery` 的对比度页会把「金压白」算出来并标红，
+     * 所以它不是靠自觉。
      */
     val rating: Color,
-    /** 红色标签。 */
-    val tagRed: MikomiTagColor,
-    /** 蓝色标签。 */
-    val tagBlue: MikomiTagColor,
-    /** 紫色标签。 */
-    val tagViolet: MikomiTagColor,
-    /** 琥珀色标签。 */
-    val tagAmber: MikomiTagColor,
-    /** 珊瑚色标签。 */
-    val tagCoral: MikomiTagColor,
-    /** 青色标签。 */
-    val tagTeal: MikomiTagColor,
-    /** 绿色标签。 */
-    val tagGreen: MikomiTagColor,
-    /** 品红色标签。 */
-    val tagMagenta: MikomiTagColor,
-    /** 中性标签：未命中语义时的兜底。 */
-    val tagNeutral: MikomiTagColor,
-    /** 第一名（金）。 */
-    val rankFirst: MikomiRankColor,
-    /** 第二名（银）。 */
-    val rankSecond: MikomiRankColor,
-    /** 第三名（铜）。 */
-    val rankThird: MikomiRankColor,
+    /** 九个色相的标签色板。 */
+    val tags: MikomiTagColors,
+    /** 前三名的金属色。 */
+    val ranks: MikomiRanks,
     /** 骨架块底色：半透明墨色，与页面底色同源。 */
     val skeletonBase: Color,
     /** 骨架扫光亮带：比底色更亮一档。 */
@@ -204,30 +251,10 @@ data class MikomiColors(
     val previewCanvas: Color,
 ) {
     /** 按色相取标签配色。 */
-    fun tag(hue: MikomiTagHue): MikomiTagColor = when (hue) {
-        MikomiTagHue.Red -> tagRed
-        MikomiTagHue.Blue -> tagBlue
-        MikomiTagHue.Violet -> tagViolet
-        MikomiTagHue.Amber -> tagAmber
-        MikomiTagHue.Coral -> tagCoral
-        MikomiTagHue.Teal -> tagTeal
-        MikomiTagHue.Green -> tagGreen
-        MikomiTagHue.Magenta -> tagMagenta
-        MikomiTagHue.Neutral -> tagNeutral
-    }
+    fun tag(hue: MikomiTagHue): MikomiTagColor = tags[hue]
 
-    /**
-     * 按名次取名次配色；三名之后返回 `null`（用中性色）。
-     *
-     * 返回可空而不是给一个 `default`，是因为第 4 名起的样式**完全不同**
-     * （亮灰 + 投影，而不是金属色 + 描边），调用方本来就要走另一条分支。
-     */
-    fun rank(place: Int): MikomiRankColor? = when (place) {
-        1 -> rankFirst
-        2 -> rankSecond
-        3 -> rankThird
-        else -> null
-    }
+    /** 按名次取名次配色；三名之后返回 `null`（用中性色）。 */
+    fun rank(place: Int): MikomiRankColor? = ranks.of(place)
 }
 
 /*
@@ -240,16 +267,24 @@ data class MikomiColors(
 /** 评分金：Material Amber 500。 */
 private val Gold = Color(0xFFFFC107)
 
-/** 标签日间：浅底 + 深字，全部 ≥ 4.5:1。 */
-private val TagRedDay = MikomiTagColor(Color(0xFFFFE0E0), Color(0xFFB3261E))
-private val TagBlueDay = MikomiTagColor(Color(0xFFD6E4FF), Color(0xFF1A56C7))
-private val TagVioletDay = MikomiTagColor(Color(0xFFE8DFFF), Color(0xFF5A2FA6))
-private val TagAmberDay = MikomiTagColor(Color(0xFFFFE8C7), Color(0xFF8A4B00))
-private val TagCoralDay = MikomiTagColor(Color(0xFFFFD9D2), Color(0xFFA52714))
-private val TagTealDay = MikomiTagColor(Color(0xFFD0F0E8), Color(0xFF0B6B5A))
-private val TagGreenDay = MikomiTagColor(Color(0xFFDDF2D2), Color(0xFF2E6B1E))
-private val TagMagentaDay = MikomiTagColor(Color(0xFFF5DDF5), Color(0xFF7A2B7A))
-private val TagNeutralDay = MikomiTagColor(Color(0xFFE8EAED), Color(0xFF4A5568))
+/**
+ * 标签日间：浅底 + 深字，全部 ≥ 4.5:1。
+ *
+ * 写成一张表而不是九个 `val`，是因为「九个色相 × 两种模式」本质就是 18 行数据。
+ * 平铺之后，加一个色相要在文件里找三个地方（日间、夜间、`resolve` 的分支），
+ * 而表里只加一行。
+ */
+private val TagDay: Map<MikomiTagHue, MikomiTagColor> = mapOf(
+    MikomiTagHue.Red to MikomiTagColor(Color(0xFFFFE0E0), Color(0xFFB3261E)),
+    MikomiTagHue.Blue to MikomiTagColor(Color(0xFFD6E4FF), Color(0xFF1A56C7)),
+    MikomiTagHue.Violet to MikomiTagColor(Color(0xFFE8DFFF), Color(0xFF5A2FA6)),
+    MikomiTagHue.Amber to MikomiTagColor(Color(0xFFFFE8C7), Color(0xFF8A4B00)),
+    MikomiTagHue.Coral to MikomiTagColor(Color(0xFFFFD9D2), Color(0xFFA52714)),
+    MikomiTagHue.Teal to MikomiTagColor(Color(0xFFD0F0E8), Color(0xFF0B6B5A)),
+    MikomiTagHue.Green to MikomiTagColor(Color(0xFFDDF2D2), Color(0xFF2E6B1E)),
+    MikomiTagHue.Magenta to MikomiTagColor(Color(0xFFF5DDF5), Color(0xFF7A2B7A)),
+    MikomiTagHue.Neutral to MikomiTagColor(Color(0xFFE8EAED), Color(0xFF4A5568)),
+)
 
 /**
  * 标签夜间：深底 + 亮字。
@@ -258,15 +293,17 @@ private val TagNeutralDay = MikomiTagColor(Color(0xFFE8EAED), Color(0xFF4A5568))
  * 这里每个色相各自取「同色相的深色容器 + 同色相的亮色文字」，
  * 容器亮度落在 surface(#181818) 附近，只靠色相区分，不靠亮度抢眼。
  */
-private val TagRedNight = MikomiTagColor(Color(0xFF4A2320), Color(0xFFFFB4AB))
-private val TagBlueNight = MikomiTagColor(Color(0xFF1B3A5C), Color(0xFFA8C8FF))
-private val TagVioletNight = MikomiTagColor(Color(0xFF33255C), Color(0xFFD0BCFF))
-private val TagAmberNight = MikomiTagColor(Color(0xFF4A3210), Color(0xFFFFD79A))
-private val TagCoralNight = MikomiTagColor(Color(0xFF4A2820), Color(0xFFFFB59E))
-private val TagTealNight = MikomiTagColor(Color(0xFF123C36), Color(0xFF8EE0D0))
-private val TagGreenNight = MikomiTagColor(Color(0xFF243C18), Color(0xFFB6E39A))
-private val TagMagentaNight = MikomiTagColor(Color(0xFF42204A), Color(0xFFF0B6F5))
-private val TagNeutralNight = MikomiTagColor(Color(0xFF2C2C31), Color(0xFFC7C7CC))
+private val TagNight: Map<MikomiTagHue, MikomiTagColor> = mapOf(
+    MikomiTagHue.Red to MikomiTagColor(Color(0xFF4A2320), Color(0xFFFFB4AB)),
+    MikomiTagHue.Blue to MikomiTagColor(Color(0xFF1B3A5C), Color(0xFFA8C8FF)),
+    MikomiTagHue.Violet to MikomiTagColor(Color(0xFF33255C), Color(0xFFD0BCFF)),
+    MikomiTagHue.Amber to MikomiTagColor(Color(0xFF4A3210), Color(0xFFFFD79A)),
+    MikomiTagHue.Coral to MikomiTagColor(Color(0xFF4A2820), Color(0xFFFFB59E)),
+    MikomiTagHue.Teal to MikomiTagColor(Color(0xFF123C36), Color(0xFF8EE0D0)),
+    MikomiTagHue.Green to MikomiTagColor(Color(0xFF243C18), Color(0xFFB6E39A)),
+    MikomiTagHue.Magenta to MikomiTagColor(Color(0xFF42204A), Color(0xFFF0B6F5)),
+    MikomiTagHue.Neutral to MikomiTagColor(Color(0xFF2C2C31), Color(0xFFC7C7CC)),
+)
 
 /** 名次：金属填充、描边、页面文字色三档。 */
 private val RankFirst = MikomiRankColor(
@@ -287,6 +324,9 @@ private val RankThird = MikomiRankColor(
     // 5.85:1 / 6.60:1
     ink = Color(0xFF8A4E17),
 )
+
+/** 前三名的色板。不随日 / 夜变 —— 金属色压在封面上，两种模式下都成立。 */
+private val RankColors = MikomiRanks(RankFirst, RankSecond, RankThird)
 
 /** 骨架底色透明度：浅色 8.6% 黑（Telegram `setAlpha(listSelector, 22)`）。 */
 private const val SkeletonDayBaseAlpha = 22f / 255f
@@ -354,18 +394,8 @@ internal fun resolveMikomiColors(scheme: ColorScheme, dark: Boolean): MikomiColo
     val ink = scheme.onSurface
     return MikomiColors(
         rating = Gold,
-        tagRed = if (dark) TagRedNight else TagRedDay,
-        tagBlue = if (dark) TagBlueNight else TagBlueDay,
-        tagViolet = if (dark) TagVioletNight else TagVioletDay,
-        tagAmber = if (dark) TagAmberNight else TagAmberDay,
-        tagCoral = if (dark) TagCoralNight else TagCoralDay,
-        tagTeal = if (dark) TagTealNight else TagTealDay,
-        tagGreen = if (dark) TagGreenNight else TagGreenDay,
-        tagMagenta = if (dark) TagMagentaNight else TagMagentaDay,
-        tagNeutral = if (dark) TagNeutralNight else TagNeutralDay,
-        rankFirst = RankFirst,
-        rankSecond = RankSecond,
-        rankThird = RankThird,
+        tags = MikomiTagColors(if (dark) TagNight else TagDay),
+        ranks = RankColors,
         skeletonBase = ink.copy(
             alpha = if (dark) SkeletonNightBaseAlpha else SkeletonDayBaseAlpha,
         ),

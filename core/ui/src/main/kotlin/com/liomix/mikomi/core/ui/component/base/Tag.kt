@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.spec.MikomiTagSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
@@ -41,13 +42,10 @@ private val MetaShape: Shape = RoundedCornerShape(MikomiRadius.Sm)
 private const val ColorAnimMillis = MikomiMotion.Duration.Short
 
 /** 选中底色透明度：浅色染主色，避免实心块视觉重量过重（看起来像主按钮）。 */
-private const val ContainerAlphaSelected = 0.14f
 
 /** 选中描边透明度。 */
-private const val BorderAlphaSelected = 0.55f
 
 /** 未选中描边透明度：只勾出边界，不抢文字。 */
-private const val BorderAlphaUnselected = 0.7f
 
 /** 可选中标签的高度，同时就是它的触控高度（见文件末尾的破例说明）。 */
 private val SelectableHeight = MikomiSizes.ChipHeight
@@ -210,28 +208,26 @@ private val TagStyle.defaultShape: Shape
         TagStyle.Meta -> MetaShape
     }
 
-/**
- * 两套实测内边距，留在这里而不上提成 token。
+/*
+ * 两套实测内边距不在本文件里，而是住在 designsystem 的 `MikomiTagSpec`。
  *
- * 它们回答的是「这枚标签自己有多胖」，不是「布局要留多少呼吸」—— 上提成共用 token
- * 之后，调 Tag 的手感会连带改到别的控件。判别方法同 `MikomiSpacing` 的说明：
- * 这个数字变了，是整页的节奏变了，还是只有这一个控件变了。
+ * 它们回答的是「这枚标签自己有多胖」，不是「布局要留多少呼吸」，
+ * 所以属于组件规格而不是间距 token（判别方法见 `MikomiSwitchSpec` 的文件头）。
+ * 挪出去的理由只有一个：规格写在组件内部就只有写的人知道，
+ * 放在规格层才会出现在设计系统的目录与审计里。
  */
-private val SelectableHorizontalPadding = 18.dp
-private val MetaHorizontalPadding = 5.dp
-private val MetaVerticalPadding = 1.dp
 
 /** 三套规格的内边距。可选中的那套左右留白更大，因为它是控件而不是文字块。 */
 private val TagStyle.defaultContentPadding: PaddingValues
     get() = when (this) {
-        TagStyle.Selectable -> PaddingValues(horizontal = SelectableHorizontalPadding)
+        TagStyle.Selectable -> PaddingValues(horizontal = MikomiTagSpec.SelectableHorizontalPadding)
         TagStyle.Content -> PaddingValues(
             horizontal = MikomiSpacing.Lg,
             vertical = MikomiSpacing.Sm,
         )
         TagStyle.Meta -> PaddingValues(
-            horizontal = MetaHorizontalPadding,
-            vertical = MetaVerticalPadding,
+            horizontal = MikomiTagSpec.MetaHorizontalPadding,
+            vertical = MikomiTagSpec.MetaVerticalPadding,
         )
     }
 
@@ -263,15 +259,15 @@ private fun TagStyle.defaultColors(selected: Boolean): TagColors {
     return when (this) {
         TagStyle.Selectable -> if (selected) {
             TagColors(
-                container = colors.primary.copy(alpha = ContainerAlphaSelected),
+                container = colors.primary.copy(alpha = MikomiTagSpec.ContainerAlphaSelected),
                 content = colors.primary,
-                border = colors.primary.copy(alpha = BorderAlphaSelected),
+                border = colors.primary.copy(alpha = MikomiTagSpec.BorderAlphaSelected),
             )
         } else {
             TagColors(
                 container = Color.Transparent,
                 content = colors.onSurfaceVariant,
-                border = colors.outlineVariant.copy(alpha = BorderAlphaUnselected),
+                border = colors.outlineVariant.copy(alpha = MikomiTagSpec.BorderAlphaUnselected),
             )
         }
 

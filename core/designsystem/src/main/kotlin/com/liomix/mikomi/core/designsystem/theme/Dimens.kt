@@ -1,5 +1,6 @@
 package com.liomix.mikomi.core.designsystem.theme
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -21,6 +22,27 @@ import androidx.compose.ui.unit.dp
  * 不上提成 token —— 它们是「这个控件的物理尺寸」，不是「布局的呼吸」，一旦共用就会被
  * 下一次调参连坐。判别方法：这个数字换了，是整页的节奏变了，还是只有这一个控件变了。
  */
+
+/**
+ * 一个具名档位。
+ *
+ * ## 为什么要这个类
+ *
+ * `TokenGallery` 曾经手抄一份档位清单（`"Sm" to MikomiSpacing.Sm` 一条条写）。
+ * 手抄的清单会漏 —— 加 `Compact` 那次就漏过，`None` 与 `Xxxl` 也一直没在目录里出现过。
+ * 漏掉的档位不是「显示问题」：目录看不见的刻度，等于没人会去用它。
+ *
+ * 现在每个尺寸 object 自带一份 [MikomiStep] 表，目录从表渲染、审计也读这张表，
+ * 于是「新增档位」只需要改一处，且漏登记会被 `./gradlew tokenAudit` 数出来。
+ *
+ * 名字是手写的字符串（Kotlin 的反射拿不到 `val` 名，也不该为目录引入反射），
+ * 但**数量与顺序由审计对账**，所以写错名字会立刻暴露。
+ */
+@Immutable
+data class MikomiStep(val name: String, val value: Dp) {
+    /** 目录里显示的数值，如 `12dp`。 */
+    val label: String get() = "${value.value.toInt()}dp"
+}
 
 /**
  * 间距：节拍档 + 角色档的两族阶梯。
@@ -126,6 +148,28 @@ object MikomiSpacing {
 
     /** 48dp：极少用，留给「整块留白表达分组」的场景。 */
     val Xxxl: Dp = 48.dp
+
+    /**
+     * 全部档位，按从小到大排列。
+     *
+     * 目录（`TokenGallery`）与审计（`./gradlew tokenAudit`）都读这张表 ——
+     * **它必须与本 object 里的 `val` 一一对应**，漏一条或写错名会被审计数出来。
+     */
+    val steps: List<MikomiStep> = listOf(
+        MikomiStep("None", None),
+        MikomiStep("Xxs", Xxs),
+        MikomiStep("Xs", Xs),
+        MikomiStep("Tight", Tight),
+        MikomiStep("Sm", Sm),
+        MikomiStep("Compact", Compact),
+        MikomiStep("Md", Md),
+        MikomiStep("Gutter", Gutter),
+        MikomiStep("Lg", Lg),
+        MikomiStep("Room", Room),
+        MikomiStep("Xl", Xl),
+        MikomiStep("Xxl", Xxl),
+        MikomiStep("Xxxl", Xxxl),
+    )
 }
 
 /**
@@ -165,6 +209,17 @@ object MikomiRadius {
 
     /** 28dp：对话框 —— 与顶栏高度同一量级，看起来像「从底边长出来的」。 */
     val Sheet: Dp = 28.dp
+
+    /** 全部档位。规则同 [MikomiSpacing.steps]。 */
+    val steps: List<MikomiStep> = listOf(
+        MikomiStep("Xs", Xs),
+        MikomiStep("Sm", Sm),
+        MikomiStep("Md", Md),
+        MikomiStep("Lg", Lg),
+        MikomiStep("Xl", Xl),
+        MikomiStep("Xxl", Xxl),
+        MikomiStep("Sheet", Sheet),
+    )
 }
 
 /** 固定尺寸：触控目标、图标、行高。只收跨组件共用的那几个。 */
@@ -218,6 +273,18 @@ object MikomiSizes {
 
     /** 中头像：评论、日程、列表中的人物位。 */
     val AvatarMd: Dp = 40.dp
+
+    /** 全部档位。规则同 [MikomiSpacing.steps]。 */
+    val steps: List<MikomiStep> = listOf(
+        MikomiStep("IconSm", IconSm),
+        MikomiStep("IconMd", IconMd),
+        MikomiStep("ChipHeight", ChipHeight),
+        MikomiStep("AvatarMd", AvatarMd),
+        MikomiStep("TouchTarget", TouchTarget),
+        MikomiStep("ButtonHeight", ButtonHeight),
+        MikomiStep("TopBarHeight", TopBarHeight),
+        MikomiStep("RowDouble", RowDouble),
+    )
 }
 
 /**
@@ -242,6 +309,15 @@ object MikomiElevation {
 
     /** 抽屉：从底部升起、需要明确脱离页面的一层。 */
     val Sheet: Dp = 12.dp
+
+    /** 全部档位。规则同 [MikomiSpacing.steps]。 */
+    val steps: List<MikomiStep> = listOf(
+        MikomiStep("Flat", Flat),
+        MikomiStep("Raised", Raised),
+        MikomiStep("Floating", Floating),
+        MikomiStep("Overlay", Overlay),
+        MikomiStep("Sheet", Sheet),
+    )
 }
 
 /**
@@ -271,4 +347,11 @@ object MikomiStroke {
 
     /** 2dp：强调描边 —— 选中态、错误态这种「必须一眼分辨」的边界。 */
     val Thick: Dp = 2.dp
+
+    /** 全部档位。规则同 [MikomiSpacing.steps]。 */
+    val steps: List<MikomiStep> = listOf(
+        MikomiStep("Thin", Thin),
+        MikomiStep("Medium", Medium),
+        MikomiStep("Thick", Thick),
+    )
 }

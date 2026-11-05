@@ -58,6 +58,12 @@ private val NightBackground = Color(0xFF000000)
 /** 夜间的卡片 / 面板底色。 */
 private val NightSurface = Color(0xFF181818)
 
+/** 夜间正文：中性近白。M3 默认的 #E6E1E5 带紫，见 [withNightSurfaces] 的说明。 */
+private val NightOnSurface = Color(0xFFEDEDF0)
+
+/** 夜间次级文字：中性灰，压在 #181818 上 8.6:1。 */
+private val NightOnSurfaceVariant = Color(0xFFB4B4B9)
+
 /**
  * 夜间表面层级：背景纯黑、卡片 #181818，仅最高层级略提亮，
  * 保证卡片在纯黑背景上仍有边界，又不会出现大块浅灰。
@@ -65,6 +71,12 @@ private val NightSurface = Color(0xFF181818)
 private fun ColorScheme.withNightSurfaces(): ColorScheme = copy(
     background = NightBackground,
     surface = NightSurface,
+    // 正文与次级文字也必须显式写：M3 darkColorScheme 的默认值是 #E6E1E5 / #CAC4D0，
+    // 两个都带一点点紫（R > G > B）。压在纯黑上看不出来，但一旦和中性灰的卡片并排，
+    // 「白得发暖」就会显脏 —— 这与日间把 onSurface 从 #1C1B1F 改成纯黑是同一个理由。
+    onBackground = NightOnSurface,
+    onSurface = NightOnSurface,
+    onSurfaceVariant = NightOnSurfaceVariant,
     surfaceContainerLowest = Color(0xFF0D0D0D),
     surfaceContainerLow = NightSurface,
     surfaceContainer = Color(0xFF1C1C1C),
@@ -74,6 +86,9 @@ private fun ColorScheme.withNightSurfaces(): ColorScheme = copy(
     // 描边：M3 默认的 #938F99 / #49454F 都带紫，压在纯黑上会读成「脏灰」。
     outline = Color(0xFF8A8A8F),
     outlineVariant = Color(0xFF3A3A3E),
+    // 这两个是 M3 1.2 起的槽位，默认值同样带紫；用到的组件少，但漏了就是漏了。
+    surfaceDim = Color(0xFF0D0D0D),
+    surfaceBright = Color(0xFF262626),
 )
 
 /**
@@ -96,6 +111,8 @@ private fun ColorScheme.withDaySurfaces(): ColorScheme = copy(
     // （根层由 MikomiTheme 用 onBackground 兜底 LocalContentColor，Surface 内部用 onSurface）。
     onBackground = Color(0xFF000000),
     onSurface = Color(0xFF000000),
+    // 次级文字：M3 默认 #49454F 也带紫调（压在白上是看不出，但和下面对不上的描边同屏就显脏）。
+    onSurfaceVariant = Color(0xFF4A4A4F),
     surfaceContainerLowest = Color(0xFFFFFFFF),
     surfaceContainerLow = Color(0xFFFFFFFF),
     surfaceContainer = Color(0xFFF7F7F9),
@@ -104,6 +121,8 @@ private fun ColorScheme.withDaySurfaces(): ColorScheme = copy(
     surfaceVariant = Color(0xFFE9E9EC),
     outline = Color(0xFF76767A),
     outlineVariant = Color(0xFFC7C7CC),
+    surfaceDim = Color(0xFFE1E1E5),
+    surfaceBright = Color(0xFFFFFFFF),
 )
 
 /**

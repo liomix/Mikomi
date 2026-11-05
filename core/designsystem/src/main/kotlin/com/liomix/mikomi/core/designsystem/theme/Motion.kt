@@ -2,6 +2,7 @@ package com.liomix.mikomi.core.designsystem.theme
 
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
+import androidx.compose.runtime.Immutable
 
 /*
  * 动效 token。
@@ -18,6 +19,18 @@ import androidx.compose.animation.core.Easing
  * Material 的 `FastOutSlowInEasing` 常量，而是把控制点直接写出来 —— 调参时能一眼看到
  * 曲线形状，也方便和 Telegram 的 `CubicBezierInterpolator` 对照（它用的是同一族曲线）。
  */
+/**
+ * 一个具名时长档位（毫秒）。
+ *
+ * 与 [MikomiStep] 同构，只是单位不是 dp —— 动效的档位是「多久」，不是「多大」，
+ * 硬塞进同一个类就得给数值加单位标记，反而更难读。
+ */
+@Immutable
+data class MikomiTime(val name: String, val millis: Int) {
+    /** 目录里显示的数值，如 `200ms`。 */
+    val label: String get() = "${millis}ms"
+}
+
 object MikomiMotion {
 
     /**
@@ -58,6 +71,21 @@ object MikomiMotion {
 
         /** 350ms：页面级转场（封面飞行、整屏切换），也是松手回弹的时长。 */
         const val ExtraLong = 350
+
+        /**
+         * 全部时长档位。
+         *
+         * 与尺寸的 `steps` 同一个用途：`TokenGallery` 从它渲染，于是「加了档位忘记登记」
+         * 不再可能发生。类型不是 `Dp` 而是毫秒，所以单独定义（[MikomiTime]）。
+         */
+        val steps: List<MikomiTime> = listOf(
+            MikomiTime("Instant", Instant),
+            MikomiTime("Fast", Fast),
+            MikomiTime("Short", Short),
+            MikomiTime("Medium", Medium),
+            MikomiTime("Long", Long),
+            MikomiTime("ExtraLong", ExtraLong),
+        )
     }
 
     /**

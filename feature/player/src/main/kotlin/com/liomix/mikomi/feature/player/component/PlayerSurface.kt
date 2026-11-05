@@ -89,6 +89,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.spec.MikomiPlayerSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
@@ -105,31 +106,15 @@ import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 
-/** 进度条可触控高度（视觉轨道只有 3dp，其余是给手指的余量）。 */
-private val SeekBarHeight = 40.dp
-
-/** 控制行按钮尺寸：**可见方块就是触控区**，与导航条的圆钮同一套算法。 */
-private val ControlSize = 40.dp
-
-/** 同组按钮间距（上一集/播放/下一集）。 */
-private val ControlGap = 6.dp
-
-/** 跨组间距（播放组 ↔ 弹幕组）：比组内大，靠疏密把「哪些是一伙的」讲清楚。 */
-private val GroupGap = 12.dp
-
-/** 32dp 小号按钮的左右内边距：两字标签既不贴边、也不显空。 */
-private val SmallButtonHorizontalPadding = 18.dp
-
+/*
+ * 控制条的尺寸规格（进度条热区、按钮、间距、最小宽度）都在 `MikomiPlayerSpec` 里。
+ *
+ * 它们比页面元素更密：一行要塞下上下集 / 播放 / 弹幕 / 倍速 / 填充 / 集数 / 全屏七个动作，
+ * 只能靠 40dp 按钮加 6dp 间隙换宽度。页面上的按钮仍然是 48dp，两者不通用 ——
+ * 这正是规格该按组件分家、而间距才该按角色共用的原因。
+ */
 private val ControlShape = RoundedCornerShape(MikomiRadius.Md)
 
-private val ControlIconSize = 20.dp
-
-/**
- * 九个按钮同排时的宽度下限（实测值）：
- * 上下集 + 播放 132 · 弹幕组 86 · 速度胶囊 ~50 · 填充/集数/全屏三枚 132 · 间距与内边距 ~30。
- * 窄于它就把弹幕/填充/集数收起来，留给非全屏那一套，否则最后一个按钮会被挤出屏幕。
- */
-private val FullActionsMinWidth = 430.dp
 
 /** 按钮底：视频画面上不用主题 surface（夜间会被压成黑色，跟画面糊在一起）。 */
 private val ControlContainer = MikomiMedia.surface
@@ -589,7 +574,7 @@ private fun PlayerStatusOverlay(
                     Button(
                         onClick = onRetry,
                         modifier = Modifier.height(32.dp),
-                        contentPadding = PaddingValues(horizontal = SmallButtonHorizontalPadding),
+                        contentPadding = PaddingValues(horizontal = MikomiPlayerSpec.SmallButtonHorizontalPadding),
                     ) {
                         Text(
                             text = stringResource(R.string.player_retry),
@@ -674,7 +659,7 @@ private fun PlayerLockButton(
         onClick = onToggle,
         enabled = visible,
         modifier = modifier
-            .size(ControlSize)
+            .size(MikomiPlayerSpec.ControlSize)
             .graphicsLayer { this.alpha = alpha },
         containerColor = if (locked) MikomiMedia.surfaceProminent else ControlContainer,
     ) {
@@ -684,7 +669,7 @@ private fun PlayerLockButton(
                 if (locked) R.string.player_unlock else R.string.player_lock,
             ),
             tint = MikomiMedia.content,
-            modifier = Modifier.size(ControlIconSize),
+            modifier = Modifier.size(MikomiPlayerSpec.ControlIconSize),
         )
     }
 }
@@ -1011,7 +996,7 @@ private fun FullscreenControls(
         ) {
             // 宽度不够时收起中间几枚：分屏/小窗里全屏宽度可能只有 360dp，
             // 硬排会把「退出全屏」挤到屏幕外（用户就只剩手势可退）。
-            val showAllActions = maxWidth >= FullActionsMinWidth
+            val showAllActions = maxWidth >= MikomiPlayerSpec.FullActionsMinWidth
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1034,7 +1019,7 @@ private fun FullscreenControls(
                 )
 
                 if (showAllActions) {
-                    Spacer(modifier = Modifier.width(GroupGap))
+                    Spacer(modifier = Modifier.width(MikomiPlayerSpec.GroupGap))
                     ControlIconButton(
                         painter = painterResource(
                             if (danmakuEnabled) R.drawable.ic_danmaku_on else R.drawable.ic_danmaku_off,
@@ -1094,7 +1079,7 @@ private fun FullscreenControls(
 
 @Composable
 private fun ControlGapSpacer() {
-    Spacer(modifier = Modifier.width(ControlGap))
+    Spacer(modifier = Modifier.width(MikomiPlayerSpec.ControlGap))
 }
 
 /**
@@ -1135,14 +1120,14 @@ private fun ControlIconButton(
     ControlSlot(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.size(ControlSize),
+        modifier = Modifier.size(MikomiPlayerSpec.ControlSize),
         containerColor = containerColor ?: if (active) ActiveControlContainer else ControlContainer,
     ) {
         Icon(
             imageVector = imageVector,
             contentDescription = contentDescription,
             tint = if (active) MaterialTheme.colorScheme.primary else MikomiMedia.content,
-            modifier = Modifier.size(ControlIconSize),
+            modifier = Modifier.size(MikomiPlayerSpec.ControlIconSize),
         )
     }
 }
@@ -1158,14 +1143,14 @@ private fun ControlIconButton(
     ControlSlot(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.size(ControlSize),
+        modifier = Modifier.size(MikomiPlayerSpec.ControlSize),
         containerColor = if (active) ActiveControlContainer else ControlContainer,
     ) {
         Icon(
             painter = painter,
             contentDescription = contentDescription,
             tint = if (active) MaterialTheme.colorScheme.primary else MikomiMedia.content,
-            modifier = Modifier.size(ControlIconSize + 2.dp),
+            modifier = Modifier.size(MikomiPlayerSpec.ControlIconSize + 2.dp),
         )
     }
 }
@@ -1188,13 +1173,13 @@ private fun PlayPauseButton(
     playback: PlayerPlaybackState,
     enabled: Boolean,
     containerColor: Color = ProminentControlContainer,
-    iconSize: Dp = ControlIconSize + 4.dp,
+    iconSize: Dp = MikomiPlayerSpec.ControlIconSize + 4.dp,
 ) {
     val isPlaying = playback.isPlaying
     ControlSlot(
         onClick = playback::togglePlayPause,
         enabled = enabled,
-        modifier = Modifier.size(ControlSize),
+        modifier = Modifier.size(MikomiPlayerSpec.ControlSize),
         containerColor = containerColor,
     ) {
         Icon(
@@ -1227,7 +1212,7 @@ private fun SpeedChip(
         ControlSlot(
             onClick = { onExpandedChange(true) },
             enabled = enabled,
-            modifier = Modifier.height(ControlSize),
+            modifier = Modifier.height(MikomiPlayerSpec.ControlSize),
         ) {
             Text(
                 text = stringResource(R.string.player_speed_value, formatSpeed(speed)),
@@ -1284,13 +1269,13 @@ private fun VideoScaleMenu(
         ControlSlot(
             onClick = { onExpandedChange(true) },
             enabled = enabled,
-            modifier = Modifier.size(ControlSize),
+            modifier = Modifier.size(MikomiPlayerSpec.ControlSize),
         ) {
             Icon(
                 imageVector = Icons.Rounded.FitScreen,
                 contentDescription = stringResource(R.string.player_scale_current, currentLabel),
                 tint = MikomiMedia.content,
-                modifier = Modifier.size(ControlIconSize),
+                modifier = Modifier.size(MikomiPlayerSpec.ControlIconSize),
             )
         }
 
@@ -1357,7 +1342,7 @@ private fun PlayerSeekBar(
 ) {
     Canvas(
         modifier = modifier
-            .height(SeekBarHeight)
+            .height(MikomiPlayerSpec.SeekBarHeight)
             .pointerInput(playback, enabled) {
                 if (!enabled) return@pointerInput
                 awaitEachGesture {

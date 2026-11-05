@@ -37,6 +37,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.spec.MikomiSheetSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiElevation
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import androidx.compose.ui.window.Popup
@@ -45,44 +46,11 @@ import kotlin.math.abs
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-/** [BottomPop] 的默认尺寸、阈值与手感参数。 */
-object BottomPopDefaults {
-    /** 默认锚点：半展开与接近全屏。比例是「面板高度 / 可用高度」。 */
-    val Anchors: List<Float> = listOf(0.5f, 0.92f)
-
-    /** 面板顶部两个圆角。 */
-    val CornerSize = MikomiRadius.Sheet
-
-    /** 顶部抓手的宽 / 高。 */
-    val HandleWidth = 36.dp
-    val HandleHeight = 4.dp
-
-    /** 抓手上下留白。 */
-    val HandlePadding = 10.dp
-
-    /** 遮罩最深不透明度。 */
-    const val ScrimAlpha = 0.32f
-
-    /**
-     * 松手时低于「最低锚点 × 该比例」就直接关闭。
-     *
-     * 不看速度也要有个位置兜底：慢慢往下拖到底，用户意图同样是关掉，
-     * 只是没有那一下甩动而已。
-     */
-    const val DismissFraction = 0.55f
-
-    /** 判定为「甩」的速度阈值，低于它按最近锚点吸附。 */
-    val SnapVelocity = 400.dp
-
-    /** 橡皮筋系数。越小越「拉不动」，0.55 与 Android 的 overscroll 手感一致。 */
-    const val RubberBandCoefficient = 0.55f
-
-    /** 锚点比例下限，防止调用方给出贴着屏幕底的无效锚点。 */
-    const val MinAnchorFraction = 0.15f
-}
-
 /**
  * 底部弹窗：从屏幕底部升起，可上下拖动，松手吸附到调用方定义的锚点。
+ *
+ * 尺寸与手感参数（圆角、抓手 36×4、关闭阈值 0.55、橡皮筋 0.55）在 `MikomiSheetSpec` 里 ——
+ * 它们属于「这个组件的固有规格」，不该由页面各调一次。
  *
  * 锚点用**比例**定义（面板高度 / 可用高度），而不是 dp：
  * 同一个 `0.5f` 在平板上是半屏、在手机上也是半屏，换设备不用重算。
@@ -124,7 +92,7 @@ fun BottomPop(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
-    anchors: List<Float> = BottomPopDefaults.Anchors,
+    anchors: List<Float> = MikomiSheetSpec.Anchors,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val fractions = remember(anchors) { anchors.sanitized() }
@@ -200,8 +168,8 @@ fun BottomPop(
             }
             val minAnchorPx = anchorPx.first()
             val maxAnchorPx = anchorPx.last()
-            val dismissPx = minAnchorPx * BottomPopDefaults.DismissFraction
-            val velocityThresholdPx = with(density) { BottomPopDefaults.SnapVelocity.toPx() }
+            val dismissPx = minAnchorPx * MikomiSheetSpec.DismissFraction
+            val velocityThresholdPx = with(density) { MikomiSheetSpec.SnapVelocity.toPx() }
             val panelHeight = with(density) { maxAnchorPx.toDp() }
             val scrimColor = MaterialTheme.colorScheme.scrim
             val velocityTracker = remember { VelocityTracker() }
@@ -221,7 +189,7 @@ fun BottomPop(
                     .fillMaxSize()
                     .drawBehind {
                         val progress = (visible / maxAnchorPx).coerceIn(0f, 1f)
-                        drawRect(scrimColor.copy(alpha = BottomPopDefaults.ScrimAlpha * progress))
+                        drawRect(scrimColor.copy(alpha = MikomiSheetSpec.ScrimAlpha * progress))
                     }
                     .pointerInput(Unit) {
                         detectTapGestures { dismissAction.value() }
@@ -274,8 +242,8 @@ fun BottomPop(
                         }
                     },
                 shape = RoundedCornerShape(
-                    topStart = BottomPopDefaults.CornerSize,
-                    topEnd = BottomPopDefaults.CornerSize,
+                    topStart = MikomiSheetSpec.CornerSize,
+                    topEnd = MikomiSheetSpec.CornerSize,
                 ),
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                 tonalElevation = MikomiElevation.Raised,
@@ -307,14 +275,14 @@ private fun SheetHandle() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = BottomPopDefaults.HandlePadding),
+            .padding(vertical = MikomiSheetSpec.HandlePadding),
         contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
                 .size(
-                    width = BottomPopDefaults.HandleWidth,
-                    height = BottomPopDefaults.HandleHeight,
+                    width = MikomiSheetSpec.HandleWidth,
+                    height = MikomiSheetSpec.HandleHeight,
                 )
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
@@ -375,14 +343,14 @@ private fun Float.rubberBanded(
 /** 越界距离 → 实际可移动距离。距离越长收益越小，永远拉不满一屏。 */
 private fun rubberBandDistance(distance: Float, dimension: Float): Float {
     if (distance <= 0f || dimension <= 0f) return 0f
-    return dimension * (1f - 1f / (distance * BottomPopDefaults.RubberBandCoefficient / dimension + 1f))
+    return dimension * (1f - 1f / (distance * MikomiSheetSpec.RubberBandCoefficient / dimension + 1f))
 }
 
 /** 过滤非法值、夹到有效区间、升序去重；调用方给空列表时退回默认锚点。 */
 private fun List<Float>.sanitized(): List<Float> = asSequence()
     .filter { it.isFinite() && it > 0f }
-    .map { it.coerceIn(BottomPopDefaults.MinAnchorFraction, 1f) }
+    .map { it.coerceIn(MikomiSheetSpec.MinAnchorFraction, 1f) }
     .distinct()
     .sorted()
     .toList()
-    .ifEmpty { BottomPopDefaults.Anchors }
+    .ifEmpty { MikomiSheetSpec.Anchors }

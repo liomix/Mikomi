@@ -1,9 +1,8 @@
 package com.liomix.mikomi.core.ui.component.base
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,33 +30,41 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.util.lerp
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.roundToInt
+import kotlin.math.sin
 
 /** 标签的排布方向：图标与文字横排，或图标在上、文字在下。 */
 enum class TabOrientation { Horizontal, Vertical }
@@ -156,11 +162,18 @@ class TabBarState internal constructor() {
 
     internal val bounds = mutableStateListOf<Rect>()
 
+    /**
+     * 上报一个标签的实测矩形。
+     *
+     * **幂等**：`onGloballyPositioned` 在同一几何下也可能被反复回调（指示器动画会逐帧让它所在容器重新测量，
+     * 兄弟节点被重新放置时回调就会再走一遍）。`SnapshotStateList` 的 `set` 不比较相等，
+     * 无条件写会让指示器每帧被自己叫醒一次 —— 所以值没变就别写。
+     */
     internal fun report(index: Int, rect: Rect) {
         if (bounds.size <= index) {
             while (bounds.size <= index) bounds.add(Rect.Zero)
         }
-        bounds[index] = rect
+        if (bounds[index] != rect) bounds[index] = rect
     }
 }
 
@@ -191,7 +204,7 @@ private val LocalTabBarVisuals = compositionLocalOf {
  * - 尺寸与排版整套由 [TabItemStyle] 描述：个人页（图标+文字横排）、底部导航（图标在上）、
  *   排行榜（纯文字）、周日历（两行）共用同一套动效。
  *
- * 动效：指示器的 x / 宽 / 高共用一条 spring，切换时是**滑动**而不是原地淡入；
+ * 动效：指示器**左右两条边各走一条缓动**，切换时先被拉长再收拢（见 [TabIndicator]）；
  * 内容色用 `animateColorAsState` 过渡（只重绘，不重排文字）；字重只切两档。
  *
  * ```
@@ -260,36 +273,155 @@ fun TabBar(
     }
 }
 
-/** 指示器：与标签行叠在同一坐标系，按选中项的实测矩形做三轴动画。 */
+/**
+ * 指示器：与标签行叠在同一坐标系，按选中项的实测矩形做**弹性**滑动。
+ *
+ * ## 动效来源
+ *
+ * 复刻 Kazumi 追番页的 `TabBar(indicatorAnimation: TabIndicatorAnimation.elastic)`
+ * （Flutter `_IndicatorPainter._applyElasticEffect`）：指示器不是整块平移过去，
+ * 而是**左右两条边各走一条缓动**——前导边用 `sin`（起步快）、尾随边用 `1-cos`（起步慢），
+ * 于是切换途中它先被拉长，再收拢到目标宽度。整块做插值就只是普通滑块，少了那橡皮筋感。
+ *
+ * 时长与整体缓动也照抄：Flutter 的 `TabController.animateTo` 默认 300ms + `Curves.ease`，
+ * 然后在**已缓动的进度**上再套那两条正弦曲线，所以这里同样是两段叠加，不是二选一。
+ *
+ * `fromRect` 记的是「切换那一刻指针所在的位置」而不是上一个标签的矩形：连续快点时
+ * 指针还没滑到就改口，动画会从当前位置接着走，不会先跳回上一个标签再出发。
+ *
+ * ## 相位（性能）
+ *
+ * Flutter 原版在 `paint()` 里按动画值算矩形，Compose 这边也要守住同一个原则：
+ * **动画值只在布局或绘制阶段读**，不读进组合阶段。
+ *
+ * - 尺寸走 `Modifier.layout`：矩形宽度本身是动画量，没法只靠变换表达（`scaleX` 会把圆角压成椭圆）；
+ * - 位移与透明度走 `Modifier.graphicsLayer`：纯绘制阶段失效，连重排都不需要；
+ * - 组合阶段只有一个 `LaunchedEffect(selected)`，一次切换发生一次。
+ *
+ * 若把 `progress.value` 读在组合里，300ms 内每次切页要整块重组 18～36 次，
+ * 属于「能跑但没必要」的那类浪费。
+ */
 @Composable
 private fun TabIndicator(state: TabBarState, visuals: TabBarVisuals) {
-    val target = state.bounds.getOrNull(state.selectedIndex)
-    val density = LocalDensity.current
-    val spec = spring<Dp>(
-        dampingRatio = IndicatorSpring.dampingRatio,
-        stiffness = IndicatorSpring.stiffness,
-    )
+    val bounds = state.bounds
+    val selected = state.selectedIndex
+    // 1 = 停稳在目标上；切换时从 0 走到 1。
+    val progress = remember { Animatable(1f) }
+    var fromRect by remember { mutableStateOf<Rect?>(null) }
+    var fromIndex by remember { mutableIntStateOf(selected) }
+    var toIndex by remember { mutableIntStateOf(selected) }
+    val fade = remember { Animatable(0f) }
 
-    val x by animateDpAsState(with(density) { (target?.left ?: 0f).toDp() }, spec, label = "tabIndicatorX")
-    val width by animateDpAsState(with(density) { (target?.width ?: 0f).toDp() }, spec, label = "tabIndicatorWidth")
-    val height by animateDpAsState(with(density) { (target?.height ?: 0f).toDp() }, spec, label = "tabIndicatorHeight")
-    // 首帧尚未量到边界时不闪一个 0×0 的圆点。
-    val visible by animateFloatAsState(
-        targetValue = if (target == null) 0f else 1f,
-        animationSpec = tween(durationMillis = 120),
-        label = "tabIndicatorAlpha",
-    )
+    LaunchedEffect(selected) {
+        if (selected == toIndex) return@LaunchedEffect
+        // 这里读 `progress.value` 不算组合期读取（协程里不受快照订阅影响），
+        // 拿到的是上一帧画面上的真实位置（进度为 1 时就是旧标签的矩形）。
+        fromRect = resolveRect(bounds, fromRect, fromIndex, toIndex, progress.value)
+        fromIndex = toIndex
+        toIndex = selected
+        progress.snapTo(0f)
+        progress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = IndicatorSwapMillis, easing = IndicatorSwapEasing),
+        )
+    }
+
+    // 首帧尚未量到边界时不闪一个 0×0 的圆点。只有「有没有边界」这一件事进组合。
+    val ready = bounds.getOrNull(toIndex) != null
+    LaunchedEffect(ready) {
+        fade.animateTo(
+            targetValue = if (ready) 1f else 0f,
+            animationSpec = tween(durationMillis = IndicatorFadeMillis),
+        )
+    }
 
     Box(
         modifier = Modifier
-            .offset(x = x)
-            .width(width)
-            .height(height)
-            .alpha(visible)
-            .clip(visuals.shape)
+            // 位移、透明度、裁剪都在绘制阶段读：动画推进只让这一层失效。
+            .graphicsLayer {
+                val rect = resolveRect(bounds, fromRect, fromIndex, toIndex, progress.value)
+                if (rect != null) {
+                    translationX = rect.left
+                    translationY = rect.top
+                }
+                alpha = fade.value
+                shape = visuals.shape
+                clip = true
+            }
+            // 尺寸在布局阶段读：只让这一个叶子的测量失效，不惊动标签行。
+            .layout { measurable, _ ->
+                val rect = resolveRect(bounds, fromRect, fromIndex, toIndex, progress.value)
+                val width = rect?.width?.roundToInt() ?: 0
+                val height = rect?.height?.roundToInt() ?: 0
+                val placeable = measurable.measure(Constraints.fixed(width, height))
+                layout(width, height) { placeable.place(0, 0) }
+            }
             .background(visuals.colors.indicator),
     )
 }
+
+/**
+ * 当前这一帧指示器应处的矩形：`to` 取目标标签的实测边界，`from` 取切换那一刻的快照。
+ *
+ * 供布局/绘制阶段调用，返回值随 [progress] 逐帧变化；`from` 为空（首帧还没切换过）时就停在目标上。
+ */
+private fun resolveRect(
+    bounds: List<Rect>,
+    fromRect: Rect?,
+    fromIndex: Int,
+    toIndex: Int,
+    progress: Float,
+): Rect? {
+    val to = bounds.getOrNull(toIndex) ?: return null
+    return elasticRect(
+        from = fromRect ?: to,
+        to = to,
+        progress = progress,
+        movingRight = toIndex > fromIndex,
+    )
+}
+
+/**
+ * 弹性插值：左右边各用一条缓动，得到「被拉长再收拢」的中间矩形。
+ *
+ * 往右切换时右边是前导边（先冲出去）、左边是尾随边（后跟上），所以前者用 [decelerate]、
+ * 后者用 [accelerate]；往左切换反过来。上下边不需要拉伸，跟着整体进度走。
+ *
+ * `right` 兜一个 `coerceAtLeast(left)`：标签之间有空隙，理论上两条边不会交叉，
+ * 但差一帧的边界情况不值得让宽度变成负数。
+ */
+private fun elasticRect(from: Rect, to: Rect, progress: Float, movingRight: Boolean): Rect {
+    val leftFraction = if (movingRight) accelerate(progress) else decelerate(progress)
+    val rightFraction = if (movingRight) decelerate(progress) else accelerate(progress)
+    val left = lerp(from.left, to.left, leftFraction)
+    val right = lerp(from.right, to.right, rightFraction)
+    return Rect(
+        left = left,
+        top = lerp(from.top, to.top, progress),
+        right = right.coerceAtLeast(left),
+        bottom = lerp(from.bottom, to.bottom, progress),
+    )
+}
+
+private const val HalfPi = (PI / 2).toFloat()
+
+/** Flutter `accelerateInterpolation`：`1 - cos(tπ/2)`，起步慢、收尾快。 */
+private fun accelerate(t: Float): Float = 1f - cos(t * HalfPi)
+
+/** Flutter `decelerateInterpolation`：`sin(tπ/2)`，起步快、收尾慢。 */
+private fun decelerate(t: Float): Float = sin(t * HalfPi)
+
+/**
+ * 切换时长：Flutter `TabController.animationDuration` 的默认值（`kTabScrollDuration`）。
+ * 追番页没有传 `animationDuration`，所以走的就是这个 300ms。
+ */
+private const val IndicatorSwapMillis = 300
+
+/** 整体进度的缓动：Flutter `TabController.animateTo` 的默认 `Curves.ease`。 */
+private val IndicatorSwapEasing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
+
+/** 指示器从「还没量到边界」到可见的淡入时长；只跑一次，不影响切换动效。 */
+private const val IndicatorFadeMillis = 120
 
 /**
  * 单个标签：图标（可选）+ 文字（可选第二行副标题），整块可点。
@@ -455,10 +587,5 @@ private fun TabLabel(
     }
 }
 
-/** 指示器滑动用的弹簧：略欠阻尼，收尾干净、不过冲。 */
-private object IndicatorSpring {
-    const val dampingRatio = 0.78f
-    const val stiffness = 650f
-}
-
+/** 内容色过渡时长：只影响颜色，不参与指示器位移。 */
 private const val ColorAnimMillis = 150

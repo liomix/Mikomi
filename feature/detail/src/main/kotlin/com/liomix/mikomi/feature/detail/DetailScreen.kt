@@ -69,7 +69,9 @@ import com.liomix.mikomi.core.ui.component.base.PressButtonStyle
 import com.liomix.mikomi.core.ui.component.base.PressIconButton
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.feature.detail.component.CreditDetailSheet
-import com.liomix.mikomi.feature.detail.component.CreditsTab
+import com.liomix.mikomi.feature.detail.component.collapsingHeader
+import com.liomix.mikomi.feature.detail.component.rememberHeaderCollapse
+import com.liomix.mikomi.feature.detail.component.rememberHeaderCollapseConnection
 import kotlin.math.roundToInt
 
 /** 头部完整高度（展开态）。 */

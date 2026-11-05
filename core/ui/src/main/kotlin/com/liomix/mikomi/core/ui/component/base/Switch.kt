@@ -179,7 +179,7 @@ fun Switch(
                         .size(width = TrackWidth, height = TouchTargetHeight)
                         .toggleable(
                             value = checked,
-                            onValueChange = { onCheckedChange?.invoke(it) },
+                            onValueChange = { onCheckedChange(it) },
                             enabled = enabled,
                             role = Role.Switch,
                             interactionSource = pressSource,

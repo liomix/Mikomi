@@ -1,4 +1,4 @@
-package com.liomix.mikomi.feature.detail
+package com.liomix.mikomi.feature.detail.component
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate

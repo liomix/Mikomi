@@ -1,4 +1,4 @@
-package com.liomix.mikomi.feature.detail.component
+package com.liomix.mikomi.feature.detail
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,8 +38,6 @@ import com.liomix.mikomi.core.model.StaffMember
 import com.liomix.mikomi.core.ui.component.base.EmptyState
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
-import com.liomix.mikomi.feature.detail.AnimeCreditsUiState
-import com.liomix.mikomi.feature.detail.R
 
 /** 主创卡片固定宽度（名字无限滚动 + 关系 badge 需要更宽空间）。 */
 private val CREDIT_CARD_WIDTH = 180.dp

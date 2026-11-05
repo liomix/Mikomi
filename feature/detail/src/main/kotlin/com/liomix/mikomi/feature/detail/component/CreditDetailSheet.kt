@@ -45,13 +45,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.liomix.mikomi.core.common.util.formatRelativeTime
 import com.liomix.mikomi.core.model.CreditComment
 import com.liomix.mikomi.core.model.CreditDetail
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.feature.detail.CreditCommentsUiState
 import com.liomix.mikomi.feature.detail.CreditDetailUiState
 import com.liomix.mikomi.feature.detail.R
-import com.liomix.mikomi.feature.detail.formatRelativeTime
 
 /** 头像尺寸（对齐 Dart 版 120x180 竖版）。 */
 private val DETAIL_IMAGE_WIDTH = 120.dp

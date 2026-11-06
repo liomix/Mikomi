@@ -26,7 +26,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -59,6 +58,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.R
@@ -139,8 +139,8 @@ fun PlgTstStoreScreen(
             actions = {
                 SortAction(current = uiState.sort, onSelect = onSortChange)
                 IconButton(onClick = onRefresh, enabled = !uiState.loading) {
-                    Icon(
-                        imageVector = MikomiIcons.Refresh,
+                    MikomiIcon(
+                        icon = MikomiIcons.Refresh,
                         contentDescription = stringResource(R.string.settings_store_refresh),
                     )
                 }
@@ -256,13 +256,13 @@ private fun SearchField(
             .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Xs),
         placeholder = { Text(stringResource(R.string.settings_store_search_hint)) },
         leadingIcon = {
-            Icon(imageVector = MikomiIcons.Search, contentDescription = null)
+            MikomiIcon(icon = MikomiIcons.Search, contentDescription = null)
         },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(
-                        imageVector = MikomiIcons.Close,
+                    MikomiIcon(
+                        icon = MikomiIcons.Close,
                         contentDescription = stringResource(R.string.settings_store_search_clear),
                     )
                 }
@@ -313,8 +313,8 @@ private fun SortAction(
 
     Box {
         IconButton(onClick = { expanded = true }) {
-            Icon(
-                imageVector = MikomiIcons.Sort,
+            MikomiIcon(
+                icon = MikomiIcons.Sort,
                 contentDescription = stringResource(R.string.settings_store_sort),
             )
         }
@@ -328,8 +328,8 @@ private fun SortAction(
                     },
                     trailingIcon = {
                         if (sort == current) {
-                            Icon(
-                                imageVector = MikomiIcons.Check,
+                            MikomiIcon(
+                                icon = MikomiIcons.Check,
                                 contentDescription = stringResource(R.string.settings_store_sort),
                             )
                         }
@@ -438,10 +438,10 @@ private fun StatusTile(status: PlgTstStoreStatus) {
         contentColor = if (installed) colors.onSurfaceVariant else colors.primary,
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = if (installed) MikomiIcons.Check else MikomiIcons.Extension,
+            MikomiIcon(
+                icon = if (installed) MikomiIcons.Check else MikomiIcons.Extension,
                 contentDescription = null,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(MikomiSizes.IconMd),
             )
         }
     }
@@ -485,11 +485,11 @@ private fun StoreAction(
         }
 
         status == PlgTstStoreStatus.Installed -> Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = MikomiIcons.Check,
+            MikomiIcon(
+                icon = MikomiIcons.Check,
                 contentDescription = null,
                 tint = colors.onSurfaceVariant,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(MikomiSizes.IconXs),
             )
             Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
             Text(
@@ -504,10 +504,10 @@ private fun StoreAction(
             contentPadding = ActionContentPadding,
             modifier = Modifier.height(40.dp),
         ) {
-            Icon(
-                imageVector = if (status == PlgTstStoreStatus.Update) MikomiIcons.Sync else MikomiIcons.Add,
+            MikomiIcon(
+                icon = if (status == PlgTstStoreStatus.Update) MikomiIcons.Sync else MikomiIcons.Add,
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(MikomiSizes.IconXs),
             )
             Spacer(modifier = Modifier.width(MikomiSpacing.Tight))
             Text(
@@ -565,11 +565,11 @@ private fun StoreStateView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            imageVector = icon,
+        MikomiIcon(
+            icon = icon,
             contentDescription = null,
             tint = colors.onSurfaceVariant,
-            modifier = Modifier.size(MikomiSizes.AvatarMd),
+            size = MikomiSizes.AvatarMd,
         )
         Spacer(modifier = Modifier.height(MikomiSpacing.Md))
         Text(

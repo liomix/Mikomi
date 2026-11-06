@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,6 +35,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.ui.R
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 
 /**
  * [BaseScreenLayout] 的默认留白与间距。
@@ -183,10 +183,10 @@ private fun BaseScreenTopBar(
         val backPlaceable = if (onBackClick != null) {
             subcompose(BackSlotKey) {
                 IconButton(onClick = onBackClick) {
-                    Icon(
-                        imageVector = MikomiIcons.BackIos,
+                    MikomiIcon(
+                        icon = MikomiIcons.BackIos,
                         contentDescription = stringResource(R.string.core_ui_back),
-                        modifier = Modifier.size(TopBarDefaults.IconSize),
+                        modifier = Modifier.size(MikomiSizes.IconMd),
                     )
                 }
             }.first().measure(Constraints())

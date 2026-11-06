@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -40,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 
 /**
  * 搜索栏：返回 + 胶囊输入框 + 搜索按钮。
@@ -73,8 +73,8 @@ internal fun SearchTopBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBack) {
-            Icon(
-                imageVector = MikomiIcons.Back,
+            MikomiIcon(
+                icon = MikomiIcons.Back,
                 contentDescription = stringResource(R.string.search_back),
             )
         }
@@ -123,11 +123,11 @@ private fun SearchField(
                 .padding(start = MikomiSpacing.Lg, end = MikomiSpacing.Xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = MikomiIcons.Search,
+            MikomiIcon(
+                icon = MikomiIcons.Search,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(MikomiSizes.IconSm),
             )
             Spacer(modifier = Modifier.width(MikomiSpacing.Compact))
             BasicTextField(
@@ -165,8 +165,8 @@ private fun SearchField(
                     onClick = onClear,
                     modifier = Modifier.size(36.dp),
                 ) {
-                    Icon(
-                        imageVector = MikomiIcons.Close,
+                    MikomiIcon(
+                        icon = MikomiIcons.Close,
                         contentDescription = stringResource(R.string.search_clear),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(MikomiSizes.IconSm),

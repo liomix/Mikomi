@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,12 +35,16 @@ import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.TeasingComment
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.base.SkeletonShimmer
 import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
 
 /** 吐槽头像直径（对齐 Dart 版 40）。 */
 private val TEASING_AVATAR_SIZE = 40.dp
+
+/** 空状态插图尺寸：整页只有一个，大到成为视觉主语，不属于图标档位。 */
+private val EmptyStateIconSize = 56.dp
 
 /** 首屏骨架屏条数（对齐 Dart 版 5）。 */
 private const val TEASING_SKELETON_COUNT = 5
@@ -166,8 +169,8 @@ private fun TeasingAvatar(
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         if (url.isNullOrBlank()) {
-            Icon(
-                imageVector = MikomiIcons.Person,
+            MikomiIcon(
+                icon = MikomiIcons.Person,
                 contentDescription = name,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
@@ -265,11 +268,11 @@ private fun TeasingStatusBlock(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            imageVector = icon,
+        MikomiIcon(
+            icon = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.size(56.dp),
+            size = EmptyStateIconSize,
         )
         Spacer(modifier = Modifier.height(MikomiSpacing.Lg))
         Text(

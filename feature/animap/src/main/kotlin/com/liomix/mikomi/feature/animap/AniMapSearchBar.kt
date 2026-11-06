@@ -22,7 +22,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,6 +45,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.business.AnimeCoverImage
 
 /** 搜索条的固定高度（收起态的胶囊与展开态的输入框同一高度，切换时不跳动）。 */
@@ -69,11 +70,11 @@ private fun CollapsedBar(onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(
-            imageVector = MikomiIcons.Search,
+        MikomiIcon(
+            icon = MikomiIcons.Search,
             contentDescription = null,
             tint = SearchIconColor,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(MikomiSizes.IconSm),
         )
         Text(
             text = stringResource(R.string.animap_search_hint),
@@ -110,11 +111,11 @@ private fun ExpandedBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(
-            imageVector = MikomiIcons.Search,
+        MikomiIcon(
+            icon = MikomiIcons.Search,
             contentDescription = null,
             tint = SearchIconColor,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(MikomiSizes.IconSm),
         )
         Box(modifier = Modifier.weight(1f)) {
             if (query.isEmpty()) {
@@ -140,14 +141,14 @@ private fun ExpandedBar(
             )
         }
         val hasQuery = query.isNotEmpty()
-        Icon(
-            imageVector = MikomiIcons.Close,
+        MikomiIcon(
+            icon = MikomiIcons.Close,
             contentDescription = stringResource(
                 if (hasQuery) R.string.animap_search_clear else R.string.animap_search_close,
             ),
             tint = SearchIconColor,
             modifier = Modifier
-                .size(20.dp)
+                .size(MikomiSizes.IconSm)
                 .clickable {
                     if (hasQuery) {
                         onQueryChange("")
@@ -196,11 +197,11 @@ private fun SuggestionRow(hit: AniMapHit, onClick: () -> Unit) {
                     .background(SearchChipColor),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = MikomiIcons.Place,
+                MikomiIcon(
+                    icon = MikomiIcons.Place,
                     contentDescription = null,
                     tint = SearchIconColor,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(MikomiSizes.IconSm),
                 )
             }
         } else {

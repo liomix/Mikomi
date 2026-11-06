@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,9 +47,11 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.business.heroTarget
@@ -417,11 +418,11 @@ private fun RatingBlock(
         )
         Spacer(modifier = Modifier.height(MikomiSpacing.Xs))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = MikomiIcons.Star,
+            MikomiIcon(
+                icon = MikomiIcons.Star,
                 contentDescription = null,
                 tint = MikomiTheme.colors.rating,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(MikomiSizes.IconMd),
             )
             Spacer(modifier = Modifier.size(MikomiSpacing.Xs))
             Text(

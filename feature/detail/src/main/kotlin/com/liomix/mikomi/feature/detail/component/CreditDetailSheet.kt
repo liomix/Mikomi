@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
@@ -44,9 +43,11 @@ import com.liomix.mikomi.core.common.util.formatRelativeTime
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.CreditComment
 import com.liomix.mikomi.core.model.CreditDetail
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
 import com.liomix.mikomi.feature.detail.CreditCommentsUiState
@@ -311,11 +312,11 @@ private fun CommentItem(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
-                    Icon(
-                        imageVector = if (expanded) MikomiIcons.ExpandLess else MikomiIcons.ExpandMore,
+                    MikomiIcon(
+                        icon = if (expanded) MikomiIcons.ExpandLess else MikomiIcons.ExpandMore,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(MikomiSizes.IconXs),
                     )
                 }
             }
@@ -369,8 +370,8 @@ private fun CommentAvatar(
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         if (url.isNullOrBlank()) {
-            Icon(
-                imageVector = MikomiIcons.Person,
+            MikomiIcon(
+                icon = MikomiIcons.Person,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,8 +30,10 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 
 /** 联想骨架屏条数。 */
@@ -114,11 +115,11 @@ private fun SuggestionItem(
             .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Gutter),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = MikomiIcons.Search,
+        MikomiIcon(
+            icon = MikomiIcons.Search,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(MikomiSizes.IconSm),
         )
         Spacer(modifier = Modifier.width(MikomiSpacing.Md))
         Text(
@@ -130,11 +131,11 @@ private fun SuggestionItem(
             modifier = Modifier.weight(1f),
         )
         Spacer(modifier = Modifier.width(MikomiSpacing.Md))
-        Icon(
-            imageVector = MikomiIcons.NorthWest,
+        MikomiIcon(
+            icon = MikomiIcons.NorthWest,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(MikomiSizes.IconXs),
         )
     }
 }

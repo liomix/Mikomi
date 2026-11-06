@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -58,6 +57,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.feature.player.PlayerPlaybackState
 import kotlin.math.abs
 import kotlin.math.max
@@ -485,11 +485,11 @@ private fun PlayerGestureHudView(
                 maxLines = 1,
             )
         } else if (icon != null) {
-            Icon(
-                imageVector = icon,
+            MikomiIcon(
+                icon = icon,
                 contentDescription = null,
                 tint = HudContent,
-                modifier = Modifier.size(HudIconSize),
+                size = HudIconSize,
             )
         }
         if (fraction != null) {

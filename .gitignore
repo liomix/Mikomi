@@ -31,7 +31,7 @@ keystore.properties
 Thumbs.db
 
 # ---- 工具 ----
-.tools
+tools
 .probe
 
 

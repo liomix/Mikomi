@@ -26,7 +26,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -49,8 +48,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.SideBarPop
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.profile.R
@@ -130,8 +131,8 @@ fun EditorScreen(
                     onClick = { onSave(name.trim(), handle, bio.trim()) },
                     enabled = canSave,
                 ) {
-                    Icon(
-                        imageVector = MikomiIcons.Check,
+                    MikomiIcon(
+                        icon = MikomiIcons.Check,
                         contentDescription = stringResource(R.string.profile_editor_save),
                         tint = if (canSave) {
                             colors.primary
@@ -241,10 +242,10 @@ private fun AvatarSection(
                 modifier = Modifier.size(28.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = MikomiIcons.PhotoCamera,
+                    MikomiIcon(
+                        icon = MikomiIcons.PhotoCamera,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(MikomiSizes.IconXs),
                     )
                 }
             }
@@ -307,11 +308,11 @@ private fun ValueRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        Icon(
-            imageVector = MikomiIcons.ChevronRight,
+        MikomiIcon(
+            icon = MikomiIcons.ChevronRight,
             contentDescription = null,
             tint = colors.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(MikomiSizes.IconSm),
         )
     }
 }

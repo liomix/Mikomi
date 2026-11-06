@@ -1,8 +1,10 @@
 package com.liomix.mikomi.core.designsystem.icon
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
@@ -232,7 +234,7 @@ object MikomiIcons {
             .build()
     }
 
-    /** Bookmark（Rounded）。 */
+    /** BookmarkBorder（Outlined）。 */
     val Bookmark: ImageVector by lazy {
         ImageVector.Builder(
             name = "Bookmark",
@@ -243,13 +245,20 @@ object MikomiIcons {
         )
             .path(fill = SolidColor(Color.Black)) {
                 moveTo(17f, 3f)
-                horizontalLineTo(7f)
+                lineTo(7f, 3f)
                 curveToRelative(-1.1f, 0f, -2f, 0.9f, -2f, 2f)
                 verticalLineToRelative(16f)
                 lineToRelative(7f, -3f)
                 lineToRelative(7f, 3f)
-                verticalLineTo(5f)
+                lineTo(19f, 5f)
                 curveToRelative(0f, -1.1f, -0.9f, -2f, -2f, -2f)
+                close()
+                moveTo(17f, 18f)
+                lineToRelative(-5f, -2.18f)
+                lineTo(7f, 18f)
+                lineTo(7f, 5f)
+                horizontalLineToRelative(10f)
+                verticalLineToRelative(13f)
                 close()
             }
             .build()
@@ -287,7 +296,7 @@ object MikomiIcons {
             .build()
     }
 
-    /** Edit（Rounded）。 */
+    /** Edit（Outlined）。 */
     val Edit: ImageVector by lazy {
         ImageVector.Builder(
             name = "Edit",
@@ -297,23 +306,27 @@ object MikomiIcons {
             viewportHeight = 24f,
         )
             .path(fill = SolidColor(Color.Black)) {
-                moveTo(3f, 17.46f)
-                verticalLineToRelative(3.04f)
-                curveToRelative(0f, 0.28f, 0.22f, 0.5f, 0.5f, 0.5f)
-                horizontalLineToRelative(3.04f)
-                curveToRelative(0.13f, 0f, 0.26f, -0.05f, 0.35f, -0.15f)
-                lineTo(17.81f, 9.94f)
-                lineToRelative(-3.75f, -3.75f)
-                lineTo(3.15f, 17.1f)
-                curveToRelative(-0.1f, 0.1f, -0.15f, 0.22f, -0.15f, 0.36f)
-                close()
-                moveTo(20.71f, 7.04f)
-                curveToRelative(0.39f, -0.39f, 0.39f, -1.02f, 0f, -1.41f)
-                lineToRelative(-2.34f, -2.34f)
-                curveToRelative(-0.39f, -0.39f, -1.02f, -0.39f, -1.41f, 0f)
+                moveTo(14.06f, 9.02f)
+                lineToRelative(0.92f, 0.92f)
+                lineTo(5.92f, 19f)
+                lineTo(5f, 19f)
+                verticalLineToRelative(-0.92f)
+                lineToRelative(9.06f, -9.06f)
+                moveTo(17.66f, 3f)
+                curveToRelative(-0.25f, 0f, -0.51f, 0.1f, -0.7f, 0.29f)
                 lineToRelative(-1.83f, 1.83f)
                 lineToRelative(3.75f, 3.75f)
                 lineToRelative(1.83f, -1.83f)
+                curveToRelative(0.39f, -0.39f, 0.39f, -1.02f, 0f, -1.41f)
+                lineToRelative(-2.34f, -2.34f)
+                curveToRelative(-0.2f, -0.2f, -0.45f, -0.29f, -0.71f, -0.29f)
+                close()
+                moveTo(14.06f, 6.19f)
+                lineTo(3f, 17.25f)
+                lineTo(3f, 21f)
+                horizontalLineToRelative(3.75f)
+                lineTo(17.81f, 9.94f)
+                lineToRelative(-3.75f, -3.75f)
                 close()
             }
             .build()
@@ -355,6 +368,47 @@ object MikomiIcons {
             .build()
     }
 
+    /** Forum（Outlined）。 */
+    val ForumOutline: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "ForumOutline",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        )
+            .path(fill = SolidColor(Color.Black)) {
+                moveTo(15f, 4f)
+                verticalLineToRelative(7f)
+                lineTo(5.17f, 11f)
+                lineTo(4f, 12.17f)
+                lineTo(4f, 4f)
+                horizontalLineToRelative(11f)
+                moveToRelative(1f, -2f)
+                lineTo(3f, 2f)
+                curveToRelative(-0.55f, 0f, -1f, 0.45f, -1f, 1f)
+                verticalLineToRelative(14f)
+                lineToRelative(4f, -4f)
+                horizontalLineToRelative(10f)
+                curveToRelative(0.55f, 0f, 1f, -0.45f, 1f, -1f)
+                lineTo(17f, 3f)
+                curveToRelative(0f, -0.55f, -0.45f, -1f, -1f, -1f)
+                close()
+                moveTo(21f, 6f)
+                horizontalLineToRelative(-2f)
+                verticalLineToRelative(9f)
+                lineTo(6f, 15f)
+                verticalLineToRelative(2f)
+                curveToRelative(0f, 0.55f, 0.45f, 1f, 1f, 1f)
+                horizontalLineToRelative(11f)
+                lineToRelative(4f, 4f)
+                lineTo(22f, 7f)
+                curveToRelative(0f, -0.55f, -0.45f, -1f, -1f, -1f)
+                close()
+            }
+            .build()
+    }
+
     /** Home（Rounded）。 */
     val Home: ImageVector by lazy {
         ImageVector.Builder(
@@ -384,6 +438,43 @@ object MikomiIcons {
                 curveToRelative(0f, 0.55f, 0.45f, 1f, 1f, 1f)
                 horizontalLineToRelative(3f)
                 curveToRelative(0.55f, 0f, 1f, -0.45f, 1f, -1f)
+                close()
+            }
+            .build()
+    }
+
+    /** Home（Outlined）。 */
+    val HomeOutline: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "HomeOutline",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        )
+            .path(fill = SolidColor(Color.Black)) {
+                moveTo(12f, 5.69f)
+                lineToRelative(5f, 4.5f)
+                verticalLineTo(18f)
+                horizontalLineToRelative(-2f)
+                verticalLineToRelative(-6f)
+                horizontalLineTo(9f)
+                verticalLineToRelative(6f)
+                horizontalLineTo(7f)
+                verticalLineToRelative(-7.81f)
+                lineToRelative(5f, -4.5f)
+                moveTo(12f, 3f)
+                lineTo(2f, 12f)
+                horizontalLineToRelative(3f)
+                verticalLineToRelative(8f)
+                horizontalLineToRelative(6f)
+                verticalLineToRelative(-6f)
+                horizontalLineToRelative(2f)
+                verticalLineToRelative(6f)
+                horizontalLineToRelative(6f)
+                verticalLineToRelative(-8f)
+                horizontalLineToRelative(3f)
+                lineTo(12f, 3f)
                 close()
             }
             .build()
@@ -427,6 +518,54 @@ object MikomiIcons {
             .build()
     }
 
+    /** Map（Outlined）。 */
+    val MapOutline: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "MapOutline",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        )
+            .path(fill = SolidColor(Color.Black)) {
+                moveTo(20.5f, 3f)
+                lineToRelative(-0.16f, 0.03f)
+                lineTo(15f, 5.1f)
+                lineTo(9f, 3f)
+                lineTo(3.36f, 4.9f)
+                curveToRelative(-0.21f, 0.07f, -0.36f, 0.25f, -0.36f, 0.48f)
+                lineTo(3f, 20.5f)
+                curveToRelative(0f, 0.28f, 0.22f, 0.5f, 0.5f, 0.5f)
+                lineToRelative(0.16f, -0.03f)
+                lineTo(9f, 18.9f)
+                lineToRelative(6f, 2.1f)
+                lineToRelative(5.64f, -1.9f)
+                curveToRelative(0.21f, -0.07f, 0.36f, -0.25f, 0.36f, -0.48f)
+                lineTo(21f, 3.5f)
+                curveToRelative(0f, -0.28f, -0.22f, -0.5f, -0.5f, -0.5f)
+                close()
+                moveTo(10f, 5.47f)
+                lineToRelative(4f, 1.4f)
+                verticalLineToRelative(11.66f)
+                lineToRelative(-4f, -1.4f)
+                lineTo(10f, 5.47f)
+                close()
+                moveTo(5f, 6.46f)
+                lineToRelative(3f, -1.01f)
+                verticalLineToRelative(11.7f)
+                lineToRelative(-3f, 1.16f)
+                lineTo(5f, 6.46f)
+                close()
+                moveTo(19f, 17.54f)
+                lineToRelative(-3f, 1.01f)
+                lineTo(16f, 6.86f)
+                lineToRelative(3f, -1.16f)
+                verticalLineToRelative(11.84f)
+                close()
+            }
+            .build()
+    }
+
     /** Person（Rounded）。 */
     val Person: ImageVector by lazy {
         ImageVector.Builder(
@@ -450,6 +589,42 @@ object MikomiIcons {
                 horizontalLineToRelative(14f)
                 curveToRelative(0.55f, 0f, 1f, -0.45f, 1f, -1f)
                 verticalLineToRelative(-1f)
+                curveToRelative(0f, -2.66f, -5.33f, -4f, -8f, -4f)
+                close()
+            }
+            .build()
+    }
+
+    /** Person（Outlined）。 */
+    val PersonOutline: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "PersonOutline",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        )
+            .path(fill = SolidColor(Color.Black)) {
+                moveTo(12f, 6f)
+                curveToRelative(1.1f, 0f, 2f, 0.9f, 2f, 2f)
+                reflectiveCurveToRelative(-0.9f, 2f, -2f, 2f)
+                reflectiveCurveToRelative(-2f, -0.9f, -2f, -2f)
+                reflectiveCurveToRelative(0.9f, -2f, 2f, -2f)
+                moveToRelative(0f, 10f)
+                curveToRelative(2.7f, 0f, 5.8f, 1.29f, 6f, 2f)
+                lineTo(6f, 18f)
+                curveToRelative(0.23f, -0.72f, 3.31f, -2f, 6f, -2f)
+                moveToRelative(0f, -12f)
+                curveTo(9.79f, 4f, 8f, 5.79f, 8f, 8f)
+                reflectiveCurveToRelative(1.79f, 4f, 4f, 4f)
+                reflectiveCurveToRelative(4f, -1.79f, 4f, -4f)
+                reflectiveCurveToRelative(-1.79f, -4f, -4f, -4f)
+                close()
+                moveTo(12f, 14f)
+                curveToRelative(-2.67f, 0f, -8f, 1.34f, -8f, 4f)
+                verticalLineToRelative(2f)
+                horizontalLineToRelative(16f)
+                verticalLineToRelative(-2f)
                 curveToRelative(0f, -2.66f, -5.33f, -4f, -8f, -4f)
                 close()
             }
@@ -540,7 +715,7 @@ object MikomiIcons {
             .build()
     }
 
-    /** Settings（Rounded）。 */
+    /** Settings（Outlined）。 */
     val Settings: ImageVector by lazy {
         ImageVector.Builder(
             name = "Settings",
@@ -550,51 +725,113 @@ object MikomiIcons {
             viewportHeight = 24f,
         )
             .path(fill = SolidColor(Color.Black)) {
-                moveTo(19.5f, 12f)
-                curveToRelative(0f, -0.23f, -0.01f, -0.45f, -0.03f, -0.68f)
-                lineToRelative(1.86f, -1.41f)
-                curveToRelative(0.4f, -0.3f, 0.51f, -0.86f, 0.26f, -1.3f)
-                lineToRelative(-1.87f, -3.23f)
-                curveToRelative(-0.25f, -0.44f, -0.79f, -0.62f, -1.25f, -0.42f)
-                lineToRelative(-2.15f, 0.91f)
-                curveToRelative(-0.37f, -0.26f, -0.76f, -0.49f, -1.17f, -0.68f)
-                lineToRelative(-0.29f, -2.31f)
-                curveTo(14.8f, 2.38f, 14.37f, 2f, 13.87f, 2f)
-                horizontalLineToRelative(-3.73f)
-                curveTo(9.63f, 2f, 9.2f, 2.38f, 9.14f, 2.88f)
-                lineTo(8.85f, 5.19f)
-                curveToRelative(-0.41f, 0.19f, -0.8f, 0.42f, -1.17f, 0.68f)
-                lineTo(5.53f, 4.96f)
-                curveToRelative(-0.46f, -0.2f, -1f, -0.02f, -1.25f, 0.42f)
-                lineTo(2.41f, 8.62f)
-                curveToRelative(-0.25f, 0.44f, -0.14f, 0.99f, 0.26f, 1.3f)
-                lineToRelative(1.86f, 1.41f)
-                curveTo(4.51f, 11.55f, 4.5f, 11.77f, 4.5f, 12f)
-                reflectiveCurveToRelative(0.01f, 0.45f, 0.03f, 0.68f)
-                lineToRelative(-1.86f, 1.41f)
-                curveToRelative(-0.4f, 0.3f, -0.51f, 0.86f, -0.26f, 1.3f)
-                lineToRelative(1.87f, 3.23f)
-                curveToRelative(0.25f, 0.44f, 0.79f, 0.62f, 1.25f, 0.42f)
-                lineToRelative(2.15f, -0.91f)
-                curveToRelative(0.37f, 0.26f, 0.76f, 0.49f, 1.17f, 0.68f)
-                lineToRelative(0.29f, 2.31f)
-                curveTo(9.2f, 21.62f, 9.63f, 22f, 10.13f, 22f)
-                horizontalLineToRelative(3.73f)
-                curveToRelative(0.5f, 0f, 0.93f, -0.38f, 0.99f, -0.88f)
-                lineToRelative(0.29f, -2.31f)
-                curveToRelative(0.41f, -0.19f, 0.8f, -0.42f, 1.17f, -0.68f)
-                lineToRelative(2.15f, 0.91f)
-                curveToRelative(0.46f, 0.2f, 1f, 0.02f, 1.25f, -0.42f)
-                lineToRelative(1.87f, -3.23f)
-                curveToRelative(0.25f, -0.44f, 0.14f, -0.99f, -0.26f, -1.3f)
-                lineToRelative(-1.86f, -1.41f)
-                curveTo(19.49f, 12.45f, 19.5f, 12.23f, 19.5f, 12f)
+                moveTo(19.43f, 12.98f)
+                curveToRelative(0.04f, -0.32f, 0.07f, -0.64f, 0.07f, -0.98f)
+                curveToRelative(0f, -0.34f, -0.03f, -0.66f, -0.07f, -0.98f)
+                lineToRelative(2.11f, -1.65f)
+                curveToRelative(0.19f, -0.15f, 0.24f, -0.42f, 0.12f, -0.64f)
+                lineToRelative(-2f, -3.46f)
+                curveToRelative(-0.09f, -0.16f, -0.26f, -0.25f, -0.44f, -0.25f)
+                curveToRelative(-0.06f, 0f, -0.12f, 0.01f, -0.17f, 0.03f)
+                lineToRelative(-2.49f, 1f)
+                curveToRelative(-0.52f, -0.4f, -1.08f, -0.73f, -1.69f, -0.98f)
+                lineToRelative(-0.38f, -2.65f)
+                curveTo(14.46f, 2.18f, 14.25f, 2f, 14f, 2f)
+                horizontalLineToRelative(-4f)
+                curveToRelative(-0.25f, 0f, -0.46f, 0.18f, -0.49f, 0.42f)
+                lineToRelative(-0.38f, 2.65f)
+                curveToRelative(-0.61f, 0.25f, -1.17f, 0.59f, -1.69f, 0.98f)
+                lineToRelative(-2.49f, -1f)
+                curveToRelative(-0.06f, -0.02f, -0.12f, -0.03f, -0.18f, -0.03f)
+                curveToRelative(-0.17f, 0f, -0.34f, 0.09f, -0.43f, 0.25f)
+                lineToRelative(-2f, 3.46f)
+                curveToRelative(-0.13f, 0.22f, -0.07f, 0.49f, 0.12f, 0.64f)
+                lineToRelative(2.11f, 1.65f)
+                curveToRelative(-0.04f, 0.32f, -0.07f, 0.65f, -0.07f, 0.98f)
+                curveToRelative(0f, 0.33f, 0.03f, 0.66f, 0.07f, 0.98f)
+                lineToRelative(-2.11f, 1.65f)
+                curveToRelative(-0.19f, 0.15f, -0.24f, 0.42f, -0.12f, 0.64f)
+                lineToRelative(2f, 3.46f)
+                curveToRelative(0.09f, 0.16f, 0.26f, 0.25f, 0.44f, 0.25f)
+                curveToRelative(0.06f, 0f, 0.12f, -0.01f, 0.17f, -0.03f)
+                lineToRelative(2.49f, -1f)
+                curveToRelative(0.52f, 0.4f, 1.08f, 0.73f, 1.69f, 0.98f)
+                lineToRelative(0.38f, 2.65f)
+                curveToRelative(0.03f, 0.24f, 0.24f, 0.42f, 0.49f, 0.42f)
+                horizontalLineToRelative(4f)
+                curveToRelative(0.25f, 0f, 0.46f, -0.18f, 0.49f, -0.42f)
+                lineToRelative(0.38f, -2.65f)
+                curveToRelative(0.61f, -0.25f, 1.17f, -0.59f, 1.69f, -0.98f)
+                lineToRelative(2.49f, 1f)
+                curveToRelative(0.06f, 0.02f, 0.12f, 0.03f, 0.18f, 0.03f)
+                curveToRelative(0.17f, 0f, 0.34f, -0.09f, 0.43f, -0.25f)
+                lineToRelative(2f, -3.46f)
+                curveToRelative(0.12f, -0.22f, 0.07f, -0.49f, -0.12f, -0.64f)
+                lineToRelative(-2.11f, -1.65f)
                 close()
-                moveTo(12.04f, 15.5f)
-                curveToRelative(-1.93f, 0f, -3.5f, -1.57f, -3.5f, -3.5f)
-                reflectiveCurveToRelative(1.57f, -3.5f, 3.5f, -3.5f)
-                reflectiveCurveToRelative(3.5f, 1.57f, 3.5f, 3.5f)
-                reflectiveCurveTo(13.97f, 15.5f, 12.04f, 15.5f)
+                moveTo(17.45f, 11.27f)
+                curveToRelative(0.04f, 0.31f, 0.05f, 0.52f, 0.05f, 0.73f)
+                curveToRelative(0f, 0.21f, -0.02f, 0.43f, -0.05f, 0.73f)
+                lineToRelative(-0.14f, 1.13f)
+                lineToRelative(0.89f, 0.7f)
+                lineToRelative(1.08f, 0.84f)
+                lineToRelative(-0.7f, 1.21f)
+                lineToRelative(-1.27f, -0.51f)
+                lineToRelative(-1.04f, -0.42f)
+                lineToRelative(-0.9f, 0.68f)
+                curveToRelative(-0.43f, 0.32f, -0.84f, 0.56f, -1.25f, 0.73f)
+                lineToRelative(-1.06f, 0.43f)
+                lineToRelative(-0.16f, 1.13f)
+                lineToRelative(-0.2f, 1.35f)
+                horizontalLineToRelative(-1.4f)
+                lineToRelative(-0.19f, -1.35f)
+                lineToRelative(-0.16f, -1.13f)
+                lineToRelative(-1.06f, -0.43f)
+                curveToRelative(-0.43f, -0.18f, -0.83f, -0.41f, -1.23f, -0.71f)
+                lineToRelative(-0.91f, -0.7f)
+                lineToRelative(-1.06f, 0.43f)
+                lineToRelative(-1.27f, 0.51f)
+                lineToRelative(-0.7f, -1.21f)
+                lineToRelative(1.08f, -0.84f)
+                lineToRelative(0.89f, -0.7f)
+                lineToRelative(-0.14f, -1.13f)
+                curveToRelative(-0.03f, -0.31f, -0.05f, -0.54f, -0.05f, -0.74f)
+                reflectiveCurveToRelative(0.02f, -0.43f, 0.05f, -0.73f)
+                lineToRelative(0.14f, -1.13f)
+                lineToRelative(-0.89f, -0.7f)
+                lineToRelative(-1.08f, -0.84f)
+                lineToRelative(0.7f, -1.21f)
+                lineToRelative(1.27f, 0.51f)
+                lineToRelative(1.04f, 0.42f)
+                lineToRelative(0.9f, -0.68f)
+                curveToRelative(0.43f, -0.32f, 0.84f, -0.56f, 1.25f, -0.73f)
+                lineToRelative(1.06f, -0.43f)
+                lineToRelative(0.16f, -1.13f)
+                lineToRelative(0.2f, -1.35f)
+                horizontalLineToRelative(1.39f)
+                lineToRelative(0.19f, 1.35f)
+                lineToRelative(0.16f, 1.13f)
+                lineToRelative(1.06f, 0.43f)
+                curveToRelative(0.43f, 0.18f, 0.83f, 0.41f, 1.23f, 0.71f)
+                lineToRelative(0.91f, 0.7f)
+                lineToRelative(1.06f, -0.43f)
+                lineToRelative(1.27f, -0.51f)
+                lineToRelative(0.7f, 1.21f)
+                lineToRelative(-1.07f, 0.85f)
+                lineToRelative(-0.89f, 0.7f)
+                lineToRelative(0.14f, 1.13f)
+                close()
+                moveTo(12f, 8f)
+                curveToRelative(-2.21f, 0f, -4f, 1.79f, -4f, 4f)
+                reflectiveCurveToRelative(1.79f, 4f, 4f, 4f)
+                reflectiveCurveToRelative(4f, -1.79f, 4f, -4f)
+                reflectiveCurveToRelative(-1.79f, -4f, -4f, -4f)
+                close()
+                moveTo(12f, 14f)
+                curveToRelative(-1.1f, 0f, -2f, -0.9f, -2f, -2f)
+                reflectiveCurveToRelative(0.9f, -2f, 2f, -2f)
+                reflectiveCurveToRelative(2f, 0.9f, 2f, 2f)
+                reflectiveCurveToRelative(-0.9f, 2f, -2f, 2f)
                 close()
             }
             .build()
@@ -663,7 +900,7 @@ object MikomiIcons {
             .build()
     }
 
-    /** CalendarMonth（Rounded）。 */
+    /** CalendarMonth（Outlined）。 */
     val Calendar: ImageVector by lazy {
         ImageVector.Builder(
             name = "Calendar",
@@ -673,14 +910,15 @@ object MikomiIcons {
             viewportHeight = 24f,
         )
             .path(fill = SolidColor(Color.Black)) {
-                moveTo(17f, 2f)
-                curveToRelative(-0.55f, 0f, -1f, 0.45f, -1f, 1f)
-                verticalLineToRelative(1f)
+                moveTo(19f, 4f)
+                horizontalLineToRelative(-1f)
+                verticalLineTo(2f)
+                horizontalLineToRelative(-2f)
+                verticalLineToRelative(2f)
                 horizontalLineTo(8f)
-                verticalLineTo(3f)
-                curveToRelative(0f, -0.55f, -0.45f, -1f, -1f, -1f)
-                reflectiveCurveTo(6f, 2.45f, 6f, 3f)
-                verticalLineToRelative(1f)
+                verticalLineTo(2f)
+                horizontalLineTo(6f)
+                verticalLineToRelative(2f)
                 horizontalLineTo(5f)
                 curveTo(3.89f, 4f, 3.01f, 4.9f, 3.01f, 6f)
                 lineTo(3f, 20f)
@@ -688,10 +926,7 @@ object MikomiIcons {
                 horizontalLineToRelative(14f)
                 curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
                 verticalLineTo(6f)
-                curveToRelative(0f, -1.1f, -0.9f, -2f, -2f, -2f)
-                horizontalLineToRelative(-1f)
-                verticalLineTo(3f)
-                curveTo(18f, 2.45f, 17.55f, 2f, 17f, 2f)
+                curveTo(21f, 4.9f, 20.1f, 4f, 19f, 4f)
                 close()
                 moveTo(19f, 20f)
                 horizontalLineTo(5f)
@@ -699,47 +934,53 @@ object MikomiIcons {
                 horizontalLineToRelative(14f)
                 verticalLineTo(20f)
                 close()
-                moveTo(11f, 13f)
-                curveToRelative(0f, -0.55f, 0.45f, -1f, 1f, -1f)
-                reflectiveCurveToRelative(1f, 0.45f, 1f, 1f)
-                reflectiveCurveToRelative(-0.45f, 1f, -1f, 1f)
-                reflectiveCurveTo(11f, 13.55f, 11f, 13f)
+                moveTo(19f, 8f)
+                horizontalLineTo(5f)
+                verticalLineTo(6f)
+                horizontalLineToRelative(14f)
+                verticalLineTo(8f)
                 close()
-                moveTo(7f, 13f)
-                curveToRelative(0f, -0.55f, 0.45f, -1f, 1f, -1f)
-                reflectiveCurveToRelative(1f, 0.45f, 1f, 1f)
-                reflectiveCurveToRelative(-0.45f, 1f, -1f, 1f)
-                reflectiveCurveTo(7f, 13.55f, 7f, 13f)
+                moveTo(9f, 14f)
+                horizontalLineTo(7f)
+                verticalLineToRelative(-2f)
+                horizontalLineToRelative(2f)
+                verticalLineTo(14f)
                 close()
-                moveTo(15f, 13f)
-                curveToRelative(0f, -0.55f, 0.45f, -1f, 1f, -1f)
-                reflectiveCurveToRelative(1f, 0.45f, 1f, 1f)
-                reflectiveCurveToRelative(-0.45f, 1f, -1f, 1f)
-                reflectiveCurveTo(15f, 13.55f, 15f, 13f)
+                moveTo(13f, 14f)
+                horizontalLineToRelative(-2f)
+                verticalLineToRelative(-2f)
+                horizontalLineToRelative(2f)
+                verticalLineTo(14f)
                 close()
-                moveTo(11f, 17f)
-                curveToRelative(0f, -0.55f, 0.45f, -1f, 1f, -1f)
-                reflectiveCurveToRelative(1f, 0.45f, 1f, 1f)
-                reflectiveCurveToRelative(-0.45f, 1f, -1f, 1f)
-                reflectiveCurveTo(11f, 17.55f, 11f, 17f)
+                moveTo(17f, 14f)
+                horizontalLineToRelative(-2f)
+                verticalLineToRelative(-2f)
+                horizontalLineToRelative(2f)
+                verticalLineTo(14f)
                 close()
-                moveTo(7f, 17f)
-                curveToRelative(0f, -0.55f, 0.45f, -1f, 1f, -1f)
-                reflectiveCurveToRelative(1f, 0.45f, 1f, 1f)
-                reflectiveCurveToRelative(-0.45f, 1f, -1f, 1f)
-                reflectiveCurveTo(7f, 17.55f, 7f, 17f)
+                moveTo(9f, 18f)
+                horizontalLineTo(7f)
+                verticalLineToRelative(-2f)
+                horizontalLineToRelative(2f)
+                verticalLineTo(18f)
                 close()
-                moveTo(15f, 17f)
-                curveToRelative(0f, -0.55f, 0.45f, -1f, 1f, -1f)
-                reflectiveCurveToRelative(1f, 0.45f, 1f, 1f)
-                reflectiveCurveToRelative(-0.45f, 1f, -1f, 1f)
-                reflectiveCurveTo(15f, 17.55f, 15f, 17f)
+                moveTo(13f, 18f)
+                horizontalLineToRelative(-2f)
+                verticalLineToRelative(-2f)
+                horizontalLineToRelative(2f)
+                verticalLineTo(18f)
+                close()
+                moveTo(17f, 18f)
+                horizontalLineToRelative(-2f)
+                verticalLineToRelative(-2f)
+                horizontalLineToRelative(2f)
+                verticalLineTo(18f)
                 close()
             }
             .build()
     }
 
-    /** Category（Rounded）。 */
+    /** Category（Outlined）。 */
     val Category: ImageVector by lazy {
         ImageVector.Builder(
             name = "Category",
@@ -749,31 +990,39 @@ object MikomiIcons {
             viewportHeight = 24f,
         )
             .path(fill = SolidColor(Color.Black)) {
-                moveTo(11.15f, 3.4f)
-                lineTo(7.43f, 9.48f)
-                curveToRelative(-0.41f, 0.66f, 0.07f, 1.52f, 0.85f, 1.52f)
-                horizontalLineToRelative(7.43f)
-                curveToRelative(0.78f, 0f, 1.26f, -0.86f, 0.85f, -1.52f)
-                lineTo(12.85f, 3.4f)
-                curveToRelative(-0.39f, -0.64f, -1.31f, -0.64f, -1.7f, 0f)
+                moveTo(12f, 2f)
+                lineToRelative(-5.5f, 9f)
+                horizontalLineToRelative(11f)
+                lineTo(12f, 2f)
                 close()
-            }
-            .path(fill = SolidColor(Color.Black)) {
-                moveTo(17.5f, 17.5f)
-                moveToRelative(-4.5f, 0f)
-                arcToRelative(4.5f, 4.5f, 0f, true, true, 9f, 0f)
-                arcToRelative(4.5f, 4.5f, 0f, true, true, -9f, 0f)
-            }
-            .path(fill = SolidColor(Color.Black)) {
-                moveTo(4f, 21.5f)
-                horizontalLineToRelative(6f)
-                curveToRelative(0.55f, 0f, 1f, -0.45f, 1f, -1f)
-                verticalLineToRelative(-6f)
-                curveToRelative(0f, -0.55f, -0.45f, -1f, -1f, -1f)
-                horizontalLineTo(4f)
-                curveToRelative(-0.55f, 0f, -1f, 0.45f, -1f, 1f)
-                verticalLineToRelative(6f)
-                curveToRelative(0f, 0.55f, 0.45f, 1f, 1f, 1f)
+                moveTo(12f, 5.84f)
+                lineTo(13.93f, 9f)
+                horizontalLineToRelative(-3.87f)
+                lineTo(12f, 5.84f)
+                close()
+                moveTo(17.5f, 13f)
+                curveToRelative(-2.49f, 0f, -4.5f, 2.01f, -4.5f, 4.5f)
+                reflectiveCurveToRelative(2.01f, 4.5f, 4.5f, 4.5f)
+                reflectiveCurveToRelative(4.5f, -2.01f, 4.5f, -4.5f)
+                reflectiveCurveToRelative(-2.01f, -4.5f, -4.5f, -4.5f)
+                close()
+                moveTo(17.5f, 20f)
+                curveToRelative(-1.38f, 0f, -2.5f, -1.12f, -2.5f, -2.5f)
+                reflectiveCurveToRelative(1.12f, -2.5f, 2.5f, -2.5f)
+                reflectiveCurveToRelative(2.5f, 1.12f, 2.5f, 2.5f)
+                reflectiveCurveToRelative(-1.12f, 2.5f, -2.5f, 2.5f)
+                close()
+                moveTo(3f, 21.5f)
+                horizontalLineToRelative(8f)
+                verticalLineToRelative(-8f)
+                lineTo(3f, 13.5f)
+                verticalLineToRelative(8f)
+                close()
+                moveTo(5f, 15.5f)
+                horizontalLineToRelative(4f)
+                verticalLineToRelative(4f)
+                lineTo(5f, 19.5f)
+                verticalLineToRelative(-4f)
                 close()
             }
             .build()
@@ -811,7 +1060,7 @@ object MikomiIcons {
             .build()
     }
 
-    /** CloudOff（Rounded）。 */
+    /** CloudOff（Outlined）。 */
     val CloudOff: ImageVector by lazy {
         ImageVector.Builder(
             name = "CloudOff",
@@ -835,18 +1084,16 @@ object MikomiIcons {
                 lineToRelative(1.41f, 1.41f)
                 curveToRelative(1.09f, -0.92f, 1.8f, -2.27f, 1.8f, -3.81f)
                 close()
-                moveTo(3.71f, 4.56f)
-                curveToRelative(-0.39f, 0.39f, -0.39f, 1.02f, 0f, 1.41f)
-                lineToRelative(2.06f, 2.06f)
+                moveTo(4.41f, 3.86f)
+                lineTo(3f, 5.27f)
+                lineToRelative(2.77f, 2.77f)
                 horizontalLineToRelative(-0.42f)
-                curveToRelative(-3.28f, 0.35f, -5.76f, 3.34f, -5.29f, 6.79f)
-                curveTo(0.46f, 17.84f, 3.19f, 20f, 6.22f, 20f)
-                horizontalLineToRelative(11.51f)
-                lineToRelative(1.29f, 1.29f)
-                curveToRelative(0.39f, 0.39f, 1.02f, 0.39f, 1.41f, 0f)
-                curveToRelative(0.39f, -0.39f, 0.39f, -1.02f, 0f, -1.41f)
-                lineTo(5.12f, 4.56f)
-                curveToRelative(-0.39f, -0.39f, -1.02f, -0.39f, -1.41f, 0f)
+                curveTo(2.34f, 8.36f, 0f, 10.91f, 0f, 14f)
+                curveToRelative(0f, 3.31f, 2.69f, 6f, 6f, 6f)
+                horizontalLineToRelative(11.73f)
+                lineToRelative(2f, 2f)
+                lineToRelative(1.41f, -1.41f)
+                lineTo(4.41f, 3.86f)
                 close()
                 moveTo(6f, 18f)
                 curveToRelative(-2.21f, 0f, -4f, -1.79f, -4f, -4f)
@@ -907,7 +1154,7 @@ object MikomiIcons {
             .build()
     }
 
-    /** Email（Rounded）。 */
+    /** Email（Outlined）。 */
     val Email: ImageVector by lazy {
         ImageVector.Builder(
             name = "Email",
@@ -917,32 +1164,33 @@ object MikomiIcons {
             viewportHeight = 24f,
         )
             .path(fill = SolidColor(Color.Black)) {
-                moveTo(20f, 4f)
+                moveTo(22f, 6f)
+                curveToRelative(0f, -1.1f, -0.9f, -2f, -2f, -2f)
                 lineTo(4f, 4f)
-                curveToRelative(-1.1f, 0f, -1.99f, 0.9f, -1.99f, 2f)
-                lineTo(2f, 18f)
+                curveToRelative(-1.1f, 0f, -2f, 0.9f, -2f, 2f)
+                verticalLineToRelative(12f)
                 curveToRelative(0f, 1.1f, 0.9f, 2f, 2f, 2f)
                 horizontalLineToRelative(16f)
                 curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
                 lineTo(22f, 6f)
-                curveToRelative(0f, -1.1f, -0.9f, -2f, -2f, -2f)
                 close()
-                moveTo(19.6f, 8.25f)
-                lineToRelative(-7.07f, 4.42f)
-                curveToRelative(-0.32f, 0.2f, -0.74f, 0.2f, -1.06f, 0f)
-                lineTo(4.4f, 8.25f)
-                curveToRelative(-0.25f, -0.16f, -0.4f, -0.43f, -0.4f, -0.72f)
-                curveToRelative(0f, -0.67f, 0.73f, -1.07f, 1.3f, -0.72f)
-                lineTo(12f, 11f)
-                lineToRelative(6.7f, -4.19f)
-                curveToRelative(0.57f, -0.35f, 1.3f, 0.05f, 1.3f, 0.72f)
-                curveToRelative(0f, 0.29f, -0.15f, 0.56f, -0.4f, 0.72f)
+                moveTo(20f, 6f)
+                lineToRelative(-8f, 5f)
+                lineToRelative(-8f, -5f)
+                horizontalLineToRelative(16f)
+                close()
+                moveTo(20f, 18f)
+                lineTo(4f, 18f)
+                lineTo(4f, 8f)
+                lineToRelative(8f, 5f)
+                lineToRelative(8f, -5f)
+                verticalLineToRelative(10f)
                 close()
             }
             .build()
     }
 
-    /** EmojiEvents（Rounded）。 */
+    /** EmojiEvents（Outlined）。 */
     val Trophy: ImageVector by lazy {
         ImageVector.Builder(
             name = "Trophy",
@@ -954,26 +1202,20 @@ object MikomiIcons {
             .path(fill = SolidColor(Color.Black)) {
                 moveTo(19f, 5f)
                 horizontalLineToRelative(-2f)
-                verticalLineTo(4f)
-                curveToRelative(0f, -0.55f, -0.45f, -1f, -1f, -1f)
-                horizontalLineTo(8f)
-                curveTo(7.45f, 3f, 7f, 3.45f, 7f, 4f)
-                verticalLineToRelative(1f)
+                verticalLineTo(3f)
+                horizontalLineTo(7f)
+                verticalLineToRelative(2f)
                 horizontalLineTo(5f)
                 curveTo(3.9f, 5f, 3f, 5.9f, 3f, 7f)
                 verticalLineToRelative(1f)
                 curveToRelative(0f, 2.55f, 1.92f, 4.63f, 4.39f, 4.94f)
                 curveToRelative(0.63f, 1.5f, 1.98f, 2.63f, 3.61f, 2.96f)
                 verticalLineTo(19f)
-                horizontalLineTo(8f)
-                curveToRelative(-0.55f, 0f, -1f, 0.45f, -1f, 1f)
-                verticalLineToRelative(0f)
-                curveToRelative(0f, 0.55f, 0.45f, 1f, 1f, 1f)
-                horizontalLineToRelative(8f)
-                curveToRelative(0.55f, 0f, 1f, -0.45f, 1f, -1f)
-                verticalLineToRelative(0f)
-                curveToRelative(0f, -0.55f, -0.45f, -1f, -1f, -1f)
-                horizontalLineToRelative(-3f)
+                horizontalLineTo(7f)
+                verticalLineToRelative(2f)
+                horizontalLineToRelative(10f)
+                verticalLineToRelative(-2f)
+                horizontalLineToRelative(-4f)
                 verticalLineToRelative(-3.1f)
                 curveToRelative(1.63f, -0.33f, 2.98f, -1.46f, 3.61f, -2.96f)
                 curveTo(19.08f, 12.63f, 21f, 10.55f, 21f, 8f)
@@ -985,6 +1227,13 @@ object MikomiIcons {
                 horizontalLineToRelative(2f)
                 verticalLineToRelative(3.82f)
                 curveTo(5.84f, 10.4f, 5f, 9.3f, 5f, 8f)
+                close()
+                moveTo(12f, 14f)
+                curveToRelative(-1.65f, 0f, -3f, -1.35f, -3f, -3f)
+                verticalLineTo(5f)
+                horizontalLineToRelative(6f)
+                verticalLineToRelative(6f)
+                curveTo(15f, 12.65f, 13.65f, 14f, 12f, 14f)
                 close()
                 moveTo(19f, 8f)
                 curveToRelative(0f, 1.3f, -0.84f, 2.4f, -2f, 2.82f)
@@ -1046,7 +1295,7 @@ object MikomiIcons {
             .build()
     }
 
-    /** Extension（Rounded）。 */
+    /** Extension（Outlined）。 */
     val Extension: ImageVector by lazy {
         ImageVector.Builder(
             name = "Extension",
@@ -1056,41 +1305,58 @@ object MikomiIcons {
             viewportHeight = 24f,
         )
             .path(fill = SolidColor(Color.Black)) {
-                moveTo(20.5f, 11f)
-                horizontalLineTo(19f)
-                verticalLineTo(7f)
-                curveToRelative(0f, -1.1f, -0.9f, -2f, -2f, -2f)
-                horizontalLineToRelative(-4f)
-                verticalLineTo(3.5f)
-                curveTo(13f, 2.12f, 11.88f, 1f, 10.5f, 1f)
-                reflectiveCurveTo(8f, 2.12f, 8f, 3.5f)
+                moveTo(10.5f, 4.5f)
+                curveToRelative(0.28f, 0f, 0.5f, 0.22f, 0.5f, 0.5f)
+                verticalLineToRelative(2f)
+                horizontalLineToRelative(6f)
+                verticalLineToRelative(6f)
+                horizontalLineToRelative(2f)
+                curveToRelative(0.28f, 0f, 0.5f, 0.22f, 0.5f, 0.5f)
+                reflectiveCurveToRelative(-0.22f, 0.5f, -0.5f, 0.5f)
+                horizontalLineToRelative(-2f)
+                verticalLineToRelative(6f)
+                horizontalLineToRelative(-2.12f)
+                curveToRelative(-0.68f, -1.75f, -2.39f, -3f, -4.38f, -3f)
+                reflectiveCurveToRelative(-3.7f, 1.25f, -4.38f, 3f)
+                horizontalLineTo(4f)
+                verticalLineToRelative(-2.12f)
+                curveToRelative(1.75f, -0.68f, 3f, -2.39f, 3f, -4.38f)
+                curveToRelative(0f, -1.99f, -1.24f, -3.7f, -2.99f, -4.38f)
+                lineTo(4f, 7f)
+                horizontalLineToRelative(6f)
                 verticalLineTo(5f)
+                curveToRelative(0f, -0.28f, 0.22f, -0.5f, 0.5f, -0.5f)
+                moveToRelative(0f, -2f)
+                curveTo(9.12f, 2.5f, 8f, 3.62f, 8f, 5f)
                 horizontalLineTo(4f)
                 curveToRelative(-1.1f, 0f, -1.99f, 0.9f, -1.99f, 2f)
                 verticalLineToRelative(3.8f)
-                horizontalLineTo(3.5f)
+                horizontalLineToRelative(0.29f)
                 curveToRelative(1.49f, 0f, 2.7f, 1.21f, 2.7f, 2.7f)
                 reflectiveCurveToRelative(-1.21f, 2.7f, -2.7f, 2.7f)
                 horizontalLineTo(2f)
                 verticalLineTo(20f)
                 curveToRelative(0f, 1.1f, 0.9f, 2f, 2f, 2f)
                 horizontalLineToRelative(3.8f)
-                verticalLineToRelative(-1.5f)
+                verticalLineToRelative(-0.3f)
                 curveToRelative(0f, -1.49f, 1.21f, -2.7f, 2.7f, -2.7f)
                 reflectiveCurveToRelative(2.7f, 1.21f, 2.7f, 2.7f)
-                verticalLineTo(22f)
+                verticalLineToRelative(0.3f)
                 horizontalLineTo(17f)
                 curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
                 verticalLineToRelative(-4f)
-                horizontalLineToRelative(1.5f)
                 curveToRelative(1.38f, 0f, 2.5f, -1.12f, 2.5f, -2.5f)
-                reflectiveCurveTo(21.88f, 11f, 20.5f, 11f)
+                reflectiveCurveTo(20.38f, 11f, 19f, 11f)
+                verticalLineTo(7f)
+                curveToRelative(0f, -1.1f, -0.9f, -2f, -2f, -2f)
+                horizontalLineToRelative(-4f)
+                curveToRelative(0f, -1.38f, -1.12f, -2.5f, -2.5f, -2.5f)
                 close()
             }
             .build()
     }
 
-    /** History（Rounded）。 */
+    /** History（Outlined）。 */
     val History: ImageVector by lazy {
         ImageVector.Builder(
             name = "History",
@@ -1100,35 +1366,28 @@ object MikomiIcons {
             viewportHeight = 24f,
         )
             .path(fill = SolidColor(Color.Black)) {
-                moveTo(13.26f, 3f)
-                curveTo(8.17f, 2.86f, 4f, 6.95f, 4f, 12f)
-                lineTo(2.21f, 12f)
-                curveToRelative(-0.45f, 0f, -0.67f, 0.54f, -0.35f, 0.85f)
-                lineToRelative(2.79f, 2.8f)
-                curveToRelative(0.2f, 0.2f, 0.51f, 0.2f, 0.71f, 0f)
-                lineToRelative(2.79f, -2.8f)
-                curveToRelative(0.31f, -0.31f, 0.09f, -0.85f, -0.36f, -0.85f)
+                moveTo(13f, 3f)
+                curveToRelative(-4.97f, 0f, -9f, 4.03f, -9f, 9f)
+                lineTo(1f, 12f)
+                lineToRelative(3.89f, 3.89f)
+                lineToRelative(0.07f, 0.14f)
+                lineTo(9f, 12f)
                 lineTo(6f, 12f)
-                curveToRelative(0f, -3.9f, 3.18f, -7.05f, 7.1f, -7f)
-                curveToRelative(3.72f, 0.05f, 6.85f, 3.18f, 6.9f, 6.9f)
-                curveToRelative(0.05f, 3.91f, -3.1f, 7.1f, -7f, 7.1f)
-                curveToRelative(-1.61f, 0f, -3.1f, -0.55f, -4.28f, -1.48f)
-                curveToRelative(-0.4f, -0.31f, -0.96f, -0.28f, -1.32f, 0.08f)
-                curveToRelative(-0.42f, 0.42f, -0.39f, 1.13f, 0.08f, 1.49f)
-                curveTo(9f, 20.29f, 10.91f, 21f, 13f, 21f)
-                curveToRelative(5.05f, 0f, 9.14f, -4.17f, 9f, -9.26f)
-                curveToRelative(-0.13f, -4.69f, -4.05f, -8.61f, -8.74f, -8.74f)
+                curveToRelative(0f, -3.87f, 3.13f, -7f, 7f, -7f)
+                reflectiveCurveToRelative(7f, 3.13f, 7f, 7f)
+                reflectiveCurveToRelative(-3.13f, 7f, -7f, 7f)
+                curveToRelative(-1.93f, 0f, -3.68f, -0.79f, -4.94f, -2.06f)
+                lineToRelative(-1.42f, 1.42f)
+                curveTo(8.27f, 19.99f, 10.51f, 21f, 13f, 21f)
+                curveToRelative(4.97f, 0f, 9f, -4.03f, 9f, -9f)
+                reflectiveCurveToRelative(-4.03f, -9f, -9f, -9f)
                 close()
-                moveTo(12.75f, 8f)
-                curveToRelative(-0.41f, 0f, -0.75f, 0.34f, -0.75f, 0.75f)
-                verticalLineToRelative(3.68f)
-                curveToRelative(0f, 0.35f, 0.19f, 0.68f, 0.49f, 0.86f)
-                lineToRelative(3.12f, 1.85f)
-                curveToRelative(0.36f, 0.21f, 0.82f, 0.09f, 1.03f, -0.26f)
-                curveToRelative(0.21f, -0.36f, 0.09f, -0.82f, -0.26f, -1.03f)
-                lineToRelative(-2.88f, -1.71f)
-                verticalLineToRelative(-3.4f)
-                curveToRelative(0f, -0.4f, -0.34f, -0.74f, -0.75f, -0.74f)
+                moveTo(12f, 8f)
+                verticalLineToRelative(5f)
+                lineToRelative(4.25f, 2.52f)
+                lineToRelative(0.77f, -1.28f)
+                lineToRelative(-3.52f, -2.09f)
+                lineTo(13.5f, 8f)
                 close()
             }
             .build()
@@ -1240,7 +1499,7 @@ object MikomiIcons {
             .build()
     }
 
-    /** Palette（Rounded）。 */
+    /** Palette（Outlined）。 */
     val Palette: ImageVector by lazy {
         ImageVector.Builder(
             name = "Palette",
@@ -1250,46 +1509,57 @@ object MikomiIcons {
             viewportHeight = 24f,
         )
             .path(fill = SolidColor(Color.Black)) {
-                moveTo(12f, 2f)
-                curveTo(6.49f, 2f, 2f, 6.49f, 2f, 12f)
-                reflectiveCurveToRelative(4.49f, 10f, 10f, 10f)
-                curveToRelative(1.38f, 0f, 2.5f, -1.12f, 2.5f, -2.5f)
-                curveToRelative(0f, -0.61f, -0.23f, -1.2f, -0.64f, -1.67f)
-                curveToRelative(-0.08f, -0.1f, -0.13f, -0.21f, -0.13f, -0.33f)
-                curveToRelative(0f, -0.28f, 0.22f, -0.5f, 0.5f, -0.5f)
+                moveTo(12f, 22f)
+                curveTo(6.49f, 22f, 2f, 17.51f, 2f, 12f)
+                reflectiveCurveTo(6.49f, 2f, 12f, 2f)
+                reflectiveCurveToRelative(10f, 4.04f, 10f, 9f)
+                curveToRelative(0f, 3.31f, -2.69f, 6f, -6f, 6f)
+                horizontalLineToRelative(-1.77f)
+                curveToRelative(-0.28f, 0f, -0.5f, 0.22f, -0.5f, 0.5f)
+                curveToRelative(0f, 0.12f, 0.05f, 0.23f, 0.13f, 0.33f)
+                curveToRelative(0.41f, 0.47f, 0.64f, 1.06f, 0.64f, 1.67f)
+                curveTo(14.5f, 20.88f, 13.38f, 22f, 12f, 22f)
+                close()
+                moveTo(12f, 4f)
+                curveToRelative(-4.41f, 0f, -8f, 3.59f, -8f, 8f)
+                reflectiveCurveToRelative(3.59f, 8f, 8f, 8f)
+                curveToRelative(0.28f, 0f, 0.5f, -0.22f, 0.5f, -0.5f)
+                curveToRelative(0f, -0.16f, -0.08f, -0.28f, -0.14f, -0.35f)
+                curveToRelative(-0.41f, -0.46f, -0.63f, -1.05f, -0.63f, -1.65f)
+                curveToRelative(0f, -1.38f, 1.12f, -2.5f, 2.5f, -2.5f)
                 horizontalLineTo(16f)
-                curveToRelative(3.31f, 0f, 6f, -2.69f, 6f, -6f)
-                curveTo(22f, 6.04f, 17.51f, 2f, 12f, 2f)
+                curveToRelative(2.21f, 0f, 4f, -1.79f, 4f, -4f)
+                curveTo(20f, 7.14f, 16.41f, 4f, 12f, 4f)
                 close()
-                moveTo(17.5f, 13f)
-                curveToRelative(-0.83f, 0f, -1.5f, -0.67f, -1.5f, -1.5f)
-                curveToRelative(0f, -0.83f, 0.67f, -1.5f, 1.5f, -1.5f)
-                reflectiveCurveToRelative(1.5f, 0.67f, 1.5f, 1.5f)
-                curveTo(19f, 12.33f, 18.33f, 13f, 17.5f, 13f)
-                close()
-                moveTo(14.5f, 9f)
-                curveTo(13.67f, 9f, 13f, 8.33f, 13f, 7.5f)
-                curveTo(13f, 6.67f, 13.67f, 6f, 14.5f, 6f)
-                reflectiveCurveTo(16f, 6.67f, 16f, 7.5f)
-                curveTo(16f, 8.33f, 15.33f, 9f, 14.5f, 9f)
-                close()
-                moveTo(5f, 11.5f)
-                curveTo(5f, 10.67f, 5.67f, 10f, 6.5f, 10f)
-                reflectiveCurveTo(8f, 10.67f, 8f, 11.5f)
-                curveTo(8f, 12.33f, 7.33f, 13f, 6.5f, 13f)
-                reflectiveCurveTo(5f, 12.33f, 5f, 11.5f)
-                close()
-                moveTo(11f, 7.5f)
-                curveTo(11f, 8.33f, 10.33f, 9f, 9.5f, 9f)
-                reflectiveCurveTo(8f, 8.33f, 8f, 7.5f)
-                curveTo(8f, 6.67f, 8.67f, 6f, 9.5f, 6f)
-                reflectiveCurveTo(11f, 6.67f, 11f, 7.5f)
-                close()
+            }
+            .path(fill = SolidColor(Color.Black)) {
+                moveTo(6.5f, 11.5f)
+                moveToRelative(-1.5f, 0f)
+                arcToRelative(1.5f, 1.5f, 0f, true, true, 3f, 0f)
+                arcToRelative(1.5f, 1.5f, 0f, true, true, -3f, 0f)
+            }
+            .path(fill = SolidColor(Color.Black)) {
+                moveTo(9.5f, 7.5f)
+                moveToRelative(-1.5f, 0f)
+                arcToRelative(1.5f, 1.5f, 0f, true, true, 3f, 0f)
+                arcToRelative(1.5f, 1.5f, 0f, true, true, -3f, 0f)
+            }
+            .path(fill = SolidColor(Color.Black)) {
+                moveTo(14.5f, 7.5f)
+                moveToRelative(-1.5f, 0f)
+                arcToRelative(1.5f, 1.5f, 0f, true, true, 3f, 0f)
+                arcToRelative(1.5f, 1.5f, 0f, true, true, -3f, 0f)
+            }
+            .path(fill = SolidColor(Color.Black)) {
+                moveTo(17.5f, 11.5f)
+                moveToRelative(-1.5f, 0f)
+                arcToRelative(1.5f, 1.5f, 0f, true, true, 3f, 0f)
+                arcToRelative(1.5f, 1.5f, 0f, true, true, -3f, 0f)
             }
             .build()
     }
 
-    /** PlayCircleOutline（Rounded）。 */
+    /** PlayCircle（Outlined）。 */
     val PlayCircle: ImageVector by lazy {
         ImageVector.Builder(
             name = "PlayCircle",
@@ -1299,14 +1569,6 @@ object MikomiIcons {
             viewportHeight = 24f,
         )
             .path(fill = SolidColor(Color.Black)) {
-                moveTo(10.8f, 15.9f)
-                lineToRelative(4.67f, -3.5f)
-                curveToRelative(0.27f, -0.2f, 0.27f, -0.6f, 0f, -0.8f)
-                lineTo(10.8f, 8.1f)
-                curveToRelative(-0.33f, -0.25f, -0.8f, -0.01f, -0.8f, 0.4f)
-                verticalLineToRelative(7f)
-                curveToRelative(0f, 0.41f, 0.47f, 0.65f, 0.8f, 0.4f)
-                close()
                 moveTo(12f, 2f)
                 curveTo(6.48f, 2f, 2f, 6.48f, 2f, 12f)
                 reflectiveCurveToRelative(4.48f, 10f, 10f, 10f)
@@ -1317,7 +1579,12 @@ object MikomiIcons {
                 curveToRelative(-4.41f, 0f, -8f, -3.59f, -8f, -8f)
                 reflectiveCurveToRelative(3.59f, -8f, 8f, -8f)
                 reflectiveCurveToRelative(8f, 3.59f, 8f, 8f)
-                reflectiveCurveToRelative(-3.59f, 8f, -8f, 8f)
+                reflectiveCurveTo(16.41f, 20f, 12f, 20f)
+                close()
+                moveTo(9.5f, 16.5f)
+                lineToRelative(7f, -4.5f)
+                lineToRelative(-7f, -4.5f)
+                verticalLineTo(16.5f)
                 close()
             }
             .build()
@@ -2790,6 +3057,74 @@ object MikomiIcons {
                 close()
             }
             .build()
+    }
+
+    // ---- 弹幕图标（来源：Dart-Mikomi assets/icons/danmaku_*.svg）----
+    // 全仓唯一不是 Material 出处的图标，几何按原 svg 的 pathData 直搬，
+    // 双路径用 evenOdd 才能挖出气泡里的小字，别改成 NonZero。
+
+    /** 弹幕开启（气泡 + 对勾）（Dart-Mikomi）。 */
+    val DanmakuOn: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "DanmakuOn",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = addPathNodes(
+                    "M11.989 4.828c-.47 0-.975.004-1.515.012l-1.71-2.566a1.008 1.008 0 0 0-1.678 1.118l.999 1.5c-.681.018-1.403.04-2.164.068a4.013 4.013 0 0 0-3.83 3.44c-.165 1.15-.245 2.545-.245 4.185 0 1.965.115 3.67.35 5.116a4.012 4.012 0 0 0 3.763 3.363l.906.046c1.205.063 1.808.095 3.607.095a.988.988 0 0 0 0-1.975c-1.758 0-2.339-.03-3.501-.092l-.915-.047a2.037 2.037 0 0 1-1.91-1.708c-.216-1.324-.325-2.924-.325-4.798 0-1.563.076-2.864.225-3.904.14-.977.96-1.713 1.945-1.747 2.444-.087 4.465-.13 6.063-.131 1.598 0 3.62.044 6.064.13.96.034 1.71.81 1.855 1.814.075.524.113 1.962.141 3.065v.002c.01.342.017.65.025.88a.987.987 0 1 0 1.974-.068c-.008-.226-.016-.523-.025-.856v-.027c-.03-1.118-.073-2.663-.16-3.276-.273-1.906-1.783-3.438-3.74-3.507-.9-.032-1.743-.058-2.531-.078l1.05-1.46a1.008 1.008 0 0 0-1.638-1.177l-1.862 2.59c-.38-.004-.744-.007-1.088-.007h-.13Zm.521 4.775h-1.32v4.631h2.222v.847h-2.618v1.078h2.618l.003.678c.36.026.714.163 1.01.407h.11v-1.085h2.694v-1.078h-2.695v-.847H16.8v-4.63h-1.276a8.59 8.59 0 0 0 .748-1.42L15.183 7.8a14.232 14.232 0 0 1-.814 1.804h-1.518l.693-.308a8.862 8.862 0 0 0-.814-1.408l-1.045.352c.297.396.572.847.825 1.364Zm-4.18 3.564.154-1.485h1.98V8.294h-3.2v.98H9.33v1.43H7.472l-.308 3.453h2.277c0 1.166-.044 1.925-.12 2.277-.078.352-.386.528-.936.528-.308 0-.616-.022-.902-.055l.297 1.067.062.005c.285.02.551.04.818.04 1.001-.067 1.562-.419 1.694-1.057.11-.638.176-1.903.176-3.795h-2.2Zm7.458.11v-.858h-1.254v.858h1.254Zm-2.376-.858v.858h-1.199v-.858h1.2Zm-1.199-.946h1.2v-.902h-1.2v.902Zm2.321 0v-.902h1.254v.902h-1.254Z",
+                ),
+                fill = SolidColor(Color.Black),
+                pathFillType = PathFillType.EvenOdd,
+            )
+            addPath(
+                pathData = addPathNodes(
+                    "M22.846 14.627a1 1 0 0 0-1.412.075l-5.091 5.703-2.216-2.275-.097-.086-.008-.005a1 1 0 0 0-1.322 1.493l2.963 3.041.093.083.007.005c.407.315 1 .27 1.354-.124l5.81-6.505.08-.102.005-.008a1 1 0 0 0-.166-1.295Z",
+                ),
+                fill = SolidColor(Color.Black),
+                pathFillType = PathFillType.EvenOdd,
+            )
+        }.build()
+    }
+
+    /** 弹幕关闭（气泡 + 斜线）（Dart-Mikomi）。 */
+    val DanmakuOff: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "DanmakuOff",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = addPathNodes(
+                    "m8.085 4.891-.999-1.499a1.008 1.008 0 0 1 1.679-1.118l1.709 2.566c.54-.008 1.045-.012 1.515-.012h.13c.345 0 .707.003 1.088.007l1.862-2.59a1.008 1.008 0 0 1 1.637 1.177l-1.049 1.46c.788.02 1.631.046 2.53.078 1.958.069 3.468 1.6 3.74 3.507.088.613.13 2.158.16 3.276l.001.027c.01.333.017.63.025.856a.987.987 0 0 1-1.974.069c-.008-.23-.016-.539-.025-.881v-.002c-.028-1.103-.066-2.541-.142-3.065-.143-1.004-.895-1.78-1.854-1.813-2.444-.087-4.466-.13-6.064-.131-1.598 0-3.619.044-6.063.13a2.037 2.037 0 0 0-1.945 1.748c-.15 1.04-.225 2.341-.225 3.904 0 1.874.11 3.474.325 4.798.154.949.95 1.66 1.91 1.708a97.58 97.58 0 0 0 5.416.139.988.988 0 0 1 0 1.975c-2.196 0-3.61-.047-5.513-.141A4.012 4.012 0 0 1 2.197 17.7c-.236-1.446-.351-3.151-.351-5.116 0-1.64.08-3.035.245-4.184A4.013 4.013 0 0 1 5.92 4.96c.761-.027 1.483-.05 2.164-.069Zm4.436 4.707h-1.32v4.63h2.222v.848h-2.618v1.078h2.431a5.01 5.01 0 0 1 3.575-3.115V9.598h-1.276a8.59 8.59 0 0 0 .748-1.42l-1.089-.384a14.232 14.232 0 0 1-.814 1.804h-1.518l.693-.308a8.862 8.862 0 0 0-.814-1.408l-1.045.352c.297.396.572.847.825 1.364Zm-4.18 3.564.154-1.485h1.98V8.289h-3.2v.979h2.067v1.43H7.483l-.308 3.454h2.277c0 1.166-.044 1.925-.12 2.277-.078.352-.386.528-.936.528-.308 0-.616-.022-.902-.055l.297 1.067.062.004c.285.02.551.04.818.04 1.001-.066 1.562-.418 1.694-1.056.11-.638.176-1.903.176-3.795h-2.2Zm7.458.11v-.858h-1.254v.858H15.8Zm-2.376-.858v.858h-1.199v-.858h1.2Zm-1.199-.946h1.2v-.902h-1.2v.902Zm2.321 0v-.902H15.8v.902h-1.254Zm3.517 10.594a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-.002-1.502a2.5 2.5 0 0 1-2.217-3.657l3.326 3.398a2.49 2.49 0 0 1-1.109.259Zm2.5-2.5c0 .42-.103.815-.286 1.162l-3.328-3.401a2.5 2.5 0 0 1 3.614 2.239Z",
+                ),
+                fill = SolidColor(Color.Black),
+                pathFillType = PathFillType.EvenOdd,
+            )
+        }.build()
+    }
+
+    /** 弹幕设置（气泡 + 齿轮）（Dart-Mikomi）。 */
+    val DanmakuSetting: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "DanmakuSetting",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = addPathNodes(
+                    "m15.645 4.881 1.06-1.473a.998.998 0 1 0-1.622-1.166L13.22 4.835a110.67 110.67 0 0 0-1.1-.007h-.131c-.47 0-.975.004-1.515.012L8.783 2.3A.998.998 0 0 0 7.12 3.408l.988 1.484c-.688.019-1.418.042-2.188.069a4.013 4.013 0 0 0-3.83 3.44c-.165 1.15-.245 2.545-.245 4.185 0 1.965.115 3.67.35 5.116a4.012 4.012 0 0 0 3.763 3.363c1.903.094 3.317.141 5.513.141a.988.988 0 0 0 0-1.975 97.58 97.58 0 0 1-5.416-.139 2.037 2.037 0 0 1-1.91-1.708c-.216-1.324-.325-2.924-.325-4.798 0-1.563.076-2.864.225-3.904.14-.977.96-1.713 1.945-1.747 2.444-.087 4.465-.13 6.063-.131 1.598 0 3.62.044 6.064.13.96.034 1.71.81 1.855 1.814.075.524.113 1.962.141 3.065v.002c.005.183.01.07.014-.038.004-.096.008-.189.011-.081a.987.987 0 1 0 1.974-.069c-.004-.105-.007-.009-.011.09-.002.056-.004.112-.007.135l-.002.01a.574.574 0 0 1-.005-.091v-.027c-.03-1.118-.073-2.663-.16-3.276-.273-1.906-1.783-3.438-3.74-3.507-.905-.032-1.752-.058-2.543-.079Zm-3.113 4.703h-1.307v4.643h2.2v.04l.651-1.234c.113-.215.281-.389.482-.509v-.11h.235c.137-.049.283-.074.433-.074h1.553V9.584h-1.264a8.5 8.5 0 0 0 .741-1.405l-1.078-.381c-.24.631-.501 1.23-.806 1.786h-1.503l.686-.305c-.228-.501-.5-.959-.806-1.394l-1.034.348c.294.392.566.839.817 1.35Zm-1.7 5.502h2.16l-.564 1.068h-1.595v-1.068Zm-2.498-1.863.152-1.561h1.96V8.289H7.277v.969h2.048v1.435h-1.84l-.306 3.51h2.254c0 1.155-.043 1.906-.12 2.255-.076.348-.38.523-.925.523-.305 0-.61-.022-.893-.055l.294 1.056.061.005c.282.02.546.039.81.039.991-.065 1.547-.414 1.677-1.046.11-.631.175-1.883.175-3.757H8.334Zm5.09-.8v.85h-1.188v-.85h1.187Zm-1.188-.955h1.187v-.893h-1.187v.893Zm2.322.007v-.893h1.241v.893h-1.241Zm.528 2.757a1.26 1.26 0 0 1 1.087-.627l4.003-.009a1.26 1.26 0 0 1 1.094.63l1.721 2.982c.226.39.225.872-.001 1.263l-1.743 3a1.26 1.26 0 0 1-1.086.628l-4.003.009a1.26 1.26 0 0 1-1.094-.63l-1.722-2.982a1.26 1.26 0 0 1 .002-1.263l1.742-3Zm1.967.858a1.26 1.26 0 0 0-1.08.614l-.903 1.513a1.26 1.26 0 0 0-.002 1.289l.885 1.492c.227.384.64.62 1.086.618l2.192-.005a1.26 1.26 0 0 0 1.08-.615l.904-1.518a1.26 1.26 0 0 0 .001-1.288l-.884-1.489a1.26 1.26 0 0 0-1.086-.616l-2.193.005Zm2.517 2.76a1.4 1.4 0 1 1-2.8 0 1.4 1.4 0 0 1 2.8 0Z",
+                ),
+                fill = SolidColor(Color.Black),
+                pathFillType = PathFillType.EvenOdd,
+            )
+        }.build()
     }
 
 }

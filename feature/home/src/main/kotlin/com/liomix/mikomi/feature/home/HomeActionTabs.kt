@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -25,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 
 /** 首页快捷入口动作。 */
 enum class HomeQuickAction {
@@ -32,6 +32,9 @@ enum class HomeQuickAction {
     RANK,
     CATEGORY,
 }
+
+/** 首页快捷入口的图标：28dp 是「三栏并排」这个布局的物理尺寸，不属于图标档位。 */
+private val ActionIconSize = 28.dp
 
 private val HOME_ACTIONS = listOf(
     ActionItem(
@@ -95,11 +98,11 @@ private fun ActionButton(
             .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Sm),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            imageVector = icon,
+        MikomiIcon(
+            icon = icon,
             contentDescription = label,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(28.dp),
+            size = ActionIconSize,
         )
         Spacer(modifier = Modifier.height(MikomiSpacing.Tight))
         Text(

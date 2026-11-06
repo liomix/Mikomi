@@ -227,8 +227,22 @@ object MikomiSizes {
     /** 无障碍最小触控目标（rule §5.3）。凡是可点的独立控件都要撑到它。 */
     val TouchTarget: Dp = 48.dp
 
-    /** 图标小号：文字行内的图标（标签、附注、状态）。 */
-    val IconSm: Dp = 18.dp
+    /**
+     * 图标超小号：夹在文字行里、不承担点按的图标。
+     *
+     * 评分星标、元信息前的标记、行尾 chevron、状态对勾都属于这一档。它们和 12~13sp 的
+     * 元信息文字同排，取 16 是为了让图标略高于字身（12sp 的行高约 17dp），既不塌进字里，
+     * 也不把行撑高。
+     */
+    val IconXs: Dp = 16.dp
+
+    /**
+     * 图标小号：顶栏动作、搜索结果、列表前导、播放器控制条。
+     *
+     * 原值 18 是「比 20 秀气一点」的孤立取值，全仓有 6 处写成 20、1 处写成 18 ——
+     * 说明实际口径是 20，18 才是那个例外。收敛时以 20 为准。
+     */
+    val IconSm: Dp = 20.dp
 
     /**
      * 图标中号：顶栏动作、列表行尾、菜单项、按钮前导图标。
@@ -276,6 +290,7 @@ object MikomiSizes {
 
     /** 全部档位。规则同 [MikomiSpacing.steps]。 */
     val steps: List<MikomiStep> = listOf(
+        MikomiStep("IconXs", IconXs),
         MikomiStep("IconSm", IconSm),
         MikomiStep("IconMd", IconMd),
         MikomiStep("ChipHeight", ChipHeight),

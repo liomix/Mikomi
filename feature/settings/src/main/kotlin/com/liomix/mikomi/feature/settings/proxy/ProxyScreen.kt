@@ -16,7 +16,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +43,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.model.BangumiApiMode
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.component.SettingsCard
@@ -167,16 +167,16 @@ private fun MirrorAddressCard(
                     Text(stringResource(R.string.settings_proxy_mirror_placeholder))
                 },
                 leadingIcon = {
-                    Icon(
-                        imageVector = MikomiIcons.Link,
+                    MikomiIcon(
+                        icon = MikomiIcons.Link,
                         contentDescription = null,
                     )
                 },
                 trailingIcon = {
                     if (enabled && uiState.mirrorUrl.isNotEmpty()) {
                         IconButton(onClick = { onMirrorUrlChange("") }) {
-                            Icon(
-                                imageVector = MikomiIcons.Close,
+                            MikomiIcon(
+                                icon = MikomiIcons.Close,
                                 contentDescription = stringResource(
                                     R.string.settings_proxy_mirror_clear,
                                 ),

@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -50,6 +49,7 @@ import com.liomix.mikomi.core.designsystem.spec.MikomiNavBarSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import kotlin.math.roundToInt
 
 /**
@@ -180,11 +180,11 @@ private fun NavBarItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            imageVector = if (selected) item.selectedIcon else item.icon,
+        MikomiIcon(
+            icon = if (selected) item.selectedIcon else item.icon,
             contentDescription = null,
             tint = contentColor,
-            modifier = Modifier.size(MikomiNavBarSpec.IconSize),
+            size = MikomiNavBarSpec.IconSize,
         )
         Spacer(modifier = Modifier.height(MikomiNavBarSpec.IconLabelGap))
         Text(

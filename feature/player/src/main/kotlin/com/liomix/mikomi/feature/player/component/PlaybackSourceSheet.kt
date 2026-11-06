@@ -32,7 +32,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -62,8 +61,10 @@ import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.Tag
 import com.liomix.mikomi.core.ui.component.base.TagColors
 import com.liomix.mikomi.core.ui.component.base.TagStyle
@@ -478,11 +479,11 @@ private fun EntryRow(
             contentAlignment = Alignment.Center,
         ) {
             when {
-                playing -> Icon(
-                    imageVector = MikomiIcons.Check,
+                playing -> MikomiIcon(
+                    icon = MikomiIcons.Check,
                     contentDescription = stringResource(R.string.player_source_playing),
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(15.dp),
+                    modifier = Modifier.size(MikomiSizes.IconXs),
                 )
 
                 else -> StatusDot(
@@ -565,11 +566,11 @@ private fun RowAction(
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = icon,
+        MikomiIcon(
+            icon = icon,
             contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(RowActionIconSize),
+            size = RowActionIconSize,
         )
     }
 }

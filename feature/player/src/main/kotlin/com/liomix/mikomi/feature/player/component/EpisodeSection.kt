@@ -29,7 +29,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -58,8 +57,10 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.feature.player.EpisodeItem
@@ -372,10 +373,10 @@ private fun EpisodeRailButton(
             .alpha(opacity),
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
+            MikomiIcon(
+                icon = icon,
                 contentDescription = contentDescription,
-                modifier = Modifier.size(24.dp),
+                size = MikomiSizes.IconMd,
             )
         }
     }
@@ -554,12 +555,12 @@ private fun SortButton(
             modifier = Modifier.padding(horizontal = MikomiSpacing.Compact),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = MikomiIcons.ArrowUp,
+            MikomiIcon(
+                icon = MikomiIcons.ArrowUp,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
-                    .size(14.dp)
+                    .size(MikomiSizes.IconXs)
                     .rotate(rotation),
             )
             Spacer(modifier = Modifier.width(MikomiSpacing.Xs))

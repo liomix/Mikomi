@@ -15,7 +15,6 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -27,11 +26,13 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.model.RankEntry
 import com.liomix.mikomi.core.ui.component.base.ErrorState
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.base.Tab
 import com.liomix.mikomi.core.ui.component.base.TabBar
 import com.liomix.mikomi.core.ui.component.base.TabItemStyle
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
+import com.liomix.mikomi.core.ui.image.rememberCoverPrefetch
 import com.liomix.mikomi.feature.home.R
 import kotlinx.coroutines.launch
 
@@ -112,8 +113,8 @@ private fun RefreshAction(
                 strokeWidth = RefreshIndicatorStroke,
             )
         } else {
-            Icon(
-                imageVector = MikomiIcons.Refresh,
+            MikomiIcon(
+                icon = MikomiIcons.Refresh,
                 contentDescription = stringResource(R.string.rank_refresh),
             )
         }
@@ -195,6 +196,10 @@ private fun RankList(
         RankCardSkeletonList(modifier = modifier)
         return
     }
+
+    // 榜单是一次性拿到全量（前 50）的，滚到第 30 名时再下载封面已经迟了。
+    // 数据到手就把整榜的封面排进预取队列，滚动时命中磁盘缓存，图直接出现。
+    rememberCoverPrefetch(entries.map { it.anime.coverUrl })
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),

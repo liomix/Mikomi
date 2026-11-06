@@ -33,7 +33,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -80,6 +79,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.model.VdoPlgContent
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.Switch
 import com.liomix.mikomi.core.ui.component.base.Tag
 import com.liomix.mikomi.core.ui.component.base.TagStyle
@@ -160,8 +160,8 @@ fun PlgTstScreen(
             onBackClick = onBackClick,
             actions = {
                 IconButton(onClick = { addSheetOpen = true }) {
-                    Icon(
-                        imageVector = MikomiIcons.Add,
+                    MikomiIcon(
+                        icon = MikomiIcons.Add,
                         contentDescription = stringResource(R.string.settings_plg_tst_add),
                     )
                 }
@@ -575,8 +575,8 @@ private fun PluginRow(
 
         Box {
             IconButton(onClick = { menuOpen = true }) {
-                Icon(
-                    imageVector = MikomiIcons.MoreVert,
+                MikomiIcon(
+                    icon = MikomiIcons.MoreVert,
                     contentDescription = stringResource(R.string.settings_plg_tst_more, plugin.name),
                     tint = colors.onSurfaceVariant,
                 )
@@ -629,8 +629,8 @@ private fun PluginAction(
     DropdownMenuItem(
         text = { Text(label) },
         leadingIcon = {
-            Icon(
-                imageVector = icon,
+            MikomiIcon(
+                icon = icon,
                 contentDescription = null,
                 tint = tint ?: LocalContentColor.current,
             )
@@ -715,8 +715,8 @@ private fun RepoRow(
             )
         }
         Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
-        Icon(
-            imageVector = MikomiIcons.ChevronRight,
+        MikomiIcon(
+            icon = MikomiIcons.ChevronRight,
             contentDescription = null,
             tint = colors.onSurfaceVariant,
         )
@@ -920,8 +920,8 @@ private fun StageRow(
                 strokeWidth = MikomiStroke.Thick,
             )
 
-            else -> Icon(
-                imageVector = when (result) {
+            else -> MikomiIcon(
+                icon = when (result) {
                     is VdoPlgStageResult.Passed -> MikomiIcons.CheckCircle
                     is VdoPlgStageResult.Failed -> MikomiIcons.Error
                     else -> MikomiIcons.RadioUnchecked
@@ -1185,12 +1185,11 @@ private fun AddPluginSheet(
                         color = colors.surfaceContainerHighest,
                         contentColor = colors.onSurfaceVariant,
                     ) {
-                        Icon(
-                            imageVector = method.icon,
+                        MikomiIcon(
+                            icon = method.icon,
                             contentDescription = null,
-                            modifier = Modifier
-                                .padding(MikomiSpacing.Sm)
-                                .size(22.dp),
+                            modifier = Modifier.padding(MikomiSpacing.Sm),
+                            size = MikomiSizes.IconMd,
                         )
                     }
                     Spacer(modifier = Modifier.width(MikomiSpacing.Md))

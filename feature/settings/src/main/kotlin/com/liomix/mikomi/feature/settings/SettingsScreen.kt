@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,7 +21,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardHeader
@@ -125,12 +126,11 @@ private fun EntryRow(
             color = colors.primary.copy(alpha = 0.12f),
             contentColor = colors.primary,
         ) {
-            Icon(
-                imageVector = icon,
+            MikomiIcon(
+                icon = icon,
                 contentDescription = null,
-                modifier = Modifier
-                    .padding(MikomiSpacing.Sm)
-                    .size(22.dp),
+                modifier = Modifier.padding(MikomiSpacing.Sm),
+                size = MikomiSizes.IconMd,
             )
         }
         Spacer(modifier = Modifier.width(MikomiSpacing.Md))
@@ -147,8 +147,8 @@ private fun EntryRow(
             )
         }
         Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
-        Icon(
-            imageVector = MikomiIcons.ChevronRight,
+        MikomiIcon(
+            icon = MikomiIcons.ChevronRight,
             contentDescription = null,
             tint = colors.onSurfaceVariant,
         )

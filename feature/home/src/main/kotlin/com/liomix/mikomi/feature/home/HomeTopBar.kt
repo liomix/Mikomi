@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -25,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 
 /**
  * 顶栏高度：与巡礼页搜索条完全一致（`AniMapSearchBar` 的 `SearchBarHeight = 40.dp`）。
@@ -72,12 +72,12 @@ fun HomeTopBar(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = MikomiIcons.Person,
+                MikomiIcon(
+                    icon = MikomiIcons.Person,
                     contentDescription = profileContentDescription,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     // 24 -> 20：圆底由 48 收到 40，图标按同比例缩，否则头像会显得顶满。
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(MikomiSizes.IconSm),
                 )
             }
         }
@@ -101,8 +101,8 @@ fun HomeTopBar(
                     .padding(horizontal = MikomiSpacing.Gutter),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    imageVector = MikomiIcons.Search,
+                MikomiIcon(
+                    icon = MikomiIcons.Search,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(MikomiSizes.IconSm),

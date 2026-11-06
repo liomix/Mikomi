@@ -32,7 +32,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -75,8 +74,10 @@ import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.Tab
 import com.liomix.mikomi.core.ui.component.base.TabBar
 import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
@@ -574,11 +575,11 @@ private fun ProfileTopBar(
                 .align(Alignment.BottomEnd)
                 .padding(end = MikomiSpacing.Xs, bottom = MikomiSpacing.Xs),
         ) {
-            Icon(
-                imageVector = MikomiIcons.Email,
+            MikomiIcon(
+                icon = MikomiIcons.Email,
                 contentDescription = stringResource(R.string.profile_notifications_entry),
                 tint = lerp(palette.title, MikomiMedia.content, tintStep.value.coerceIn(0f, 1f)),
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(MikomiSizes.IconMd),
             )
         }
     }
@@ -872,11 +873,11 @@ private fun ActionCard(
             .background(palette.card)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
     ) {
-        Icon(
-            imageVector = icon,
+        MikomiIcon(
+            icon = icon,
             contentDescription = null,
             tint = palette.title,
-            modifier = Modifier.size(20.dp),
+            size = MikomiSizes.IconSm,
         )
         Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
         Text(

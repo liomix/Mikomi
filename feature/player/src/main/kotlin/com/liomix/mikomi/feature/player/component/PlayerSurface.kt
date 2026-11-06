@@ -32,7 +32,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -57,10 +56,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
@@ -77,11 +74,13 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.spec.MikomiPlayerSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.media.MikomiPlayer
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.feature.player.PlaybackMode
 import com.liomix.mikomi.feature.player.PlayerFailure
 import com.liomix.mikomi.feature.player.PlayerFailureReason
@@ -537,11 +536,11 @@ private fun PlayerStatusOverlay(
                 modifier = Modifier.padding(horizontal = MikomiSpacing.Xxl),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Icon(
-                    imageVector = MikomiIcons.Error,
+                MikomiIcon(
+                    icon = MikomiIcons.Error,
                     contentDescription = null,
                     tint = MikomiMedia.contentSecondary,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(MikomiSizes.IconMd),
                 )
                 Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
                 Text(
@@ -649,13 +648,13 @@ private fun PlayerLockButton(
             .graphicsLayer { this.alpha = alpha },
         containerColor = if (locked) MikomiMedia.surfaceProminent else ControlContainer,
     ) {
-        Icon(
-            imageVector = if (locked) MikomiIcons.Lock else MikomiIcons.LockOpen,
+        MikomiIcon(
+            icon = if (locked) MikomiIcons.Lock else MikomiIcons.LockOpen,
             contentDescription = stringResource(
                 if (locked) R.string.player_unlock else R.string.player_lock,
             ),
             tint = MikomiMedia.content,
-            modifier = Modifier.size(MikomiPlayerSpec.ControlIconSize),
+            modifier = Modifier.size(MikomiSizes.IconSm),
         )
     }
 }
@@ -716,8 +715,8 @@ private fun PlayerTopOverlay(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBackClick, enabled = enabled) {
-            Icon(
-                imageVector = MikomiIcons.Back,
+            MikomiIcon(
+                icon = MikomiIcons.Back,
                 contentDescription = stringResource(R.string.player_back),
                 tint = MikomiMedia.content,
             )
@@ -756,15 +755,15 @@ private fun PlayerTopOverlay(
         }
         if (webMode) {
             IconButton(onClick = onEpisodesClick, enabled = enabled) {
-                Icon(
-                    imageVector = MikomiIcons.Playlist,
+                MikomiIcon(
+                    icon = MikomiIcons.Playlist,
                     contentDescription = stringResource(R.string.player_episode_picker),
                     tint = MikomiMedia.content,
                 )
             }
             IconButton(onClick = onToggleFullscreen, enabled = enabled) {
-                Icon(
-                    imageVector = if (fullscreen) MikomiIcons.FullscreenExit else MikomiIcons.Fullscreen,
+                MikomiIcon(
+                    icon = if (fullscreen) MikomiIcons.FullscreenExit else MikomiIcons.Fullscreen,
                     contentDescription = stringResource(
                         if (fullscreen) R.string.player_exit_fullscreen else R.string.player_fullscreen,
                     ),
@@ -773,8 +772,8 @@ private fun PlayerTopOverlay(
             }
         } else {
             IconButton(onClick = onPlayerSettingsClick, enabled = enabled) {
-                Icon(
-                    imageVector = MikomiIcons.MoreVert,
+                MikomiIcon(
+                    icon = MikomiIcons.MoreVert,
                     contentDescription = stringResource(R.string.player_settings),
                     tint = MikomiMedia.content,
                 )
@@ -1007,9 +1006,7 @@ private fun FullscreenControls(
                 if (showAllActions) {
                     Spacer(modifier = Modifier.width(MikomiPlayerSpec.GroupGap))
                     ControlIconButton(
-                        painter = painterResource(
-                            if (danmakuEnabled) R.drawable.ic_danmaku_on else R.drawable.ic_danmaku_off,
-                        ),
+                        imageVector = if (danmakuEnabled) MikomiIcons.DanmakuOn else MikomiIcons.DanmakuOff,
                         contentDescription = stringResource(R.string.player_danmaku),
                         active = danmakuEnabled,
                         enabled = enabled,
@@ -1017,7 +1014,7 @@ private fun FullscreenControls(
                     )
                     ControlGapSpacer()
                     ControlIconButton(
-                        painter = painterResource(R.drawable.ic_danmaku_setting),
+                        imageVector = MikomiIcons.DanmakuSetting,
                         contentDescription = stringResource(R.string.player_danmaku_settings),
                         enabled = enabled,
                         onClick = onDanmakuSettingsClick,
@@ -1109,18 +1106,18 @@ private fun ControlIconButton(
         modifier = Modifier.size(MikomiPlayerSpec.ControlSize),
         containerColor = containerColor ?: if (active) ActiveControlContainer else ControlContainer,
     ) {
-        Icon(
-            imageVector = imageVector,
+        MikomiIcon(
+            icon = imageVector,
             contentDescription = contentDescription,
             tint = if (active) MaterialTheme.colorScheme.primary else MikomiMedia.content,
-            modifier = Modifier.size(MikomiPlayerSpec.ControlIconSize),
+            size = MikomiSizes.IconSm,
         )
     }
 }
 
 @Composable
 private fun ControlIconButton(
-    painter: Painter,
+    painter: ImageVector,
     contentDescription: String,
     enabled: Boolean,
     onClick: () -> Unit,
@@ -1132,11 +1129,11 @@ private fun ControlIconButton(
         modifier = Modifier.size(MikomiPlayerSpec.ControlSize),
         containerColor = if (active) ActiveControlContainer else ControlContainer,
     ) {
-        Icon(
-            painter = painter,
+        MikomiIcon(
+            icon = painter,
             contentDescription = contentDescription,
             tint = if (active) MaterialTheme.colorScheme.primary else MikomiMedia.content,
-            modifier = Modifier.size(MikomiPlayerSpec.ControlIconSize + 2.dp),
+            size = MikomiPlayerSpec.ControlIconSize,
         )
     }
 }
@@ -1168,8 +1165,8 @@ private fun PlayPauseButton(
         modifier = Modifier.size(MikomiPlayerSpec.ControlSize),
         containerColor = containerColor,
     ) {
-        Icon(
-            imageVector = if (isPlaying) MikomiIcons.Pause else MikomiIcons.Play,
+        MikomiIcon(
+            icon = if (isPlaying) MikomiIcons.Pause else MikomiIcons.Play,
             contentDescription = stringResource(
                 if (isPlaying) R.string.player_pause else R.string.player_play,
             ),
@@ -1223,8 +1220,8 @@ private fun SpeedChip(
                     },
                     trailingIcon = {
                         if (option == speed) {
-                            Icon(
-                                imageVector = MikomiIcons.Check,
+                            MikomiIcon(
+                                icon = MikomiIcons.Check,
                                 contentDescription = stringResource(R.string.player_speed_current),
                             )
                         }
@@ -1257,11 +1254,11 @@ private fun VideoScaleMenu(
             enabled = enabled,
             modifier = Modifier.size(MikomiPlayerSpec.ControlSize),
         ) {
-            Icon(
-                imageVector = MikomiIcons.FitScreen,
+            MikomiIcon(
+                icon = MikomiIcons.FitScreen,
                 contentDescription = stringResource(R.string.player_scale_current, currentLabel),
                 tint = MikomiMedia.content,
-                modifier = Modifier.size(MikomiPlayerSpec.ControlIconSize),
+                modifier = Modifier.size(MikomiSizes.IconSm),
             )
         }
 
@@ -1275,8 +1272,8 @@ private fun VideoScaleMenu(
                     },
                     trailingIcon = {
                         if (option == current) {
-                            Icon(
-                                imageVector = MikomiIcons.Check,
+                            MikomiIcon(
+                                icon = MikomiIcons.Check,
                                 contentDescription = stringResource(R.string.player_scale_current, currentLabel),
                             )
                         }

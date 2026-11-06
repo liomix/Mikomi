@@ -27,7 +27,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -60,6 +59,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.model.AniRpbHotItem
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.base.Tab
@@ -118,11 +118,11 @@ internal fun SearchBrowseSection(
                     topPadding = 2.dp,
                     action = {
                         IconButton(onClick = onClearHistory) {
-                            Icon(
-                                imageVector = MikomiIcons.Delete,
+                            MikomiIcon(
+                                icon = MikomiIcons.Delete,
                                 contentDescription = stringResource(R.string.search_history_clear),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(MikomiSizes.IconSm),
                             )
                         }
                     },
@@ -195,11 +195,11 @@ private fun SectionHeader(
             .padding(start = MikomiSpacing.Lg, end = MikomiSpacing.Sm, top = topPadding, bottom = MikomiSpacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = icon,
+        MikomiIcon(
+            icon = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(MikomiSizes.IconSm),
+            size = MikomiSizes.IconSm,
         )
         Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
         Text(
@@ -343,8 +343,8 @@ private fun ExpandTab(
                 color = MaterialTheme.colorScheme.primary,
             )
             Spacer(modifier = Modifier.width(MikomiSpacing.Xxs))
-            Icon(
-                imageVector = if (expanded) MikomiIcons.ExpandLess else MikomiIcons.ExpandMore,
+            MikomiIcon(
+                icon = if (expanded) MikomiIcons.ExpandLess else MikomiIcons.ExpandMore,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(MikomiSizes.IconSm),
@@ -486,11 +486,11 @@ private fun HotMeta(
         }
         if (item.score != null) {
             if (hasPrevious) MetaSeparator(color = metaColor)
-            Icon(
-                imageVector = MikomiIcons.Star,
+            MikomiIcon(
+                icon = MikomiIcons.Star,
                 contentDescription = null,
                 tint = MikomiTheme.colors.rating,
-                modifier = Modifier.size(11.dp),
+                modifier = Modifier.size(MikomiSizes.IconXs),
             )
             Spacer(modifier = Modifier.width(MikomiSpacing.Xxs))
             Text(

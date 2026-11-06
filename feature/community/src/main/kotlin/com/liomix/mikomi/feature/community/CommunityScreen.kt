@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +25,7 @@ import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
 
 /**
@@ -79,8 +79,8 @@ private fun CommunityEmptyState(modifier: Modifier = Modifier) {
         modifier = modifier.padding(horizontal = MikomiSpacing.Xxl),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            imageVector = MikomiIcons.Forum,
+        MikomiIcon(
+            icon = MikomiIcons.Forum,
             contentDescription = null,
             tint = colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
             modifier = Modifier.size(MikomiSizes.AvatarMd),

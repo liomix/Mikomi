@@ -94,30 +94,31 @@ fun MikomiNavHost(
     val communityLabel = stringResource(R.string.nav_community)
     val profileLabel = stringResource(R.string.nav_profile)
 
-    // 从左到右：首页 / 巡礼地图 / 社区 / 我的
+    // 从左到右：首页 / 巡礼地图 / 社区 / 我的。
+    // icon 是未选中态（描边），selectedIcon 是选中态（实心）—— M3 导航栏口径。
     val navItems = remember(homeLabel, aniMapLabel, communityLabel, profileLabel) {
         listOf(
             MikomiNavItem(
                 key = HomeDestination,
-                icon = MikomiIcons.Home,
+                icon = MikomiIcons.HomeOutline,
                 selectedIcon = MikomiIcons.Home,
                 label = homeLabel,
             ),
             MikomiNavItem(
                 key = AniMapDestination,
-                icon = MikomiIcons.Map,
+                icon = MikomiIcons.MapOutline,
                 selectedIcon = MikomiIcons.Map,
                 label = aniMapLabel,
             ),
             MikomiNavItem(
                 key = CommunityDestination,
-                icon = MikomiIcons.Forum,
+                icon = MikomiIcons.ForumOutline,
                 selectedIcon = MikomiIcons.Forum,
                 label = communityLabel,
             ),
             MikomiNavItem(
                 key = ProfileDestination,
-                icon = MikomiIcons.Person,
+                icon = MikomiIcons.PersonOutline,
                 selectedIcon = MikomiIcons.Person,
                 label = profileLabel,
             ),

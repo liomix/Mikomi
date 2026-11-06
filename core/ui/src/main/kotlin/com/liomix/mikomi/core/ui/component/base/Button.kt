@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -207,10 +206,10 @@ fun PressButton(
             horizontalArrangement = Arrangement.Center,
         ) {
             if (leadingIcon != null) {
-                Icon(
-                    imageVector = leadingIcon,
+                MikomiIcon(
+                    icon = leadingIcon,
                     contentDescription = null,
-                    modifier = Modifier.size(style.iconSize),
+                    size = style.iconSize,
                 )
                 Spacer(modifier = Modifier.width(style.iconGap))
             }
@@ -282,10 +281,10 @@ fun PressIconButton(
             modifier = Modifier.size(size),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = icon,
+            MikomiIcon(
+                icon = icon,
                 contentDescription = contentDescription,
-                modifier = Modifier.size(iconSize),
+                size = iconSize,
             )
         }
     }

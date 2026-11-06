@@ -77,11 +77,11 @@ Telegram 没有路由表，页面身份就是「类 + Bundle」，跳转全靠 `
 
 | 前缀 | 用途 | 示例 |
 | --- | --- | --- |
-| `ic_` | **多色 / 复杂矢量图**（含自适应图标各层） | `ic_danmaku_on`、`ic_launcher_foreground` |
+| `ic_` | **多色 / 复杂矢量图**（含自适应图标各层） | `ic_launcher_foreground` |
 | `bg_` | 背景 | `bg_episode_card` |
 | `img_` | 位图图片 | `img_anime_cover` |
 
-**单色图标不进 `res/drawable`，一律进 `MikomiIcons`**（见 §5.6）。`ic_` 前缀留给「一张 path 画不完」的图：弹幕开关那种带细节的图形、启动图标各层。判据是**这张图会不会被 tint 染色** —— 会，就该是 `ImageVector`；不会（多色、渐变、位图），才落资源。
+**单色图标不进 `res/drawable`，一律进 `MikomiIcons`**（见 §5.6）。`ic_` 前缀留给「一张 path 画不完」的图：启动图标各层、多色插画。判据是**这张图会不会被 tint 染色** —— 会，就该是 `ImageVector`；不会（多色、渐变、位图），才落资源。弹幕那三个图标曾经是这条规则的例外（带小字的气泡图形），现已按同一判据收进 `MikomiIcons`，`feature:player` 的 `res/drawable` 已空。
 
 本项目**纯 Compose**，不存在 `activity_` / `fragment_` / `item_` / `screen_` 这类布局文件命名，不要再照抄 XML 时代的模板。库模块中所有导出的资源**必须**用 `resourcePrefix` 配置唯一前缀。新增前先搜可复用资源。
 
@@ -318,7 +318,7 @@ Mikomi 默认**离线优先**：
 | --- | --- | --- |
 | 动效时长 | TG | 60（按压）/ 150 / 200 / 250 / 300 / 350 |
 | 圆角 | TG | 4 / 6 / 10 / 12 / 16 / 20 / 28（`MikomiRadius`），胶囊用百分比 |
-| 图标 | TG | 基准 24（`MikomiSizes.IconMd`）/ 次级 18（`IconSm`）。存量另有 14 / 15 / 16 / 20 / 22 / 26 / 28 / 36 / 44 / 56 共 10 种分散值，属未收敛的历史值，**新增只用上面两档** |
+| 图标 | TG | **三档**：`IconXs`=16（文字行内：评分星标、行尾 chevron、状态对勾）/ `IconSm`=20（次级动作：顶栏、搜索结果、播放器控制条）/ `IconMd`=24（标准：菜单项、返回箭头、按钮前导）。收敛前是 11/13/14/15/16/18/20/22/24 八种混用，16 与 20 已是双峰；大于 24 的（播放键 32、HUD 32、开关 28、空状态 56）是单个组件的物理尺寸，留组件内 `private val` |
 | 行高 | TG | 56（双行，`MikomiSizes.RowDouble`）；单行 48 由触控目标保证 |
 | 触控目标 | 一致 | 48 |
 | 按压反馈 | TG | 中性墨色 9.8%（`0x19`），不是主色 12% |
@@ -351,6 +351,9 @@ token 表最怕的不是「值不好」，而是「没人知道它为什么是�
 | 7 | 页面动效档位改由 `LocalPageTransitionStyle` 下发、每个页面首次组合时冻结一份；装饰器实例不再随档位重建 | 在设置页点「淡入 / 无」时，当前页自己重播了一次入场：装饰链换实例等于把整页重新挂载，`LaunchedEffect(style)` 又把进度从 1 拉回 0 |
 | 8 | 组件库对齐 TG 的三条：禁用态从 `MikomiMotion.Disabled` 搬到 `MikomiAlpha`（颜色层）；两份 `ScrimAlpha` 合成 `MikomiScrimSpec`；浮层遮罩抽成 `SheetScrim` 由 `BottomPop` / `SideBarPop` 共用 | 0.12 / 0.38 一次都不动，却被放进「动效」命名空间，找禁用态的人不会去那里翻；两个浮层各写一份遮罩，深度各存一份 0.32，一处改动两处手感分叉 |
 | 9 | 图标收进 `MikomiIcons`（69 个 `ImageVector`，统一 Rounded + 语义命名 + `autoMirror` 标记），删 `material-icons-extended`；图片收成 `MikomiImageLoader` 加三个请求入口，`feature` 不再依赖 coil | 图标库 84 MB / 11106 类，实际只用 69 个图形，且同一语义混着三种粗细（`Search` 两份、`Star` 三份）；图片没有全局配置，8 处各拼 `ImageRequest`，`crossfade` 与 `memoryCacheKey` 的口径已经分叉（`RankAnimeCard` 开淡入、`HomeBanner` 没开） |
+| ~~10~~（已回退） | 曾把 69 个 `ImageVector` 换成 lucide v1.70.0 的 `res/drawable/ic_*.xml` + 88 行语义表；**整轮撤销**，图形语言回到 Material `ImageVector` | 换的是图形语言，不是实现：Material 实心 → lucide `stroke 2` 描边，**同一 dp 下墨水面积掉一半**，且描边随档位线性缩（18dp → 1.5、13 → 1.08、11 → 0.92，不足 1 像素被抗锯齿成灰）。§5.3 的 11/13/16 是围着实心量的，换语言后刻度全歪 —— 见 §5.6 末尾的校准要求。这一轮把「改尺寸」和「换形状」混在同一次变更里，也是它必须整体撤回的原因 |
+| 11 | 实心/描边按语义重选：12 个语义标识（日历、排行榜、分类、设置、外观、插件、播放设置、历史、收藏、邮箱、编辑、离线）换成 `Outlined`，新增 4 个导航未选中态（`HomeOutline` / `MapOutline` / `ForumOutline` / `PersonOutline`），底栏改成 `icon`=描边 + `selectedIcon`=实心 | 69 个里 67 个是实心：`MikomiIcons` 当初只从 `Rounded` 一个家族提取，判据只有「有没有被引用」，没有「该实心还是该描边」这一维。零星几个空心的（`StarBorder`、`ChatBubbleOutline`）是名字里自带 Border/Outline 的巧合。底栏两个字段填了同一个图标，选中与未选中只靠颜色区分 |
+| 12 | 尺寸从「八种分散值」收成三档（`IconXs`16 / `IconSm`20 / `IconMd`24）并登记进 `MikomiSizes.steps`；新增 `MikomiIcon` 作为唯一图标入口（`size` 默认 `IconMd`），72 处调用全部迁移；3 个弹幕图标从 `res/drawable` 收进 `MikomiIcons`；`tools/icon-gen/` 入库；图片补默认占位/失败底色与列表封面预取 | 尺寸以前**没有负责人**：只有 4 处读 token、32 处写字面量（11/13/14/15/16/18/20/22/24）、23 处不写 size 靠 `ImageVector.defaultWidth=24.dp` —— 改 token 只有 4 处会动。`IconSm` 是 18 而事实主档是 20；评分星标同一语义写了 11 和 13 两个值。弹幕 3 个 xml 是图标系统之外的第二条通路。图片的 `placeholder`/`error` 参数存在但全仓没传过，首帧与失败都是透明洞 |
 
 ### 5.5 可访问性与对比度
 
@@ -367,25 +370,46 @@ token 表最怕的不是「值不好」，而是「没人知道它为什么是�
 
 > 注：Compose **Styles API**（`androidx.compose.foundation.style.Style`）目前为实验性，**暂不纳入生产基线**。稳定后再评估自定义组件的样式迁移。
 
-### 5.6 图标：一套 path，语义命名
+### 5.6 图标：一个入口，一套语义，两档家族
 
-**唯一来源是 `MikomiIcons`**（`core:designsystem` 的 `icon/MikomiIcons.kt`，当前 69 个）。调用点写 `MikomiIcons.Play`，不写 `Icons.Rounded.PlayArrow`。
+**唯一来源是 `MikomiIcons`**（`core:designsystem` 的 `icon/MikomiIcons.kt`，当前 **76 个**：73 个来自 Material Icons + 3 个弹幕图标）。调用点写 `MikomiIcons.Play`，不写 `Icons.Rounded.PlayArrow`。
 
-三条硬规则：
+**唯一入口是 `MikomiIcon`**（`core:ui/component/base/MikomiIcon.kt`），全仓 72 处图标调用都走它：
 
-1. **不引第三方图标库。** 上一版用的是 `material-icons-extended`：API jar **84 MB / 11106 个类**，而全仓实际只用 80 处调用、去重后 **69 个图形**。D8 在 debug 不裁剪，这 11106 个类每一次构建都要走一遍 dex，换来的是 69 个图标。现在这 69 个以 `ImageVector` 形式落在项目里，dex 里已经没有 `androidx/compose/material/icons` 这个包。
-2. **风格只有一套（Rounded），且由 `MikomiIcons` 决定。** 迁移前同一个图形混着三种粗细：`Search` 有 Outlined 和 Filled 两份、`Close` 有 Rounded 和 Filled、`Star` 有 Filled / Rounded / StarBorder 三份 —— 底栏与页面里「同一个意思的图标长得不一样」就是从这里来的。要换风格，改 `MikomiIcons` 一处。
-3. **RTL 用 `autoMirror = true` 表达，不在调用点挑 `AutoMirrored` 变体。** 返回、列表排序、播放列表这 6 个语义已经标好；调用点只认语义名。
+```kotlin
+MikomiIcon(
+    icon = MikomiIcons.ChevronRight,
+    contentDescription = null,
+    size = MikomiSizes.IconXs,   // 不写就是 IconMd
+)
+```
+
+**为什么必须有这一层**：Material3 的 `Icon` 里有个 `defaultSizeFor(painter)` —— painter 的 intrinsicSize 有限时它**不加**默认尺寸。我们每个 `ImageVector` 的 `defaultWidth` 都是 24dp，于是「不写 size 也正好 24」：看着对，但那是图形自己带来的，不是 token 在管。实测过一次：把 `IconMd` 改成别的值，全仓 23 处没写 size 的调用点**一个都不动**。`MikomiIcon` 把默认值收进 `size: Dp = MikomiSizes.IconMd`，参数名也顺手把尺寸从 `Modifier` 链里挪了出来 —— 调用点的 `modifier` 在外层，显式传的 `.size()` 仍然优先。
+
+四条硬规则：
+
+1. **不引第三方图标库。** 上一版用的是 `material-icons-extended`：API jar **84 MB / 11106 个类**，而全仓实际只用 110 余处调用、去重后 **69 个图形**。D8 在 debug 不裁剪，这 11106 个类每一次构建都要走一遍 dex。现在这些图形以 `ImageVector` 形式落在项目里，dex 里已经没有 `androidx/compose/material/icons` 这个包。
+2. **实体/描边由语义定，不按页面拍脑袋**：**实心（`Rounded`）留给「状态与压画面」**——星级、播放控制、勾选、错误、锁；**描边（`Outlined`）留给「语义标识」**——设置项、快捷入口、标签页、空状态、导航未选中项。底栏的 `MikomiNavItem` 因此填两组：`icon`=描边（未选中）、`selectedIcon`=实心（选中），这也是 M3 导航栏的口径。当前 49 / 16 / 8（`AutoMirrored.Rounded`）。
+   - 历史教训：这两个家族不是「同一个图标的两个变体」，而是**两个独立的图标名**。迁移前 67/69 全是实心，偶有空心的那几个（`StarBorder`、`ChatBubbleOutline`）是名字里自带 Border/Outline 的巧合，不是选出来的 —— 所以同一屏里会同时出现空心星和实心日历。
+3. **RTL 用 `autoMirror = true` 表达，不在调用点挑 `AutoMirrored` 变体。** 返回、列表排序、播放列表这 8 个语义已经标好；调用点只认语义名。
+4. **几何来自上游，工具在 `tools/icon-gen/`。** 加图标或换形状用 `python3 tools/icon-gen/extract.py <Name> --family outlined`，它把上游的紧凑 DSL 翻成本文件的展开式；`--verify` 会逐条核对语义表能否追回上游（当前 73/73）。仓库里没有上游源码，缓存被清之后 `--verify` 会整体报「追不回」，那是找不到 jar，不是图标错了。
 
 **自绘新图标时按这套规格画**，否则和新图标摆在一起会「一个粗一个细、一个偏左一个居中」：
 
 - viewport **24×24**，视觉主体落在 **20×20** 安全区内（四边留 2）；
 - 描边 **2dp**，圆头圆角（与 Material Symbols 基准一致）；
 - **path 里不写颜色**，`fill` 固定给 `SolidColor(Color.Black)`，实际颜色由 `Icon` 的 tint 决定 —— 这样才吃 `LocalContentColor`、夜间与禁用态能自动跟随；
-- 显示尺寸走 `MikomiSizes.IconMd`(24) 或 `IconSm`(18)，不要再添新档（§5.3）；
+- 显示尺寸走三档 `IconXs`(16) / `IconSm`(20) / `IconMd`(24)，不要再添新档（§5.3）；
 - 需要多色或渐变（品牌标、插画）才落 `res/drawable`，走 §1.3 的 `ic_` 前缀。
 
-新增图标只有一个动作：往 `MikomiIcons` 加一个 `val`。不需要改任何调用点。
+新增图标只有一个动作：往 `MikomiIcons` 加一个 `val`。不需要改任何调用点 —— 形状变了也同理，文件名/语义名不变，只换 `val` 里的几何。
+
+**换图形语言 ≠ 改 dp，先做光学尺寸校准**（第 10 轮试过整轮替换，已回退）。当时把 69 个 `ImageVector` 换成 lucide v1.70.0 的 `res/drawable/ic_*.xml`，**dp 一个都没改，视觉上却全乱了**，原因有两条：
+
+- **实心 → 描边，墨水面积掉一半。** 同一 24dp 框里，Material 实心星是一块黑，lucide 的 `stroke 2` 星只有一圈线；`Star` 实心/描边那对语义原本还承担「已收藏 / 未收藏」的区分，描边版直接把这一档视觉重量抹平了。
+- **描边随档位线性缩。** 24 viewport 的 `stroke 2` 画到 24dp 正好是 2dp，往下降就顶不住：20dp → 1.67、18 → 1.5、13 → 1.08、**11dp → 0.92dp**（不足 1 像素，抗锯齿后成一条灰线）。
+
+§5.3 里 11 / 13 / 14 / 15 / 16 那些值是围着 **Material 实心的光学大小**量的，一旦换语言，这些数字的含义就变了 —— token 没动，刻度却全歪了。真要换，必须先按墨水面积做补偿（放大 viewport 再裁回 24 框），不能「等 dp 直接搬」。
 
 ### 5.7 图片：一个入口，一份缓存口径
 
@@ -401,13 +425,18 @@ token 表最怕的不是「值不好」，而是「没人知道它为什么是�
 | --- | --- |
 | 一张图，只管显示 | `MikomiAsyncImage(url = ...)` |
 | 要自己画（模糊背景、遮罩、`drawWithContent`） | `rememberMikomiImagePainter(url = ...)`，返回 `Painter` |
-| 需要拿请求做别的事（预加载等） | `rememberCoverRequest(url = ...)` |
+| 需要拿请求做别的事 | `rememberCoverRequest(url = ...)` |
+| 列表提前铺图 | `rememberCoverPrefetch(urls = ...)` |
 
 三条口径因此只在一处定义：
 
 - **`memoryCacheKey` 固定为 url。** 各写一份时 key 计算路径会分叉，症状是「搜索完退回来，轮播显示的是搜索海报」。
 - **`crossfade` 由调用方显式给。** 懒列表里必须关（一屏十张同时淡入是明确的每帧混合开销）；轮播、详情这种一屏一张的可以开。
 - **浏览器 UA 只在需要时加**（`browserUserAgent = true`）：AniRpb 的 meituan 图床会拒绝非浏览器 UA。默认不加，因为很多 CDN 会按 UA 换编码格式。
+
+**默认占位与失败底色是骨架色，不是透明。** `MikomiAsyncImage` 的 `placeholder` / `error` 默认取 `rememberMikomiPlaceholder()`（`skeletonBaseColor()`）。以前这两个参数存在但全仓没传过 —— 封面在首帧、失败、被取消三种情况下都是透明的，露出来的是父容器背景；夜间主题下就是一块比周围更黑的洞。用骨架色而不是固定灰，是因为它和 `SkeletonBox` 同色，列表滚过去不会有「先灰一下再黑一下」的跳变。
+
+**列表封面用 `rememberCoverPrefetch(urls)` 预取。** 图片是按可见性触发的：item 组合出来才开始下载，滚动时新出现的卡片永远是「先占位、再淡入」。做法是数据到手的瞬间把整批 url 排进队列（`memoryCachePolicy = DISABLED`，只求落盘、不占内存，因为此时不知道最终显示多大），滚动时命中磁盘缓存直接出图。当前接在排行榜（一次拿全量前 50）。
 
 **`feature` 模块不依赖 coil。** `MikomiAsyncImage` 与 `rememberMikomiImagePainter` 的参数与返回值都不出现 coil 类型 —— 换图片库、加统一占位、改缓存策略时，改动范围停在 `core:ui`，不下发到 10 个 feature。
 
@@ -492,7 +521,7 @@ token 表最怕的不是「值不好」，而是「没人知道它为什么是�
 
 引入或升级前必须评估：维护状态、许可证、包体积、最低系统版本、隐私影响、安全风险、与现有依赖的冲突。**能写的自己写，不能写的才引**：这个项目的播放器、嗅探、插件解析都是自己实现的，多引一个库就意味着多一处版本约束。
 
-**第三方图标库一律不再引入**（§5.6）：`material-icons-extended` 用 84 MB / 11106 个类换 69 个实际用到的图形，dex 在 debug 不裁剪，每一版都要为没用的 11000 个类付构建时间。要新图标就按 §5.6 的规格加进 `MikomiIcons`。
+**第三方图标库一律不再引入**（§5.6）：`material-icons-extended` 用 84 MB / 11106 个类换 73 个实际用到的图形，dex 在 debug 不裁剪，每一版都要为没用的 11000 个类付构建时间。要新图标就按 §5.6 的规格加进 `MikomiIcons`。
 
 ### 7.6 构建与运行约定
 

@@ -26,8 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -35,8 +34,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.Tab
 import com.liomix.mikomi.core.ui.component.base.TabBar
 import com.liomix.mikomi.core.ui.component.base.TabItemStyle
@@ -119,15 +120,13 @@ internal fun PlayerNavigationBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CircleAction(
-                icon = painterResource(
-                    if (danmakuEnabled) R.drawable.ic_danmaku_on else R.drawable.ic_danmaku_off,
-                ),
+                icon = if (danmakuEnabled) MikomiIcons.DanmakuOn else MikomiIcons.DanmakuOff,
                 contentDescription = stringResource(R.string.player_danmaku),
                 active = danmakuEnabled,
                 onClick = onDanmakuToggle,
             )
             CircleAction(
-                icon = painterResource(R.drawable.ic_danmaku_setting),
+                icon = MikomiIcons.DanmakuSetting,
                 contentDescription = stringResource(R.string.player_danmaku_settings),
                 onClick = onDanmakuSettingsClick,
             )
@@ -144,7 +143,7 @@ internal fun PlayerNavigationBar(
 /** 圆形图标的两个状态：关闭态用中性底色，开启态用主色浅底 + 主色图标。 */
 @Composable
 private fun CircleAction(
-    icon: Painter,
+    icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
     active: Boolean = false,
@@ -178,11 +177,11 @@ private fun CircleAction(
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            painter = icon,
+        MikomiIcon(
+            icon = icon,
             contentDescription = null,
             tint = tint,
-            modifier = Modifier.size(iconSize),
+            size = iconSize,
         )
     }
 }

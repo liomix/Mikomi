@@ -22,7 +22,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -551,10 +550,10 @@ private fun TabIcon(
                 Badge { Text(text = if (badgeCount > 99) "99+" else badgeCount.toString()) }
             },
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(size))
+            MikomiIcon(icon = icon, contentDescription = null, tint = tint, size = size)
         }
     } else {
-        Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(size))
+        MikomiIcon(icon = icon, contentDescription = null, tint = tint, size = size)
     }
 }
 

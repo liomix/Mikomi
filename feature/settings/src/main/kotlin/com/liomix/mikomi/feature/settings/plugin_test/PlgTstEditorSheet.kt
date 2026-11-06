@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -35,6 +34,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
+import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.InvalidVdoPlgSourceException
 import com.liomix.mikomi.feature.settings.R
 
@@ -96,8 +96,8 @@ fun PlgTstEditorSheet(
                     onClick = onFormat,
                     enabled = !state.loading && !state.missing && !state.saving,
                 ) {
-                    Icon(
-                        imageVector = MikomiIcons.TextAlign,
+                    MikomiIcon(
+                        icon = MikomiIcons.TextAlign,
                         contentDescription = stringResource(R.string.settings_plg_tst_editor_format),
                         tint = colors.onSurfaceVariant,
                     )

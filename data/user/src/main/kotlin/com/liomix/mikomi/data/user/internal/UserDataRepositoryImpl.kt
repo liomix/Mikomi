@@ -73,6 +73,10 @@ internal class UserDataRepositoryImpl @Inject constructor(
         userPreferencesDataSource.setTransitionStyle(style)
     }
 
+    override suspend fun setPageTransition(style: String) {
+        userPreferencesDataSource.setPageTransition(style)
+    }
+
     override suspend fun setBangumiApiMode(mode: String) {
         userPreferencesDataSource.setBangumiApiMode(mode)
     }

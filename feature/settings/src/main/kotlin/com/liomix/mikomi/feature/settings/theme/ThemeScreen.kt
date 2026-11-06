@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +40,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
+import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.ui.component.base.MikomiToast
 import com.liomix.mikomi.core.ui.component.base.MikomiToastData
@@ -69,10 +71,12 @@ fun ThemeScreen(
     isDarkMode: Boolean,
     appIconId: String,
     transitionStyleId: String,
+    pageTransitionId: String,
     toast: MikomiToastData?,
     onSelectColorScheme: (String) -> Unit,
     onSelectAppIcon: (String) -> Unit,
     onSelectTransitionStyle: (String) -> Unit,
+    onSelectPageTransition: (String) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -122,7 +126,10 @@ fun ThemeScreen(
                 }
             }
 
-            // 动态效果：只剩封面动效。页面转场已固定为 Telegram 那一套，不再暴露选项。
+            // 动态效果：两个**互不相关**的子项 —— 封面动效（列表封面飞向详情封面）
+            // 与页面动效（整页进出）。它们可以任意组合：封面选「旋转」，页面照样能选「淡入」，
+            // 因为封面飞行画在页面之上的 overlay 里，页面怎么动都不影响它的落点。
+            // 所以这里各占一组，而不是塞进同一个选项列表。
             SettingsCard {
                 SettingsCardSection {
                     Text(
@@ -140,22 +147,24 @@ fun ThemeScreen(
                     EffectGroup(title = stringResource(R.string.settings_effect_hero)) {
                         // 用解析后的枚举比较：老版本存过 standard / fade / scale 这类
                         // 已废弃的 id，直接比字符串会导致「一个都不选中」。
-                        val currentHero = TransitionStyle.fromId(transitionStyleId)
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = MikomiSpacing.Lg),
-                            horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
-                        ) {
-                            items(
-                                items = TransitionStyle.entries,
-                                key = { style -> style.id },
-                                contentType = { "hero" },
-                            ) { style ->
-                                Tag(
-                                    text = stringResource(style.labelRes),
-                                    selected = currentHero == style,
-                                    onClick = { onSelectTransitionStyle(style.id) },
-                                )
-                            }
+                        val current = TransitionStyle.fromId(transitionStyleId)
+                        EffectOptions(TransitionStyle.entries, "hero") { style ->
+                            Tag(
+                                text = stringResource(style.labelRes),
+                                selected = style == current,
+                                onClick = { onSelectTransitionStyle(style.id) },
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(MikomiSpacing.Gutter))
+                    EffectGroup(title = stringResource(R.string.settings_effect_page)) {
+                        val current = PageTransitionStyle.fromId(pageTransitionId)
+                        EffectOptions(PageTransitionStyle.entries, "page") { style ->
+                            Tag(
+                                text = stringResource(style.labelRes),
+                                selected = style == current,
+                                onClick = { onSelectPageTransition(style.id) },
+                            )
                         }
                     }
                     Spacer(modifier = Modifier.height(MikomiSpacing.Room))
@@ -301,10 +310,47 @@ private fun EffectGroup(
     }
 }
 
+/**
+ * 一组动效选项。
+ *
+ * 封面动效与页面动效的选项数不同（2 / 3），但外观必须完全一致 —— 都是同一行 Tag，
+ * 同样的间距与内边距。所以只是把「一行懒加载的 Tag」抽出来，不引入任何新样式。
+ */
+@Composable
+private fun <T> EffectOptions(
+    items: List<T>,
+    contentType: String,
+    optionContent: @Composable (T) -> Unit,
+) {
+    LazyRow(
+        modifier = Modifier.selectableGroup(),
+        contentPadding = PaddingValues(horizontal = MikomiSpacing.Lg),
+        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
+    ) {
+        // 枚举条目数量固定且顺序稳定，索引即身份，不需要外部再传一个 key 提取器。
+        itemsIndexed(
+            items = items,
+            key = { index, _ -> index },
+            contentType = { _, _ -> contentType },
+        ) { _, item ->
+            optionContent(item)
+        }
+    }
+}
+
 /** 封面动效的中文名资源映射。 */
 @get:StringRes
 private val TransitionStyle.labelRes: Int
     get() = when (this) {
         TransitionStyle.Translate -> R.string.settings_transition_translate
         TransitionStyle.Rotate -> R.string.settings_transition_rotate
+    }
+
+/** 页面动效的中文名资源映射。 */
+@get:StringRes
+private val PageTransitionStyle.labelRes: Int
+    get() = when (this) {
+        PageTransitionStyle.Push -> R.string.settings_page_push
+        PageTransitionStyle.Fade -> R.string.settings_page_fade
+        PageTransitionStyle.None -> R.string.settings_page_none
     }

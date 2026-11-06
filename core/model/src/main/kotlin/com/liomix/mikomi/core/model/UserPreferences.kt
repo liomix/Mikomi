@@ -12,6 +12,8 @@ data class UserPreferences(
     val appIcon: String = "default",
     /** 封面动效 id（见 TransitionStyle，作用在封面飞行上）；`translate` 为默认。 */
     val transitionStyle: String = "translate",
+    /** 页面动效 id（见 PageTransitionStyle，作用于整页进出）；`push` 为默认。 */
+    val pageTransition: String = "push",
     /** Bangumi 连接方式 id（见 BangumiApiMode）；`direct` 为默认。 */
     val bangumiApiMode: String = "direct",
     /** 镜像基地址（仅镜像模式使用）；空串表示未配置。 */

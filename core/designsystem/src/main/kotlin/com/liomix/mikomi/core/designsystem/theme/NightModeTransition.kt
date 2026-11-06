@@ -3,14 +3,12 @@ package com.liomix.mikomi.core.designsystem.theme
 import android.app.Activity
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
-import android.animation.ValueAnimator
 import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.provider.Settings
 import android.util.Log
 import android.view.PixelCopy
 import android.view.View
@@ -171,20 +169,6 @@ private fun windowOriginOf(view: View, originInRoot: Offset): Offset {
     view.getLocationInWindow(location)
     return Offset(originInRoot.x + location[0], originInRoot.y + location[1])
 }
-
-/**
- * 系统是否允许播放动画。
- *
- * `ANIMATOR_DURATION_SCALE = 0` 时，`RenderNodeAnimator` 会在提交的那一帧直接落到终点 ——
- * 揭示动画仍然「成功」，只是没有任何过程可言。API 26 起有直接答案，
- * 更早的系统只能读那个设置项（minSdk 24）。读不到一律当作「允许」。
- */
-private fun Context.animationsEnabled(): Boolean =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        ValueAnimator.areAnimatorsEnabled()
-    } else {
-        Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
-    }
 
 /**
  * 抓取整个窗口的一帧（供揭示动画当「旧画面」）。

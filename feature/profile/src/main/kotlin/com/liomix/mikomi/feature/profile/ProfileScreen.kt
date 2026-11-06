@@ -533,8 +533,8 @@ private val PullThreshold = 84.dp
 /** 拖拽段头像能长到的最大圆形直径（继续拉就该撑开了）。 */
 private val MaxCircleSize = 148.dp
 
-/** 上膛后撑开 / 松手收起的时长（Telegram 是 250ms 的 EASE_OUT_QUINT）。 */
-private const val SnapMillis = 260
+/** 上膛后撑开 / 松手收起的时长（Telegram 是 250ms 的 EASE_OUT_QUINT，对应 `Medium`）。 */
+private const val SnapMillis = MikomiMotion.Duration.Medium
 
 /** 松手后头部归位的弹簧：只落到「完全收起」或「完全展开」两端。 */
 private val CollapseSpring = spring<Float>(dampingRatio = 0.9f, stiffness = 520f)

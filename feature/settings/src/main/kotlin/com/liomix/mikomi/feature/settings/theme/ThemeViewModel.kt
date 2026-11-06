@@ -7,6 +7,7 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
+import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.data.user.UserDataRepository
 import com.liomix.mikomi.feature.settings.R
@@ -47,6 +48,7 @@ data class ThemeUiState(
     val theme: String = "system",
     val appIconId: String = AppIconStyle.Default.id,
     val transitionStyleId: String = TransitionStyle.Translate.id,
+    val pageTransitionId: String = PageTransitionStyle.Push.id,
 )
 
 /** 主题设置 ViewModel：配色、夜间模式、桌面图标、封面动效。 */
@@ -70,6 +72,7 @@ class ThemeViewModel @Inject constructor(
                 theme = prefs.theme,
                 appIconId = prefs.appIcon,
                 transitionStyleId = prefs.transitionStyle,
+                pageTransitionId = prefs.pageTransition,
             )
         }
         .stateIn(
@@ -103,6 +106,19 @@ class ThemeViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Set transition style failed, id=$id", e)
+            }
+        }
+    }
+
+    /** 选择页面动效。 */
+    fun selectPageTransition(id: String) {
+        viewModelScope.launch {
+            try {
+                userDataRepository.setPageTransition(id)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Set page transition failed, id=$id", e)
             }
         }
     }

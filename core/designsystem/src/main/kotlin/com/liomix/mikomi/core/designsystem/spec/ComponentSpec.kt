@@ -174,8 +174,14 @@ object MikomiNavBarSpec {
     /** 选中胶囊的底色透明度（主色淡化 10%）。 */
     const val SelectedContainerAlpha: Float = 0.10f
 
-    /** 选中内容色过渡时长；只改颜色，不动布局。 */
-    const val ContentColorMillis: Int = 140
+    /**
+     * 选中内容色过渡时长；只改颜色，不动布局。
+     *
+     * 取 `Fast`(150) 而不是自己写 140：这是一个**颜色状态切换**，全站同一个语义
+     * （Tag / TabBar / 图标选中态）都走 150~200，差 10ms 读不出来，但多一个孤值
+     * 就意味着以后调档位时会漏掉它。
+     */
+    const val ContentColorMillis: Int = MikomiMotion.Duration.Fast
 }
 
 /**

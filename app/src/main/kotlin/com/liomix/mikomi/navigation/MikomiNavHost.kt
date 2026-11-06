@@ -50,7 +50,9 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.liomix.mikomi.R
-import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.theme.animationsEnabled
+import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.navigation.AniMapDestination
 import com.liomix.mikomi.core.navigation.CommunityDestination
@@ -64,6 +66,7 @@ import com.liomix.mikomi.core.navigation.topLevelDestinations
 import com.liomix.mikomi.core.ui.component.business.HeroFlightController
 import com.liomix.mikomi.core.ui.component.business.HeroFlightOverlay
 import com.liomix.mikomi.core.ui.component.business.LocalHeroFlightController
+import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
 import com.liomix.mikomi.feature.animap.AniMapWarmer
 
 /** 进入巡礼页后自动隐藏底部导航栏的延时（毫秒）：不靠滑动判定，进页面 2s 后自动进入沉浸。 */
@@ -86,6 +89,7 @@ fun MikomiNavHost(
     entryProviderInstallers: Set<EntryProviderInstaller>,
     immersionBridge: ImmersionBridge,
     heroStyleId: String = TransitionStyle.Translate.id,
+    pageTransitionId: String = PageTransitionStyle.Push.id,
 ) {
     val homeLabel = stringResource(R.string.nav_home)
     val aniMapLabel = stringResource(R.string.nav_animap)
@@ -274,12 +278,25 @@ fun MikomiNavHost(
     ) {
         // 48dp 位移按当前密度换算一次：slideOut 的 offset lambda 没有 Density 作用域。
         val pageOffsetPx = with(LocalDensity.current) { PAGE_MOTION_TRAVEL.roundToPx() }
+        // 系统关掉动画时（开发者选项「动画时长 0」、无障碍「移除动画」、部分省电模式），
+        // 自绘帧仍然会跑，只是每一帧都直接算到终点 —— 用户一帧都看不到，CPU 照付。
+        // 与夜间切换的圆形揭示用同一条判据：直接落位，什么都不播。
+        val systemAnimationsEnabled = remember(view) { view.context.animationsEnabled() }
+        val pageTransition = remember(pageTransitionId, systemAnimationsEnabled) {
+            if (systemAnimationsEnabled) {
+                PageTransitionStyle.fromId(pageTransitionId)
+            } else {
+                PageTransitionStyle.None
+            }
+        }
         // 页面入场动画挂在 entry 装饰器上，装饰器实例必须稳定，否则每次重组都会重建一遍
-        // 装饰链、连带把每个页面的动画状态也重置。
+        // 装饰链、连带把每个页面的动画状态也重置。换样式时**也不能**重建（重建 = 当前页
+        // 被重新挂载，屏幕会闪一下并重播入场）；档位改为经 CompositionLocal 下发，
+        // 由每个页面在首次组合时自己冻结一份，只影响之后新开的页面。
         val saveableStateDecorator = rememberSaveableStateHolderNavEntryDecorator<NavKey>()
-        val pageMotionDecorator = remember { telegramPageMotionDecorator() }
-        val entryDecorators = remember(saveableStateDecorator, pageMotionDecorator) {
-            listOf(saveableStateDecorator, pageMotionDecorator)
+        val pageMotionEntryDecorator = remember { pageMotionDecorator() }
+        val entryDecorators = remember(saveableStateDecorator, pageMotionEntryDecorator) {
+            listOf(saveableStateDecorator, pageMotionEntryDecorator)
         }
         CompositionLocalProvider(
             LocalHeroFlightController provides heroController,
@@ -287,6 +304,7 @@ fun MikomiNavHost(
             LocalBottomBarSpace provides MikomiNavBarBottomSpace,
             // 只影响「首次组合」那一瞬间的页面：装饰器会把它冻结，之后不再跟变。
             LocalPageMotionDirection provides motionDirection,
+            LocalPageTransitionStyle provides pageTransition,
         ) {
             NavDisplay(
                 backStack = navigator.backStack,
@@ -299,14 +317,18 @@ fun MikomiNavHost(
                 // 进入这一步的插值不由框架算：新页自己按帧推进（见 TelegramPageMotion），
                 // 这里只给旧页挂一个肉眼不可见的退场，用它的时长当「转场窗口」。
                 transitionSpec = {
-                    (EnterTransition.None togetherWith pageHold()).using(null)
+                    // 进入时的旧页：推进档让它几乎不动地留住（等新页滑到位），
+                    // 淡入档让它正常淡出（与新页交叉），无动效档直接撤。
+                    (EnterTransition.None togetherWith pageHold(pageTransition)).using(null)
                 },
                 popTransitionSpec = {
-                    (EnterTransition.None togetherWith pageExit(pageOffsetPx)).using(null)
+                    (EnterTransition.None togetherWith pageExit(pageTransition, pageOffsetPx))
+                        .using(null)
                 },
                 // 预测性返回复用返回转场：tween 会按手势进度 seek，拖动时旧页跟手右移。
                 predictivePopTransitionSpec = {
-                    (EnterTransition.None togetherWith pageExit(pageOffsetPx)).using(null)
+                    (EnterTransition.None togetherWith pageExit(pageTransition, pageOffsetPx))
+                        .using(null)
                 },
             )
         }
@@ -316,8 +338,27 @@ fun MikomiNavHost(
         // 2 秒后自动收起。
         AnimatedVisibility(
             visible = isTopLevel && (!immersiveRequested || showNavBar),
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            // 显隐时长走 token：默认的 spring 收尾很长，底栏读起来像「飘」上来，
+            // 与全站 150/200ms 的节奏不是一套。进场 Standard、退场 Accelerate，
+            // 和页面进出用同一组曲线（tg 的 EASE_OUT / EASE_IN）。
+            enter = slideInVertically(
+                animationSpec = tween(
+                    MikomiMotion.Duration.Short,
+                    easing = MikomiMotion.Curve.Standard,
+                ),
+                initialOffsetY = { it },
+            ) + fadeIn(
+                tween(MikomiMotion.Duration.Short, easing = MikomiMotion.Curve.Standard),
+            ),
+            exit = slideOutVertically(
+                animationSpec = tween(
+                    MikomiMotion.Duration.Short,
+                    easing = MikomiMotion.Curve.Accelerate,
+                ),
+                targetOffsetY = { it },
+            ) + fadeOut(
+                tween(MikomiMotion.Duration.Short, easing = MikomiMotion.Curve.Accelerate),
+            ),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .windowInsetsPadding(WindowInsets.navigationBars)
@@ -360,7 +401,7 @@ fun MikomiNavHost(
  * - 进入：新页从右 48dp 处淡入，旧页保持不透明、原地不动（`:1887`）；
  * - 退出：目标页直接可见且不动，只让将被销毁的旧页右移 48dp 淡出（`:1906`）。
  *
- * 进入的插值不在这里算——它在页面里按帧累加（见 [TelegramPageMotion]），
+ * 进入的插值不在这里算——它在页面里按帧累加（见 [PageMotionSurface]），
  * 所以这里的新页是 `EnterTransition.None`，[pageHold] 只负责旧页的存活窗口。
  *
  * 退出仍然用 spec：预测性返回手势要按手指进度逐帧 seek，只有 spec 驱动才跟手。
@@ -369,19 +410,36 @@ fun MikomiNavHost(
  * 位移用 slide 而不是缩放：Telegram 的行程只有 48dp，读作「整块内容推进来」，
  * 不是「页面被缩小」。封面飞行靠 `onGloballyPositioned` 逐帧修正终点，
  * 位移期间会跟着一起归位，落点不会偏。
+ *
+ * 三档动效在这里只改旧页的退场方式，新页的入场统一由 [PageMotionSurface] 画：
+ * 推进档把旧页**冻住**（等新页滑到位，左侧让位缝里看到的是它），
+ * 淡入档让旧页正常淡出（与新页交叉），无动效档直接撤。
  */
-private fun AnimatedContentTransitionScope<*>.pageHold(): ExitTransition =
-    fadeOut(
-        animationSpec = tween(PAGE_MOTION_WINDOW_MILLIS),
+private fun AnimatedContentTransitionScope<*>.pageHold(
+    style: PageTransitionStyle,
+): ExitTransition = when (style) {
+    PageTransitionStyle.None -> ExitTransition.None
+    PageTransitionStyle.Fade -> fadeOut(
+        animationSpec = tween(PAGE_FADE_MILLIS, easing = PageMotionEasing),
+    )
+    PageTransitionStyle.Push -> fadeOut(
+        animationSpec = tween(style.motionWindowMillis),
         // 只降 0.5%：肉眼不可见，纯粹是为了让框架「有事可做」从而把旧页留在组合里。
         // 没有它，AnimatedContent 会在第一帧就把上一页撤掉，新页半透明时透出的是页面底色。
         targetAlpha = 0.995f,
     ) + ExitTransition.KeepUntilTransitionsFinished
+}
 
-/** 退出转场：被关闭的页右移 48dp 并淡出，目标页始终完全不动。 */
-private fun pageExit(offsetPx: Int): ExitTransition =
-    fadeOut(tween(PAGE_MOTION_MILLIS, easing = PageMotionEasing)) +
-        slideOutHorizontally(
-            animationSpec = tween(PAGE_MOTION_MILLIS, easing = PageMotionEasing),
-            targetOffsetX = { offsetPx },
-        )
+/** 退出转场：被关闭的页按档位退场，目标页始终完全不动。 */
+private fun pageExit(style: PageTransitionStyle, offsetPx: Int): ExitTransition = when (style) {
+    PageTransitionStyle.None -> ExitTransition.None
+    PageTransitionStyle.Fade -> fadeOut(
+        animationSpec = tween(PAGE_FADE_MILLIS, easing = PageMotionEasing),
+    )
+    PageTransitionStyle.Push -> fadeOut(
+        tween(PAGE_MOTION_MILLIS, easing = PageMotionEasing),
+    ) + slideOutHorizontally(
+        animationSpec = tween(PAGE_MOTION_MILLIS, easing = PageMotionEasing),
+        targetOffsetX = { offsetPx },
+    )
+}

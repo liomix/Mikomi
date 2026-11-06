@@ -42,6 +42,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
+import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.model.BangumiApiMode
@@ -57,8 +58,8 @@ private val OptionShape = RoundedCornerShape(MikomiRadius.Xxl)
 /** 输入框圆角。 */
 private val FieldShape = RoundedCornerShape(MikomiRadius.Xl)
 
-/** 选项选中/取消时的颜色过渡时长。 */
-private const val OptionAnimMillis = 180
+/** 选项选中/取消时的颜色过渡时长（颜色状态切换统一走 `Short`）。 */
+private const val OptionAnimMillis = MikomiMotion.Duration.Short
 
 /** 选中态底色透明度（浅染主色，避免像主按钮那样抢眼）。 */
 private const val SelectedContainerAlpha = 0.10f

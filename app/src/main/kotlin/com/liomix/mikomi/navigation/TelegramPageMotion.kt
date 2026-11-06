@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
+import com.liomix.mikomi.core.model.PageTransitionStyle
 import kotlin.math.max
 
 /**
@@ -39,12 +40,23 @@ import kotlin.math.max
  * 画面上表现为「顿一下然后窜一截」。这里复刻的是 Telegram 的做法——卡顿的帧只推进
  * 18ms，整段动画被拉长，但每一帧走过的距离均匀。慢而匀，好过快而跳。
  *
- * 位移与透明度用同一个进度、同一条曲线，所以读起来是「一整块内容推进来」，
- * 而不是「一边变亮一边往里飘」。
+ * ## 两种动效共用同一套时钟
+ *
+ * 「推进」与「淡入」只是同一段进度喂给不同属性：推进多一个 48dp 的 `translationX`，
+ * 淡入把进度直接当整页透明度。所以手感（掉帧时钳 18ms、按窗口兜底落位）完全一致，
+ * 用户换档换的是「怎么动」，不是「快慢」。
  */
 
 /** 标称时长，对应 Telegram 的 `float duration = 150.0f`。 */
 internal const val PAGE_MOTION_MILLIS = 150
+
+/**
+ * 淡入的标称时长。
+ *
+ * 比推进长 50ms：推进有位移帮忙「交代」方向，淡入只有透明度一个通道，
+ * 150ms 会显得像「闪一下」。200ms 正好是 TG 颜色与状态切换的档位。
+ */
+internal const val PAGE_FADE_MILLIS = 200
 
 /** 新页入场的水平行程，对应 Telegram 的 `dp(48)`。 */
 internal val PAGE_MOTION_TRAVEL = 48.dp
@@ -68,23 +80,36 @@ private const val FIRST_FRAME_DROP_MILLIS = 40f
  */
 private const val CONTENT_FADE_BOOST = 2.5f
 
+/** Android `DecelerateInterpolator(1.0f)` 的等价曲线：起步最快、尾部平缓。 */
+internal val PageMotionEasing = Easing { fraction -> 1f - (1f - fraction) * (1f - fraction) }
+
 /**
  * 转场窗口：旧页留在组合里的时长。
  *
  * 手绘帧不占用任何 Compose 动画，而框架只按「还有没有动画在跑」决定何时回收旧页，
- * 所以旧页的存活时间由这个窗口决定（`MikomiNavHost` 里给它挂了一个不动它透明度的退场）。
+ * 所以旧页的存活时间由这个窗口决定（`MikomiNavHost` 里给它挂了一个退场）。
  *
- * 它现在只负责一件事：新页入场时左侧会留出 48dp 让位缝，缝里要显示上一页而不是
- * 根容器的纯底色，所以旧页必须活到新页落位为止。
+ * 推进取 2 倍标称值：新页入场时左侧会留出 48dp 让位缝，缝里要显示上一页而不是
+ * 根容器的纯底色，所以旧页必须活到新页落位为止。30fps 的设备上每帧被钳到 18ms，
+ * 整段跑到约 300ms 正好塞得下——这正是 Telegram 在慢机器上的行为。
  *
- * 取 2 倍标称值：30fps 的设备上每帧被钳到 18ms，整段跑到约 300ms 正好塞得下——
- * 这正是 Telegram 在慢机器上的行为，动画变长但依旧均匀。再慢就是真的卡了，
- * 由 [runPageMotionFrames] 的窗口兜底保证它一定会落位。
+ * 淡入不需要多余窗口：新旧两页是交叉淡入淡出的，旧页什么时候被打完就什么时候撤，
+ * 所以窗口就等于淡入时长本身。
  */
-internal const val PAGE_MOTION_WINDOW_MILLIS = 300
+internal val PageTransitionStyle.motionWindowMillis: Int
+    get() = when (this) {
+        PageTransitionStyle.Push -> 300
+        PageTransitionStyle.Fade -> PAGE_FADE_MILLIS
+        PageTransitionStyle.None -> 0
+    }
 
-/** Android `DecelerateInterpolator(1.0f)` 的等价曲线：起步最快、尾部平缓。 */
-internal val PageMotionEasing = Easing { fraction -> 1f - (1f - fraction) * (1f - fraction) }
+/** 这一段动效的标称时长；[PageTransitionStyle.None] 不跑帧，给 0。 */
+internal val PageTransitionStyle.motionMillis: Int
+    get() = when (this) {
+        PageTransitionStyle.Push -> PAGE_MOTION_MILLIS
+        PageTransitionStyle.Fade -> PAGE_FADE_MILLIS
+        PageTransitionStyle.None -> 0
+    }
 
 /** 本次转场是「进入」还是「返回 / 替换」。 */
 internal enum class PageMotionDirection { Enter, Back }
@@ -97,12 +122,30 @@ internal enum class PageMotionDirection { Enter, Back }
 internal val LocalPageMotionDirection = compositionLocalOf { PageMotionDirection.Enter }
 
 /**
- * 跑一段 [PAGE_MOTION_MILLIS] 的手绘帧，每帧回调一次缓动后的进度。
+ * 当前生效的页面动效档位。
+ *
+ * 和方向一样，**只在页面首次组合那一刻**读：用户在设置页点「淡入」时，改的是
+ * 「以后怎么切」，不是「把这一页再切一次」。若让已经在屏幕上的页面跟着重播，
+ * 画面会先瞬移回起点再演一遍——这是整套动效里唯一一处「用户没触发转场却看到转场」。
+ *
+ * 所以档位由 CompositionLocal 下发、页面自己冻结一次，从下一个新页面开始生效。
+ */
+internal val LocalPageTransitionStyle = compositionLocalOf { PageTransitionStyle.Push }
+
+/**
+ * 跑一段手绘帧，每帧回调一次缓动后的进度。
  *
  * `withFrameNanos` 是 Compose 的帧时钟，语义上等价于 Telegram 那个自驱动的
  * `runOnUIThread` 递归：每次回调就是「又该画下一帧了」。
+ *
+ * @param durationMillis 标称时长。
+ * @param windowMillis 兜底窗口：到这里一定落位，哪怕中途掉帧掉得厉害。
  */
-internal suspend fun runPageMotionFrames(onProgress: (Float) -> Unit) {
+internal suspend fun runPageMotionFrames(
+    durationMillis: Int,
+    windowMillis: Int,
+    onProgress: (Float) -> Unit,
+) {
     val startedAt = withFrameNanos { it }
     var lastFrame = startedAt
     var firstFrame = true
@@ -119,14 +162,14 @@ internal suspend fun runPageMotionFrames(onProgress: (Float) -> Unit) {
             else -> wallStep
         }
         firstFrame = false
-        val windowLeft = PAGE_MOTION_WINDOW_MILLIS - (now - startedAt) / 1_000_000f
+        val windowLeft = windowMillis - (now - startedAt) / 1_000_000f
         val step = when {
             // 窗口到点：这一帧收尾。宁可最后紧一点，也不能让新页还在滑动时
             // 被撤掉旧页——那时左侧让位缝里会露出根容器的纯底色。
             windowLeft <= dt -> 1f - progress
             // 平时按标称速度走；只有掉帧严重到按标称速度跑不完窗口时，才改按
-            // 「剩余距离 / 剩余时间」定速。均匀推进的优先级高于严格 150ms。
-            else -> max(dt / PAGE_MOTION_MILLIS, (1f - progress) * dt / windowLeft)
+            // 「剩余距离 / 剩余时间」定速。均匀推进的优先级高于严格按时长。
+            else -> max(dt / durationMillis, (1f - progress) * dt / windowLeft)
         }
         progress = (progress + step).coerceAtMost(1f)
         onProgress(PageMotionEasing.transform(progress))
@@ -134,32 +177,58 @@ internal suspend fun runPageMotionFrames(onProgress: (Float) -> Unit) {
 }
 
 /**
- * 新页入场：从「右移 [travelPx] 像素」按手绘帧走回原位，内容同时淡入。
+ * 新页入场：按样式把同一段进度喂给不同属性。
  *
- * 与 Telegram 的一处**有意偏离**：Telegram 把 `alpha` 打在整页（含背景）上，于是新页
- * 半透明的那几帧里，用户看到的是「上一页 + 新页」叠在一起（底色越浅越明显）。
- * 这里把底色和不透明性摘出来：底色从第一帧就是实心的，只有内容淡入。
+ * - 推进：从「右移 [PAGE_MOTION_TRAVEL] 像素」走回原位，内容同时淡入；
+ * - 淡入：不做位移，整页（含底色）按进度淡入。
+ *
+ * 与 Telegram 的一处**有意偏离**（只作用于推进档）：Telegram 把 `alpha` 打在整页
+ * （含背景）上，于是新页半透明的那几帧里，用户看到的是「上一页 + 新页」叠在一起
+ * （底色越浅越明显）。这里把底色和不透明性摘出来：底色从第一帧就是实心的，只有内容淡入。
  *
  * 这样在数学上就不可能透出上一页（新页自带不透明底色，铺满全屏），而「内容淡入」
  * 保留了 Telegram 那种柔和的起身感。代价是左侧 48dp 的让位缝里看到的是上一页，
  * 和 Telegram 一致。
+ *
+ * 淡入档则**刻意**让底色一起淡：没有位移来交代「新页从哪来」，若底色又从第一帧实心，
+ * 读起来就是「瞬间跳变 + 内容慢慢出现」，反而不如老老实实交叉淡入。
  */
 @Composable
-private fun PageMotionSurface(travelPx: Int, content: @Composable () -> Unit) {
+private fun PageMotionSurface(style: PageTransitionStyle, content: @Composable () -> Unit) {
+    val travelPx = with(LocalDensity.current) { PAGE_MOTION_TRAVEL.roundToPx() }
     var progress by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(Unit) { runPageMotionFrames { progress = it } }
+    // 不按 style 重启：这个 Surface 一生只对应**一次**入场。style 已由装饰器冻结，
+    // 若拿它当 key，切换档位会把这个 effect 重新启动，进度从 1 跌回 0，
+    // 页面当场跳回右下方重播一次入场——正是被用户读成「突兀」的那一下。
+    LaunchedEffect(Unit) {
+        runPageMotionFrames(
+            durationMillis = style.motionMillis,
+            windowMillis = style.motionWindowMillis,
+        ) { progress = it }
+    }
+    // 推进档：整页不透明、只有内容淡入；淡入档：整页按进度淡入、内容不再额外处理。
+    val pageAlpha = if (style == PageTransitionStyle.Fade) progress else 1f
+    val contentAlpha = if (style == PageTransitionStyle.Push) {
+        (progress * CONTENT_FADE_BOOST).coerceAtMost(1f)
+    } else {
+        1f
+    }
+    val travelOffset = if (style == PageTransitionStyle.Push) travelPx * (1f - progress) else 0f
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .graphicsLayer { translationX = travelPx * (1f - progress) }
-            // 底色必须画在 layer 内部（写在 graphicsLayer 之后），才会跟着一起位移。
+            .graphicsLayer {
+                translationX = travelOffset
+                alpha = pageAlpha
+            }
+            // 底色必须画在 layer 内部（写在 graphicsLayer 之后），才会跟着一起位移 / 淡入。
             .background(MaterialTheme.colorScheme.background),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 // 内容比位移先淡完：等位移走完才变实心的话，中间会先看到一块空底色。
-                .graphicsLayer { alpha = (progress * CONTENT_FADE_BOOST).coerceAtMost(1f) },
+                .graphicsLayer { alpha = contentAlpha },
         ) {
             content()
         }
@@ -174,16 +243,26 @@ private fun PageMotionSurface(travelPx: Int, content: @Composable () -> Unit) {
  *
  * 返回时目标页必须**直接可见**（Telegram 的返回只动被关闭的那一页），而目标页在返回
  * 的那一刻恰好也是「首次组合」，所以方向必须冻结：不冻结就会反过来播一次入场。
+ *
+ * 档位同理，而且要求更硬一点：装饰器实例必须**不随档位重建**。装饰器一换实例，
+ * `NavDisplay` 会把整条装饰链连同每个页面的组合状态一起重来，等于把当前页重新挂载——
+ * 用户只是点了下选项，屏幕上的页面却整块闪烁、滚动位置也跟着抖。所以档位走
+ * [LocalPageTransitionStyle] 下发，由每个页面在自己首次组合时冻结一份。
+ *
+ * [PageTransitionStyle.None] 同样走这条路：连装饰层都不套，页面直接贴在容器上。
  */
-internal fun telegramPageMotionDecorator(): NavEntryDecorator<NavKey> =
+internal fun pageMotionDecorator(): NavEntryDecorator<NavKey> =
     NavEntryDecorator { entry ->
         // 先读再冻结：`remember` 的 lambda 不是 @Composable 上下文，读不了 CompositionLocal。
-        val requested = LocalPageMotionDirection.current
-        val direction = remember { requested }
-        if (direction == PageMotionDirection.Back) {
+        // 不用额外 `key()`：`NavDisplay` 的 `decorateEntry` 已经把每个条目的装饰链包在
+        // `key(entry.contentKey)` 里，这里的 `remember` 天然按页面隔离。
+        val requestedDirection = LocalPageMotionDirection.current
+        val requestedStyle = LocalPageTransitionStyle.current
+        val direction = remember { requestedDirection }
+        val style = remember { requestedStyle }
+        if (direction == PageMotionDirection.Back || style == PageTransitionStyle.None) {
             entry.Content()
         } else {
-            val travelPx = with(LocalDensity.current) { PAGE_MOTION_TRAVEL.roundToPx() }
-            PageMotionSurface(travelPx) { entry.Content() }
+            PageMotionSurface(style) { entry.Content() }
         }
     }

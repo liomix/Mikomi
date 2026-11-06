@@ -144,6 +144,7 @@ class MainActivity : ComponentActivity() {
                         entryProviderInstallers = entryProviderInstallers,
                         immersionBridge = immersionBridge,
                         heroStyleId = preferences.transitionStyle,
+                        pageTransitionId = preferences.pageTransition,
                     )
                 }
             }

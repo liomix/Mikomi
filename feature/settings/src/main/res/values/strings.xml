@@ -15,9 +15,13 @@
 
     <!-- 转场动画 -->
     <string name="settings_effect_section">动态效果</string>
-    <string name="settings_effect_hero">封面动效</string>
+    <string name="settings_effect_hero">动漫封面动效</string>
     <string name="settings_transition_translate">平移</string>
     <string name="settings_transition_rotate">旋转</string>
+    <string name="settings_effect_page">页面动效</string>
+    <string name="settings_page_push">推进</string>
+    <string name="settings_page_fade">淡入</string>
+    <string name="settings_page_none">无</string>
 
     <!-- Bangumi 代理 -->
     <string name="settings_proxy_title">Bangumi 代理</string>

@@ -57,10 +57,12 @@ fun ThemeRoute(
         isDarkMode = isDarkMode,
         appIconId = uiState.appIconId,
         transitionStyleId = uiState.transitionStyleId,
+        pageTransitionId = uiState.pageTransitionId,
         toast = toast,
         onSelectColorScheme = viewModel::selectColorScheme,
         onSelectAppIcon = viewModel::selectAppIcon,
         onSelectTransitionStyle = viewModel::selectTransitionStyle,
+        onSelectPageTransition = viewModel::selectPageTransition,
         onBackClick = onBackClick,
         modifier = modifier,
     )

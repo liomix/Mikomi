@@ -19,15 +19,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
@@ -80,6 +76,8 @@ import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.Tab
 import com.liomix.mikomi.core.ui.component.base.TabBar
 import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
+import com.liomix.mikomi.core.ui.window.rememberMikomiBottomInset
+import com.liomix.mikomi.core.ui.window.rememberMikomiTopInset
 import com.liomix.mikomi.feature.profile.component.ProfileTabContent
 import com.liomix.mikomi.feature.profile.component.rememberProfileTabContentState
 import kotlin.math.roundToInt
@@ -114,7 +112,7 @@ fun ProfileScreen(
 ) {
     val palette = rememberProfilePalette()
     val density = LocalDensity.current
-    val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBar = rememberMikomiTopInset()
     val barHeight = statusBar + TopBarHeight
 
     // 头部高度：头像 96 + 名字/简介与留白 85；完全收起时与顶栏留 16dp 呼吸。
@@ -340,10 +338,7 @@ fun ProfileScreen(
 
         // 卡片下沿停在悬浮导航栏上沿 14dp：底栏占位 = 系统导航栏 inset + 栏体 + 底部外边距。
         // 栏体那部分是壳下发的（LocalBottomBarSpace），这里不关心底部浮着什么。
-        val navBarInset = WindowInsets
-            .navigationBars
-            .asPaddingValues()
-            .calculateBottomPadding()
+        val navBarInset = rememberMikomiBottomInset()
         val contentBottomSpace = navBarInset + LocalBottomBarSpace.current + ContentBottomGap
         val barHeightPx = with(density) { barHeight.toPx() }
         val actionCardHeightPx = with(density) { ActionCardHeight.toPx() }

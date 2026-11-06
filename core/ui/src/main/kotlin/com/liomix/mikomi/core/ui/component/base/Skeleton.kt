@@ -23,11 +23,11 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
+import com.liomix.mikomi.core.ui.window.rememberMikomiWindowWidthPx
 
 /**
  * 骨架屏基础块：带扫光动画的占位块。
@@ -152,19 +152,20 @@ fun Modifier.shimmer(
 /**
  * 建一份扫光参数。
  *
- * 周期由「每 400ms 平移一个列表宽」反推（列表宽这里用屏幕宽代替），而不是写死时长 ——
+ * 周期由「每 400ms 平移一个列表宽」反推（列表宽这里用**窗口宽**代替），而不是写死时长 ——
  * 大屏绝对速度快、观感一致。
+ *
+ * 用窗口宽而不是屏幕宽：分屏、自由窗口里屏幕宽度是整块屏幕，算出来的速度会慢一半，
+ * 两个窗口里的扫光看起来不是同一个动效。
  */
 @Composable
 private fun rememberShimmerSweep(): ShimmerSweep {
     val density = LocalDensity.current
-    val screenWidthPx = with(density) {
-        LocalConfiguration.current.screenWidthDp.dp.toPx()
-    }.coerceAtLeast(1f)
+    val windowWidthPx = rememberMikomiWindowWidthPx().coerceAtLeast(1f)
     val gradientWidth = with(density) { SweepGradientWidth.toPx() }
     // 行程：-2×渐变宽 → 2×列表宽。
-    val travel = 2f * gradientWidth + 2f * screenWidthPx
-    val cycleMillis = (travel / (screenWidthPx / SweepPerWidthMillis)).toInt().coerceAtLeast(1)
+    val travel = 2f * gradientWidth + 2f * windowWidthPx
+    val cycleMillis = (travel / (windowWidthPx / SweepPerWidthMillis)).toInt().coerceAtLeast(1)
     val progress = rememberShimmerProgress(cycleMillis)
     return remember(progress, gradientWidth, travel) {
         ShimmerSweep(progress, gradientWidth, travel)

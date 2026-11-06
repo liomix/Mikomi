@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -68,6 +67,7 @@ import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.Tag
 import com.liomix.mikomi.core.ui.component.base.TagColors
 import com.liomix.mikomi.core.ui.component.base.TagStyle
+import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.data.video.VdoSourceFamily
 import com.liomix.mikomi.feature.player.PlaybackMode
 import com.liomix.mikomi.feature.player.PlayerLine
@@ -188,7 +188,8 @@ internal fun PlaybackSourceSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(contentHeight)
-                    .navigationBarsPadding()
+                    // 导航栏留白由 ModalBottomSheet 的 contentWindowInsets 统一让过（含键盘），
+                    // 这里再加一次就是两份：面板会整体上抬、底部漏出一条底色。
                     .padding(bottom = MikomiSpacing.Sm),
             ) {
                 SheetHeader(

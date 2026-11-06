@@ -68,10 +68,11 @@ fun PlgTstEditorSheet(
     ) {
         Column(
             modifier = Modifier
-                // 编辑 JSON 需要纵向空间，给到接近满屏；键盘弹起时由 imePadding 让位。
+                // 编辑 JSON 需要纵向空间，给到接近满屏。
+                // 键盘留白不在这里加：ModalBottomSheet 的 contentWindowInsets 默认就是
+                // safeDrawing（含键盘），再写一次 imePadding 会把内容顶起两份键盘高度。
                 .fillMaxWidth()
                 .fillMaxHeight(0.92f)
-                .imePadding()
                 .padding(horizontal = MikomiSpacing.Lg)
                 .padding(bottom = MikomiSpacing.Md),
         ) {

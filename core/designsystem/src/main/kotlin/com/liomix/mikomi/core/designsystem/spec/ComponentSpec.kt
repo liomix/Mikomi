@@ -304,3 +304,81 @@ object MikomiSideBarSpec {
     const val ExitMillis: Int = MikomiMotion.Duration.Short
 
 }
+
+/**
+ * 窗口规格：断点、回滞带、以及宽屏下内容列与浮层的宽度上限。
+ *
+ * ## 为什么断点在 spec，而不在 token
+ *
+ * 按本文开头的判别法量一遍：改 [WidthExpandedMin]，页面的松紧一点没变，变的是「这一档窗口
+ * 用哪种排布」。它不是节奏值，是**形态成立的物理条件**，和开关轨道多宽属于同一类。
+ *
+ * ## 断点数值从哪来
+ *
+ * 与 Material 3 的窗口尺寸类一致（600 / 840 宽、480 / 900 高），不自己发明一套：
+ * 断点值一旦和系统、和 `material3-adaptive` 的判定不同，同一台设备上「我们的布局」和
+ * 「框架给的尺寸类」就会各说一套，接第三方组件时立刻打架。
+ *
+ * 本项目的断点判定**不**依赖 `material3-adaptive`（离线构建里没有这个产物），
+ * 而是自己从 `LocalWindowInfo.containerDpSize` 算 —— 数据源相同，只是不引入依赖，
+ * 见 `core:ui/window/MikomiWindowSize.kt`。
+ *
+ * ## 为什么要一条回滞带
+ *
+ * Telegram 的 `checkLayout()` 用一个 52dp 的死区决定「这次尺寸变化值不值得重排」。
+ * 自由窗口（ChromeOS、Android 16 桌面窗口、分屏拖动）每移动一像素都会回调一次尺寸：
+ * 没有回滞时，手指停在 600dp 断点上来回抖两下，整页排布就跟着翻两次。
+ *
+ * 这里取 24dp（约半个网格列宽）而不是 52dp：52dp 对「整页重排」够用，但我们是按
+ * **窗口尺寸类**分档，档位之间的差值本身就有几百 dp，回滞只需要盖住手指抖动。
+ */
+object MikomiWindowSpec {
+    /** 中号窗口的宽度下限（compact < 600 ≤ medium）。 */
+    val WidthMediumMin: Dp = 600.dp
+
+    /** 大号窗口的宽度下限（medium < 840 ≤ expanded）。 */
+    val WidthExpandedMin: Dp = 840.dp
+
+    /** 中号窗口的高度下限（compact < 480 ≤ medium）。 */
+    val HeightMediumMin: Dp = 480.dp
+
+    /** 大号窗口的高度下限（medium < 900 ≤ expanded）。 */
+    val HeightExpandedMin: Dp = 900.dp
+
+    /**
+     * 断点回滞带：离开当前档位时，要多走这么多才真的换档。
+     *
+     * 只加在「离开」这一侧：600 断点的实际行为是「升到 medium 要 ≥ 624，跌回 compact 要 < 576」。
+     * 进入新档位仍按原断点判定判一次（冷启动、旋转屏这类一次性变化因此不会落错档），
+     * 连续变化（自由窗口拖动）才会吃到这条带宽。
+     */
+    val BreakpointHysteresis: Dp = 24.dp
+
+    /**
+     * 宽屏下正文列的最大宽度。
+     *
+     * 一行的汉字数超过约 40 个之后，眼睛回扫到下一行起点的距离就开始让人丢行。
+     * 720dp 在 14sp 正文下约 42 个汉字，是「还能一眼扫完一行」的上限。
+     *
+     * 只在 expanded 生效：手机（compact/medium）本来就到不了这个宽度，
+     * 所以这条上限对现有的手机布局是**零影响**的。
+     */
+    val ContentMaxWidth: Dp = 720.dp
+
+    /**
+     * 底部面板的最大宽度。
+     *
+     * 与 `BottomSheetDefaults.SheetMaxWidth` 同值（640dp）。M3 自己的 `ModalBottomSheet`
+     * 早就这么做了；本项目的 `BottomPop` 是自绘的，此前在平板上会横跨整块屏幕 ——
+     * 一条 1200dp 宽的列表行读起来像表格，抓手也离手指很远。
+     */
+    val SheetMaxWidth: Dp = 640.dp
+
+    /**
+     * 底部导航栏的最大宽度。
+     *
+     * 栏体是「按文案不等分、整组居中」的胶囊，条目多了会连成一条长条。
+     * 520dp 是四个条目在 12sp 标签下自然宽度的上限，超过之后多出来的空白没有意义。
+     */
+    val NavBarMaxWidth: Dp = 520.dp
+}

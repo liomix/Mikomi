@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -22,6 +22,7 @@ import com.liomix.mikomi.core.ui.component.business.AnimePosterCard
 import com.liomix.mikomi.core.ui.component.business.PosterCardSkeleton
 import com.liomix.mikomi.core.ui.component.business.PosterSkeletonRow
 import com.liomix.mikomi.core.ui.component.base.SkeletonShimmer
+import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.feature.search.LoadState
 import com.liomix.mikomi.feature.search.R
 import com.liomix.mikomi.feature.search.SearchCenteredHint
@@ -71,7 +72,7 @@ fun SearchResultScreen(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .imePadding(),
+                .windowInsetsPadding(MikomiInsets.BottomOrIme),
         ) {
             when (state.state) {
                 LoadState.Idle,

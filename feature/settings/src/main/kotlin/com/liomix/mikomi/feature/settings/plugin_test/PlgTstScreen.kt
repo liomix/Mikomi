@@ -10,12 +10,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -84,6 +82,7 @@ import com.liomix.mikomi.core.ui.component.base.Switch
 import com.liomix.mikomi.core.ui.component.base.Tag
 import com.liomix.mikomi.core.ui.component.base.TagStyle
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
+import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.data.video.VdoFailureReason
 import com.liomix.mikomi.data.video.VdoStreamKind
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgStageResult
@@ -190,7 +189,7 @@ fun PlgTstScreen(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .windowInsetsPadding(WindowInsets.navigationBars),
+                .windowInsetsPadding(MikomiInsets.Bottom),
         )
     }
 
@@ -753,8 +752,10 @@ private fun PluginTestSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                // 键盘留白由 ModalBottomSheet 的 contentWindowInsets 让（含键盘）。
+                // 这里原先还写了 imePadding：既重复，又排在 verticalScroll 之后 ——
+                // 排在滚动之后意味着那一段留白跟着内容一起滚走，输入时看不到正在编辑的行。
                 .verticalScroll(rememberScrollState())
-                .imePadding()
                 .padding(horizontal = MikomiSpacing.Room)
                 .padding(bottom = MikomiSpacing.Xl),
         ) {

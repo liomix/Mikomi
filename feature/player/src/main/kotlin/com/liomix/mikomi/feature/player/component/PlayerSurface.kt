@@ -17,13 +17,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -81,6 +78,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.media.MikomiPlayer
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
 import com.liomix.mikomi.core.ui.component.base.MikomiIcon
+import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.feature.player.PlaybackMode
 import com.liomix.mikomi.feature.player.PlayerFailure
 import com.liomix.mikomi.feature.player.PlayerFailureReason
@@ -249,17 +247,9 @@ internal fun PlayerSurface(
     }
 
     // 顶栏让位：状态栏 + 刘海（横屏全屏时刘海在左右，所以水平方向也要让）。
-    val topInsets = WindowInsets.safeDrawing.only(
-        WindowInsetsSides.Top + WindowInsetsSides.Horizontal,
-    )
+    val topInsets = MikomiInsets.Chrome
     // 底栏只在全屏时让位系统手势条：非全屏时播放器在页面顶部，离底部很远。
-    val bottomInsets = WindowInsets.safeDrawing.only(
-        if (fullscreen) {
-            WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal
-        } else {
-            WindowInsetsSides.Horizontal
-        },
-    )
+    val bottomInsets = if (fullscreen) MikomiInsets.BottomSides else MikomiInsets.Horizontal
 
     // 顶栏在两套布局里都要用：原生/解析时它浮在画面上，网页播放时它是独立的一行。
     // 提成 lambda 是因为参数太长，两处各写一遍容易改漏一处。

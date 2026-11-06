@@ -19,12 +19,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -58,6 +55,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
 import com.liomix.mikomi.core.ui.component.base.MikomiIcon
+import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.feature.player.PlayerPlaybackState
 import kotlin.math.abs
 import kotlin.math.max
@@ -112,9 +110,7 @@ private val HudTimeStyle = MikomiTextStyles.HudTime
  * `statusBarsPadding` 消费过一次，嵌套的调用看到的是零，不会重复下压。
  */
 private val hudSafeArea: WindowInsets
-    @Composable get() = WindowInsets.safeDrawing.only(
-        WindowInsetsSides.Top + WindowInsetsSides.Horizontal,
-    )
+    @Composable get() = MikomiInsets.Chrome
 
 /**
  * 手势读数的统一落点：**水平居中、竖直略高于画面中心**。

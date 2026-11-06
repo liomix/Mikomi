@@ -9,12 +9,10 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
@@ -45,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.liomix.mikomi.core.navigation.ImmersionBridge
 import com.liomix.mikomi.core.ui.component.base.LottieLoading
+import com.liomix.mikomi.core.ui.window.MikomiInsets
 
 /** 巡礼地图（anitabi）页面地址。 */
 const val ANIMAP_URL = "https://www.anitabi.cn/map?c=138.5098%2C37.2073&z=5.2"
@@ -191,9 +190,11 @@ fun AniMapScreen(
             // ime 避让：键盘弹起时整块地图让出去，站点才会把聚焦的输入框滚到可见区
             // （WebView 只有自身尺寸变了，才会当成 viewport 变化去重排/滚动）。
             // 例外是搜索态：这时打字的是 App 自己的输入框，地图再缩一次只会白跳一下。
+            // design-ok：这里只能用 imePadding，不能用 BottomOrIme —— 地图是画面，
+            // 必须铺到手势条底下；而键盘弹起时它又必须整块让开。两者不是同一条边。
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.statusBars)
+                .windowInsetsPadding(MikomiInsets.Top)
                 .then(if (searchExpanded) Modifier else Modifier.imePadding()),
             factory = { context ->
                 // 复用缓存的 WebView：切换回巡礼页不再重新加载地图。
@@ -264,7 +265,7 @@ fun AniMapScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
+                    .windowInsetsPadding(MikomiInsets.Bottom)
                     .padding(bottom = 10.dp)
                     .width(96.dp)
                     .height(20.dp)
@@ -342,7 +343,7 @@ fun AniMapScreen(
             },
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .windowInsetsPadding(WindowInsets.statusBars)
+                .windowInsetsPadding(MikomiInsets.Chrome)
                 .padding(horizontal = 12.dp, vertical = 10.dp)
                 // 记下面板的实际底边：点空白的判定范围要从这里往下，不能盖住建议条目。
                 .onGloballyPositioned { searchBarBottomPx = it.boundsInParent().bottom.toInt() },

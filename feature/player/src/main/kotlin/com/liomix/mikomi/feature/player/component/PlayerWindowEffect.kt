@@ -134,6 +134,9 @@ internal fun PlayerWindowEffect(
  *   平板上强制横屏是反模式，多窗口下系统也会直接忽略这个请求。
  */
 private fun Activity.fullscreenOrientation(): Int {
+    // design-ok：这里判的不是布局断点，而是「要不要向系统请求横屏」——
+    // 请求横屏是设备形态问题（大屏请求横屏本身就是反模式），而且这个函数不在组合里，
+    // 拿不到 LocalMikomiWindowSize。布局里判档一律走窗口尺寸类。
     val largeScreen =
         resources.configuration.smallestScreenWidthDp >= LARGE_SCREEN_SMALLEST_WIDTH_DP
     return if (largeScreen || isInMultiWindowMode) {

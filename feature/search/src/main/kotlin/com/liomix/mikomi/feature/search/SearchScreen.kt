@@ -7,13 +7,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.model.AniRpbHotItem
+import com.liomix.mikomi.core.ui.window.MikomiInsets
 
 /**
  * 搜索页（无状态）。
@@ -55,7 +56,7 @@ fun SearchScreen(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .imePadding(),
+                .windowInsetsPadding(MikomiInsets.BottomOrIme),
         ) {
             Crossfade(
                 targetState = state.phase,

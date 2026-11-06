@@ -7,14 +7,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +55,7 @@ import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.business.heroTarget
 import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
 import com.liomix.mikomi.core.ui.image.rememberMikomiImagePainter
+import com.liomix.mikomi.core.ui.window.MikomiInsets
 import java.util.Locale
 
 /** 详情页封面圆角（飞行时会与列表卡的 8dp 之间插值）。 */
@@ -145,7 +144,7 @@ internal fun DetailHeader(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.statusBars)
+                .windowInsetsPadding(MikomiInsets.Chrome)
                 // 状态栏 inset 之后不再留额外上边距：标题紧贴状态栏下沿，
                 // 封面与信息列同在一个 Column 里，会一起上移，间距保持不变。
                 .padding(

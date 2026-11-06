@@ -7,11 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -61,6 +59,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
+import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.feature.settings.R
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -206,7 +205,7 @@ fun PlgTstStoreScreen(
                     else -> LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
-                            .windowInsetsPadding(WindowInsets.navigationBars),
+                            .windowInsetsPadding(MikomiInsets.Bottom),
                         contentPadding = PaddingValues(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Md),
                         verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
                     ) {
@@ -232,7 +231,7 @@ fun PlgTstStoreScreen(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .windowInsetsPadding(WindowInsets.navigationBars),
+                .windowInsetsPadding(MikomiInsets.Bottom),
         )
     }
 }

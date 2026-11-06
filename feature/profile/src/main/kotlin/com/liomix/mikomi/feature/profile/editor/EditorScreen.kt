@@ -10,14 +10,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
@@ -54,6 +52,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.SideBarPop
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
+import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.feature.profile.R
 
 /** 昵称字数上限。 */
@@ -142,8 +141,8 @@ fun EditorScreen(
                     )
                 }
             },
-            // 键盘留白只加在内容区：顶栏不能被输入法顶上去。
-            contentModifier = Modifier.imePadding(),
+            // 键盘留白由 BaseScreenLayout 的内容区统一让（BottomOrIme）：
+            // 这里再写一次 imePadding 就是两份，键盘弹起时底部会空出一条黑带。
             contentPadding = PaddingValues(
                 start = MikomiSpacing.Lg,
                 end = MikomiSpacing.Lg,
@@ -398,7 +397,7 @@ private fun EditorPanel(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.systemBars)
+            .windowInsetsPadding(MikomiInsets.Full)
             .padding(horizontal = MikomiSpacing.Xl, vertical = MikomiSpacing.Room),
     ) {
         Text(

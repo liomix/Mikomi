@@ -34,6 +34,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiElevation
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.ui.window.MikomiInsets
 
 /**
  * 提示弹窗内容。
@@ -61,7 +62,7 @@ data class MikomiToastData(
  *         data = toast,
  *         modifier = Modifier
  *             .align(Alignment.BottomCenter)
- *             .windowInsetsPadding(WindowInsets.navigationBars)
+ *             .windowInsetsPadding(MikomiInsets.Bottom)
  *             .padding(horizontal = MikomiSpacing.Xl, bottom = MikomiSpacing.Xl),
  *     )
  * }

@@ -15,9 +15,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -43,6 +41,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.liomix.mikomi.R
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
+import com.liomix.mikomi.core.designsystem.spec.MikomiWindowSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.animationsEnabled
 import com.liomix.mikomi.core.model.PageTransitionStyle
@@ -61,6 +60,9 @@ import com.liomix.mikomi.core.ui.component.business.HeroFlightController
 import com.liomix.mikomi.core.ui.component.business.HeroFlightOverlay
 import com.liomix.mikomi.core.ui.component.business.LocalHeroFlightController
 import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
+import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
+import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.ui.window.rememberMikomiWindowSize
 import com.liomix.mikomi.feature.animap.AniMapWarmer
 
 /** 进入巡礼页后自动隐藏底部导航栏的延时（毫秒）：不靠滑动判定，进页面 2s 后自动进入沉浸。 */
@@ -311,7 +313,11 @@ fun MikomiNavHost(
             // 动画装饰器最内层 —— 它只负责把内容包进一层位移/透明度，不参与状态归属。
             listOf(saveableStateDecorator, viewModelStoreDecorator, pageMotionEntryDecorator)
         }
+        // 窗口尺寸档在壳这一层算一次，页面只读 —— 每个页面各自读一次窗口信息，
+        // 就等于每个页面都有自己的断点口径，迟早各说一套。
+        val windowSize = rememberMikomiWindowSize()
         CompositionLocalProvider(
+            LocalMikomiWindowSize provides windowSize,
             LocalHeroFlightController provides heroController,
             // 底栏占多高由壳告诉页面，页面不必知道那是一条导航栏 —— 见 LocalBottomBarSpace。
             LocalBottomBarSpace provides MikomiNavBarBottomSpace,
@@ -376,13 +382,13 @@ fun MikomiNavHost(
             ),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .windowInsetsPadding(WindowInsets.navigationBars)
+                .windowInsetsPadding(MikomiInsets.Bottom)
                 // 外边距由导航栏自己的常量给出（16dp 左右 / 8dp 底部），页面按同一份规格给底栏让位。
                 .padding(
                     horizontal = MikomiNavBarHorizontalMargin,
                     vertical = MikomiNavBarBottomMargin,
                 )
-                .widthIn(max = 520.dp),
+                .widthIn(max = MikomiWindowSpec.NavBarMaxWidth),
         ) {
             MikomiNavigationBar(
                 items = navItems,

@@ -21,7 +21,7 @@ description: Mikomi 项目级 Android 开发规范。开始任何代码编写、
 | 改了什么 | 跑什么 |
 | --- | --- |
 | 任何 Kotlin / 资源 / 路由 | `./gradlew :app:assembleDebug --offline` |
-| 颜色、间距、字号、圆角、线宽、动效档位、图标 | `./gradlew verifyDesign`（`tokenAudit` + `contrastAudit` + `iconAudit`，strict） |
+| 颜色、间距、字号、圆角、线宽、动效档位、图标、安全区、断点 | `./gradlew verifyDesign`（`tokenAudit` + `contrastAudit` + `iconAudit` + `windowAudit`，strict） |
 | `core:navigation` | `./gradlew :core:navigation:testDebugUnitTest` |
 | 已有测试覆盖的逻辑（`data:anime` 映射、`feature:home` ViewModel） | `./gradlew test` |
 
@@ -355,6 +355,7 @@ token 表最怕的不是「值不好」，而是「没人知道它为什么是�
 | 11 | 实心/描边按语义重选：12 个语义标识（日历、排行榜、分类、设置、外观、插件、播放设置、历史、收藏、邮箱、编辑、离线）换成 `Outlined`，新增 4 个导航未选中态（`HomeOutline` / `MapOutline` / `ForumOutline` / `PersonOutline`），底栏改成 `icon`=描边 + `selectedIcon`=实心 | 69 个里 67 个是实心：`MikomiIcons` 当初只从 `Rounded` 一个家族提取，判据只有「有没有被引用」，没有「该实心还是该描边」这一维。零星几个空心的（`StarBorder`、`ChatBubbleOutline`）是名字里自带 Border/Outline 的巧合。底栏两个字段填了同一个图标，选中与未选中只靠颜色区分 |
 | 12 | 尺寸从「八种分散值」收成三档（`IconXs`16 / `IconSm`20 / `IconMd`24）并登记进 `MikomiSizes.steps`；新增 `MikomiIcon` 作为唯一图标入口（`size` 默认 `IconMd`），72 处调用全部迁移；3 个弹幕图标从 `res/drawable` 收进 `MikomiIcons`；`tools/icon-gen/` 入库；图片补默认占位/失败底色与列表封面预取 | 尺寸以前**没有负责人**：只有 4 处读 token、32 处写字面量（11/13/14/15/16/18/20/22/24）、23 处不写 size 靠 `ImageVector.defaultWidth=24.dp` —— 改 token 只有 4 处会动。`IconSm` 是 18 而事实主档是 20；评分星标同一语义写了 11 和 13 两个值。弹幕 3 个 xml 是图标系统之外的第二条通路。图片的 `placeholder`/`error` 参数存在但全仓没传过，首帧与失败都是透明洞 |
 | 13 | 图标从「有约定」变成「有闸门」：新增 `iconAudit` 接进 `verifyDesign`（裸 `Icon(`、尺寸走 `modifier`、注释/家族/`builder name`/`autoMirror`、死图标）；32 处 `modifier = Modifier.size(...)` 收进 `size` 参数；`tools/icon-gen/icons.tsv` 记每段代码块指纹，`--verify` 先离线比对再溯源；图片的浏览器 UA 从逐请求参数搬到 `MikomiImageLoader` 的拦截器 | 尺寸入口统一之前仍有 32 处走 `modifier.size`、16 处走 `size` 参数、25 处走默认 —— 三条路并存，而 `MikomiIcon` 的 KDoc 已经写着「不必再记 `Modifier.size`」，文档与代码对不上。几何是副本，仓库里没有上游源码：手改一行 `pathData` 编译照样过，只是那个图标从此和别的不是一套，而 `--verify` 在没有 sources.jar 的机器上整体报「追不回」，等于没有校验。UA 参数只有 2/77 处传 `true`，漏传的代价是永久 403 且无日志 |
+| 14 | 建窗口系统三层：`MikomiWindowSpec`（断点 / 24dp 回滞 / 内容列 720 · 弹层 640 · 底栏 520）、`LocalMikomiWindowSize`（由 `LocalWindowInfo.containerDpSize` 算档，壳在根部 provide）、`MikomiInsets` 七个语义入口；26 处裸 `WindowInsets.*` / `statusBarsPadding` / `imePadding` 全部收编；新增 `windowAudit` 接进 `verifyDesign` | 窗口这一层此前只有一份「怎么写」的散文：全仓 0 处窗口尺寸类、26 处各写各的 `WindowInsets`、3 处 `ModalBottomSheet` 内又叠一层键盘/导航栏让位、首页底部避让写死 112dp（手势导航正好、三键导航少 24dp）、`WindowInsets.statusBars` 不含挖孔（刘海机横屏返回键落在挖孔下），而这些都是「本机跑一万次也复现不了」的形态 |
 
 ### 5.5 可访问性与对比度
 
@@ -450,45 +451,168 @@ MikomiIcon(
 
 ---
 
-## 6. UI 布局：自适应与边到边
+## 6. UI 布局：窗口系统与自适应
 
-### 6.1 自适应总则
+### 6.0 三层，每层一个入口
 
-- 所有屏幕**必须**能在手机、折叠屏、平板上正确渲染与交互（桌面 / TV / Auto / XR 不在当前产品范围内，不为它们做设计，但也不要把「手机竖屏」写成硬假设）。
-- 用 `currentWindowAdaptiveInfo()` 判断窗口尺寸类（compact / medium / expanded）与输入方式，不要用 `LocalConfiguration.screenWidthDp` 自己判档。触控目标：触屏 ≥48dp，鼠标可更小。
+窗口相关的东西很容易糊成一团：谁在什么时候知道「屏幕多宽」「键盘多高」，各页面各答一次，
+答案就慢慢分叉。本项目按三个问题切开，每层只留一个入口：
 
-### 6.2 导航区
+| 层 | 回答的问题 | 唯一入口 | 位置 |
+| --- | --- | --- | --- |
+| 窗口信息 | 现在是哪一档窗口？ | `LocalMikomiWindowSize`（壳在根部 provide 一次） | `core:ui/window/MikomiWindowSize.kt` |
+| 安全区 | 这块内容不能被什么挡住？ | `MikomiInsets.*` / `rememberMikomiInsetsDp()` | `core:ui/window/MikomiInsets.kt` |
+| 内容列 | 宽屏下一行字能有多长？ | `MikomiWindowSpec.ContentMaxWidth` | `core:designsystem/spec/` |
 
-- **底部导航栏是本 App 私有的**（`app/.../navigation/MikomiNavigationBar.kt`），**不依赖 `core:ui` 的通用 Tab 组件，也不用 `NavigationSuiteScaffold`。** 实测规格在 `MikomiNavBarSpec`（卡片 56 / 圆角 28、条目 48、图标 24、标签 12sp、宽度按文案不等分、整组居中），底栏占位经 `LocalBottomBarSpace` 下发给页面。
+下面的规则只有一句总纲：**页面不碰 `WindowInsets`，也不读 `LocalConfiguration`。**
+这两件事都被 `windowAudit` 盯着（§6.8）。
+
+### 6.1 窗口尺寸类
+
+```kotlin
+val window = LocalMikomiWindowSize.current
+if (window.isExpandedWidth) { /* 收成可读列 */ }
+```
+
+- 三档宽度（compact < 600 / medium < 840 / expanded）、三档高度（compact < 480 / medium < 900 / expanded），
+  数值在 `MikomiWindowSpec`，与 Material 3 的窗口尺寸类一致。
+- **数据源是 `LocalWindowInfo.containerDpSize`**（窗口自身尺寸），不是 `LocalConfiguration.screenWidthDp`
+  （那是屏幕尺寸：分屏、自由窗口、桌面窗口下都不等于窗口）。
+- **不引入 `material3-adaptive`。** `currentWindowAdaptiveInfo()` 来自
+  `androidx.compose.material3.adaptive:adaptive`，这个产物不在本机的离线缓存里（本项目要能
+  `--offline` 构建）。它内部读的同样是 `WindowMetrics`，所以自己算一遍不会得到不同的档位 ——
+  只是不引依赖。哪天依赖可用了，替换点在 `rememberMikomiWindowSize()` 一处。
+- **档位带 24dp 回滞。** 自由窗口拖动时尺寸每像素都变；没有回滞，手指停在 600 上抖两下，
+  整页排布就翻两次。进入新档位按原断点，离开要多走 24dp（600 断点的实际行为是「≥624 升档、
+  <576 降档」）。
+- **为什么 TG 没有回滞、我们必须有。** Telegram 的判档输入是「设备类别」，不是窗口像素：
+  `AndroidUtilities.isTablet()` / `isSmallTablet()` 是 `Boolean` 静态缓存，一次进程只算一次，
+  档位只在换设备或进出分屏时变（`LaunchActivity.checkLayout()` 读 `isInMultiwindow` 决定双栏还是
+  退回单栏）。同一套输入在没有窗口拖拽的系统上不会抖，所以它不需要回滞。我们判的是
+  `containerDpSize`，自由窗口下每像素都变 —— **回滞是「按窗口判档」这个选择的必要成本，
+  不是从别处抄来的技巧**。
+- 高度档与宽度档同源同价（分类器本来就同时算两个维度），暂时没有消费者：
+  横屏手机的 `isCompactHeight` 是后面做「头图折叠」时的判据。删掉它只会让下一个人
+  再写一遍，所以留着；但**不要**为了「用上它」临时发明一个条件分支。
+
+### 6.2 安全区（边到边）
+
+`enableEdgeToEdge` 只在 `MainActivity` 调**一次**（日夜切换只翻 `insetsController` 的 appearance）。
+之后全仓只认这七个入口（第七个是[`windowAudit`](#68-验收)的必检项，缺一个就报错）：
+
+| 入口 | 含 | 不含 | 用在哪 |
+| --- | --- | --- | --- |
+| `MikomiInsets.Top` | 状态栏、挖孔 | 键盘 | 内容顶边（如播放页把画面推到状态栏下） |
+| `MikomiInsets.Bottom` | 导航栏、挖孔 | 键盘 | 与 `imePadding` 搭配的容器 |
+| `MikomiInsets.BottomOrIme` | 导航栏、挖孔、键盘 | — | **页面内容区**（滚到底、被键盘顶起都成立） |
+| `MikomiInsets.Chrome` | 状态栏、挖孔、左右 | 键盘 | 顶栏（返回键贴左边，横屏会被刘海压住） |
+| `MikomiInsets.Horizontal` | 挖孔（横屏在两侧） | 上下 | 已经自己处理了上下的画面 |
+| `MikomiInsets.BottomSides` | 导航栏、挖孔（下 + 左右） | 键盘、顶边 | 全屏画面的控制条（播放器非全屏态）：画面铺到顶，条子只躲底部与横屏刘海 |
+| `MikomiInsets.Full` | 状态栏、导航栏、挖孔 | 键盘 | 四边都要让开的浮层 |
+
+**为什么不是 `WindowInsets.statusBars`：它不含挖孔。** 横屏刘海机上状态栏 inset 是 0，
+`statusBarsPadding()` 加了个零，返回键照旧落在挖孔底下 —— 只在刘海机上复现，本机永远看不到。
+要回答的问题是「这块内容不能被什么挡住」，答案只能是 `safeDrawing` 一族。
+
+**键盘只允许有一个主人。** `safeDrawing` 是**含键盘**的（`systemBars ∪ ime ∪ displayCutout`），
+这一点最容易记错，两个方向都会出事：
+
+- 页面根节点加 `safeDrawingPadding()`（**禁止**）：键盘一弹整页上移，顶栏跑出屏幕；
+- 容器已按键盘让过位，里面又写 `imePadding()`：让两份，底部空出一条黑带。
+
+所以页面级容器一律 `BottomOrIme`（它自己取「导航栏 ∪ 键盘」的较大值），
+`imePadding()` 只留给「只让键盘、画面必须铺到手势条底下」的容器（当前只有巡礼页的 WebView），
+并且必须写 `design-ok` 说明为什么。
+
+**`ModalBottomSheet` 自带 `contentWindowInsets = safeDrawing(上下)`。** 在它的内容里再写
+`imePadding()` 或 `navigationBarsPadding()` 都是重复 —— `PlaybackSourceSheet`、
+`PlgTstEditorSheet`、插件测试弹窗都踩过这个，表现为「面板被顶起、底部漏一条底色」。
+
+**系统栏对比度**：`MainActivity` 里设 `window.isNavigationBarContrastEnforced = false`（API 29+）。
+不设的话，三键导航会在悬浮底栏下面铺一层半透明遮罩，看起来像一条灰边。
+
+**画满全屏的画面不整块内缩。** 播放器、巡礼页地图、Profile 头图只给「要读的文字与按钮」
+让挖孔（HUD、搜索框、返回键），画面本体照样铺到边缘。整块内缩会在横屏刘海机上留下两条黑边，
+比被挖孔吃掉一角更难看；这也是播放器只对 HUD 用 `Chrome`、对控制条用 `BottomSides` 的原因。
+
+### 6.3 宽屏内容列
+
+| 常量 | 值 | 作用范围 |
+| --- | --- | --- |
+| `MikomiWindowSpec.ContentMaxWidth` | 720dp | expanded 窗口下的正文列（`BaseScreenLayout`、社区页） |
+| `MikomiWindowSpec.SheetMaxWidth` | 640dp | `BottomPop` 面板（与 M3 `SheetMaxWidth` 同值） |
+| `MikomiWindowSpec.NavBarMaxWidth` | 520dp | 悬浮底栏 |
+
+判断依据是**一行的汉字数**：14sp 正文约 42 字一行是「还能一眼扫完」的上限，再宽眼睛回扫会丢行。
+这三条都只在宽窗口生效，手机上（比上限窄）**一个像素都不改**。
+
+顶栏与内容列必须同宽：内容已经居中成 720dp 的列，返回键却还贴在 1200dp 屏幕的最左边，
+读起来像两栏不相干的东西。`BaseScreenTopBar` 因此按 `originX = (width - contentWidth) / 2`
+摆放三个槽位，标题仍然落在屏幕中线上。
+
+### 6.4 导航区
+
+- **底部导航栏是本 App 私有的**（`app/.../navigation/MikomiNavigationBar.kt`），**不依赖
+  `core:ui` 的通用 Tab 组件，也不用 `NavigationSuiteScaffold`。** 实测规格在 `MikomiNavBarSpec`
+  （卡片 56 / 圆角 28、条目 48、图标 24、标签 12sp、宽度按文案不等分、整组居中），
+  底栏占位经 `LocalBottomBarSpace` 下发给页面（**不含**系统导航栏 inset，页面自己加）。
 - 底栏**不投影**：elevation 在浅色地图上会扩散成灰边。
-- 要加宽屏导航形态（rail / drawer）时，按 §6.3 的多窗格一起做，不要单独把底栏换成 `NavigationSuiteScaffold` —— 那会同时改掉视觉规格和手势切换的语义。
+- 页面给底栏让位要**算**出来，不能写死。首页曾经写 `112.dp`，它正好等于
+  「栏体 56 + 外边距 8 + 手势条 24 + 呼吸 24」—— 换成三键导航（48dp）就少 24dp，最后一行被压住。
+  现在的口径是 `LocalBottomBarSpace + 导航栏 inset + 呼吸`。
+- 要加宽屏导航形态（rail / drawer）时，按 §6.5 的多窗格一起做，不要单独把底栏换成
+  `NavigationSuiteScaffold` —— 那会同时改掉视觉规格和手势切换的语义。
 
-### 6.3 多窗格（尚未落地）
+### 6.5 多窗格（尚未落地）
 
 当前所有目的地都是单窗格。要做列表-详情时：
 
-- 用 Navigation 3 的 **SceneStrategy**（`ListDetailSceneStrategy` / `SupportingPaneSceneStrategy`，来自 `androidx.compose.material3.adaptive:adaptive-navigation3`），**禁止** `ListDetailPaneScaffold` / `SupportingPaneScaffold`。
-- 用 `entry(metadata = ...)` 标注 list/main 与 detail/supporting；`listPane(detailPlaceholder = ...)` 提供未选中占位。
+- 用 Navigation 3 的 **SceneStrategy**（`ListDetailSceneStrategy` / `SupportingPaneSceneStrategy`，
+  来自 `androidx.compose.material3.adaptive:adaptive-navigation3`），**禁止**
+  `ListDetailPaneScaffold` / `SupportingPaneScaffold`。
+- 用 `entry(metadata = ...)` 标注 list/main 与 detail/supporting；`listPane(detailPlaceholder = ...)`
+  提供未选中占位。
 - 详情页在大屏不显示返回箭头、不强制全屏；移动端全屏展示的内容在大屏要解除全屏。
-- `adaptive-navigation3` 已在依赖清单里声明，但**尚未接进 `NavDisplay`**。接的时候一并评估返回键语义（大屏上「返回」是退出详情窗格还是退回上一页）。
+- 返回键语义要一并定：大屏上「返回」是退出详情窗格，还是退回上一页。
 
-### 6.4 自适应网格与列表
+现在**没有做**，原因不是没时间：`adaptive-navigation3` 不在离线缓存里（同 §6.1），
+装上依赖就 `--offline` 构建不了。等依赖可用时，接入点是 `NavDisplay(sceneStrategy = ...)`，
+其余（`LocalMikomiWindowSize`、安全区、内容列）都已经就位。
 
-- 竖向列表按窗口宽度切列数：`LazyColumn` → `LazyVerticalGrid(GridCells.Adaptive(min.dp))`；`LazyVerticalStaggeredGrid` → `StaggeredGridCells.Adaptive(min.dp)`。
-- 小而有界集合（约 1-10 项）用 `Row` / `Column` + `for`，别上懒布局（虚拟化与预取的开销比省下的还多）。
-- 应用栏滚动行为用 `enterAlwaysScrollBehavior` / `exitUntilCollapsedScrollBehavior`，**各顶级目的地独立管理**。
+### 6.6 自适应网格与列表
 
-### 6.5 边到边
+- 竖向列表按窗口宽度切列数：`LazyColumn` → `LazyVerticalGrid(GridCells.Adaptive(min.dp))`；
+  `LazyVerticalStaggeredGrid` → `StaggeredGridCells.Adaptive(min.dp)`。
+- 列数**不要**问窗口要：`GridCells.Adaptive` 拿的是布局阶段到手的真实约束（已扣掉 padding），
+  比窗口宽度准。
+- 小而有界集合（约 1-10 项）用 `Row` / `Column` + `for`，别上懒布局。
+- 应用栏滚动行为用 `enterAlwaysScrollBehavior` / `exitUntilCollapsedScrollBehavior`，
+  **各顶级目的地独立管理**。
 
-- 每个 Activity 在 `setContent` 前 `enableEdgeToEdge()`；含软键盘的 Activity 在 manifest 设 `android:windowSoftInputMode="adjustResize"`。
-- **Insets 避免双重 padding**：
-  - 首选 `Scaffold`，把 `PaddingValues` 传给内容；`LazyColumn` 用 `contentPadding`（用父容器 `padding` 会裁剪内容，导致滚不到系统栏后面）。
-  - Material 3 组件（`TopAppBar` 等）自动处理安全区。
-  - 自适应 Scaffold **不**向下传 `PaddingValues`，必须每个屏幕单独处理；**禁止**给父级加 `safeDrawingPadding`。
-- **IME**：内容容器首选 `Modifier.fitInside(WindowInsetsRulers.Ime.current)`（比 `imePadding()` 跳动少）；用 `imePadding()` 时必须放在 `verticalScroll()` 之前。父级已经用 `contentWindowInsets` 处理 IME 时不要再加。
-- **系统栏对比度**：`ComponentActivity.enableEdgeToEdge` 自动处理；底部栏场景在 Activity 设 `window.isNavigationBarContrastEnforced = false`（SDK 29+）。**不要重复调用 `enableEdgeToEdge`**（日夜切换只翻 insets appearance）。
+### 6.7 与 Telegram 的对照
 
----
+| 机制 | Telegram Android | 本项目 | 差异的理由 |
+| --- | --- | --- | --- |
+| insets 分发 | `ActionBarLayout` 用 `ViewCompat.setOnApplyWindowInsetsListener`，并把**最近一次**的 insets 缓存住、直接分发给新建的子容器（`applyInsets(fallback)`）；注释说明这是为了不因切 Fragment 而整窗重新分发、「a frame lost to it」 | 框架自动分发 + `windowInsetsPadding` 的消费语义 | 我们不需要自建缓存（Compose 的 inset 由 CompositionLocal 驱动，切页不重发），但**「把 insets 存住再复用」这个判断是对的**，对应到本仓就是 `rememberMikomiInsetsDp()` |
+| 遗留的全局值 | `AndroidUtilities.statusBarHeight` / `navigationBarHeight` 仍是 `public static int`，源码里已标 `@Deprecated`，旧页面还在读 | 没有任何全局 inset 变量，只有 `MikomiInsets` 的 Composable 入口 | 全局 int 存的是整屏值，多窗口/分屏下必然错位 —— 这正是「横屏刘海机顶栏压到挖孔下」这类 bug 的来源。这层从第一天就不留这个口子 |
+| 圆角屏裁剪 | 从 `WindowInsets.getRoundedCorner()`（Android 12+）取四个角半径，参与 `drawChild` 的裁剪路径 | 没做 | 多窗口/自由窗口下窗口四角是圆的，铺到角上的内容会被系统圆角切掉。**已知缺口，未排期** |
+| 判档输入 | `isTablet()` / `isSmallTablet()`（设备类别，`Boolean` 静态缓存）+ `isInMultiwindow` + `Configuration.orientation` | 窗口自身 `containerDpSize`，带 24dp 回滞 | TG 判的是「这是什么设备」，分屏/自由窗口下必须靠 `isInMultiwindow` 特判才不误用双栏；我们判的是「窗口现在多宽」，分屏天然正确，代价是必须带回滞（§6.1） |
+| 平板 | 双窗格（列表 + 内容）：`ActionBarLayout` 左右两个 Fragment 栈，`checkLayout()` 按档把页面在两栈间搬；左栏宽度走 `getTabletLeftFragmentSize(width, insets.left, insets.right)` —— 是宽度的函数，且左右挖孔都算进去 | 单窗格 + 内容列 + 底栏（未做多窗格） | 本 App 的详情页是「整屏头图」型，硬拆两栏要先重做头图；`adaptive-navigation3` 又不在离线缓存里（§6.5）。**但 `getTabletLeftFragmentSize` 那个「分栏宽度吃 insets」的做法必须学** —— 分栏时左栏贴的是挖孔侧 |
+| 内容宽度 | 弹层宽度写死上限：`layersActionBarLayout` 用 `min(dp(500), width - dp(16))` 测量；列表列宽由 `getTabletLeftFragmentSize` 的返回值决定，不按百分比 | `ContentMaxWidth` 720 / `SheetMaxWidth` 640 / `NavBarMaxWidth` 520，全部是常量 | 同一思路：可读宽度是常量而不是屏幕的百分比。差别在于我们把三个常量收进 `MikomiWindowSpec` 并可被 `windowAudit` 引用，TG 散在各处 `dp(...)` 调用里 |
+| 键盘 | `ChatActivity` 监听键盘高度、自己驱动面板位移 | `MikomiInsets.BottomOrIme` 一条让位规则，键盘动画交给系统 | 我们不做「输入框贴着键盘走」的聊天式交互，只要求「内容不被遮住」 |
+| 方向 | 播放页请求横屏，其余跟随传感器 | 同（`PlayerWindowEffect.fullscreenOrientation`，大屏与多窗口不请求） | 大屏强制横屏是反模式，多窗口下系统也会忽略 |
+| 边到边 | 早期靠 `fitsSystemWindows=false` + 手工 padding | `enableEdgeToEdge` + `WindowInsets` | 系统已把「透明栏 + 手势区」标准化，手工 padding 是它的前身 |
+
+### 6.8 验收
+
+```
+./gradlew windowAudit    安全区单一入口 / edge-to-edge 单点 / 断点来源 / 清单约束
+./gradlew verifyDesign   = tokenAudit(strict) + contrastAudit + iconAudit + windowAudit
+```
+
+`windowAudit` 的六条判据（W1~W6）写在 `build.gradle.kts` 的 KDoc 里。它拦的是**本机复现不了**
+的那一类错误：挖孔、三键导航、分屏、重复 `imePadding`。`design-ok` 是唯一出口，且会打印总数。
+
 
 ## 7. 依赖与构建
 
@@ -593,7 +717,7 @@ MikomiIcon(
 ### 10.2 布局：尺寸稳定，变化过死区
 
 - **列表项尺寸不依赖中间态。** 图片给 `aspectRatio` 或占位框，别让高度在滚动中跳变（这是 TG 布局层最核心的一条，比"把高度写死"重要得多）。
-- **窗口尺寸变化不要每一 dp 都重排。** 学 TG `checkLayout()` 的 52dp 死区：先取整到栅格（`remember(maxWidthDp / 52)`）再参与计算。
+- **窗口尺寸变化不要每一 dp 都重排。** 断点只在 `rememberMikomiWindowSize()` 里读一次 `containerDpSize`，别在业务 composable 里直接读它参与计算。真要在别处按宽度算量（骨架扫光速度那种），先用 `rememberMikomiWindowWidthPx()` 取窗口宽，再取整到栅格；**不要退回 `LocalConfiguration.screenWidthDp`** —— 分屏下那是整屏宽，算出来的量会慢一半。
 - **条目动画只用于重排，不用于入场。** `animateItem()` 会强制额外的 placement pass；`EpisodeSection` 那一处是「切换正序 / 倒序时卡片按 `key` 平滑移到新位置」，属于正确用法。列表首次出现不要做「逐条飞入」。
 
 ### 10.3 动画：重活交给窗口 / 渲染层
@@ -637,6 +761,15 @@ MikomiIcon(
 - 控件体格是否进了 `spec` 而不是组件私有常量？
 - 图标是否走 `MikomiIcon`、尺寸是否只从 `size` 参数来？加/换图标后跑过 `extract.py --snapshot` 吗（`icons.tsv` 没更新，`--verify` 会把新图标报成「清单外」）？
 - 每个 `design-ok` 是否都写了理由？
+
+### 窗口与安全区
+
+- 安全区是否只从 `MikomiInsets.*` 取？有没有新写的 `WindowInsets.statusBars` / `statusBarsPadding()`（跑 `windowAudit`）？
+- 这条修饰链上，底部留白是不是只有**一个**主人？（`BottomOrIme` 或者 `Bottom` + `imePadding`，不能都写）
+- 在 `ModalBottomSheet` / `Scaffold` 的内容里有没有重复让位？它们自带 `contentWindowInsets`。
+- 页面判档是否读 `LocalMikomiWindowSize`？有没有又出现 `screenWidthDp` 或自己算断点？
+- 给底栏/键盘让位的数值是**算**出来的，还是又写死了一个 `112.dp`？
+- 新增的全屏画面（播放器、地图）在横屏刘海机上，四边是否都用了挖孔感知的入口？
 
 ### Compose 与性能
 

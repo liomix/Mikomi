@@ -12,12 +12,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -63,6 +60,8 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.ui.window.rememberMikomiBottomInset
 import com.liomix.mikomi.feature.player.EpisodeItem
 import com.liomix.mikomi.feature.player.EpisodeOrder
 import com.liomix.mikomi.feature.player.R
@@ -203,7 +202,7 @@ internal fun EpisodeSection(
                 episodes
             }
 
-            val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            val bottomInset = rememberMikomiBottomInset()
             val scope = rememberCoroutineScope()
 
             // 首次进入把当前集滚进视野；网格已经有滚动位置（从评论 Tab 切回来、
@@ -306,7 +305,7 @@ private fun EpisodeRail(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.windowInsetsPadding(WindowInsets.navigationBars),
+        modifier = modifier.windowInsetsPadding(MikomiInsets.Bottom),
         verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
         horizontalAlignment = Alignment.End,
     ) {
@@ -444,7 +443,7 @@ private fun EpisodeSkeleton(
     cardHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val bottomInset = rememberMikomiBottomInset()
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
         modifier = modifier.fillMaxSize(),

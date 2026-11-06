@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -20,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.min
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.media.MikomiPlayer
+import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.feature.player.component.CommentSection
 import com.liomix.mikomi.feature.player.component.EpisodeSection
 import com.liomix.mikomi.feature.player.component.PlaybackSourceSheet
@@ -104,7 +105,7 @@ fun PlayerScreen(
                     // 播放器从**状态栏下方**开始。
                     // App 是 edge-to-edge，内容默认铺到屏幕顶端，状态栏的时钟/信号图标
                     // 会压在第一帧画面上；这里让出那一条，全屏时才铺到屏幕边缘。
-                    .statusBarsPadding(),
+                    .windowInsetsPadding(MikomiInsets.Top),
             ) {
                 // 给播放器让出等高的一块：全屏与非全屏共用同一个播放器实例。
                 Spacer(modifier = Modifier.height(playerHeight))
@@ -184,7 +185,7 @@ fun PlayerScreen(
             // 否则播放器会盖住选集区的第一行，或者反过来浮到状态栏底下。
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .then(if (fullscreen) Modifier else Modifier.statusBarsPadding()),
+                .then(if (fullscreen) Modifier else Modifier.windowInsetsPadding(MikomiInsets.Top)),
         )
 
         if (state.sourceSheetVisible) {

@@ -1,6 +1,7 @@
 package com.liomix.mikomi
 
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -52,6 +53,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 三键导航时，系统默认会在导航栏后面再铺一层半透明遮罩，用来自证「这里有系统栏」。
+        // 我们已经是 edge-to-edge、内容自己在让位，那层遮罩只会让悬浮底栏下面多出一条灰边；
+        // 手势导航下它本来就不生效，所以这条只在三键设备上看得出来（API 29+）。
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
         // 状态栏/导航栏透明，透出 App 自身背景（Compose 内容已 edge-to-edge 铺满窗口），
         // 深浅色模式下都与背景无色差；图标的明暗在主题生效后由下面的 LaunchedEffect 按 App 主题改写，
         // 这里先用 auto 让首帧跟随系统，避免冷启动时白底白图标。

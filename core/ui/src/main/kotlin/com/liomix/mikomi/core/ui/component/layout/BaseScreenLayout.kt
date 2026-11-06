@@ -8,13 +8,11 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -30,11 +28,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
+import com.liomix.mikomi.core.designsystem.spec.MikomiWindowSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.ui.R
 import com.liomix.mikomi.core.ui.component.base.MikomiIcon
+import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
+import com.liomix.mikomi.core.ui.window.MikomiInsets
 
 /**
  * [BaseScreenLayout] 的默认留白与间距。
@@ -130,13 +131,28 @@ fun BaseScreenLayout(
             actions = actions,
         )
 
+        val expanded = LocalMikomiWindowSize.current.isExpandedWidth
+
         Column(
             modifier = Modifier
                 // weight 而不是 fillMaxSize：顶栏吃掉的高度必须让出来，否则内容会被顶栏遮住一截。
                 .weight(1f)
                 .fillMaxWidth()
-                // 导航栏留白在滚动区之外：滚到底时内容停在手势条之上，这一段不跟着滚。
-                .windowInsetsPadding(WindowInsets.navigationBars)
+                // 宽屏收成可读列：一行汉字超过约 40 个，眼睛回扫到下一行起点就开始丢行。
+                // 手机上这个宽度本来就到不了，等于没有这一条。
+                .then(
+                    if (expanded) {
+                        Modifier
+                            .widthIn(max = MikomiWindowSpec.ContentMaxWidth)
+                            .align(Alignment.CenterHorizontally)
+                    } else {
+                        Modifier
+                    },
+                )
+                // 底部留白在滚动区之外：滚到底时内容停在手势条之上，这一段不跟着滚。
+                // 用 BottomOrIme 而不是「导航栏 + imePadding」：键盘弹起时导航栏被它盖住，
+                // 两者相加会多出一条空带；这个入口自己取两者的较大值，一条链只留一个主人。
+                .windowInsetsPadding(MikomiInsets.BottomOrIme)
                 .then(if (scrollable) Modifier.verticalScroll(scrollState) else Modifier)
                 .then(contentModifier)
                 .padding(contentPadding),
@@ -162,6 +178,11 @@ fun BaseScreenLayout(
  * 为什么用 [SubcomposeLayout]：动作是调用方给的 slot，组件无法预先知道里面有几个、
  * 各多宽，只能在布局阶段先组合并测量出来，之后才能算出标题能占多少宽度。
  *
+ * 宽屏（expanded）时整条顶栏收进与内容同宽的列里（[MikomiWindowSpec.ContentMaxWidth]）：
+ * 否则内容已经居中成一条 720dp 的列，返回键却还贴在 1200dp 屏幕的最左边，
+ * 中间的空白会让人以为这一栏和下面的内容没有关系。收起之后，「屏幕中线」自动变成
+ * 「内容列中线」，两者仍然重合。
+ *
  * 返回箭头用 `ArrowBackIos` 而不是 `ArrowBack`：后者是「横线 + 箭头」的组合图形，
  * 顶栏里只需要一个折角。
  */
@@ -171,13 +192,19 @@ private fun BaseScreenTopBar(
     onBackClick: (() -> Unit)?,
     actions: @Composable RowScope.() -> Unit,
 ) {
+    val expanded = LocalMikomiWindowSize.current.isExpandedWidth
+
     SubcomposeLayout(
         modifier = Modifier
             .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.statusBars)
+            .windowInsetsPadding(MikomiInsets.Chrome)
             .height(TopBarDefaults.Height),
     ) { constraints ->
         val width = constraints.maxWidth
+        // 收列：定宽列在屏幕里居中，顶栏的三个槽位都相对这条列摆放。
+        val contentWidth =
+            if (expanded) minOf(width, MikomiWindowSpec.ContentMaxWidth.roundToPx()) else width
+        val originX = (width - contentWidth) / 2
 
         val backPlaceable = if (onBackClick != null) {
             subcompose(BackSlotKey) {
@@ -199,11 +226,11 @@ private fun BaseScreenTopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 content = actions,
             )
-        }.first().measure(Constraints(maxWidth = width))
+        }.first().measure(Constraints(maxWidth = contentWidth))
 
         // 两侧较宽的一侧决定对称留白；左侧没有返回键时只看右侧，标题一样在正中。
         val sideWidth = maxOf(backPlaceable?.width ?: 0, actionsPlaceable.width)
-        val titleWidth = (width - sideWidth * 2).coerceAtLeast(0)
+        val titleWidth = (contentWidth - sideWidth * 2).coerceAtLeast(0)
 
         val titlePlaceable = subcompose(TitleSlotKey) {
             Text(
@@ -226,11 +253,14 @@ private fun BaseScreenTopBar(
         layout(width, height) {
             // 返回键贴左、动作贴右，都垂直居中。
             backPlaceable?.let { placeable ->
-                placeable.place(0, (height - placeable.height) / 2)
+                placeable.place(originX, (height - placeable.height) / 2)
             }
-            actionsPlaceable.place(width - actionsPlaceable.width, (height - actionsPlaceable.height) / 2)
+            actionsPlaceable.place(
+                originX + contentWidth - actionsPlaceable.width,
+                (height - actionsPlaceable.height) / 2,
+            )
             // 标题按「屏幕中线」放置：等式与左右两侧的内容宽度无关。
-            titlePlaceable.place((width - titleWidth) / 2, (height - titlePlaceable.height) / 2)
+            titlePlaceable.place(originX + (contentWidth - titleWidth) / 2, (height - titlePlaceable.height) / 2)
         }
     }
 }

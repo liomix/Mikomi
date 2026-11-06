@@ -19,9 +19,10 @@ plugins {
 //   ./gradlew tokenAudit     字面量 / 档位对账 / 使用分布
 //   ./gradlew contrastAudit  配色对比度（WCAG AA）
 //   ./gradlew iconAudit      图标唯一入口 / 尺寸来源 / 语义表一致性
-//   ./gradlew verifyDesign   = 上面三条 + strict（任何违规都 fail）
+//   ./gradlew windowAudit    安全区唯一入口 / edge-to-edge 单点 / 断点来源 / 清单约束
+//   ./gradlew verifyDesign   = 上面四条 + strict（任何违规都 fail）
 //
-// 前三条默认**只报告不失败**（评审入口）；`-Pstrict` 或 `verifyDesign` 才 fail（闸门）。
+// 前四条默认**只报告不失败**（评审入口）；`-Pstrict` 或 `verifyDesign` 才 fail（闸门）。
 // 之所以默认不 fail：控件体格（`size(180.dp)` 的封面）按规则本来就该留在组件里，
 // 让机器分辨「布局位置」与「控件体格」已经需要靠调用点名字猜，再让它直接阻断构建，
 // 会逼着人往 `design-ok` 里塞理由 —— 那正好是把闸门变成后门的方式。
@@ -543,12 +544,217 @@ tasks.register("iconAudit") {
     }
 }
 
+/**
+ * 窗口与安全区审计。
+ *
+ * ## 为什么这一层也需要闸门
+ *
+ * 安全区的错误有个共同形态：**只在特定设备上出错，本机永远复现不了**。
+ *
+ * - 拿 `WindowInsets.statusBars` 当顶栏留白 —— 刘海机横屏时它是 0，返回键落到挖孔底下；
+ * - 容器已经让过导航栏，里面再写一次 `imePadding()` —— 键盘弹起时底部空出一条黑带；
+ * - 页面自己读 `screenWidthDp` 判档 —— 分屏时它返回整块屏幕的宽度，不是窗口的；
+ * - 写死 112dp 当底部避让 —— 手势导航正好够，换成三键导航就少 24dp。
+ *
+ * 都是「在全仓唯一的那台测试机上看起来完全正常」的那一类。所以这里把「只能从
+ * `MikomiInsets` / `LocalMikomiWindowSize` 取值」变成命令。
+ *
+ * ## 判据
+ *
+ * | 编号 | 规则 |
+ * | --- | --- |
+ * | W1 | `enableEdgeToEdge` 全仓只出现一次，且在 `MainActivity` |
+ * | W2 | 窗口包之外不许出现 `WindowInsets.` 开头的裸用法（含 `only` / `union`） |
+ * | W3 | 窗口包之外不许用 `statusBarsPadding` / `navigationBarsPadding` / `systemBarsPadding` / `safeDrawingPadding` / `safeContentPadding` |
+ * | W4 | `imePadding()` 只在「只让开键盘、不参与底栏避让」的容器上用，且必须写 `design-ok` |
+ * | W5 | 窗口包之外不许读 `screenWidthDp` / `screenHeightDp` / `smallestScreenWidthDp` 判档 |
+ * | W6 | 清单不许锁方向、不许 `resizeableActivity=false`；主题不许关掉 edge-to-edge 强制 |
+ *
+ * W4 留了 `design-ok` 的出口，而不是彻底禁止：巡礼页的 WebView 是真实的反例 ——
+ * 地图必须铺到手势条底下（那是它的画面），键盘弹起时却要让出去。那里只能用 `imePadding`。
+ * 豁免必须可数，所以报告里会打印它被用了几次。
+ */
+tasks.register("windowAudit") {
+    group = "verification"
+    description = "安全区单一入口 / 单一 edge-to-edge / 断点来源 / 清单约束"
+
+    doLast {
+        val strict = project.hasProperty("strict") ||
+            gradle.startParameter.taskNames.any { it.contains("verifyDesign") }
+
+        val windowPkg = "core/ui/src/main/kotlin/com/liomix/mikomi/core/ui/window/"
+        val issues = mutableListOf<String>()
+
+        var rawInsets = 0
+        var entryPointUses = 0
+        var directSystemBar = 0
+        var imeSites = 0
+        var imeMuted = 0
+        var widthReads = 0
+        var edgeToEdgeSites = 0
+        var edgeToEdgeFiles = mutableListOf<String>()
+
+        val rawInsetsRe = Regex("""\bWindowInsets\s*\.""")
+        val directSystemBarRe = Regex(
+            """\b(statusBarsPadding|navigationBarsPadding|systemBarsPadding|""" +
+                """safeDrawingPadding|safeContentPadding)\s*\(""",
+        )
+        val imeRe = Regex("""\bimePadding\s*\(""")
+        val widthRe = Regex("""\b(screenWidthDp|screenHeightDp|smallestScreenWidthDp)\b""")
+        // 注释整段替换成空白：KDoc 里写「不要用 WindowInsets.statusBars」是合法的讲解，
+        // 不能当成违规。字符串里的内容保留 —— 真要拼一个这种字符串，也该被看见。
+        val blockComment = Regex("""/\*[\s\S]*?\*/""")
+        val lineComment = Regex("""//[^\n]*""")
+
+        for (file in kotlinSources()) {
+            val rel = file.absolutePath.removePrefix(projectDir.absolutePath + File.separator)
+                .replace(File.separatorChar, '/')
+            val raw = file.readText()
+            // design-ok 写在行注释里，而下一个动作会把注释抹成空白 —— 所以豁免必须在
+            // **原文**上找，规则匹配在抹掉注释的文本上做。两者行数一致（抹的时候留了换行）。
+            val rawLines = raw.lines()
+            val text = blockComment.replace(raw) { m ->
+                // 换行要留住：整段换成空白会让后面所有行号失效，报出来的位置全是错的。
+                m.value.replace(Regex("[^\n]"), " ")
+            }.let { lineComment.replace(it, " ") }
+            val lines = text.lines()
+            val inWindowPkg = rel.startsWith(windowPkg)
+
+            for ((index, line) in lines.withIndex()) {
+                val ln = index + 1
+                if (rawInsetsRe.containsMatchIn(line)) {
+                    rawInsets++
+                    if (!inWindowPkg) {
+                        issues += "裸 WindowInsets 用法 $rel:$ln —— 走 MikomiInsets，见 docs §6.5"
+                    }
+                }
+                if (directSystemBarRe.containsMatchIn(line)) {
+                    directSystemBar++
+                    if (!inWindowPkg) {
+                        issues += "直接系统栏 padding $rel:$ln —— 走 MikomiInsets.Top/Bottom/Chrome"
+                    }
+                }
+                if (imeRe.containsMatchIn(line)) {
+                    imeSites++
+                    // 豁免窗口：本行以及上面六行。理由几乎总是写成一段紧贴在调用上方的
+                    // 行注释（这里没有参数可以挂 design-ok），两行装不下三句「为什么」。
+                    val muted = (ln - 6..ln).any { k ->
+                        k in 1..rawLines.size && rawLines[k - 1].contains("design-ok")
+                    }
+                    if (muted) {
+                        imeMuted++
+                    } else {
+                        issues += "imePadding 没有理由 $rel:$ln —— 页面级容器用 MikomiInsets.BottomOrIme；" +
+                            "确实只需要键盘时写 design-ok 说明为什么"
+                    }
+                }
+                if (widthRe.containsMatchIn(line)) {
+                    widthReads++
+                    // 只管 UI 层：data 模块拿这个值当**设备指纹**上报（协议字段），
+                    // 与布局无关，改不得。
+                    val uiLayer = rel.startsWith("app/") || rel.startsWith("core/") ||
+                        rel.startsWith("feature/")
+                    val muted = (ln - 6..ln).any { k ->
+                        k in 1..rawLines.size && rawLines[k - 1].contains("design-ok")
+                    }
+                    if (uiLayer && !inWindowPkg && !muted) {
+                        issues += "用屏幕宽度判档 $rel:$ln —— 读 LocalMikomiWindowSize（分屏时 screenWidthDp 是整块屏幕）"
+                    }
+                }
+                if (line.contains("enableEdgeToEdge(")) {
+                    edgeToEdgeSites++
+                    edgeToEdgeFiles += rel
+                }
+            }
+
+            // 只统计、不判违规：页面用几次入口是收敛程度的指标，不是硬性配额。
+            entryPointUses += Regex("""\bMikomiInsets\s*\.""").findAll(text).count()
+        }
+
+        // ---- W1：唯一入口 ----
+        if (edgeToEdgeSites != 1) {
+            issues += "enableEdgeToEdge 出现 $edgeToEdgeSites 次（${edgeToEdgeFiles.joinToString()}）" +
+                " —— 只允许 MainActivity 调一次；重复调用会重设 decorFitsSystemWindows 与栏色"
+        } else if (!edgeToEdgeFiles.single().endsWith("MainActivity.kt")) {
+            issues += "enableEdgeToEdge 出现在 ${edgeToEdgeFiles.single()} —— 应当只在 MainActivity"
+        }
+
+        // ---- 入口本体还在 ----
+        val insetsFile = File(projectDir, windowPkg + "MikomiInsets.kt")
+        if (!insetsFile.exists()) {
+            issues += "缺 ${windowPkg}MikomiInsets.kt —— 安全区的唯一入口不见了"
+        } else {
+            val src = insetsFile.readText()
+            val declared = Regex("""val (\w+):\s*WindowInsets""")
+                .findAll(src)
+                .map { it.groupValues[1] }
+                .toSet()
+            for (name in listOf("Top", "Bottom", "BottomOrIme", "Chrome")) {
+                if (name !in declared) {
+                    issues += "MikomiInsets 少了 $name（现有：${declared.joinToString()}）—— 页面会退回裸 WindowInsets"
+                }
+            }
+        }
+
+        // ---- W6：清单与主题 ----
+        val manifest = File(projectDir, "app/src/main/AndroidManifest.xml")
+        if (manifest.exists()) {
+            val text = manifest.readText()
+            if (text.contains("android:screenOrientation")) {
+                issues += "清单锁了方向 —— 折叠屏/平板横向握持、桌面窗口都会因此变形"
+            }
+            if (Regex("""android:resizeableActivity\s*=\s*"false"""").containsMatchIn(text)) {
+                issues += "清单关掉了 resizeableActivity —— 分屏与桌面窗口直接不可用"
+            }
+        }
+        val themeFiles = listOf(
+            "app/src/main/res/values/themes.xml",
+            "app/src/main/res/values-night/themes.xml",
+        ).map { File(projectDir, it) }.filter { it.exists() }
+        for (theme in themeFiles) {
+            if (theme.readText().contains("windowOptOutEdgeToEdgeEnforcement")) {
+                issues += "${theme.name} 声明了 windowOptOutEdgeToEdgeEnforcement —— " +
+                    "那是给还没适配的存量应用用的，本项目是 edge-to-edge 的"
+            }
+        }
+
+        println("窗口审计：")
+        println("  安全区入口 MikomiInsets 使用 $entryPointUses 处 · 裸 WindowInsets $rawInsets 处 · 直接系统栏 padding $directSystemBar 处")
+        println("  imePadding $imeSites 处（design-ok $imeMuted 处）· 屏幕宽度判档 $widthReads 处")
+        println("  enableEdgeToEdge $edgeToEdgeSites 处（${edgeToEdgeFiles.joinToString().ifEmpty { "无" }}）")
+
+        if (issues.isEmpty()) {
+            println("  全部通过")
+        } else {
+            println("")
+            for ((k, issue) in issues.withIndex()) {
+                if (k >= 15) {
+                    println("    … 其余 ${issues.size - 15} 条省略")
+                    break
+                }
+                println("  [!] $issue")
+            }
+        }
+
+        if (strict) {
+            if (issues.isNotEmpty()) {
+                throw GradleException(
+                    "窗口审计未通过：${issues.size} 处。规则见 docs/mikomi-rules.md §6.6。",
+                )
+            }
+            println("")
+            println("strict：通过（安全区单入口、edge-to-edge 单点、断点不出窗口包）")
+        }
+    }
+}
+
 /** 一次跑完全部审计，并让 tokenAudit 进入 strict（CI / 提交前用）。 */
 tasks.register("verifyDesign") {
     group = "verification"
-    description = "tokenAudit（strict）+ contrastAudit + iconAudit，任一不达标即失败"
+    description = "tokenAudit（strict）+ contrastAudit + iconAudit + windowAudit，任一不达标即失败"
 
     dependsOn("contrastAudit")
     dependsOn(tasks.named("tokenAudit"))
     dependsOn(tasks.named("iconAudit"))
+    dependsOn(tasks.named("windowAudit"))
 }

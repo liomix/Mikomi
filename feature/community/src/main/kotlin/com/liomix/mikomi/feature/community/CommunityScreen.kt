@@ -3,14 +3,11 @@ package com.liomix.mikomi.feature.community
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,11 +18,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
+import com.liomix.mikomi.core.designsystem.spec.MikomiWindowSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
+import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
+import com.liomix.mikomi.core.ui.window.rememberMikomiBottomInset
+import com.liomix.mikomi.core.ui.window.rememberMikomiTopInset
 
 /**
  * 社区页（顶级目的地）。
@@ -37,36 +38,51 @@ import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
  */
 @Composable
 fun CommunityScreen(modifier: Modifier = Modifier) {
-    val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val navigationBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val statusBarInset = rememberMikomiTopInset()
+    val navigationBarInset = rememberMikomiBottomInset()
+    val expanded = LocalMikomiWindowSize.current.isExpandedWidth
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(
-                top = statusBarInset,
-                bottom = navigationBarInset + LocalBottomBarSpace.current,
-            ),
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        Text(
-            text = stringResource(R.string.community_title),
-            color = MaterialTheme.colorScheme.onSurface,
-            // 页面内大标题：字阶取 headlineSmall（24sp），只把字重提到 SemiBold。
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
-            modifier = Modifier.padding(
-                start = MikomiSpacing.Room,
-                end = MikomiSpacing.Room,
-                top = MikomiSpacing.Gutter,
-            ),
-        )
-
-        Box(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            contentAlignment = Alignment.Center,
+                // 宽屏收成可读列：标题是左对齐的，在 1200dp 的平板上贴着最左边、
+                // 内容却只有一行，读起来像「页面没加载完」。收列之后标题与内容同宽。
+                .then(
+                    if (expanded) {
+                        Modifier.widthIn(max = MikomiWindowSpec.ContentMaxWidth)
+                    } else {
+                        Modifier
+                    },
+                )
+                .fillMaxSize()
+                .padding(
+                    top = statusBarInset,
+                    bottom = navigationBarInset + LocalBottomBarSpace.current,
+                ),
         ) {
-            CommunityEmptyState()
+            Text(
+                text = stringResource(R.string.community_title),
+                color = MaterialTheme.colorScheme.onSurface,
+                // 页面内大标题：字阶取 headlineSmall（24sp），只把字重提到 SemiBold。
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
+                modifier = Modifier.padding(
+                    start = MikomiSpacing.Room,
+                    end = MikomiSpacing.Room,
+                    top = MikomiSpacing.Gutter,
+                ),
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                CommunityEmptyState()
+            }
         }
     }
 }

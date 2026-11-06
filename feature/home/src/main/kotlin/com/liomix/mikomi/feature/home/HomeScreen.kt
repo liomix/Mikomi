@@ -3,12 +3,9 @@ package com.liomix.mikomi.feature.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -39,6 +36,10 @@ import com.liomix.mikomi.core.ui.component.business.PosterCardSkeleton
 import com.liomix.mikomi.core.ui.component.business.PosterSkeletonRow
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.base.SkeletonShimmer
+import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
+import com.liomix.mikomi.core.ui.window.rememberMikomiBottomInset
+import com.liomix.mikomi.core.ui.window.rememberMikomiInsetsDp
+import com.liomix.mikomi.core.ui.window.rememberMikomiTopInset
 import kotlinx.coroutines.delay
 
 /** 网格最小列宽：手机竖屏约 3 列，宽屏自动增加列数（Dart 版为固定 3 列）。 */
@@ -64,8 +65,14 @@ private const val PendingGraceMillis = 300L
  * 网格内容边距。
  *
  * 垂直节奏统一由网格的 [Arrangement.spacedBy] 提供（12dp），
- * 各区域组件不再自带区域间垂直 padding；此处仅为页面顶边
- * 补状态栏安全区 + 少量呼吸空间。
+ * 各区域组件不再自带区域间垂直 padding；此处补的是**安全区**与页面呼吸。
+ *
+ * 底部那一段必须是算出来的，不能写死：`112.dp` 曾经在手势导航的手机上正好等于
+ * 「栏体 56 + 外边距 8 + 手势条 24 + 呼吸 24」，但换成三键导航（导航栏 48dp）时
+ * 最后一行就被压在导航栏底下了 —— 一个只在部分设备上出现、且没人会去复现的缺陷。
+ * 现在按「壳下发的栏体高度 + 系统导航栏 + 呼吸」相加，换设备、换导航方式都成立。
+ *
+ * 左右也读安全区：横屏刘海机的挖孔在两侧，第一列封面会被切掉一条边。
  *
  * 用 remember 固定实例：`PaddingValues` 是接口类型（Compose 视为不稳定），
  * 每次重组都新建会让 `LazyVerticalGrid` 无法跳过、白跑一次重排；
@@ -73,25 +80,27 @@ private const val PendingGraceMillis = 300L
  */
 @Composable
 private fun rememberHomeContentPadding(): PaddingValues {
-    val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    return remember(statusBarInset) {
+    val topInset = rememberMikomiTopInset()
+    val bottomInset = rememberMikomiBottomInset()
+    val barSpace = LocalBottomBarSpace.current
+    val insets = rememberMikomiInsetsDp()
+    return remember(topInset, bottomInset, barSpace, insets) {
         PaddingValues(
-            start = MikomiSpacing.Lg,
-            end = MikomiSpacing.Lg,
-            top = statusBarInset + MikomiSpacing.Xs,
-            bottom = ContentBottomClearance,
+            start = insets.start + MikomiSpacing.Lg,
+            end = insets.end + MikomiSpacing.Lg,
+            top = topInset + MikomiSpacing.Xs,
+            bottom = barSpace + bottomInset + ContentBottomGap,
         )
     }
 }
 
 /**
- * 列表底部为悬浮分类栏留出的避让余量。
+ * 列表最后一行与悬浮底栏之间的呼吸。
  *
- * 导航栏留白由 `BaseScreenLayout` 统一消费，这里只补**悬浮栏**压住列表的那一段，
- * 所以它不是一个间距节拍 —— 悬浮栏多高它就是多少，上提成 `MikomiSpacing` 反而会
- * 让「改页面留白」连带把悬浮栏的避让改坏。
+ * 它是一条设计节奏，不是几何量：底栏多高、导航栏多高都由别人给，
+ * 只有「贴多近算太近」是页面的判断。24dp 与页面顶边那条呼吸同值。
  */
-private val ContentBottomClearance = 112.dp
+private val ContentBottomGap = 24.dp
 
 private const val LOAD_MORE_THRESHOLD = 3
 

@@ -18,11 +18,9 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -69,6 +67,7 @@ import com.liomix.mikomi.core.ui.component.base.PressButton
 import com.liomix.mikomi.core.ui.component.base.PressButtonStyle
 import com.liomix.mikomi.core.ui.component.base.PressIconButton
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.feature.detail.component.CreditDetailSheet
 import com.liomix.mikomi.feature.detail.component.collapsingHeader
 import com.liomix.mikomi.feature.detail.component.rememberHeaderCollapse
@@ -345,7 +344,7 @@ private fun DetailLoadingSkeleton(
                 .fillMaxWidth()
                 .height(HEADER_HEIGHT)
                 .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                .windowInsetsPadding(WindowInsets.statusBars)
+                .windowInsetsPadding(MikomiInsets.Chrome)
                 // 与真实头部一致：状态栏之下不再留额外上边距。
                 .padding(start = MikomiSpacing.Room, end = MikomiSpacing.Room, bottom = MikomiSpacing.Room),
         ) {
@@ -411,7 +410,7 @@ private fun BottomActions(
 ) {
     Column(
         modifier = modifier
-            .windowInsetsPadding(WindowInsets.navigationBars)
+            .windowInsetsPadding(MikomiInsets.Bottom)
             .padding(end = MikomiSpacing.Room, bottom = MikomiSpacing.Xl),
         horizontalAlignment = Alignment.End,
         verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),

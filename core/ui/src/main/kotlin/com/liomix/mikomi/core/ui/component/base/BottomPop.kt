@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +37,7 @@ import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.spec.MikomiSheetSpec
+import com.liomix.mikomi.core.designsystem.spec.MikomiWindowSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiElevation
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import androidx.compose.ui.window.Popup
@@ -190,6 +192,10 @@ fun BottomPop(
             Surface(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
+                    // 宽屏上限：面板横跨 1200dp 时，一条列表行读起来像表格，
+                    // 抓手也离手指很远。640dp 与 M3 的 SheetMaxWidth 同值，
+                    // 在手机上（宽度本来就小于 640）不会生效。
+                    .widthIn(max = MikomiWindowSpec.SheetMaxWidth)
                     .fillMaxWidth()
                     .height(panelHeight)
                     .graphicsLayer {

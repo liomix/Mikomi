@@ -3,7 +3,7 @@ package com.liomix.mikomi.feature.home.navigation
 import com.liomix.mikomi.core.navigation.DetailDestination
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.HomeDestination
-import com.liomix.mikomi.core.navigation.Navigator
+import com.liomix.mikomi.core.navigation.LocalNavigator
 import com.liomix.mikomi.core.navigation.ProfileDestination
 import com.liomix.mikomi.core.navigation.RankDestination
 import com.liomix.mikomi.core.navigation.ScheduleDestination
@@ -25,16 +25,17 @@ object HomeNavigationModule {
 
     @Provides
     @IntoSet
-    fun provideEntryProviderInstaller(navigator: Navigator): EntryProviderInstaller = { _ ->
+    fun provideEntryProviderInstaller(): EntryProviderInstaller = {
         entry<HomeDestination> {
+            val navigator = LocalNavigator.current
             HomeRoute(
-                onAnimeClick = { animeId -> navigator.goTo(DetailDestination(animeId)) },
-                onSearchClick = { navigator.goTo(SearchDestination) },
+                onAnimeClick = { animeId -> navigator.navigate(DetailDestination(animeId)) },
+                onSearchClick = { navigator.navigate(SearchDestination) },
                 onProfileClick = { navigator.selectTopLevel(ProfileDestination) },
                 onActionClick = { action ->
                     when (action) {
-                        HomeQuickAction.SCHEDULE -> navigator.goTo(ScheduleDestination)
-                        HomeQuickAction.RANK -> navigator.goTo(RankDestination)
+                        HomeQuickAction.SCHEDULE -> navigator.navigate(ScheduleDestination)
+                        HomeQuickAction.RANK -> navigator.navigate(RankDestination)
                         // 分类目的地待接入。
                         HomeQuickAction.CATEGORY -> Unit
                     }
@@ -42,17 +43,19 @@ object HomeNavigationModule {
             )
         }
         entry<ScheduleDestination> {
+            val navigator = LocalNavigator.current
             ScheduleRoute(
                 onBackClick = { navigator.goBack() },
                 // AniRpb 的 video id 与详情页 id 空间不同，先按标题进入现有搜索结果。
-                onAnimeTitleClick = { title -> navigator.goTo(SearchResultDestination(title)) },
+                onAnimeTitleClick = { title -> navigator.navigate(SearchResultDestination(title)) },
             )
         }
         entry<RankDestination> {
+            val navigator = LocalNavigator.current
             RankRoute(
                 onBackClick = { navigator.goBack() },
                 // 榜单只取 AniRpb，其 video id 与详情页 id 空间不同，先按标题进入现有搜索结果。
-                onAnimeTitleClick = { title -> navigator.goTo(SearchResultDestination(title)) },
+                onAnimeTitleClick = { title -> navigator.navigate(SearchResultDestination(title)) },
             )
         }
     }

@@ -15,7 +15,7 @@ object HistoryNavigationModule {
 
     @Provides
     @IntoSet
-    fun provideEntryProviderInstaller(): EntryProviderInstaller = { _ ->
+    fun provideEntryProviderInstaller(): EntryProviderInstaller = {
         entry<HistoryDestination> {
             HistoryScreen()
         }

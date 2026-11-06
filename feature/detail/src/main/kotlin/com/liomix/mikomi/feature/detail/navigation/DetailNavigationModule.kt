@@ -2,7 +2,7 @@ package com.liomix.mikomi.feature.detail.navigation
 
 import com.liomix.mikomi.core.navigation.DetailDestination
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
-import com.liomix.mikomi.core.navigation.Navigator
+import com.liomix.mikomi.core.navigation.LocalNavigator
 import com.liomix.mikomi.core.navigation.PlayerDestination
 import com.liomix.mikomi.feature.detail.DetailRoute
 import dagger.Module
@@ -17,12 +17,13 @@ object DetailNavigationModule {
 
     @Provides
     @IntoSet
-    fun provideEntryProviderInstaller(navigator: Navigator): EntryProviderInstaller = { _ ->
+    fun provideEntryProviderInstaller(): EntryProviderInstaller = {
         entry<DetailDestination> { key ->
+            val navigator = LocalNavigator.current
             DetailRoute(
                 animeId = key.animeId,
                 onPlayClick = {
-                    navigator.goTo(PlayerDestination(key.animeId, ""))
+                    navigator.navigate(PlayerDestination(key.animeId, ""))
                 },
             )
         }

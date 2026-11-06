@@ -23,7 +23,6 @@ import com.liomix.mikomi.core.designsystem.theme.NightModeTransitionHost
 import com.liomix.mikomi.core.model.UserPreferences
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.ImmersionBridge
-import com.liomix.mikomi.core.navigation.Navigator
 import com.liomix.mikomi.data.user.UserDataRepository
 import com.liomix.mikomi.navigation.MikomiNavHost
 import dagger.hilt.android.AndroidEntryPoint
@@ -32,9 +31,6 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
-    @Inject
-    lateinit var navigator: Navigator
 
     @Inject
     lateinit var entryProviderInstallers: Set<@JvmSuppressWildcards EntryProviderInstaller>
@@ -140,7 +136,6 @@ class MainActivity : ComponentActivity() {
                     },
                 ) {
                     MikomiNavHost(
-                        navigator = navigator,
                         entryProviderInstallers = entryProviderInstallers,
                         immersionBridge = immersionBridge,
                         heroStyleId = preferences.transitionStyle,

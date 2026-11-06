@@ -1,16 +1,40 @@
-*.iml
-.gradle
-/local.properties
-.DS_Store
+# ---- 构建产物（无前导斜杠即匹配任意层级，所以 build/ 已覆盖各模块）----
 build/
-**/build/
+.gradle/
+.kotlin/
+.cxx/
+.externalNativeBuild/
 captures/
-**/captures/
-.externalNativeBuild
-.cxx
+
+# ---- 本机配置（各人的 SDK 路径，绝不能入库）----
 local.properties
+
+# ---- 签名与密钥（一旦提交即泄露，必须永远排除）----
+*.jks
+*.keystore
+keystore.properties
+
+# ---- 打包与分析产物（放错位置的 apk、Profiler 堆转储）----
+*.apk
+*.aab
+*.ap_
+*.hprof
+*.log
+
+# ---- IDE ----
+.idea/
+*.iml
+.fleet/
+
+# ---- 系统杂项 ----
+.DS_Store
+Thumbs.db
+
+# ---- 工具缓存 ----
 .reasonix
-docs
-.kotlin
-.idea
-.workbuddy
+
+# ---- 项目数据（memory / skills 是本机状态，不入库）----
+.workbuddy/
+
+# ---- 文档：参考资料不入库；docs/mikomi-rules.md 是唯一基线，入库 ----
+docs/reference/

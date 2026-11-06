@@ -1,7 +1,7 @@
 package com.liomix.mikomi.feature.player.navigation
 
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
-import com.liomix.mikomi.core.navigation.Navigator
+import com.liomix.mikomi.core.navigation.LocalNavigator
 import com.liomix.mikomi.core.navigation.PlayerDestination
 import com.liomix.mikomi.feature.player.PlayerRoute
 import dagger.Module
@@ -16,8 +16,9 @@ object PlayerNavigationModule {
 
     @Provides
     @IntoSet
-    fun provideEntryProviderInstaller(navigator: Navigator): EntryProviderInstaller = { _ ->
+    fun provideEntryProviderInstaller(): EntryProviderInstaller = {
         entry<PlayerDestination> { key ->
+            val navigator = LocalNavigator.current
             PlayerRoute(
                 animeId = key.animeId,
                 episodeId = key.episodeId,

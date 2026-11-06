@@ -16,10 +16,9 @@ object AniMapNavigationModule {
 
     @Provides
     @IntoSet
-    fun provideEntryProviderInstaller(immersionBridge: ImmersionBridge): EntryProviderInstaller =
-        { _ ->
-            entry<AniMapDestination> {
-                AniMapScreen(immersionBridge = immersionBridge)
-            }
+    fun provideEntryProviderInstaller(immersionBridge: ImmersionBridge): EntryProviderInstaller = {
+        entry<AniMapDestination> {
+            AniMapScreen(immersionBridge = immersionBridge)
         }
+    }
 }

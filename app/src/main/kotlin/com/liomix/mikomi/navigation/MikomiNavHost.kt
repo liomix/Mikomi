@@ -45,6 +45,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
@@ -60,8 +61,9 @@ import com.liomix.mikomi.core.navigation.DetailDestination
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.HomeDestination
 import com.liomix.mikomi.core.navigation.ImmersionBridge
-import com.liomix.mikomi.core.navigation.Navigator
+import com.liomix.mikomi.core.navigation.LocalNavigator
 import com.liomix.mikomi.core.navigation.ProfileDestination
+import com.liomix.mikomi.core.navigation.rememberNavigator
 import com.liomix.mikomi.core.navigation.topLevelDestinations
 import com.liomix.mikomi.core.ui.component.business.HeroFlightController
 import com.liomix.mikomi.core.ui.component.business.HeroFlightOverlay
@@ -85,12 +87,16 @@ private val TOP_LEVEL_SWIPE_THRESHOLD = 80.dp
 
 @Composable
 fun MikomiNavHost(
-    navigator: Navigator,
     entryProviderInstallers: Set<EntryProviderInstaller>,
     immersionBridge: ImmersionBridge,
     heroStyleId: String = TransitionStyle.Translate.id,
     pageTransitionId: String = PageTransitionStyle.Push.id,
 ) {
+    // 返回栈由组合期创建（可跨配置变更与进程死亡恢复），见 rememberNavigator。
+    // 不再从 Hilt 注入：ActivityRetained 单例只在配置变更时活着，进程被回收后栈全丢。
+    val navigator = rememberNavigator()
+    val currentTopLevel = navigator.currentTopLevel
+
     val homeLabel = stringResource(R.string.nav_home)
     val aniMapLabel = stringResource(R.string.nav_animap)
     val communityLabel = stringResource(R.string.nav_community)
@@ -126,9 +132,6 @@ fun MikomiNavHost(
         )
     }
 
-    val currentTopLevel = navigator.backStack.lastOrNull { it in topLevelDestinations }
-        ?: HomeDestination
-
     // 左右滑动切换顶级页面的顺序：与底部导航栏从左到右一致。
     val topLevelOrder: List<NavKey> = remember(navItems) {
         navItems.mapNotNull { it.key as? NavKey }
@@ -136,7 +139,7 @@ fun MikomiNavHost(
 
     // 栈顶是否落在顶级目的地：进入详情/播放器/时间表等二级页面时栈顶为二级目的地，
     // 底部导航栏随之隐藏；返回顶级目的地后恢复显示。
-    val isTopLevel = navigator.backStack.lastOrNull() in topLevelDestinations
+    val isTopLevel = navigator.current in topLevelDestinations
 
     // 沉浸状态权威副本直接在 Activity Retained 作用域的 ImmersionBridge，
     // 跨 entry 重建和配置变更存活，且不依赖任何绑定时序。
@@ -157,7 +160,9 @@ fun MikomiNavHost(
     val navEntryProvider = remember {
         entryProvider {
             entryProviderInstallers.forEach { installer ->
-                installer(immersionBridge)
+                // installer 是「带 EntryProviderScope 接收者的 lambda」，这里显式传进去：
+                // 依赖隐式接收者能编译，但读代码的人看不出目的地到底注册到了哪。
+                installer.invoke(this)
             }
         }
     }
@@ -189,7 +194,7 @@ fun MikomiNavHost(
 
     // 根屏仅在巡礼页处于沉浸状态时才拦截返回，用于临时显示导航栏。
     // 其它目的地交还给系统返回，避免首页或“我的”页无法正常退出应用。
-    val isRootScreen = navigator.backStack.size <= 1
+    val isRootScreen = !navigator.canGoBack
     val shouldRevealNavBar =
         currentTopLevel == AniMapDestination && immersiveRequested && !showNavBar
     BackHandler(enabled = isRootScreen && shouldRevealNavBar) {
@@ -206,7 +211,7 @@ fun MikomiNavHost(
             immersionBridge.onNavBarTempChange(true)
         } else {
             // 从详情页返回时先起反向飞行（详情封面 → 列表卡封面），再出栈。
-            if (navigator.backStack.lastOrNull() is DetailDestination) {
+            if (navigator.current is DetailDestination) {
                 heroController.beginReverse(key = null)
             }
             if (!navigator.goBack()) {
@@ -218,7 +223,7 @@ fun MikomiNavHost(
     // 转场方向：栈变长 = 进入（新页要从右 48dp 处淡入），变短 = 返回（目标页直接可见）。
     // 上一次的栈深存在普通数组里而不是 State：它只在组合期间被读，写入放 SideEffect，
     // 避免「组合里改状态 → 再排一次组合」。
-    val stackDepth = navigator.backStack.size
+    val stackDepth = navigator.stack.size
     val lastStackDepth = remember { intArrayOf(stackDepth) }
     val motionDirection =
         if (stackDepth >= lastStackDepth[0]) PageMotionDirection.Enter else PageMotionDirection.Back
@@ -294,20 +299,37 @@ fun MikomiNavHost(
         // 被重新挂载，屏幕会闪一下并重播入场）；档位改为经 CompositionLocal 下发，
         // 由每个页面在首次组合时自己冻结一份，只影响之后新开的页面。
         val saveableStateDecorator = rememberSaveableStateHolderNavEntryDecorator<NavKey>()
+        // per-entry 的 ViewModelStore：`hiltViewModel()` 取到的 owner 由它下发。
+        //
+        // 少了这一层，装饰链里没有 `LocalViewModelStoreOwner` 的 entry 级提供者，
+        // `hiltViewModel()` 会一路向上找到 Activity —— 于是**所有页面共用同一个
+        // ViewModel 实例**：详情页换一部番不会重建 ViewModel（只能靠 `bind()` 手工换绑），
+        // 播放器返回后也不会 `onCleared()`（只能靠 `DisposableEffect` 手工停）。
+        // 这两个补丁此前都写在 Route 里，根因就在这里。
+        val viewModelStoreDecorator = rememberViewModelStoreNavEntryDecorator<NavKey>()
         val pageMotionEntryDecorator = remember { pageMotionDecorator() }
-        val entryDecorators = remember(saveableStateDecorator, pageMotionEntryDecorator) {
-            listOf(saveableStateDecorator, pageMotionEntryDecorator)
+        val entryDecorators = remember(
+            saveableStateDecorator,
+            viewModelStoreDecorator,
+            pageMotionEntryDecorator,
+        ) {
+            // 顺序有讲究：SaveableState 最外层（页面状态跟着 entry 走），
+            // 其次 ViewModelStore（它的生命周期同样按 entry 计），
+            // 动画装饰器最内层 —— 它只负责把内容包进一层位移/透明度，不参与状态归属。
+            listOf(saveableStateDecorator, viewModelStoreDecorator, pageMotionEntryDecorator)
         }
         CompositionLocalProvider(
             LocalHeroFlightController provides heroController,
             // 底栏占多高由壳告诉页面，页面不必知道那是一条导航栏 —— 见 LocalBottomBarSpace。
             LocalBottomBarSpace provides MikomiNavBarBottomSpace,
+            // 页面不再从构造参数收 Navigator，统一从这里取。
+            LocalNavigator provides navigator,
             // 只影响「首次组合」那一瞬间的页面：装饰器会把它冻结，之后不再跟变。
             LocalPageMotionDirection provides motionDirection,
             LocalPageTransitionStyle provides pageTransition,
         ) {
             NavDisplay(
-                backStack = navigator.backStack,
+                backStack = navigator.stack,
                 onBack = navBackHandler,
                 entryProvider = navEntryProvider,
                 entryDecorators = entryDecorators,

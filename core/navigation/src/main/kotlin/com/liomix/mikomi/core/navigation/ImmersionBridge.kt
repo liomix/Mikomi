@@ -18,7 +18,7 @@ import javax.inject.Inject
  * 页面通过 [isImmersive] / [isNavBarTemp] 读、[onImmersiveChange] / [onNavBarTempChange] 写。
  */
 @ActivityRetainedScoped
-class ImmersionBridge @Inject constructor() : ImmersiveCallback {
+class ImmersionBridge @Inject constructor() {
 
     /** 沉浸状态权威副本：true 表示地图已进入沉浸（隐藏应用底部导航栏）。 */
     private val mutableImmersive: MutableState<Boolean> = mutableStateOf(false)
@@ -28,13 +28,13 @@ class ImmersionBridge @Inject constructor() : ImmersiveCallback {
     private val mutableNavBarTemp: MutableState<Boolean> = mutableStateOf(false)
     val navBarTemp: State<Boolean> = mutableNavBarTemp
 
-    override fun onImmersiveChange(value: Boolean) {
+    fun onImmersiveChange(value: Boolean) {
         mutableImmersive.value = value
         // 不顺带清 navBarTemp：临时唤出是独立状态，退出沉浸时也应保留"导航栏已唤出"语义，
         // 否则返回手势唤出导航栏后任何一次 onImmersiveChange(false) 会立刻把它抹掉。
     }
 
-    override fun onNavBarTempChange(value: Boolean) {
+    fun onNavBarTempChange(value: Boolean) {
         mutableNavBarTemp.value = value
     }
 
@@ -47,8 +47,4 @@ class ImmersionBridge @Inject constructor() : ImmersiveCallback {
         mutableImmersive.value = false
         mutableNavBarTemp.value = false
     }
-
-    override fun isImmersive(): Boolean = immersive.value
-
-    override fun isNavBarTemp(): Boolean = navBarTemp.value
 }

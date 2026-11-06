@@ -151,14 +151,14 @@ Mikomi 的数据架构以 **Room 为单一可信来源**，网络请求不是「
 
 ### 导航系统
 
-Mikomi 基于 **Jetpack Navigation 3** 的类型安全路由，采用自定义 `Navigator`（`@ActivityRetainedScoped`）持有返回栈：
+Mikomi 基于 **Jetpack Navigation 3** 的类型安全路由。返回栈由 `rememberNavBackStack` 持有（可保存），
+经自定义 `Navigator` 收口所有写操作，再由 `LocalNavigator` 下发给各 feature：
 
 ```
 core:navigation
  ├── Routes.kt            @Serializable 路由定义（data object / data class : NavKey）
- ├── Navigator.kt         返回栈管理（goTo / goBack / selectTopLevel）
- ├── NavigationModule.kt  Hilt 装配（ActivityRetainedComponent）
- ├── EntryProviderInstaller  各 feature 的 entry 注入接口
+ ├── Navigator.kt         返回栈管理（navigate / goBack / selectTopLevel）+ LocalNavigator
+ ├── EntryProviderInstaller  各 feature 的 entry 注入接口（无参数）
  └── ImmersionBridge      跨 entry 的沉浸状态桥（巡礼页专用）
 
 app:navigation
@@ -177,7 +177,14 @@ data class PlayerDestination(val animeId: String, val episodeId: String) : NavKe
 **关键设计**：
 
 - **顶级目的地**：`HomeDestination` / `AniMapDestination` / `CommunityDestination` / `ProfileDestination`（`topLevelDestinations`）
-- **返回栈**：单一 `SnapshotStateList<NavKey>`，`Navigator.goBack()` 在根页面返回 `false`，由调用方交给系统退出应用
+- **返回栈**：`NavBackStack<NavKey>`（`rememberNavBackStack` 创建），配置变更与进程死亡后原样恢复；
+  `Navigator.goBack()` 在根页面返回 `false`，由调用方交给系统退出应用
+- **栈不变量收口在 `Navigator`**：顶级目的地走 `selectTopLevel` 而不是压栈；同一个 `NavKey` 不重复压栈
+  （重复的 key 会得到相同的 `contentKey`，`NavDisplay` 拿它做 `key()`，两页状态会搅在一起）
+- **入口是 `LocalNavigator`**：feature 的 installer 不带参数，在自己的 entry 里取导航器，
+  加一个 feature 模块不需要改 `app` 的任何一行
+- **per-entry ViewModelStore**：`rememberViewModelStoreNavEntryDecorator` 让 `hiltViewModel()` 跟随 entry
+  生命周期 —— 返回即 `onCleared()`，不同参数的路由不再共用同一个 ViewModel 实例
 - **多模块装配**：每个 feature 提供自己的 `entryProvider`，`MikomiNavHost` 遍历 `EntryProviderInstaller` 注入
 - **沉浸式协调**：`ImmersionBridge` 作为权威副本存于 Activity Retained 作用域，跨 entry 重建与配置变更存活
 
@@ -188,7 +195,7 @@ data class PlayerDestination(val animeId: String, val episodeId: String) : NavKe
 | 作用域 | 用途 | 示例 |
 |--------|------|------|
 | `@Singleton` | 全局单例 | 网络客户端、数据库 |
-| `@ActivityRetainedScoped` | 跨配置变更存活的依赖 | `Navigator`、`ImmersionBridge` |
+| `@ActivityRetainedScoped` | 跨配置变更存活的依赖 | `ImmersionBridge`（返回栈不走 DI，见「导航系统」） |
 | `@ViewModelScoped` | 随屏幕 / ViewModel 生命周期 | 各 feature ViewModel |
 
 Module 按职责拆分：`NetworkModule`（Retrofit/OkHttp）、`DatabaseModule`（Room）、`AniListModule` / `BangumiModule`（双源 Retrofit 限定符）、`DispatchersModule`（`@Dispatcher(IO)` 调度器注入）等。接口用 `@Binds`，第三方构造用 `@Provides`。
@@ -239,9 +246,9 @@ app/src/main/kotlin/com/liomix/mikomi/
 |------|----------|
 | `core:model` | 领域模型：`Anime` / `Episode` / `VideoSource` / `Comment` / `Credits` / `Rank` / `Schedule` / `Library` / `UserPreferences`。**纯 Kotlin，无 Android 依赖** |
 | `core:common` | `@Dispatcher(IO/Default)` 调度器限定符 + `DispatchersModule`；`util/`（`formatRelativeTime` 相对时间格式化） |
-| `core:designsystem` | `theme/`（`Color` / `Theme` / `ThemePalette` / `Type`） |
-| `core:ui` | 共享组件：`AnimeCoverImage` / `AnimePosterCard` / `Skeleton` / `StateViews` / `MikomiToast` / `ScrollingText` |
-| `core:navigation` | `Routes` / `Navigator` / `NavigationModule` / `EntryProviderInstaller` / `ImmersionBridge` |
+| `core:designsystem` | `theme/`（`Colors` / `Theme` / `ThemePalette` / `Dimens` / `Type` / `Shapes` / `Motion` / `Contrast` / `TokenGallery`）+ `spec/ComponentSpec.kt`（单个控件的实测尺寸） |
+| `core:ui` | 共享组件：`AnimeCoverImage` / `AnimePosterCard` / `Skeleton` / `StateViews` / `MikomiToast` / `ScrollingText` / `ComponentGallery` |
+| `core:navigation` | `Routes` / `Navigator` / `EntryProviderInstaller` / `ImmersionBridge` |
 | `core:database` | `MikomiDatabase`（6 Entity，v5）+ `dao/` + `entity/` + `migration/` |
 | `core:datastore` | `UserPreferencesDataSource` / `SearchHistoryDataSource` |
 | `core:network` | `NetworkModule`（OkHttp / Retrofit 工厂、脱敏日志拦截器） |
@@ -350,9 +357,8 @@ cd Mikomi
 - 从 `main` 分支创建 `feature/*` 或 `fix/*` 分支
 - 提交信息格式：`type(scope): description`，如 `feat(home): add ranking section`
 - PR 需通过 CI 检查（构建 + 测试 + lint）后方可合入，使用 Squash Merge 保持主干清晰
-- **提交前必读**：
-  - [`docs/mikomi-rules.md`](docs/mikomi-rules.md) — 项目级开发规范（命名 / Compose / 架构 / 安全 / 可观测性）
-  - [`docs/project-structure.md`](docs/project-structure.md) — 工程结构基线 + 模块职责 + 落地顺序
+- **提交前必读**：[`docs/mikomi-rules.md`](docs/mikomi-rules.md) — 项目级开发规范
+  （命名 / Compose / 架构与导航 / 设计系统 / 安全 / 性能 / 验收命令）
 
 ---
 
@@ -362,6 +368,6 @@ cd Mikomi
 
 ## 📚 文档
 
-- [`docs/mikomi-rules.md`](docs/mikomi-rules.md) — 项目级开发规范
-- [`docs/project-structure.md`](docs/project-structure.md) — 工程结构基线
-- [`docs/exceptions.md`](docs/exceptions.md) — 规范例外登记
+- [`docs/mikomi-rules.md`](docs/mikomi-rules.md) — 项目级开发规范（**唯一基线**：命名、Compose、架构与导航、设计系统与数值基准、安全、性能、验收命令）
+- [`docs/telegram-smoothness.md`](docs/reference/telegram-smoothness.md) — Telegram 为什么丝滑：逐层取证 + Mikomi 能抄的几条
+- [`docs/lottie-guide.md`](docs/reference/lottie-guide.md) — Lottie 动效接入与性能约定

@@ -45,10 +45,10 @@ class DetailViewModel @Inject constructor(
     /**
      * 当前已绑定的番剧 id。
      *
-     * 详情页的 ViewModel 是跨 entry 共享的（NavDisplay 未配置 ViewModelStore 装饰器），
-     * [uiState] 的 `stateIn` 缓存里会残留上一条 `Success`；而 `bind` 在 `LaunchedEffect`
-     * （首帧之后）才执行，因此首帧会渲染上一部番。UI 层用本字段判断「数据是不是这一部的」，
-     * 不是就先显示骨架屏，避免「点 A 先闪出上一部番」。
+     * ViewModel 已按 entry 存活（`rememberViewModelStoreNavEntryDecorator`），但新 entry 的 ViewModel
+     * 拿不到 Nav3 的参数，`bind` 仍要等 `LaunchedEffect`（首帧之后）才执行；在那之前 [uiState] 是
+     * 初始态。UI 层用本字段对账「数据是不是这一部的」，不一致就先按 Loading 渲染 —— 任何路径下
+     * 把「尚未绑定」当成有效数据，症状都是「点 A 打开了 B」。
      */
     val boundAnimeId: StateFlow<String?> = animeId.asStateFlow()
 

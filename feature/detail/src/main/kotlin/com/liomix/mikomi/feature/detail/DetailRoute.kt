@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
@@ -30,8 +30,9 @@ fun DetailRoute(
     val teasingState by viewModel.teasingState.collectAsStateWithLifecycle()
     val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
 
-    // 共享 ViewModel 会残留上一部番的 Success，bind 又要等首帧之后才跑；
-    // 绑定前一律按加载态处理，避免首帧闪出上一部番（看起来就是「点 A 打开了 B」）。
+    // bind 要等首帧之后才跑，在那之前 uiState 还是初始态。
+    // 用 boundAnimeId 对一次账，避免任何路径下把「尚未绑定」当成有效数据渲染
+    // （表现出来就是「点 A 打开了 B」）。
     val shownState = if (boundAnimeId == animeId) uiState else DetailUiState.Loading
 
     DetailScreen(

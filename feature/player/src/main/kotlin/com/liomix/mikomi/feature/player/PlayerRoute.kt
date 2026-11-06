@@ -15,9 +15,12 @@ import com.liomix.mikomi.feature.player.component.PlayerWindowEffect
 /**
  * 播放页 Route（有状态）。
  *
- * 参数绑定走 `LaunchedEffect(animeId, episodeId)`：本项目的 `NavDisplay` 没有
- * per-entry 的 ViewModelStore，`hiltViewModel()` 拿到的是 Activity 级实例，
- * 直接在组合里调 `bind` 会在每次重组时重复执行。
+ * 参数绑定走 `LaunchedEffect(animeId, episodeId)`：`bind()` 会重新探测线路、重置选集，
+ * 它是「进入这一页」的动作而不是「每次重组都做一遍」的动作。
+ *
+ * ViewModel 现在是 **per-entry** 的（`MikomiNavHost` 挂了
+ * `rememberViewModelStoreNavEntryDecorator`）：返回时 entry 销毁，VM 跟着 `onCleared()`，
+ * 不同番的播放器实例互不共享。此前是 Activity 级实例，两个页面只能靠 `bind()` 手工改绑。
  */
 @Composable
 fun PlayerRoute(
@@ -31,7 +34,8 @@ fun PlayerRoute(
         viewModel.bind(animeId, episodeId)
     }
 
-    // 退出页面就暂停：ViewModel 是 Activity 级的，不暂停会出现「退回详情页声音还在响」。
+    // 退出页面立刻静音：entry 的 ViewModel 要等退场动画跑完才 `onCleared()`，
+    // 那一两百毫秒里声音还在响。这里先手动暂停，`onCleared()` 里的 release 是后手。
     DisposableEffect(viewModel) {
         onDispose { viewModel.onLeavePage() }
     }

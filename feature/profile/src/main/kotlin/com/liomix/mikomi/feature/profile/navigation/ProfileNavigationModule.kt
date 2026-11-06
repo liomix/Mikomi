@@ -2,7 +2,7 @@ package com.liomix.mikomi.feature.profile.navigation
 
 import com.liomix.mikomi.core.navigation.EditorDestination
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
-import com.liomix.mikomi.core.navigation.Navigator
+import com.liomix.mikomi.core.navigation.LocalNavigator
 import com.liomix.mikomi.core.navigation.ProfileDestination
 import com.liomix.mikomi.core.navigation.SettingsDestination
 import com.liomix.mikomi.core.navigation.ThemeDestination
@@ -20,15 +20,17 @@ object ProfileNavigationModule {
 
     @Provides
     @IntoSet
-    fun provideEntryProviderInstaller(navigator: Navigator): EntryProviderInstaller = { _ ->
+    fun provideEntryProviderInstaller(): EntryProviderInstaller = {
         entry<ProfileDestination> {
+            val navigator = LocalNavigator.current
             ProfileScreen(
-                onThemeClick = { navigator.goTo(ThemeDestination) },
-                onSettingsClick = { navigator.goTo(SettingsDestination) },
-                onEditInfo = { navigator.goTo(EditorDestination) },
+                onThemeClick = { navigator.navigate(ThemeDestination) },
+                onSettingsClick = { navigator.navigate(SettingsDestination) },
+                onEditInfo = { navigator.navigate(EditorDestination) },
             )
         }
         entry<EditorDestination> {
+            val navigator = LocalNavigator.current
             EditorScreen(
                 onBackClick = { navigator.goBack() },
                 // 先做 UI：保存暂不落库，直接返回。

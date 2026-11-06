@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -579,7 +578,7 @@ private fun ProfileTopBar(
                 icon = MikomiIcons.Email,
                 contentDescription = stringResource(R.string.profile_notifications_entry),
                 tint = lerp(palette.title, MikomiMedia.content, tintStep.value.coerceIn(0f, 1f)),
-                modifier = Modifier.size(MikomiSizes.IconMd),
+                size = MikomiSizes.IconMd,
             )
         }
     }

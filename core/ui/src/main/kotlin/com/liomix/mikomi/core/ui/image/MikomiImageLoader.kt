@@ -6,6 +6,7 @@ import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okio.Path.Companion.toOkioPath
 import java.util.concurrent.TimeUnit
@@ -37,6 +38,30 @@ object MikomiImageLoader {
     private const val MEMORY_CACHE_FRACTION = 0.20
 
     /**
+     * 浏览器 UA，**统一注入到图片 client**。
+     *
+     * AniRpb 的 meituan 图床这类源会拒绝 `okhttp/x.y`，直接 403；其余图床不按 UA 分流，
+     * 带上没有副作用。放在拦截器里而不是逐请求的 `httpHeaders`，是因为「忘记带」的代价是
+     * **个别封面永久加载失败** —— 不抛异常、不进崩溃日志，只在某个页面上表现为一块灰底，
+     * 这种可选参数迟早会被漏掉一次（曾经就有两处调用点各写一遍）。
+     *
+     * 请求自己带了 `User-Agent` 时不覆盖：出流层（`core:media`）要为播放地址保留它自己的
+     * 桌面 UA，那条链路不走这里，但规则写成通用的更安全。
+     */
+    private const val BROWSER_USER_AGENT =
+        "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 " +
+            "(KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
+
+    private val browserUserAgentInterceptor = Interceptor { chain ->
+        val request = chain.request()
+        if (request.header("User-Agent") != null) {
+            chain.proceed(request)
+        } else {
+            chain.proceed(request.newBuilder().header("User-Agent", BROWSER_USER_AGENT).build())
+        }
+    }
+
+    /**
      * 图片专用连接池。
      *
      * 超时比接口短一档：连接 10s / 读 15s。图片挂了有占位块兜着，
@@ -47,6 +72,7 @@ object MikomiImageLoader {
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .callTimeout(30, TimeUnit.SECONDS)
+            .addInterceptor(browserUserAgentInterceptor)
             .build()
     }
 

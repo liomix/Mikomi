@@ -559,9 +559,8 @@ private fun SortButton(
                 icon = MikomiIcons.ArrowUp,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .size(MikomiSizes.IconXs)
-                    .rotate(rotation),
+                modifier = Modifier.rotate(rotation),
+                size = MikomiSizes.IconXs,
             )
             Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
             Text(

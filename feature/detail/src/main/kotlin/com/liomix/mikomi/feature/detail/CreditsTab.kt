@@ -302,9 +302,9 @@ private fun Avatar(
                 icon = MikomiIcons.Person,
                 contentDescription = contentDescription,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .padding(MikomiSpacing.Md)
-                    .size(30.dp),
+                modifier = Modifier.padding(MikomiSpacing.Md),
+                // design-ok 头像内嵌人物占位：随 AVATAR_SIZE 的视觉比例定，不属图标三档。
+                size = 30.dp,
             )
         } else {
             MikomiAsyncImage(

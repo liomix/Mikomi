@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -83,7 +82,7 @@ private fun CommunityEmptyState(modifier: Modifier = Modifier) {
             icon = MikomiIcons.Forum,
             contentDescription = null,
             tint = colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
-            modifier = Modifier.size(MikomiSizes.AvatarMd),
+            size = MikomiSizes.AvatarMd,
         )
         Spacer(modifier = Modifier.height(MikomiSpacing.Md))
         Text(

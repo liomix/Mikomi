@@ -30,9 +30,10 @@ keystore.properties
 .DS_Store
 Thumbs.db
 
-# ---- 工具 ----
+# ---- 工具 ----直接忽略就好,不换机
+
 tools
-.probe
+
 
 
 # ---- 项目数据（memory / skills 是本机状态，不入库）----

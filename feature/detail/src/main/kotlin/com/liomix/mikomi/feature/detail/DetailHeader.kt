@@ -422,7 +422,7 @@ private fun RatingBlock(
                 icon = MikomiIcons.Star,
                 contentDescription = null,
                 tint = MikomiTheme.colors.rating,
-                modifier = Modifier.size(MikomiSizes.IconMd),
+                size = MikomiSizes.IconMd,
             )
             Spacer(modifier = Modifier.size(MikomiSpacing.Xs))
             Text(

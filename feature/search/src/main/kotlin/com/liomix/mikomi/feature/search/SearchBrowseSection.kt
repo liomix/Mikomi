@@ -122,7 +122,7 @@ internal fun SearchBrowseSection(
                                 icon = MikomiIcons.Delete,
                                 contentDescription = stringResource(R.string.search_history_clear),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(MikomiSizes.IconSm),
+                                size = MikomiSizes.IconSm,
                             )
                         }
                     },
@@ -347,7 +347,7 @@ private fun ExpandTab(
                 icon = if (expanded) MikomiIcons.ExpandLess else MikomiIcons.ExpandMore,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(MikomiSizes.IconSm),
+                size = MikomiSizes.IconSm,
             )
         }
     }
@@ -435,7 +435,6 @@ private fun HotRow(
             url = item.coverUrl,
             contentDescription = item.title,
             modifier = Modifier.width(40.dp),
-            browserUserAgent = true,
         )
         Spacer(modifier = Modifier.width(MikomiSpacing.Md))
         Column(modifier = Modifier.weight(1f)) {
@@ -490,7 +489,7 @@ private fun HotMeta(
                 icon = MikomiIcons.Star,
                 contentDescription = null,
                 tint = MikomiTheme.colors.rating,
-                modifier = Modifier.size(MikomiSizes.IconXs),
+                size = MikomiSizes.IconXs,
             )
             Spacer(modifier = Modifier.width(MikomiSpacing.Xxs))
             Text(

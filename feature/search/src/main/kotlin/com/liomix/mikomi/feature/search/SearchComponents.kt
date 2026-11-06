@@ -127,7 +127,7 @@ private fun SearchField(
                 icon = MikomiIcons.Search,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(MikomiSizes.IconSm),
+                size = MikomiSizes.IconSm,
             )
             Spacer(modifier = Modifier.width(MikomiSpacing.Compact))
             BasicTextField(
@@ -169,7 +169,7 @@ private fun SearchField(
                         icon = MikomiIcons.Close,
                         contentDescription = stringResource(R.string.search_clear),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(MikomiSizes.IconSm),
+                        size = MikomiSizes.IconSm,
                     )
                 }
             }

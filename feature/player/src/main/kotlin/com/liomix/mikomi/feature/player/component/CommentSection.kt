@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -45,7 +44,7 @@ internal fun CommentSection(modifier: Modifier = Modifier) {
                 icon = MikomiIcons.Forum,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
-                modifier = Modifier.size(MikomiSizes.AvatarMd),
+                size = MikomiSizes.AvatarMd,
             )
             Spacer(modifier = Modifier.height(MikomiSpacing.Md))
             Text(

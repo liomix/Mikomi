@@ -185,7 +185,7 @@ private fun ExpandChip(
             MikomiIcon(
                 icon = if (expanded) MikomiIcons.Remove else MikomiIcons.Add,
                 contentDescription = null,
-                modifier = Modifier.size(MikomiSizes.IconXs),
+                size = MikomiSizes.IconXs,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

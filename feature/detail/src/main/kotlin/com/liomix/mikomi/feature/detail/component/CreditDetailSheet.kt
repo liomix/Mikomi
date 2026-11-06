@@ -316,7 +316,7 @@ private fun CommentItem(
                         icon = if (expanded) MikomiIcons.ExpandLess else MikomiIcons.ExpandMore,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(MikomiSizes.IconXs),
+                        size = MikomiSizes.IconXs,
                     )
                 }
             }

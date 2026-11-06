@@ -245,7 +245,7 @@ private fun AvatarSection(
                     MikomiIcon(
                         icon = MikomiIcons.PhotoCamera,
                         contentDescription = null,
-                        modifier = Modifier.size(MikomiSizes.IconXs),
+                        size = MikomiSizes.IconXs,
                     )
                 }
             }
@@ -312,7 +312,7 @@ private fun ValueRow(
             icon = MikomiIcons.ChevronRight,
             contentDescription = null,
             tint = colors.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.size(MikomiSizes.IconSm),
+            size = MikomiSizes.IconSm,
         )
     }
 }

@@ -40,8 +40,6 @@ private val COVER_CORNER_RADIUS = MikomiRadius.Md
  *   组合实现（相同 model 的请求不会自动重发）。
  * - [heroKey] 非空时参与「封面飞行」（Hero）：列表封面飞向详情页封面，
  *   两侧必须传同一个 key（番剧 id）。
- * - [browserUserAgent] 为 AniRpb 等对 User-Agent 有要求的图片源附加浏览器 UA；
- *   测试台的 ImageLoader 使用同款 `Mozilla/5.0`，可避免部分封面被 CDN 拒绝。
  * - [crossfade] 懒列表里务必传 false：Coil 的淡入会给每张图叠一层 alpha 混合，
  *   快速滚动时一屏 10 张同时过渡，是明确的每帧绘制开销；静止页面可保留。
  */
@@ -51,7 +49,6 @@ fun AnimeCoverImage(
     contentDescription: String?,
     modifier: Modifier = Modifier,
     heroKey: String? = null,
-    browserUserAgent: Boolean = false,
     crossfade: Boolean = true,
     shimmerWhileLoading: Boolean = false,
 ) {
@@ -99,14 +96,13 @@ fun AnimeCoverImage(
                     shape = RectangleShape,
                 )
             }
-            // 请求由 core:ui 统一构建：memoryCacheKey / crossfade / UA 三处口径只在这里定一次。
+            // 请求由 core:ui 统一构建：memoryCacheKey / crossfade 在这里定，UA 由 ImageLoader 统一注入。
             MikomiAsyncImage(
                 url = url,
                 contentDescription = contentDescription,
                 modifier = Modifier.matchParentSize(),
                 contentScale = ContentScale.Crop,
                 crossfade = crossfade,
-                browserUserAgent = browserUserAgent,
                 // 有扫光占位时不要再叠一层纯色：两层同尺寸的不透明块只会多一次绘制。
                 placeholder = if (shimmerWhileLoading) null else placeholderPainter,
                 error = placeholderPainter,

@@ -483,7 +483,7 @@ private fun EntryRow(
                     icon = MikomiIcons.Check,
                     contentDescription = stringResource(R.string.player_source_playing),
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(MikomiSizes.IconXs),
+                    size = MikomiSizes.IconXs,
                 )
 
                 else -> StatusDot(

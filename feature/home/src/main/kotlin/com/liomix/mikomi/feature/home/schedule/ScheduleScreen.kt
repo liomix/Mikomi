@@ -296,7 +296,6 @@ private fun ScheduleAnimeRow(
                 url = anime.coverUrl,
                 contentDescription = anime.title,
                 modifier = Modifier.size(width = 80.dp, height = 120.dp),
-                browserUserAgent = true,
             )
 
             Column(

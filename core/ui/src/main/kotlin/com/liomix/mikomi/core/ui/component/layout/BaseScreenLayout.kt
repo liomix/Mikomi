@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -186,7 +185,7 @@ private fun BaseScreenTopBar(
                     MikomiIcon(
                         icon = MikomiIcons.BackIos,
                         contentDescription = stringResource(R.string.core_ui_back),
-                        modifier = Modifier.size(MikomiSizes.IconMd),
+                        size = MikomiSizes.IconMd,
                     )
                 }
             }.first().measure(Constraints())

@@ -540,7 +540,7 @@ private fun PlayerStatusOverlay(
                     icon = MikomiIcons.Error,
                     contentDescription = null,
                     tint = MikomiMedia.contentSecondary,
-                    modifier = Modifier.size(MikomiSizes.IconMd),
+                    size = MikomiSizes.IconMd,
                 )
                 Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
                 Text(
@@ -654,7 +654,7 @@ private fun PlayerLockButton(
                 if (locked) R.string.player_unlock else R.string.player_lock,
             ),
             tint = MikomiMedia.content,
-            modifier = Modifier.size(MikomiSizes.IconSm),
+            size = MikomiSizes.IconSm,
         )
     }
 }
@@ -1171,7 +1171,7 @@ private fun PlayPauseButton(
                 if (isPlaying) R.string.player_pause else R.string.player_play,
             ),
             tint = MikomiMedia.content,
-            modifier = Modifier.size(iconSize),
+            size = iconSize,
         )
     }
 }
@@ -1258,7 +1258,7 @@ private fun VideoScaleMenu(
                 icon = MikomiIcons.FitScreen,
                 contentDescription = stringResource(R.string.player_scale_current, currentLabel),
                 tint = MikomiMedia.content,
-                modifier = Modifier.size(MikomiSizes.IconSm),
+                size = MikomiSizes.IconSm,
             )
         }
 

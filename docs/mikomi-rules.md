@@ -21,7 +21,7 @@ description: Mikomi 项目级 Android 开发规范。开始任何代码编写、
 | 改了什么 | 跑什么 |
 | --- | --- |
 | 任何 Kotlin / 资源 / 路由 | `./gradlew :app:assembleDebug --offline` |
-| 颜色、间距、字号、圆角、线宽、动效档位 | `./gradlew verifyDesign`（`tokenAudit` + `contrastAudit`，strict） |
+| 颜色、间距、字号、圆角、线宽、动效档位、图标 | `./gradlew verifyDesign`（`tokenAudit` + `contrastAudit` + `iconAudit`，strict） |
 | `core:navigation` | `./gradlew :core:navigation:testDebugUnitTest` |
 | 已有测试覆盖的逻辑（`data:anime` 映射、`feature:home` ViewModel） | `./gradlew test` |
 
@@ -354,6 +354,7 @@ token 表最怕的不是「值不好」，而是「没人知道它为什么是�
 | ~~10~~（已回退） | 曾把 69 个 `ImageVector` 换成 lucide v1.70.0 的 `res/drawable/ic_*.xml` + 88 行语义表；**整轮撤销**，图形语言回到 Material `ImageVector` | 换的是图形语言，不是实现：Material 实心 → lucide `stroke 2` 描边，**同一 dp 下墨水面积掉一半**，且描边随档位线性缩（18dp → 1.5、13 → 1.08、11 → 0.92，不足 1 像素被抗锯齿成灰）。§5.3 的 11/13/16 是围着实心量的，换语言后刻度全歪 —— 见 §5.6 末尾的校准要求。这一轮把「改尺寸」和「换形状」混在同一次变更里，也是它必须整体撤回的原因 |
 | 11 | 实心/描边按语义重选：12 个语义标识（日历、排行榜、分类、设置、外观、插件、播放设置、历史、收藏、邮箱、编辑、离线）换成 `Outlined`，新增 4 个导航未选中态（`HomeOutline` / `MapOutline` / `ForumOutline` / `PersonOutline`），底栏改成 `icon`=描边 + `selectedIcon`=实心 | 69 个里 67 个是实心：`MikomiIcons` 当初只从 `Rounded` 一个家族提取，判据只有「有没有被引用」，没有「该实心还是该描边」这一维。零星几个空心的（`StarBorder`、`ChatBubbleOutline`）是名字里自带 Border/Outline 的巧合。底栏两个字段填了同一个图标，选中与未选中只靠颜色区分 |
 | 12 | 尺寸从「八种分散值」收成三档（`IconXs`16 / `IconSm`20 / `IconMd`24）并登记进 `MikomiSizes.steps`；新增 `MikomiIcon` 作为唯一图标入口（`size` 默认 `IconMd`），72 处调用全部迁移；3 个弹幕图标从 `res/drawable` 收进 `MikomiIcons`；`tools/icon-gen/` 入库；图片补默认占位/失败底色与列表封面预取 | 尺寸以前**没有负责人**：只有 4 处读 token、32 处写字面量（11/13/14/15/16/18/20/22/24）、23 处不写 size 靠 `ImageVector.defaultWidth=24.dp` —— 改 token 只有 4 处会动。`IconSm` 是 18 而事实主档是 20；评分星标同一语义写了 11 和 13 两个值。弹幕 3 个 xml 是图标系统之外的第二条通路。图片的 `placeholder`/`error` 参数存在但全仓没传过，首帧与失败都是透明洞 |
+| 13 | 图标从「有约定」变成「有闸门」：新增 `iconAudit` 接进 `verifyDesign`（裸 `Icon(`、尺寸走 `modifier`、注释/家族/`builder name`/`autoMirror`、死图标）；32 处 `modifier = Modifier.size(...)` 收进 `size` 参数；`tools/icon-gen/icons.tsv` 记每段代码块指纹，`--verify` 先离线比对再溯源；图片的浏览器 UA 从逐请求参数搬到 `MikomiImageLoader` 的拦截器 | 尺寸入口统一之前仍有 32 处走 `modifier.size`、16 处走 `size` 参数、25 处走默认 —— 三条路并存，而 `MikomiIcon` 的 KDoc 已经写着「不必再记 `Modifier.size`」，文档与代码对不上。几何是副本，仓库里没有上游源码：手改一行 `pathData` 编译照样过，只是那个图标从此和别的不是一套，而 `--verify` 在没有 sources.jar 的机器上整体报「追不回」，等于没有校验。UA 参数只有 2/77 处传 `true`，漏传的代价是永久 403 且无日志 |
 
 ### 5.5 可访问性与对比度
 
@@ -374,7 +375,7 @@ token 表最怕的不是「值不好」，而是「没人知道它为什么是�
 
 **唯一来源是 `MikomiIcons`**（`core:designsystem` 的 `icon/MikomiIcons.kt`，当前 **76 个**：73 个来自 Material Icons + 3 个弹幕图标）。调用点写 `MikomiIcons.Play`，不写 `Icons.Rounded.PlayArrow`。
 
-**唯一入口是 `MikomiIcon`**（`core:ui/component/base/MikomiIcon.kt`），全仓 72 处图标调用都走它：
+**唯一入口是 `MikomiIcon`**（`core:ui/component/base/MikomiIcon.kt`），全仓 77 处图标调用都走它：
 
 ```kotlin
 MikomiIcon(
@@ -384,6 +385,8 @@ MikomiIcon(
 )
 ```
 
+**尺寸只有一条入口：`size` 参数。** 不要在 `modifier` 里写 `Modifier.size(...)` —— 那会绕过 token，而且两条路的优先级是反的（`MikomiIcon` 内部是 `modifier.size(size)`，外层胜过参数）。要让图标跟着文字行高走、或确实需要组件物理尺寸（播放键 32、空状态 56），就在 `size` 参数里给，并在同一处写 `design-ok` 注明理由；`./gradlew iconAudit` 会把「`modifier` 里出现 `.size(`」「`size` 传字面量」都算违规。
+
 **为什么必须有这一层**：Material3 的 `Icon` 里有个 `defaultSizeFor(painter)` —— painter 的 intrinsicSize 有限时它**不加**默认尺寸。我们每个 `ImageVector` 的 `defaultWidth` 都是 24dp，于是「不写 size 也正好 24」：看着对，但那是图形自己带来的，不是 token 在管。实测过一次：把 `IconMd` 改成别的值，全仓 23 处没写 size 的调用点**一个都不动**。`MikomiIcon` 把默认值收进 `size: Dp = MikomiSizes.IconMd`，参数名也顺手把尺寸从 `Modifier` 链里挪了出来 —— 调用点的 `modifier` 在外层，显式传的 `.size()` 仍然优先。
 
 四条硬规则：
@@ -392,7 +395,11 @@ MikomiIcon(
 2. **实体/描边由语义定，不按页面拍脑袋**：**实心（`Rounded`）留给「状态与压画面」**——星级、播放控制、勾选、错误、锁；**描边（`Outlined`）留给「语义标识」**——设置项、快捷入口、标签页、空状态、导航未选中项。底栏的 `MikomiNavItem` 因此填两组：`icon`=描边（未选中）、`selectedIcon`=实心（选中），这也是 M3 导航栏的口径。当前 49 / 16 / 8（`AutoMirrored.Rounded`）。
    - 历史教训：这两个家族不是「同一个图标的两个变体」，而是**两个独立的图标名**。迁移前 67/69 全是实心，偶有空心的那几个（`StarBorder`、`ChatBubbleOutline`）是名字里自带 Border/Outline 的巧合，不是选出来的 —— 所以同一屏里会同时出现空心星和实心日历。
 3. **RTL 用 `autoMirror = true` 表达，不在调用点挑 `AutoMirrored` 变体。** 返回、列表排序、播放列表这 8 个语义已经标好；调用点只认语义名。
-4. **几何来自上游，工具在 `tools/icon-gen/`。** 加图标或换形状用 `python3 tools/icon-gen/extract.py <Name> --family outlined`，它把上游的紧凑 DSL 翻成本文件的展开式；`--verify` 会逐条核对语义表能否追回上游（当前 73/73）。仓库里没有上游源码，缓存被清之后 `--verify` 会整体报「追不回」，那是找不到 jar，不是图标错了。
+4. **几何来自上游，工具在 `tools/icon-gen/`。** 加图标或换形状用 `python3 tools/icon-gen/extract.py <Name> --family outlined`，它把上游的紧凑 DSL 翻成本文件的展开式；贴进 `MikomiIcons` 之后跑 `--snapshot` 更新 `tools/icon-gen/icons.tsv`（每段代码块的指纹），入库。
+   - `--verify` **先**跑离线校验：当前语义表与 `icons.tsv` 逐项比对，改一个坐标、换一个家族都会被点出来。这一层不依赖 gradle 缓存，换机器 / 清缓存都成立。
+   - 再跑溯源：有 `material-icons-*-sources.jar` 时逐条核对能否追回上游（当前 73/73；弹幕三个本来就没有上游，不参与）。找不到 jar 只打印一行「跳过」，不算失败 —— 离线那层已经覆盖了「几何有没有被手改」。
+
+**这四条由 `./gradlew iconAudit` 守着**（`verifyDesign` 会连带跑）。它看的是机器能判的那部分：裸 `Icon(` 归零（唯一例外是 `MikomiIcon` 内部那一次）、尺寸不走 `modifier`、语义表每项都有 `/** 上游名（家族）。 */`、家族在白名单内、`ImageVector.Builder(name = …)` 与 `val` 同名、`autoMirror` 只在 AutoMirrored 家族、没有死图标（语义表里没有零引用的项）。判不了的（这个图标该实心还是描边）仍然靠规则 2，人工评审。
 
 **自绘新图标时按这套规格画**，否则和新图标摆在一起会「一个粗一个细、一个偏左一个居中」：
 
@@ -432,7 +439,7 @@ MikomiIcon(
 
 - **`memoryCacheKey` 固定为 url。** 各写一份时 key 计算路径会分叉，症状是「搜索完退回来，轮播显示的是搜索海报」。
 - **`crossfade` 由调用方显式给。** 懒列表里必须关（一屏十张同时淡入是明确的每帧混合开销）；轮播、详情这种一屏一张的可以开。
-- **浏览器 UA 只在需要时加**（`browserUserAgent = true`）：AniRpb 的 meituan 图床会拒绝非浏览器 UA。默认不加，因为很多 CDN 会按 UA 换编码格式。
+- **浏览器 UA 由 loader 统一注入。** AniRpb 的 meituan 图床会拒绝 `okhttp/x.y`（403），其余图床不按 UA 分流。以前这是三个 composable 上的 `browserUserAgent: Boolean = false` 参数，只有两处传了 `true` —— 「漏传一次」的后果是某些封面永久加载失败，不报错、不进日志，所以这个可选参数已经删掉，改在 `MikomiImageLoader` 的 OkHttp 拦截器里统一加（请求自带 UA 时不覆盖）。预取走同一个 client，口径自动一致。
 
 **默认占位与失败底色是骨架色，不是透明。** `MikomiAsyncImage` 的 `placeholder` / `error` 默认取 `rememberMikomiPlaceholder()`（`skeletonBaseColor()`）。以前这两个参数存在但全仓没传过 —— 封面在首帧、失败、被取消三种情况下都是透明的，露出来的是父容器背景；夜间主题下就是一块比周围更黑的洞。用骨架色而不是固定灰，是因为它和 `SkeletonBox` 同色，列表滚过去不会有「先灰一下再黑一下」的跳变。
 
@@ -628,6 +635,7 @@ MikomiIcon(
 - 有没有裸色值 / 裸字号 / 裸圆角 / 裸线宽 / 节奏类裸间距？跑 `verifyDesign` 看有没有新增 `[!]`。
 - 新增的颜色 / 字号是否登记到 `MikomiColors` / `Typography`？新增 token 是否在 `TokenGallery` 出现？
 - 控件体格是否进了 `spec` 而不是组件私有常量？
+- 图标是否走 `MikomiIcon`、尺寸是否只从 `size` 参数来？加/换图标后跑过 `extract.py --snapshot` 吗（`icons.tsv` 没更新，`--verify` 会把新图标报成「清单外」）？
 - 每个 `design-ok` 是否都写了理由？
 
 ### Compose 与性能

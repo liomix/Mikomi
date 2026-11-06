@@ -13,22 +13,12 @@ import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
-import coil3.network.NetworkHeaders
-import coil3.network.httpHeaders
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.liomix.mikomi.core.ui.component.base.skeletonBaseColor
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-
-/**
- * 部分图片 CDN（AniRpb 的 meituan 图床）会拒绝非浏览器 User-Agent。
- * 统一放在这里，避免每个调用点各自拼一份、漏掉一处就出现「个别封面永远加载失败」。
- */
-private val BROWSER_HEADERS = NetworkHeaders.Builder().apply {
-    set("User-Agent", "Mozilla/5.0")
-}.build()
 
 /**
  * 全站网络图的统一请求。
@@ -39,7 +29,8 @@ private val BROWSER_HEADERS = NetworkHeaders.Builder().apply {
  *   点进详情页时直接命中同一份缓存，不会重新解码。
  * - **`crossfade` 由调用方显式决定**：懒列表里必须关（一屏十张同时淡入是明确的每帧开销），
  *   静止页面可以开。
- * - **浏览器 UA 由调用方按图源决定**：只有 AniRpb 这类图床需要。
+ * - **UA / 超时 / 缓存上限由 [MikomiImageLoader] 统一给**：这里不再留「是否带浏览器 UA」
+ *   这种按调用点决定的开关 —— 漏传一次的后果是某些图床永久 403，且没有任何报错。
  *
  * 返回值用 [remember] 缓存：`ImageRequest` 不是 data class，每次重组新建一个新实例，
  * Coil 会当成「换了一个 model」重跑一遍比较与请求。
@@ -48,17 +39,13 @@ private val BROWSER_HEADERS = NetworkHeaders.Builder().apply {
 fun rememberCoverRequest(
     url: String?,
     crossfade: Boolean = true,
-    browserUserAgent: Boolean = false,
 ): ImageRequest {
     val context = LocalContext.current
-    return remember(url, context, crossfade, browserUserAgent) {
+    return remember(url, context, crossfade) {
         ImageRequest.Builder(context)
             .data(url)
             .crossfade(crossfade)
             .memoryCacheKey(url)
-            .apply {
-                if (browserUserAgent) httpHeaders(BROWSER_HEADERS)
-            }
             .build()
     }
 }
@@ -98,7 +85,6 @@ fun MikomiAsyncImage(
     contentScale: ContentScale = ContentScale.Crop,
     alignment: Alignment = Alignment.Center,
     crossfade: Boolean = false,
-    browserUserAgent: Boolean = false,
     placeholder: Painter? = rememberMikomiPlaceholder(),
     error: Painter? = rememberMikomiPlaceholder(),
     onLoading: (() -> Unit)? = null,
@@ -121,7 +107,6 @@ fun MikomiAsyncImage(
         model = rememberCoverRequest(
             url = url,
             crossfade = crossfade,
-            browserUserAgent = browserUserAgent,
         ),
         contentDescription = contentDescription,
         modifier = modifier,
@@ -145,12 +130,10 @@ fun MikomiAsyncImage(
 fun rememberMikomiImagePainter(
     url: String?,
     crossfade: Boolean = false,
-    browserUserAgent: Boolean = false,
 ): Painter = rememberAsyncImagePainter(
     model = rememberCoverRequest(
         url = url,
         crossfade = crossfade,
-        browserUserAgent = browserUserAgent,
     ),
 )
 

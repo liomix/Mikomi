@@ -441,7 +441,7 @@ private fun StatusTile(status: PlgTstStoreStatus) {
             MikomiIcon(
                 icon = if (installed) MikomiIcons.Check else MikomiIcons.Extension,
                 contentDescription = null,
-                modifier = Modifier.size(MikomiSizes.IconMd),
+                size = MikomiSizes.IconMd,
             )
         }
     }
@@ -489,7 +489,7 @@ private fun StoreAction(
                 icon = MikomiIcons.Check,
                 contentDescription = null,
                 tint = colors.onSurfaceVariant,
-                modifier = Modifier.size(MikomiSizes.IconXs),
+                size = MikomiSizes.IconXs,
             )
             Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
             Text(
@@ -507,7 +507,7 @@ private fun StoreAction(
             MikomiIcon(
                 icon = if (status == PlgTstStoreStatus.Update) MikomiIcons.Sync else MikomiIcons.Add,
                 contentDescription = null,
-                modifier = Modifier.size(MikomiSizes.IconXs),
+                size = MikomiSizes.IconXs,
             )
             Spacer(modifier = Modifier.width(MikomiSpacing.Tight))
             Text(

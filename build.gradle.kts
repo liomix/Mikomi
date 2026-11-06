@@ -10,7 +10,7 @@ plugins {
 }
 
 // ===========================================================================
-// 设计系统的两条自检命令
+// 设计系统的四条自检命令
 // ===========================================================================
 //
 // `docs/mikomi-rules.md` §5.2 定了五条硬规则。写在散文里的规则只能靠人记，而人工清仓的
@@ -18,9 +18,10 @@ plugins {
 //
 //   ./gradlew tokenAudit     字面量 / 档位对账 / 使用分布
 //   ./gradlew contrastAudit  配色对比度（WCAG AA）
-//   ./gradlew verifyDesign   = 上面两条 + strict（任何违规都 fail）
+//   ./gradlew iconAudit      图标唯一入口 / 尺寸来源 / 语义表一致性
+//   ./gradlew verifyDesign   = 上面三条 + strict（任何违规都 fail）
 //
-// 前两条默认**只报告不失败**（评审入口）；`-Pstrict` 或 `verifyDesign` 才 fail（闸门）。
+// 前三条默认**只报告不失败**（评审入口）；`-Pstrict` 或 `verifyDesign` 才 fail（闸门）。
 // 之所以默认不 fail：控件体格（`size(180.dp)` 的封面）按规则本来就该留在组件里，
 // 让机器分辨「布局位置」与「控件体格」已经需要靠调用点名字猜，再让它直接阻断构建，
 // 会逼着人往 `design-ok` 里塞理由 —— 那正好是把闸门变成后门的方式。
@@ -323,11 +324,231 @@ tasks.register("contrastAudit") {
     }
 }
 
-/** 一次跑完两条审计，并让 tokenAudit 进入 strict（CI / 提交前用）。 */
+/**
+ * 图标审计。
+ *
+ * ## 为什么图标也要一条闸门
+ *
+ * §5.6 的四条规则（唯一入口 / 三档尺寸 / 语义表 / 家族分工）现在全是「约定」。
+ * 约定撑得过一次清理，撑不过下一次赶工，而且它的失效形态是**安静**的：
+ * 有人顺手写一句 `Icon(painter, …)`、有人给某个图标单独留 `size = 13.dp`、
+ * 有人复制语义表时忘了改 `name =`，编译全过，只是图标系统慢慢退回「谁都能改一点」。
+ *
+ * ## 五条判定
+ *
+ * 1. **裸 `Icon(` 归零**：唯一入口是 `MikomiIcon`，它内部那一层是唯一例外。
+ * 2. **尺寸只有一条入口**：`MikomiIcon` 的 `modifier` 链里出现 `.size(` 就说明尺寸又长出了
+ *    第二条路（两条路的优先级还相反，见 §5.6）；`size` 参数写成 `13.dp` 同理。
+ *    组件物理尺寸（播放键 32、空状态 56）写 `design-ok` 注明即可，和 tokenAudit 同一套豁免。
+ * 3. **语义表每项都有 KDoc 与家族**，家族在白名单内，`autoMirror = true` 只出现在
+ *    AutoMirrored 家族 —— 这行就是「镜像方向」的唯一记录处。
+ * 4. **`ImageVector.Builder(name = …)` 与 val 同名**：崩溃栈与 painter 缓存都靠这个名字认人。
+ * 5. **没有死图标**：语义表每项至少被一个调用点引用；死图标说明改调用点时顺手换了图形、
+ *    而语义表只增不减。
+ */
+tasks.register("iconAudit") {
+    group = "verification"
+    description = "校验图标唯一入口、尺寸来源与语义表一致性"
+
+    doLast {
+        val strict = project.hasProperty("strict") ||
+            gradle.startParameter.taskNames.any { it.contains("verifyDesign") }
+
+        /** 唯一入口所在的文件：它内部的那一次 `Icon(` 是合法的。 */
+        val wrapperRel = "core/ui/src/main/kotlin/com/liomix/mikomi/core/ui/component/base/MikomiIcon.kt"
+        val iconsRel = "$designSystemDir/icon/MikomiIcons.kt"
+        val iconsFile = File(projectDir, iconsRel)
+        /** 允许出现在注释里的家族。新增来源要同时改这里与 docs §5.6。 */
+        val families = listOf("Rounded", "Outlined", "AutoMirrored.Rounded", "Dart-Mikomi")
+
+        val issues = mutableListOf<String>()
+        var suppressed = 0
+
+        /**
+         * 注释换等长空白、字符串字面量换成等长引号：括号配对与关键字匹配都不会被
+         * 说明文字里的 `Icon(` 带偏，列位置也不变（报错仍能指回原行）。
+         */
+        fun flatten(lines: List<String>): Pair<String, List<Int>> {
+            val sb = StringBuilder()
+            val lineOf = ArrayList<Int>()
+            for (i in lines.indices) {
+                val raw = lines[i]
+                val head = raw.trim()
+                var text = if (head.startsWith("//") || head.startsWith("*") || head.startsWith("/*")) {
+                    " ".repeat(raw.length)
+                } else {
+                    raw
+                }
+                text = Regex("\"(?:\\\\.|[^\"\\\\])*\"").replace(text) { m ->
+                    "\"" + " ".repeat(m.value.length - 2) + "\""
+                }
+                sb.append(text).append(' ')
+                repeat(text.length + 1) { lineOf.add(i + 1) }
+            }
+            return sb.toString() to lineOf
+        }
+
+        /** 从 `(` 的位置找到配对的 `)`。找不到返回 -1。 */
+        fun callEnd(text: String, openIdx: Int): Int {
+            var depth = 0
+            var i = openIdx
+            while (i < text.length) {
+                when (text[i]) {
+                    '(' -> depth++
+                    ')' -> {
+                        depth--
+                        if (depth == 0) return i
+                    }
+                }
+                i++
+            }
+            return -1
+        }
+
+        // ---- 调用点 ----
+        var rawIconCalls = 0
+        var sites = 0
+        var sizedSites = 0
+        var defaultSites = 0
+        val usage = HashMap<String, Int>()
+
+        for (file in kotlinSources()) {
+            val rel = file.absolutePath.removePrefix(projectDir.absolutePath + File.separator)
+                .replace(File.separatorChar, '/')
+            if (rel == iconsRel) continue
+            val lines = file.readLines()
+            val (text, lineOf) = flatten(lines)
+
+            if (rel != wrapperRel) {
+                for (m in Regex("""\bIcon\(""").findAll(text)) {
+                    rawIconCalls++
+                    issues += "裸 Icon( $rel:${lineOf[m.range.first]} —— 走 MikomiIcon，见 docs §5.6"
+                }
+            }
+
+            for (m in Regex("""\bMikomiIcon\(""").findAll(text)) {
+                val ln = lineOf[m.range.first]
+                val close = callEnd(text, m.range.last)
+                if (close < 0) {
+                    issues += "MikomiIcon 实参解析失败 $rel:$ln"
+                    continue
+                }
+                sites++
+                val args = text.substring(m.range.last + 1, close)
+                // 豁免窗口与 tokenAudit 一致：标记行前后各 3 行，外加整个实参块
+                // （多行实参时理由常常写在最后一个参数上方，只认同一行会漏）。
+                val endLn = lineOf[close]
+                val muted = (ln - 4..endLn + 1).any { k ->
+                    k in 1..lines.size && lines[k - 1].contains("design-ok")
+                }
+                val modifierSized = ".size(" in args
+                val literalSized = Regex("""\bsize\s*=\s*\d+(\.\d+)?\.dp""").containsMatchIn(args)
+                when {
+                    modifierSized || literalSized -> if (muted) {
+                        suppressed++
+                    } else {
+                        issues += "图标尺寸绕过 size 参数 $rel:$ln —— " +
+                            (if (modifierSized) "`modifier` 里写了 `.size(`" else "`size` 传了字面量") +
+                            "；改走 `size = MikomiSizes.Icon*`（组件物理尺寸写 design-ok）"
+                    }
+                    Regex("""\bsize\s*=""").containsMatchIn(args) -> sizedSites++
+                    else -> defaultSites++
+                }
+            }
+
+            for (m in Regex("""\bMikomiIcons\.(\w+)""").findAll(text)) {
+                val name = m.groupValues[1]
+                usage[name] = (usage[name] ?: 0) + 1
+            }
+        }
+
+        // ---- 语义表 ----
+        class IconRow(val name: String, val upstream: String, val family: String, val line: Int, val mirror: Boolean)
+
+        val docRe = Regex("""^\s*/\*\* (.+)（([^（）]+)）。 \*/\s*$""")
+        val valRe = Regex("""^\s*val (\w+): ImageVector by lazy \{\s*$""")
+        val iconLines = iconsFile.readLines()
+        val rows = mutableListOf<IconRow>()
+        var doc: Pair<String, String>? = null
+
+        for (i in iconLines.indices) {
+            val lineText = iconLines[i]
+            docRe.find(lineText)?.let { doc = it.groupValues[1] to it.groupValues[2] }
+            val valMatch = valRe.find(lineText) ?: continue
+            val name = valMatch.groupValues[1]
+            val head = doc
+            if (head == null) {
+                issues += "语义表 $name（$iconsRel:${i + 1}）上面没有 `/** 上游名（家族）。 */`，--verify 追不回上游"
+                continue
+            }
+            val body = StringBuilder()
+            var j = i + 1
+            while (j < iconLines.size && !iconLines[j].contains(".build()")) {
+                body.append(iconLines[j]).append('\n')
+                j++
+            }
+            val builderName = Regex("name = \"(\\w+)\"").find(body)
+            val mirror = body.contains("autoMirror = true")
+            rows += IconRow(name, head.first, head.second, i + 1, mirror)
+            if (head.second !in families) {
+                issues += "语义表 $name 的家族「${head.second}」不在白名单 $families 内"
+            }
+            if (builderName != null && builderName.groupValues[1] != name) {
+                issues += "语义表 $name 的 builder name 是「${builderName.groupValues[1]}」，与 val 不同名"
+            }
+            if (mirror != head.second.startsWith("AutoMirrored")) {
+                issues += "语义表 $name 的 autoMirror=$mirror 与家族「${head.second}」不一致"
+            }
+            doc = null
+        }
+
+        val dead = rows.filter { (usage[it.name] ?: 0) == 0 }.map { it.name }
+
+        // ---- 唯一入口的默认尺寸必须真的来自 token ----
+        val wrapperSource = File(projectDir, wrapperRel).readText()
+        if (!Regex("""size: Dp = MikomiSizes\.Icon\w+""").containsMatchIn(wrapperSource)) {
+            issues += "MikomiIcon 的 size 默认值不再引用 MikomiSizes.Icon* —— 图标尺寸又没人负责了"
+        }
+
+        // ---- 报告 ----
+        val byFamily = families.joinToString(" · ") { f -> "$f ${rows.count { it.family == f }}" }
+        println("图标审计：")
+        println("  语义表 ${rows.size} 个（$byFamily）")
+        println("  调用点 $sites 处（显式尺寸 $sizedSites · 走默认 $defaultSites · design-ok $suppressed）· 裸 Icon( $rawIconCalls 处")
+        println("  死图标 ${dead.size} 个" + if (dead.isEmpty()) "" else "：${dead.joinToString()}")
+        println("  已评审的组件物理尺寸（写了 design-ok）：$suppressed 处")
+
+        if (issues.isEmpty()) {
+            println("  全部通过")
+        } else {
+            println("")
+            for ((k, issue) in issues.withIndex()) {
+                if (k >= 15) {
+                    println("    … 其余 ${issues.size - 15} 条省略")
+                    break
+                }
+                println("  [!] $issue")
+            }
+        }
+
+        if (strict) {
+            if (issues.isNotEmpty()) {
+                throw GradleException(
+                    "图标审计未通过：${issues.size} 处。规则见 docs/mikomi-rules.md §5.6。",
+                )
+            }
+            println("")
+            println("strict：通过（裸 Icon( 0 处、尺寸单入口、语义表自洽）")
+        }
+    }
+}
+
+/** 一次跑完全部审计，并让 tokenAudit 进入 strict（CI / 提交前用）。 */
 tasks.register("verifyDesign") {
     group = "verification"
-    description = "tokenAudit（strict）+ contrastAudit，任一不达标即失败"
+    description = "tokenAudit（strict）+ contrastAudit + iconAudit，任一不达标即失败"
 
     dependsOn("contrastAudit")
     dependsOn(tasks.named("tokenAudit"))
+    dependsOn(tasks.named("iconAudit"))
 }

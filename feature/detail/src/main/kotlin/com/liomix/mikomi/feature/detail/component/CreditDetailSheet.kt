@@ -18,10 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -44,14 +40,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.common.util.formatRelativeTime
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.CreditComment
 import com.liomix.mikomi.core.model.CreditDetail
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
 import com.liomix.mikomi.feature.detail.CreditCommentsUiState
 import com.liomix.mikomi.feature.detail.CreditDetailUiState
 import com.liomix.mikomi.feature.detail.R
@@ -151,8 +148,8 @@ private fun CreditDetailContent(
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             // 左侧竖版头像。
-            AsyncImage(
-                model = detail.imageUrl,
+            MikomiAsyncImage(
+                url = detail.imageUrl,
                 contentDescription = detail.displayName,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -315,7 +312,7 @@ private fun CommentItem(
                     )
                     Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
                     Icon(
-                        imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                        imageVector = if (expanded) MikomiIcons.ExpandLess else MikomiIcons.ExpandMore,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp),
@@ -373,7 +370,7 @@ private fun CommentAvatar(
     ) {
         if (url.isNullOrBlank()) {
             Icon(
-                imageVector = Icons.Outlined.Person,
+                imageVector = MikomiIcons.Person,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
@@ -381,8 +378,8 @@ private fun CommentAvatar(
                     .fillMaxSize(),
             )
         } else {
-            AsyncImage(
-                model = url,
+            MikomiAsyncImage(
+                url = url,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

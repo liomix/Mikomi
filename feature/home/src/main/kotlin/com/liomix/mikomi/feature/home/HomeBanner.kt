@@ -27,8 +27,6 @@ import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -49,12 +47,10 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
@@ -63,6 +59,8 @@ import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.base.skeletonBaseColor
+import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
+import com.liomix.mikomi.core.ui.image.rememberCoverRequest
 import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.delay
@@ -188,17 +186,10 @@ private fun BannerItem(
         label = "bannerPressCorner",
     )
 
-    // 与全站封面统一走 ImageRequest + 显式 memoryCacheKey：
-    // 裸 AsyncImage(String) 与 AnimeCoverImage(ImageRequest) 在 Coil 内
-    // 内存缓存 key 计算路径不同，可能串图（搜索完退回来轮播显示搜索海报）。
-    val context = LocalContext.current
+    // 与全站封面统一走 core:ui 的请求构建（memoryCacheKey 固定为 url）：
+    // 各写一份 ImageRequest 时缓存 key 计算路径不同，可能串图（搜索完退回来轮播显示搜索海报）。
+    // 轮播一屏只有一张，淡入代价可以接受。
     val placeholderColor = MaterialTheme.colorScheme.surfaceContainerHigh
-    val imageRequest = remember(anime.coverUrl, context) {
-        ImageRequest.Builder(context)
-            .data(anime.coverUrl)
-            .memoryCacheKey(anime.coverUrl)
-            .build()
-    }
     // ColorPainter 必须 remember：翻页时每个可见页都会重组，字面量 new 出来的 painter
     // 会让 AsyncImage 认为占位图换了、重跑一遍比对与绘制。
     val placeholderPainter = remember(placeholderColor) { ColorPainter(placeholderColor) }
@@ -236,11 +227,12 @@ private fun BannerItem(
         }
 
         key(anime.id) {
-            AsyncImage(
-                model = imageRequest,
+            MikomiAsyncImage(
+                url = anime.coverUrl,
                 contentDescription = anime.title,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
+                crossfade = true,
                 // 有扫光占位时不能再叠纯色，否则灰块会盖住扫光。
                 placeholder = null,
                 error = placeholderPainter,
@@ -304,7 +296,7 @@ private fun RatingPill(
         horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Xxs),
     ) {
         Icon(
-            imageVector = Icons.Filled.Star,
+            imageVector = MikomiIcons.Star,
             contentDescription = null,
             tint = MikomiTheme.colors.rating,
             modifier = Modifier.size(13.dp),

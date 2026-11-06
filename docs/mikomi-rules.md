@@ -77,9 +77,11 @@ Telegram 没有路由表，页面身份就是「类 + Bundle」，跳转全靠 `
 
 | 前缀 | 用途 | 示例 |
 | --- | --- | --- |
-| `ic_` | 图标（含自适应图标各层） | `ic_anime_play`、`ic_launcher_foreground` |
+| `ic_` | **多色 / 复杂矢量图**（含自适应图标各层） | `ic_danmaku_on`、`ic_launcher_foreground` |
 | `bg_` | 背景 | `bg_episode_card` |
 | `img_` | 位图图片 | `img_anime_cover` |
+
+**单色图标不进 `res/drawable`，一律进 `MikomiIcons`**（见 §5.6）。`ic_` 前缀留给「一张 path 画不完」的图：弹幕开关那种带细节的图形、启动图标各层。判据是**这张图会不会被 tint 染色** —— 会，就该是 `ImageVector`；不会（多色、渐变、位图），才落资源。
 
 本项目**纯 Compose**，不存在 `activity_` / `fragment_` / `item_` / `screen_` 这类布局文件命名，不要再照抄 XML 时代的模板。库模块中所有导出的资源**必须**用 `resourcePrefix` 配置唯一前缀。新增前先搜可复用资源。
 
@@ -316,7 +318,7 @@ Mikomi 默认**离线优先**：
 | --- | --- | --- |
 | 动效时长 | TG | 60（按压）/ 150 / 200 / 250 / 300 / 350 |
 | 圆角 | TG | 4 / 6 / 10 / 12 / 16 / 20 / 28（`MikomiRadius`），胶囊用百分比 |
-| 图标 | TG | 18 / 24（24 为标准档：顶栏、菜单、按钮前导图标） |
+| 图标 | TG | 基准 24（`MikomiSizes.IconMd`）/ 次级 18（`IconSm`）。存量另有 14 / 15 / 16 / 20 / 22 / 26 / 28 / 36 / 44 / 56 共 10 种分散值，属未收敛的历史值，**新增只用上面两档** |
 | 行高 | TG | 56（双行，`MikomiSizes.RowDouble`）；单行 48 由触控目标保证 |
 | 触控目标 | 一致 | 48 |
 | 按压反馈 | TG | 中性墨色 9.8%（`0x19`），不是主色 12% |
@@ -348,6 +350,7 @@ token 表最怕的不是「值不好」，而是「没人知道它为什么是�
 | 6 | 「动态效果」拆成动漫封面动效与页面动效两条独立偏好（页面动效三档接进 `NavDisplay`）；页面转场尊重系统「减少动画」；底栏显隐与三处孤值（140 / 180 / 260）收口到 `MikomiMotion` 档位 | 两类动效被塞进同一个选项里，选封面就选不了页面；页面转场写死在 `NavHost` 里、用户无从选择；底栏用默认 spring，收尾比全站慢一截；三个值都不在档位上，调档时必漏 |
 | 7 | 页面动效档位改由 `LocalPageTransitionStyle` 下发、每个页面首次组合时冻结一份；装饰器实例不再随档位重建 | 在设置页点「淡入 / 无」时，当前页自己重播了一次入场：装饰链换实例等于把整页重新挂载，`LaunchedEffect(style)` 又把进度从 1 拉回 0 |
 | 8 | 组件库对齐 TG 的三条：禁用态从 `MikomiMotion.Disabled` 搬到 `MikomiAlpha`（颜色层）；两份 `ScrimAlpha` 合成 `MikomiScrimSpec`；浮层遮罩抽成 `SheetScrim` 由 `BottomPop` / `SideBarPop` 共用 | 0.12 / 0.38 一次都不动，却被放进「动效」命名空间，找禁用态的人不会去那里翻；两个浮层各写一份遮罩，深度各存一份 0.32，一处改动两处手感分叉 |
+| 9 | 图标收进 `MikomiIcons`（69 个 `ImageVector`，统一 Rounded + 语义命名 + `autoMirror` 标记），删 `material-icons-extended`；图片收成 `MikomiImageLoader` 加三个请求入口，`feature` 不再依赖 coil | 图标库 84 MB / 11106 类，实际只用 69 个图形，且同一语义混着三种粗细（`Search` 两份、`Star` 三份）；图片没有全局配置，8 处各拼 `ImageRequest`，`crossfade` 与 `memoryCacheKey` 的口径已经分叉（`RankAnimeCard` 开淡入、`HomeBanner` 没开） |
 
 ### 5.5 可访问性与对比度
 
@@ -363,6 +366,51 @@ token 表最怕的不是「值不好」，而是「没人知道它为什么是�
 - **主色（`primary`）当文字只用于大号或短词**：五套预设主色在白卡上只有 2.4~3.4:1，够 3:1（大文本 / 图标）但不够 4.5:1（正文）。正文里的强调不靠改色，靠字重与底色块。
 
 > 注：Compose **Styles API**（`androidx.compose.foundation.style.Style`）目前为实验性，**暂不纳入生产基线**。稳定后再评估自定义组件的样式迁移。
+
+### 5.6 图标：一套 path，语义命名
+
+**唯一来源是 `MikomiIcons`**（`core:designsystem` 的 `icon/MikomiIcons.kt`，当前 69 个）。调用点写 `MikomiIcons.Play`，不写 `Icons.Rounded.PlayArrow`。
+
+三条硬规则：
+
+1. **不引第三方图标库。** 上一版用的是 `material-icons-extended`：API jar **84 MB / 11106 个类**，而全仓实际只用 80 处调用、去重后 **69 个图形**。D8 在 debug 不裁剪，这 11106 个类每一次构建都要走一遍 dex，换来的是 69 个图标。现在这 69 个以 `ImageVector` 形式落在项目里，dex 里已经没有 `androidx/compose/material/icons` 这个包。
+2. **风格只有一套（Rounded），且由 `MikomiIcons` 决定。** 迁移前同一个图形混着三种粗细：`Search` 有 Outlined 和 Filled 两份、`Close` 有 Rounded 和 Filled、`Star` 有 Filled / Rounded / StarBorder 三份 —— 底栏与页面里「同一个意思的图标长得不一样」就是从这里来的。要换风格，改 `MikomiIcons` 一处。
+3. **RTL 用 `autoMirror = true` 表达，不在调用点挑 `AutoMirrored` 变体。** 返回、列表排序、播放列表这 6 个语义已经标好；调用点只认语义名。
+
+**自绘新图标时按这套规格画**，否则和新图标摆在一起会「一个粗一个细、一个偏左一个居中」：
+
+- viewport **24×24**，视觉主体落在 **20×20** 安全区内（四边留 2）；
+- 描边 **2dp**，圆头圆角（与 Material Symbols 基准一致）；
+- **path 里不写颜色**，`fill` 固定给 `SolidColor(Color.Black)`，实际颜色由 `Icon` 的 tint 决定 —— 这样才吃 `LocalContentColor`、夜间与禁用态能自动跟随；
+- 显示尺寸走 `MikomiSizes.IconMd`(24) 或 `IconSm`(18)，不要再添新档（§5.3）；
+- 需要多色或渐变（品牌标、插画）才落 `res/drawable`，走 §1.3 的 `ic_` 前缀。
+
+新增图标只有一个动作：往 `MikomiIcons` 加一个 `val`。不需要改任何调用点。
+
+### 5.7 图片：一个入口，一份缓存口径
+
+**唯一入口是 `MikomiImageLoader`**，在 `MikomiApp.onCreate` 里 `install(this)` 装到 Coil 单例上。
+
+- **必须在第一个图片请求之前装。** Coil 的单例一旦被读取就定型，之后的 `setSafe` 静默失效 —— 表现为「缓存上限没生效、UA 也没带上」，但一条日志都不报。
+- **缓存上限写死，不按百分比推。** 内存取可用内存的 20%，磁盘 256 MB。Coil 默认按设备比例算，低内存机上会退到极小（同一张封面反复解码），大内存机上又留一大块永不释放；写死绝对值让两种机器上的行为一致，也便于定位「这张图为什么重新下载」。
+- **图片用独立的 `OkHttpClient`。** 不是漏了「复用全局 client」：接口要长超时（弱网重传值得等），图片要短超时（10s / 15s，挂了就给占位块）；而且列表滚动时图片请求是接口的几十倍，共用会挤占接口的并发名额。这层取舍抄的是 Telegram —— 它的 `ImageLoader` 也是自己的连接池。
+
+请求一律走 `core:ui` 的三个入口，不要自己拼 `ImageRequest`：
+
+| 场景 | 用 |
+| --- | --- |
+| 一张图，只管显示 | `MikomiAsyncImage(url = ...)` |
+| 要自己画（模糊背景、遮罩、`drawWithContent`） | `rememberMikomiImagePainter(url = ...)`，返回 `Painter` |
+| 需要拿请求做别的事（预加载等） | `rememberCoverRequest(url = ...)` |
+
+三条口径因此只在一处定义：
+
+- **`memoryCacheKey` 固定为 url。** 各写一份时 key 计算路径会分叉，症状是「搜索完退回来，轮播显示的是搜索海报」。
+- **`crossfade` 由调用方显式给。** 懒列表里必须关（一屏十张同时淡入是明确的每帧混合开销）；轮播、详情这种一屏一张的可以开。
+- **浏览器 UA 只在需要时加**（`browserUserAgent = true`）：AniRpb 的 meituan 图床会拒绝非浏览器 UA。默认不加，因为很多 CDN 会按 UA 换编码格式。
+
+**`feature` 模块不依赖 coil。** `MikomiAsyncImage` 与 `rememberMikomiImagePainter` 的参数与返回值都不出现 coil 类型 —— 换图片库、加统一占位、改缓存策略时，改动范围停在 `core:ui`，不下发到 10 个 feature。
+
 
 ---
 
@@ -443,6 +491,8 @@ token 表最怕的不是「值不好」，而是「没人知道它为什么是�
 ### 7.5 依赖引入评估
 
 引入或升级前必须评估：维护状态、许可证、包体积、最低系统版本、隐私影响、安全风险、与现有依赖的冲突。**能写的自己写，不能写的才引**：这个项目的播放器、嗅探、插件解析都是自己实现的，多引一个库就意味着多一处版本约束。
+
+**第三方图标库一律不再引入**（§5.6）：`material-icons-extended` 用 84 MB / 11106 个类换 69 个实际用到的图形，dex 在 debug 不裁剪，每一版都要为没用的 11000 个类付构建时间。要新图标就按 §5.6 的规格加进 `MikomiIcons`。
 
 ### 7.6 构建与运行约定
 

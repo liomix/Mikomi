@@ -20,14 +20,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.model.TransitionStyle
+import com.liomix.mikomi.core.ui.image.rememberCoverRequest
 
 /**
  * 封面飞行（Flutter `Hero` 的等价实现）。
@@ -326,13 +325,8 @@ fun HeroFlightOverlay(
         controller.finish(flightId)
     }
 
-    val context = LocalContext.current
-    val request = remember(flight.url, context) {
-        ImageRequest.Builder(context)
-            .data(flight.url)
-            .memoryCacheKey(flight.url)
-            .build()
-    }
+    // 飞行途中不做淡入：起点图必须和列表里那一帧完全一致，否则起飞瞬间会闪一下。
+    val request = rememberCoverRequest(url = flight.url, crossfade = false)
 
     Box(
         modifier = modifier

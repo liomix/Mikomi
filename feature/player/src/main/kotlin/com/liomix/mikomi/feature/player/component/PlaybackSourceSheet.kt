@@ -29,9 +29,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -61,6 +58,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
@@ -481,7 +479,7 @@ private fun EntryRow(
         ) {
             when {
                 playing -> Icon(
-                    imageVector = Icons.Rounded.Check,
+                    imageVector = MikomiIcons.Check,
                     contentDescription = stringResource(R.string.player_source_playing),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(15.dp),
@@ -542,7 +540,7 @@ private fun EntryRow(
         }
         if (entry.source.isRetryable) {
             RowAction(
-                icon = Icons.Rounded.Refresh,
+                icon = MikomiIcons.Refresh,
                 contentDescription = stringResource(
                     R.string.player_source_retry_item,
                     line?.let { entry.source.lineLabel(it) } ?: entry.source.name,

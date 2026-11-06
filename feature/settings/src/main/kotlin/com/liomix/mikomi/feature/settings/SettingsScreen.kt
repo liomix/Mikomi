@@ -9,12 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.Extension
-import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.PlayCircleOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -26,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
@@ -65,7 +60,7 @@ fun SettingsScreen(
         SettingsCard {
             SettingsCardSection {
                 EntryRow(
-                    icon = Icons.Outlined.Palette,
+                    icon = MikomiIcons.Palette,
                     title = stringResource(R.string.settings_entry_theme),
                     description = stringResource(R.string.settings_entry_theme_desc),
                     onClick = onOpenTheme,
@@ -77,7 +72,7 @@ fun SettingsScreen(
             SettingsCardSection {
                 SettingsCardHeader(stringResource(R.string.settings_group_data_source))
                 EntryRow(
-                    icon = Icons.Outlined.Language,
+                    icon = MikomiIcons.Language,
                     title = stringResource(R.string.settings_entry_proxy),
                     description = stringResource(R.string.settings_entry_proxy_desc),
                     onClick = onOpenProxy,
@@ -85,7 +80,7 @@ fun SettingsScreen(
             }
             SettingsCardSection(dividerAbove = true) {
                 EntryRow(
-                    icon = Icons.Outlined.Extension,
+                    icon = MikomiIcons.Extension,
                     title = stringResource(R.string.settings_entry_plugins),
                     description = stringResource(R.string.settings_entry_plugins_desc),
                     onClick = onOpenPlugins,
@@ -97,7 +92,7 @@ fun SettingsScreen(
         SettingsCard {
             SettingsCardSection {
                 EntryRow(
-                    icon = Icons.Outlined.PlayCircleOutline,
+                    icon = MikomiIcons.PlayCircle,
                     title = stringResource(R.string.settings_entry_playback),
                     description = stringResource(R.string.settings_entry_playback_desc),
                     onClick = onOpenPlayback,
@@ -153,7 +148,7 @@ private fun EntryRow(
         }
         Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            imageVector = MikomiIcons.ChevronRight,
             contentDescription = null,
             tint = colors.onSurfaceVariant,
         )

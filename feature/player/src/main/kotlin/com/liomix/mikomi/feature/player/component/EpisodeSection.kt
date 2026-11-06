@@ -29,10 +29,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowUpward
-import androidx.compose.material.icons.rounded.UnfoldLess
-import androidx.compose.material.icons.rounded.UnfoldMore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -59,6 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
@@ -313,7 +310,7 @@ private fun EpisodeRail(
         horizontalAlignment = Alignment.End,
     ) {
         EpisodeRailButton(
-            icon = Icons.Rounded.ArrowUpward,
+            icon = MikomiIcons.ArrowUp,
             contentDescription = stringResource(R.string.player_episodes_back_to_top),
             visible = showBackToTop,
             primary = false,
@@ -321,7 +318,7 @@ private fun EpisodeRail(
         )
         if (expandable) {
             EpisodeRailButton(
-                icon = if (expanded) Icons.Rounded.UnfoldLess else Icons.Rounded.UnfoldMore,
+                icon = if (expanded) MikomiIcons.UnfoldLess else MikomiIcons.UnfoldMore,
                 contentDescription = stringResource(
                     if (expanded) R.string.player_episodes_collapse else R.string.player_episodes_expand,
                 ),
@@ -558,7 +555,7 @@ private fun SortButton(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = Icons.Rounded.ArrowUpward,
+                imageVector = MikomiIcons.ArrowUp,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier

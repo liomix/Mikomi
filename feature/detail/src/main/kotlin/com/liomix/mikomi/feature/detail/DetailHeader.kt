@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -37,20 +35,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
-import coil3.compose.AsyncImagePainter
-import coil3.compose.rememberAsyncImagePainter
-import coil3.request.ImageRequest
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
@@ -59,6 +54,8 @@ import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.business.heroTarget
+import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
+import com.liomix.mikomi.core.ui.image.rememberMikomiImagePainter
 import java.util.Locale
 
 /** 详情页封面圆角（飞行时会与列表卡的 8dp 之间插值）。 */
@@ -172,8 +169,8 @@ internal fun DetailHeader(
                 horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Room),
             ) {
                 // 左侧封面（飞行终点：与列表卡封面同一个 key，点进来时封面飞到这里）。
-                AsyncImage(
-                    model = anime.coverUrl,
+                MikomiAsyncImage(
+                    url = anime.coverUrl,
                     contentDescription = anime.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -343,19 +340,15 @@ internal fun HeaderEdgeBackdrop(
     }
 }
 
-/** 构建背景请求：显式 memoryCacheKey，与全站封面共用同一份缓存条目。 */
+/**
+ * 背景 painter。
+ *
+ * 大背景不淡入：它要的是「一进来就铺满」，淡入反而露出底下的页面。
+ * 与全站封面共用同一份缓存条目（memoryCacheKey 固定为 url）。
+ */
 @Composable
-private fun rememberBackdropPainter(model: Any?): AsyncImagePainter {
-    val context = LocalContext.current
-    // ImageRequest 不是 data class，每次重组新建都等于换一个 model，Coil 会重跑请求与解码。
-    val request = remember(model, context) {
-        ImageRequest.Builder(context)
-            .data(model)
-            .memoryCacheKey(model as? String)
-            .build()
-    }
-    return rememberAsyncImagePainter(model = request)
-}
+private fun rememberBackdropPainter(model: Any?): Painter =
+    rememberMikomiImagePainter(url = model as? String, crossfade = false)
 
 /** 右侧信息骨架屏：与信息块同构，详情加载前占位。 */
 @Composable
@@ -425,7 +418,7 @@ private fun RatingBlock(
         Spacer(modifier = Modifier.height(MikomiSpacing.Xs))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                imageVector = Icons.Filled.Star,
+                imageVector = MikomiIcons.Star,
                 contentDescription = null,
                 tint = MikomiTheme.colors.rating,
                 modifier = Modifier.size(24.dp),

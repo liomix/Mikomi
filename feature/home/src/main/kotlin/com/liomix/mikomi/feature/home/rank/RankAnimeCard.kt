@@ -24,16 +24,12 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.model.RankEntry
 import com.liomix.mikomi.core.designsystem.theme.MikomiShadowColor
@@ -41,6 +37,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.ui.component.base.ScrollingText
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
 
 /**
  * 排名卡片：封面铺底 + 名次 + 标题。
@@ -195,20 +192,12 @@ private fun CoverBackdrop(
     url: String,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
-    val request = remember(url, context) {
-        ImageRequest.Builder(context)
-            .data(url)
-            .crossfade(true)
-            .memoryCacheKey(url)
-            .build()
-    }
-
-    AsyncImage(
-        model = request,
+    MikomiAsyncImage(
+        url = url,
         contentDescription = null,
         contentScale = ContentScale.Crop,
         alignment = CoverCropAlignment,
+        crossfade = true,
         modifier = modifier,
     )
 }

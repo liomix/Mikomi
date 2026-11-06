@@ -26,21 +26,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.ContentPaste
-import androidx.compose.material.icons.rounded.DeleteOutline
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.EditNote
-import androidx.compose.material.icons.rounded.ErrorOutline
-import androidx.compose.material.icons.rounded.FileOpen
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.RadioButtonUnchecked
-import androidx.compose.material.icons.rounded.Science
-import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material.icons.rounded.TravelExplore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -89,6 +74,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
@@ -175,7 +161,7 @@ fun PlgTstScreen(
             actions = {
                 IconButton(onClick = { addSheetOpen = true }) {
                     Icon(
-                        imageVector = Icons.Rounded.Add,
+                        imageVector = MikomiIcons.Add,
                         contentDescription = stringResource(R.string.settings_plg_tst_add),
                     )
                 }
@@ -590,7 +576,7 @@ private fun PluginRow(
         Box {
             IconButton(onClick = { menuOpen = true }) {
                 Icon(
-                    imageVector = Icons.Rounded.MoreVert,
+                    imageVector = MikomiIcons.MoreVert,
                     contentDescription = stringResource(R.string.settings_plg_tst_more, plugin.name),
                     tint = colors.onSurfaceVariant,
                 )
@@ -598,19 +584,19 @@ private fun PluginRow(
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 PluginAction(
                     label = stringResource(R.string.settings_plg_tst_edit),
-                    icon = Icons.Rounded.Edit,
+                    icon = MikomiIcons.Edit,
                     onClick = onEdit,
                     close = { menuOpen = false },
                 )
                 PluginAction(
                     label = stringResource(R.string.settings_plg_tst_test),
-                    icon = Icons.Rounded.Science,
+                    icon = MikomiIcons.Science,
                     onClick = onTest,
                     close = { menuOpen = false },
                 )
                 PluginAction(
                     label = stringResource(R.string.settings_plg_tst_share),
-                    icon = Icons.Rounded.Share,
+                    icon = MikomiIcons.Share,
                     onClick = onShare,
                     close = { menuOpen = false },
                 )
@@ -620,7 +606,7 @@ private fun PluginRow(
                 )
                 PluginAction(
                     label = stringResource(R.string.settings_plg_tst_remove),
-                    icon = Icons.Rounded.DeleteOutline,
+                    icon = MikomiIcons.Delete,
                     tint = colors.error,
                     onClick = onRemove,
                     close = { menuOpen = false },
@@ -730,7 +716,7 @@ private fun RepoRow(
         }
         Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
         Icon(
-            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+            imageVector = MikomiIcons.ChevronRight,
             contentDescription = null,
             tint = colors.onSurfaceVariant,
         )
@@ -936,9 +922,9 @@ private fun StageRow(
 
             else -> Icon(
                 imageVector = when (result) {
-                    is VdoPlgStageResult.Passed -> Icons.Rounded.CheckCircle
-                    is VdoPlgStageResult.Failed -> Icons.Rounded.ErrorOutline
-                    else -> Icons.Rounded.RadioButtonUnchecked
+                    is VdoPlgStageResult.Passed -> MikomiIcons.CheckCircle
+                    is VdoPlgStageResult.Failed -> MikomiIcons.Error
+                    else -> MikomiIcons.RadioUnchecked
                 },
                 contentDescription = null,
                 tint = tint,
@@ -1228,19 +1214,19 @@ private enum class AddMethod(
 ) {
     FromCatalog(
         titleRes = R.string.settings_plg_tst_add_catalog,
-        icon = Icons.Rounded.TravelExplore,
+        icon = MikomiIcons.TravelExplore,
     ),
     FromClipboard(
         titleRes = R.string.settings_plg_tst_add_clipboard,
-        icon = Icons.Rounded.ContentPaste,
+        icon = MikomiIcons.ContentPaste,
     ),
     FromFile(
         titleRes = R.string.settings_plg_tst_add_file,
-        icon = Icons.Rounded.FileOpen,
+        icon = MikomiIcons.FileOpen,
     ),
     FromTemplate(
         titleRes = R.string.settings_plg_tst_add_create,
-        icon = Icons.Rounded.EditNote,
+        icon = MikomiIcons.EditNote,
     ),
 }
 

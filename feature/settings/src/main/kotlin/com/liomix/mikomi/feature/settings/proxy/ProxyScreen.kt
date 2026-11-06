@@ -15,9 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +38,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
@@ -170,7 +168,7 @@ private fun MirrorAddressCard(
                 },
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Rounded.Link,
+                        imageVector = MikomiIcons.Link,
                         contentDescription = null,
                     )
                 },
@@ -178,7 +176,7 @@ private fun MirrorAddressCard(
                     if (enabled && uiState.mirrorUrl.isNotEmpty()) {
                         IconButton(onClick = { onMirrorUrlChange("") }) {
                             Icon(
-                                imageVector = Icons.Rounded.Close,
+                                imageVector = MikomiIcons.Close,
                                 contentDescription = stringResource(
                                     R.string.settings_proxy_mirror_clear,
                                 ),

@@ -31,13 +31,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -78,6 +71,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
@@ -581,7 +575,7 @@ private fun ProfileTopBar(
                 .padding(end = MikomiSpacing.Xs, bottom = MikomiSpacing.Xs),
         ) {
             Icon(
-                imageVector = Icons.Outlined.Email,
+                imageVector = MikomiIcons.Email,
                 contentDescription = stringResource(R.string.profile_notifications_entry),
                 tint = lerp(palette.title, MikomiMedia.content, tintStep.value.coerceIn(0f, 1f)),
                 modifier = Modifier.size(22.dp),
@@ -827,21 +821,21 @@ private fun ActionCardsRow(
     ) {
         ActionCard(
             palette = palette,
-            icon = Icons.Outlined.Palette,
+            icon = MikomiIcons.Palette,
             label = stringResource(R.string.profile_theme_entry),
             onClick = onThemeClick,
             modifier = Modifier.weight(1f),
         )
         ActionCard(
             palette = palette,
-            icon = Icons.Filled.Edit,
+            icon = MikomiIcons.Edit,
             label = stringResource(R.string.profile_action_edit_info),
             onClick = onEditInfo,
             modifier = Modifier.weight(1f),
         )
         ActionCard(
             palette = palette,
-            icon = Icons.Filled.Settings,
+            icon = MikomiIcons.Settings,
             label = stringResource(R.string.profile_action_settings),
             onClick = onSettingsClick,
             modifier = Modifier.weight(1f),
@@ -921,12 +915,12 @@ private fun ProfileTabs(
             Tab(
                 index = 0,
                 text = stringResource(R.string.profile_tab_history),
-                icon = Icons.Outlined.History,
+                icon = MikomiIcons.History,
             )
             Tab(
                 index = 1,
                 text = stringResource(R.string.profile_tab_favorite),
-                icon = Icons.Filled.Bookmark,
+                icon = MikomiIcons.Bookmark,
             )
         }
     }

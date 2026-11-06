@@ -27,13 +27,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Whatshot
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
@@ -118,14 +112,14 @@ internal fun SearchBrowseSection(
         if (state.history.isNotEmpty()) {
             item(key = "history_header") {
                 SectionHeader(
-                    icon = Icons.Outlined.History,
+                    icon = MikomiIcons.History,
                     title = stringResource(R.string.search_history),
                     // 紧贴搜索框，减少顶部空白。
                     topPadding = 2.dp,
                     action = {
                         IconButton(onClick = onClearHistory) {
                             Icon(
-                                imageVector = Icons.Outlined.DeleteOutline,
+                                imageVector = MikomiIcons.Delete,
                                 contentDescription = stringResource(R.string.search_history_clear),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp),
@@ -147,7 +141,7 @@ internal fun SearchBrowseSection(
 
         item(key = "hot_header") {
             SectionHeader(
-                icon = Icons.Outlined.Whatshot,
+                icon = MikomiIcons.Whatshot,
                 title = stringResource(R.string.search_hot_ranking),
             )
         }
@@ -350,7 +344,7 @@ private fun ExpandTab(
             )
             Spacer(modifier = Modifier.width(MikomiSpacing.Xxs))
             Icon(
-                imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                imageVector = if (expanded) MikomiIcons.ExpandLess else MikomiIcons.ExpandMore,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(MikomiSizes.IconSm),
@@ -493,7 +487,7 @@ private fun HotMeta(
         if (item.score != null) {
             if (hasPrevious) MetaSeparator(color = metaColor)
             Icon(
-                imageVector = Icons.Filled.Star,
+                imageVector = MikomiIcons.Star,
                 contentDescription = null,
                 tint = MikomiTheme.colors.rating,
                 modifier = Modifier.size(11.dp),

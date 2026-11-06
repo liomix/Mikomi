@@ -29,14 +29,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.BrightnessLow
-import androidx.compose.material.icons.rounded.BrightnessMedium
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Speed
-import androidx.compose.material.icons.rounded.VolumeOff
-import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,6 +52,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
@@ -456,15 +449,15 @@ private fun PlayerGestureHudView(
         // 进度用时间码，不用图标。
         is PlayerGestureHud.Seek -> null
         is PlayerGestureHud.Volume ->
-            if (hud.fraction <= 0f) Icons.Rounded.VolumeOff else Icons.Rounded.VolumeUp
+            if (hud.fraction <= 0f) MikomiIcons.VolumeOff else MikomiIcons.VolumeUp
         is PlayerGestureHud.Brightness ->
             if (hud.fraction <= BRIGHTNESS_LOW_FRACTION) {
-                Icons.Rounded.BrightnessLow
+                MikomiIcons.BrightnessLow
             } else {
-                Icons.Rounded.BrightnessMedium
+                MikomiIcons.BrightnessMedium
             }
-        is PlayerGestureHud.Speed -> Icons.Rounded.Speed
-        is PlayerGestureHud.Toggle -> if (hud.playing) Icons.Rounded.PlayArrow else Icons.Rounded.Pause
+        is PlayerGestureHud.Speed -> MikomiIcons.Speed
+        is PlayerGestureHud.Toggle -> if (hud.playing) MikomiIcons.Play else MikomiIcons.Pause
     }
     val fraction: Float? = when (hud) {
         is PlayerGestureHud.Volume -> hud.fraction

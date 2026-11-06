@@ -10,9 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTagHue
@@ -65,7 +63,7 @@ private fun ButtonGallery() {
             PressButton(
                 text = "播放",
                 onClick = {},
-                leadingIcon = Icons.Filled.PlayArrow,
+                leadingIcon = MikomiIcons.Play,
             )
         }
 
@@ -75,19 +73,19 @@ private fun ButtonGallery() {
                 text = "追番",
                 onClick = {},
                 style = PressButtonStyle.Elevated,
-                leadingIcon = Icons.Filled.Bookmark,
+                leadingIcon = MikomiIcons.Bookmark,
             )
         }
 
         SectionLabel("PressIconButton（圆形图标）")
         Row(horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Md)) {
             PressIconButton(
-                icon = Icons.Filled.Bookmark,
+                icon = MikomiIcons.Bookmark,
                 contentDescription = "收藏",
                 onClick = {},
             )
             PressIconButton(
-                icon = Icons.Filled.Bookmark,
+                icon = MikomiIcons.Bookmark,
                 contentDescription = "收藏",
                 onClick = {},
                 enabled = false,

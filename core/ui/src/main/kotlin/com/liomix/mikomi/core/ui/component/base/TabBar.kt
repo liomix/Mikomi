@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.lerp
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
@@ -211,8 +212,8 @@ private val LocalTabBarVisuals = compositionLocalOf {
  *
  * ```
  * TabBar(selectedIndex = selected, onSelect = { selected = it }) {
- *     Tab(index = 0, text = "历史", icon = Icons.Outlined.History)
- *     Tab(index = 1, text = "收藏", icon = Icons.Filled.Bookmark)
+ *     Tab(index = 0, text = "历史", icon = MikomiIcons.History)
+ *     Tab(index = 1, text = "收藏", icon = MikomiIcons.Bookmark)
  * }
  * ```
  *

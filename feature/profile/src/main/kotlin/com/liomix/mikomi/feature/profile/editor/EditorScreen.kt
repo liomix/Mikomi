@@ -24,10 +24,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -51,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
@@ -134,7 +131,7 @@ fun EditorScreen(
                     enabled = canSave,
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.Check,
+                        imageVector = MikomiIcons.Check,
                         contentDescription = stringResource(R.string.profile_editor_save),
                         tint = if (canSave) {
                             colors.primary
@@ -245,7 +242,7 @@ private fun AvatarSection(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Rounded.PhotoCamera,
+                        imageVector = MikomiIcons.PhotoCamera,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
                     )
@@ -311,7 +308,7 @@ private fun ValueRow(
             modifier = Modifier.weight(1f),
         )
         Icon(
-            imageVector = Icons.Rounded.ChevronRight,
+            imageVector = MikomiIcons.ChevronRight,
             contentDescription = null,
             tint = colors.onSurfaceVariant.copy(alpha = 0.7f),
             modifier = Modifier.size(20.dp),

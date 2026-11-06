@@ -11,10 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Category
-import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -26,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 
@@ -39,17 +36,17 @@ enum class HomeQuickAction {
 private val HOME_ACTIONS = listOf(
     ActionItem(
         HomeQuickAction.SCHEDULE,
-        Icons.Outlined.CalendarMonth,
+        MikomiIcons.Calendar,
         R.string.home_action_schedule,
     ),
     ActionItem(
         HomeQuickAction.RANK,
-        Icons.Outlined.EmojiEvents,
+        MikomiIcons.Trophy,
         R.string.home_action_rank,
     ),
     ActionItem(
         HomeQuickAction.CATEGORY,
-        Icons.Outlined.Category,
+        MikomiIcons.Category,
         R.string.home_action_category,
     ),
 )

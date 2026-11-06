@@ -16,9 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -34,13 +31,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.liomix.mikomi.core.common.util.formatRelativeTime
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.TeasingComment
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.base.SkeletonShimmer
+import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
 
 /** 吐槽头像直径（对齐 Dart 版 40）。 */
 private val TEASING_AVATAR_SIZE = 40.dp
@@ -75,7 +73,7 @@ internal fun TeasingTab(
         TeasingUiState.Loading -> TeasingSkeletonList(modifier = modifier)
 
         TeasingUiState.Error -> TeasingStatusBlock(
-            icon = Icons.Outlined.ChatBubbleOutline,
+            icon = MikomiIcons.Comment,
             message = stringResource(R.string.detail_teasing_load_failed),
             actionLabel = stringResource(R.string.detail_retry),
             onAction = onRetry,
@@ -85,7 +83,7 @@ internal fun TeasingTab(
         is TeasingUiState.Loaded -> {
             if (state.comments.isEmpty()) {
                 TeasingStatusBlock(
-                    icon = Icons.Outlined.ChatBubbleOutline,
+                    icon = MikomiIcons.Comment,
                     message = stringResource(R.string.detail_no_teasing),
                     modifier = modifier,
                 )
@@ -169,7 +167,7 @@ private fun TeasingAvatar(
     ) {
         if (url.isNullOrBlank()) {
             Icon(
-                imageVector = Icons.Outlined.Person,
+                imageVector = MikomiIcons.Person,
                 contentDescription = name,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
@@ -177,8 +175,8 @@ private fun TeasingAvatar(
                     .fillMaxSize(),
             )
         } else {
-            AsyncImage(
-                model = url,
+            MikomiAsyncImage(
+                url = url,
                 contentDescription = name,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

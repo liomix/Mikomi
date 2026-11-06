@@ -21,16 +21,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material.icons.filled.Forum
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.Forum
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Map
-import androidx.compose.material.icons.outlined.Person
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -51,6 +42,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.liomix.mikomi.R
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.animationsEnabled
 import com.liomix.mikomi.core.model.PageTransitionStyle
@@ -107,26 +99,26 @@ fun MikomiNavHost(
         listOf(
             MikomiNavItem(
                 key = HomeDestination,
-                icon = Icons.Outlined.Home,
-                selectedIcon = Icons.Filled.Home,
+                icon = MikomiIcons.Home,
+                selectedIcon = MikomiIcons.Home,
                 label = homeLabel,
             ),
             MikomiNavItem(
                 key = AniMapDestination,
-                icon = Icons.Outlined.Map,
-                selectedIcon = Icons.Filled.Map,
+                icon = MikomiIcons.Map,
+                selectedIcon = MikomiIcons.Map,
                 label = aniMapLabel,
             ),
             MikomiNavItem(
                 key = CommunityDestination,
-                icon = Icons.Outlined.Forum,
-                selectedIcon = Icons.Filled.Forum,
+                icon = MikomiIcons.Forum,
+                selectedIcon = MikomiIcons.Forum,
                 label = communityLabel,
             ),
             MikomiNavItem(
                 key = ProfileDestination,
-                icon = Icons.Outlined.Person,
-                selectedIcon = Icons.Filled.Person,
+                icon = MikomiIcons.Person,
+                selectedIcon = MikomiIcons.Person,
                 label = profileLabel,
             ),
         )

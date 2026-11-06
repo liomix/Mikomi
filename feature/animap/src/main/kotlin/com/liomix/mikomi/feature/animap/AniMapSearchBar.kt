@@ -21,10 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.ui.component.business.AnimeCoverImage
 
 /** 搜索条的固定高度（收起态的胶囊与展开态的输入框同一高度，切换时不跳动）。 */
@@ -73,7 +70,7 @@ private fun CollapsedBar(onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(
-            imageVector = Icons.Filled.Search,
+            imageVector = MikomiIcons.Search,
             contentDescription = null,
             tint = SearchIconColor,
             modifier = Modifier.size(18.dp),
@@ -114,7 +111,7 @@ private fun ExpandedBar(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(
-            imageVector = Icons.Filled.Search,
+            imageVector = MikomiIcons.Search,
             contentDescription = null,
             tint = SearchIconColor,
             modifier = Modifier.size(18.dp),
@@ -144,7 +141,7 @@ private fun ExpandedBar(
         }
         val hasQuery = query.isNotEmpty()
         Icon(
-            imageVector = Icons.Filled.Close,
+            imageVector = MikomiIcons.Close,
             contentDescription = stringResource(
                 if (hasQuery) R.string.animap_search_clear else R.string.animap_search_close,
             ),
@@ -200,7 +197,7 @@ private fun SuggestionRow(hit: AniMapHit, onClick: () -> Unit) {
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Place,
+                    imageVector = MikomiIcons.Place,
                     contentDescription = null,
                     tint = SearchIconColor,
                     modifier = Modifier.size(18.dp),

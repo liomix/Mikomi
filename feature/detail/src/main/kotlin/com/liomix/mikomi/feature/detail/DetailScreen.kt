@@ -28,10 +28,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -61,6 +57,7 @@ import androidx.core.view.WindowCompat
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
@@ -427,7 +424,7 @@ private fun BottomActions(
         PressButton(
             text = stringResource(R.string.detail_follow),
             onClick = onFollowClick,
-            leadingIcon = Icons.Filled.PlayArrow,
+            leadingIcon = MikomiIcons.Play,
             style = PressButtonStyle.Elevated,
         )
     }
@@ -489,7 +486,7 @@ private fun FavoriteButton(
         PressIconButton(
             // 图标全程不撤：动画后段粒子已经散得差不多，撤掉图标会留下半秒空窗，
             // 看着像按钮没响应；叠在一起反而像「星星被点亮」。
-            icon = if (isFavorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+            icon = if (isFavorite) MikomiIcons.Star else MikomiIcons.StarBorder,
             contentDescription = stringResource(contentDescriptionRes),
             onClick = onClick,
             size = FAVORITE_BUTTON_SIZE,

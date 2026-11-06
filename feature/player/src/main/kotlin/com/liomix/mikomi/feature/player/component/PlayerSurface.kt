@@ -28,21 +28,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.ErrorOutline
-import androidx.compose.material.icons.rounded.FitScreen
-import androidx.compose.material.icons.rounded.Fullscreen
-import androidx.compose.material.icons.rounded.FullscreenExit
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.LockOpen
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -87,6 +72,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.spec.MikomiPlayerSpec
@@ -552,7 +538,7 @@ private fun PlayerStatusOverlay(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.ErrorOutline,
+                    imageVector = MikomiIcons.Error,
                     contentDescription = null,
                     tint = MikomiMedia.contentSecondary,
                     modifier = Modifier.size(24.dp),
@@ -664,7 +650,7 @@ private fun PlayerLockButton(
         containerColor = if (locked) MikomiMedia.surfaceProminent else ControlContainer,
     ) {
         Icon(
-            imageVector = if (locked) Icons.Rounded.Lock else Icons.Rounded.LockOpen,
+            imageVector = if (locked) MikomiIcons.Lock else MikomiIcons.LockOpen,
             contentDescription = stringResource(
                 if (locked) R.string.player_unlock else R.string.player_lock,
             ),
@@ -731,7 +717,7 @@ private fun PlayerTopOverlay(
     ) {
         IconButton(onClick = onBackClick, enabled = enabled) {
             Icon(
-                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                imageVector = MikomiIcons.Back,
                 contentDescription = stringResource(R.string.player_back),
                 tint = MikomiMedia.content,
             )
@@ -771,14 +757,14 @@ private fun PlayerTopOverlay(
         if (webMode) {
             IconButton(onClick = onEpisodesClick, enabled = enabled) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.PlaylistPlay,
+                    imageVector = MikomiIcons.Playlist,
                     contentDescription = stringResource(R.string.player_episode_picker),
                     tint = MikomiMedia.content,
                 )
             }
             IconButton(onClick = onToggleFullscreen, enabled = enabled) {
                 Icon(
-                    imageVector = if (fullscreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
+                    imageVector = if (fullscreen) MikomiIcons.FullscreenExit else MikomiIcons.Fullscreen,
                     contentDescription = stringResource(
                         if (fullscreen) R.string.player_exit_fullscreen else R.string.player_fullscreen,
                     ),
@@ -788,7 +774,7 @@ private fun PlayerTopOverlay(
         } else {
             IconButton(onClick = onPlayerSettingsClick, enabled = enabled) {
                 Icon(
-                    imageVector = Icons.Rounded.MoreVert,
+                    imageVector = MikomiIcons.MoreVert,
                     contentDescription = stringResource(R.string.player_settings),
                     tint = MikomiMedia.content,
                 )
@@ -923,7 +909,7 @@ private fun CompactControls(
         )
         TimeText(playback = playback, isDuration = true, style = timeStyle)
         ControlIconButton(
-            imageVector = Icons.Rounded.Fullscreen,
+            imageVector = MikomiIcons.Fullscreen,
             contentDescription = stringResource(R.string.player_fullscreen),
             enabled = enabled,
             onClick = onToggleFullscreen,
@@ -1003,7 +989,7 @@ private fun FullscreenControls(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 ControlIconButton(
-                    imageVector = Icons.Rounded.SkipPrevious,
+                    imageVector = MikomiIcons.SkipPrevious,
                     contentDescription = stringResource(R.string.player_previous_episode),
                     enabled = enabled && canPlayPrevious,
                     onClick = onPreviousEpisode,
@@ -1012,7 +998,7 @@ private fun FullscreenControls(
                 PlayPauseButton(playback = playback, enabled = enabled)
                 ControlGapSpacer()
                 ControlIconButton(
-                    imageVector = Icons.Rounded.SkipNext,
+                    imageVector = MikomiIcons.SkipNext,
                     contentDescription = stringResource(R.string.player_next_episode),
                     enabled = enabled && canPlayNext,
                     onClick = onNextEpisode,
@@ -1058,7 +1044,7 @@ private fun FullscreenControls(
                     )
                     ControlGapSpacer()
                     ControlIconButton(
-                        imageVector = Icons.AutoMirrored.Rounded.PlaylistPlay,
+                        imageVector = MikomiIcons.Playlist,
                         contentDescription = stringResource(R.string.player_episode_picker),
                         enabled = enabled,
                         onClick = onEpisodesClick,
@@ -1067,7 +1053,7 @@ private fun FullscreenControls(
 
                 ControlGapSpacer()
                 ControlIconButton(
-                    imageVector = Icons.Rounded.FullscreenExit,
+                    imageVector = MikomiIcons.FullscreenExit,
                     contentDescription = stringResource(R.string.player_exit_fullscreen),
                     enabled = enabled,
                     onClick = onToggleFullscreen,
@@ -1183,7 +1169,7 @@ private fun PlayPauseButton(
         containerColor = containerColor,
     ) {
         Icon(
-            imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+            imageVector = if (isPlaying) MikomiIcons.Pause else MikomiIcons.Play,
             contentDescription = stringResource(
                 if (isPlaying) R.string.player_pause else R.string.player_play,
             ),
@@ -1238,7 +1224,7 @@ private fun SpeedChip(
                     trailingIcon = {
                         if (option == speed) {
                             Icon(
-                                imageVector = Icons.Rounded.Check,
+                                imageVector = MikomiIcons.Check,
                                 contentDescription = stringResource(R.string.player_speed_current),
                             )
                         }
@@ -1272,7 +1258,7 @@ private fun VideoScaleMenu(
             modifier = Modifier.size(MikomiPlayerSpec.ControlSize),
         ) {
             Icon(
-                imageVector = Icons.Rounded.FitScreen,
+                imageVector = MikomiIcons.FitScreen,
                 contentDescription = stringResource(R.string.player_scale_current, currentLabel),
                 tint = MikomiMedia.content,
                 modifier = Modifier.size(MikomiPlayerSpec.ControlIconSize),
@@ -1290,7 +1276,7 @@ private fun VideoScaleMenu(
                     trailingIcon = {
                         if (option == current) {
                             Icon(
-                                imageVector = Icons.Rounded.Check,
+                                imageVector = MikomiIcons.Check,
                                 contentDescription = stringResource(R.string.player_scale_current, currentLabel),
                             )
                         }

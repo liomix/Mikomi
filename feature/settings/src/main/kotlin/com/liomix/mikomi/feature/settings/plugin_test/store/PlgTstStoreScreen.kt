@@ -20,17 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Sort
-import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.Extension
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.SearchOff
-import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -65,6 +54,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
@@ -150,7 +140,7 @@ fun PlgTstStoreScreen(
                 SortAction(current = uiState.sort, onSelect = onSortChange)
                 IconButton(onClick = onRefresh, enabled = !uiState.loading) {
                     Icon(
-                        imageVector = Icons.Rounded.Refresh,
+                        imageVector = MikomiIcons.Refresh,
                         contentDescription = stringResource(R.string.settings_store_refresh),
                     )
                 }
@@ -182,7 +172,7 @@ fun PlgTstStoreScreen(
                     uiState.isFirstLoad -> StoreSkeleton()
 
                     error != null && !uiState.hasContent -> StoreStateView(
-                        icon = Icons.Outlined.CloudOff,
+                        icon = MikomiIcons.CloudOff,
                         title = stringResource(R.string.settings_store_error_title),
                         description = stringResource(R.string.settings_store_error_desc, error),
                         action = {
@@ -193,13 +183,13 @@ fun PlgTstStoreScreen(
                     )
 
                     !uiState.hasContent -> StoreStateView(
-                        icon = Icons.Outlined.Extension,
+                        icon = MikomiIcons.Extension,
                         title = stringResource(R.string.settings_store_empty_title),
                         description = stringResource(R.string.settings_store_empty_desc),
                     )
 
                     visibleItems.isEmpty() -> StoreStateView(
-                        icon = Icons.Rounded.SearchOff,
+                        icon = MikomiIcons.SearchOff,
                         title = stringResource(R.string.settings_store_no_match_title),
                         action = {
                             TextButton(
@@ -266,13 +256,13 @@ private fun SearchField(
             .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Xs),
         placeholder = { Text(stringResource(R.string.settings_store_search_hint)) },
         leadingIcon = {
-            Icon(imageVector = Icons.Rounded.Search, contentDescription = null)
+            Icon(imageVector = MikomiIcons.Search, contentDescription = null)
         },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
                     Icon(
-                        imageVector = Icons.Rounded.Close,
+                        imageVector = MikomiIcons.Close,
                         contentDescription = stringResource(R.string.settings_store_search_clear),
                     )
                 }
@@ -324,7 +314,7 @@ private fun SortAction(
     Box {
         IconButton(onClick = { expanded = true }) {
             Icon(
-                imageVector = Icons.AutoMirrored.Rounded.Sort,
+                imageVector = MikomiIcons.Sort,
                 contentDescription = stringResource(R.string.settings_store_sort),
             )
         }
@@ -339,7 +329,7 @@ private fun SortAction(
                     trailingIcon = {
                         if (sort == current) {
                             Icon(
-                                imageVector = Icons.Rounded.Check,
+                                imageVector = MikomiIcons.Check,
                                 contentDescription = stringResource(R.string.settings_store_sort),
                             )
                         }
@@ -449,7 +439,7 @@ private fun StatusTile(status: PlgTstStoreStatus) {
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
-                imageVector = if (installed) Icons.Rounded.Check else Icons.Outlined.Extension,
+                imageVector = if (installed) MikomiIcons.Check else MikomiIcons.Extension,
                 contentDescription = null,
                 modifier = Modifier.size(22.dp),
             )
@@ -496,7 +486,7 @@ private fun StoreAction(
 
         status == PlgTstStoreStatus.Installed -> Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                imageVector = Icons.Rounded.Check,
+                imageVector = MikomiIcons.Check,
                 contentDescription = null,
                 tint = colors.onSurfaceVariant,
                 modifier = Modifier.size(16.dp),
@@ -515,7 +505,7 @@ private fun StoreAction(
             modifier = Modifier.height(40.dp),
         ) {
             Icon(
-                imageVector = if (status == PlgTstStoreStatus.Update) Icons.Rounded.Sync else Icons.Rounded.Add,
+                imageVector = if (status == PlgTstStoreStatus.Update) MikomiIcons.Sync else MikomiIcons.Add,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
             )

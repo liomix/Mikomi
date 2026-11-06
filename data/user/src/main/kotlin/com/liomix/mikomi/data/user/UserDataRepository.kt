@@ -17,6 +17,7 @@ interface UserDataRepository {
     suspend fun addFavorite(animeId: String)
     suspend fun removeFavorite(animeId: String)
     suspend fun saveProgress(animeId: String, episodeId: String, positionMs: Long, durationMs: Long)
+    /** 设置日 / 夜：`light` / `dark`（`system` 为默认值，仅在用户从未拨过开关时生效）。 */
     suspend fun setTheme(theme: String)
 
     /** 设置主题配色预设 id（见 ThemePalette）。 */

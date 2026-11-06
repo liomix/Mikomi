@@ -22,16 +22,12 @@ fun ThemeRoute(
     modifier: Modifier = Modifier,
     viewModel: ThemeViewModel = hiltViewModel(),
 ) {
-    val colorSchemeId by viewModel.colorSchemeId.collectAsStateWithLifecycle()
-    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
-    val appIconId by viewModel.appIconId.collectAsStateWithLifecycle()
-    val transitionStyleId by viewModel.transitionStyleId.collectAsStateWithLifecycle()
-    val systemInDarkTheme = isSystemInDarkTheme()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // system 模式下开关状态跟随系统，一旦拨动即固化为 light / dark。
-    val isDarkMode = when (themeMode) {
+    val isDarkMode = when (uiState.theme) {
         "dark" -> true
         "light" -> false
-        else -> systemInDarkTheme
+        else -> isSystemInDarkTheme()
     }
 
     // 提示弹窗：文案在 UI 层解析；图标由 ViewModel 给出（切换后的无底色图标）。
@@ -57,10 +53,10 @@ fun ThemeRoute(
     }
 
     ThemeScreen(
-        colorSchemeId = colorSchemeId,
+        colorSchemeId = uiState.colorSchemeId,
         isDarkMode = isDarkMode,
-        appIconId = appIconId,
-        transitionStyleId = transitionStyleId,
+        appIconId = uiState.appIconId,
+        transitionStyleId = uiState.transitionStyleId,
         toast = toast,
         onSelectColorScheme = viewModel::selectColorScheme,
         onSelectAppIcon = viewModel::selectAppIcon,

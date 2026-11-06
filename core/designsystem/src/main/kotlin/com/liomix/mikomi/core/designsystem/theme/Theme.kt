@@ -13,8 +13,6 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.luminance
-import java.util.concurrent.ConcurrentHashMap
 
 /*
  * ---- 基准方案 ----
@@ -33,24 +31,58 @@ import java.util.concurrent.ConcurrentHashMap
 private val BaseLightColorScheme = lightColorScheme()
 private val BaseDarkColorScheme = darkColorScheme()
 
-/** 第二强调色：中性灰。不进任何主色作用域，只用来区分层级。 */
-private val SecondaryDay = Color(0xFF5C5C60)
-private val SecondaryNight = Color(0xFFC8C8CC)
+/** 预设配色下 primary 上的前景色：四种预设主色都偏亮，统一用黑字以满足 4.5:1 对比度。 */
+private val PaletteOnPrimary = Color(0xFF000000)
 
-/** 第三强调色：比 secondary 更淡的中性，仅用于「第三层提示」。 */
-private val TertiaryDay = Color(0xFF76767A)
-private val TertiaryNight = Color(0xFF9A9A9F)
+/**
+ * 与配色无关、只随日 / 夜翻转的中性色。
+ *
+ * 这些槽位以前是 8 个散落的 `if (darkTheme) X else Y`，读的时候得先在两行里配对才能知道
+ * 「夜间这一档是什么」。收成两份实例后，日 / 夜的差异一眼可见，也只有一个地方会写错。
+ *
+ * 为什么不是「一套色换明度」：M3 的 `onSecondary` / `onTertiary` 在日间要白字、夜间要深字，
+ * 两者不是同一条色阶上的两个点，靠插值算不出来。
+ */
+private class ModeNeutrals(
+    /** 第二强调色：中性灰，不进任何主色作用域，只用来区分层级。 */
+    val secondary: Color,
+    val onSecondary: Color,
+    /** 第三强调色：比 secondary 更淡的中性，仅用于「第三层提示」。 */
+    val tertiary: Color,
+    val onTertiary: Color,
+    /** 中性容器：FilterChip 未选中底、分段控件底。 */
+    val tertiaryContainer: Color,
+    val onTertiaryContainer: Color,
+    /** 反色面：Snackbar 一类「浮在页面之上的深色条」用它。 */
+    val inverseSurface: Color,
+    val inverseOnSurface: Color,
+)
 
-/** 中性容器：FilterChip 未选中底、分段控件底。 */
-private val TertiaryContainerDay = Color(0xFFE4E4E7)
-private val TertiaryContainerNight = Color(0xFF303035)
-
-/** 中性容器上的前景。 */
+/** 中性容器上的前景（两种模式共用同一个近黑 / 近白）。 */
 private val OnNeutralDay = Color(0xFF1A1A1C)
 private val OnNeutralNight = Color(0xFFEDEDF0)
 
-/** 预设配色下 primary 上的前景色：四种预设主色都偏亮，统一用黑字以满足 4.5:1 对比度。 */
-private val PaletteOnPrimary = Color(0xFF000000)
+private val DayNeutrals = ModeNeutrals(
+    secondary = Color(0xFF5C5C60),
+    onSecondary = Color(0xFFFFFFFF),
+    tertiary = Color(0xFF76767A),
+    onTertiary = Color(0xFFFFFFFF),
+    tertiaryContainer = Color(0xFFE4E4E7),
+    onTertiaryContainer = OnNeutralDay,
+    inverseSurface = Color(0xFF2E2E32),
+    inverseOnSurface = Color(0xFFF5F5F7),
+)
+
+private val NightNeutrals = ModeNeutrals(
+    secondary = Color(0xFFC8C8CC),
+    onSecondary = OnNeutralDay,
+    tertiary = Color(0xFF9A9A9F),
+    onTertiary = OnNeutralDay,
+    tertiaryContainer = Color(0xFF303035),
+    onTertiaryContainer = OnNeutralNight,
+    inverseSurface = Color(0xFFEDEDF0),
+    inverseOnSurface = OnNeutralDay,
+)
 
 /** 夜间背景：纯黑。 */
 private val NightBackground = Color(0xFF000000)
@@ -141,8 +173,9 @@ fun MikomiTheme(
     colorSchemeId: String = ThemePalette.Default.id,
     content: @Composable () -> Unit,
 ) {
-    val palette = ThemePalette.fromId(colorSchemeId)
-    // 按（模式 + 配色）取缓存：切日夜时这里是一次 Map 命中，不再重算方案。
+    // 配色 id 只在设置页变化，没必要每次重组都走一遍 fromId 的字符串比较。
+    val palette = remember(colorSchemeId) { ThemePalette.fromId(colorSchemeId) }
+    // 按（模式 + 配色）取缓存：切日夜时这里是一次数组下标，不再重算方案。
     val theme = remember(darkTheme, palette) { resolveTheme(darkTheme, palette) }
     // 按压层：中性墨色 + Telegram 的 9.8%，理由见 `Indication.kt`。
     val rippleColor = remember(theme) {
@@ -209,31 +242,37 @@ private class ResolvedTheme(
 )
 
 /**
- * 已解析方案的缓存，键是「模式 + 配色 id」。
+ * 已解析方案的缓存，槽位 = `palette.ordinal * 2 + (深色 ? 1 : 0)`。
  *
  * 一个方案要付三笔账：`darkColorScheme()` / `lightColorScheme()` 的首次类初始化、夜间主色为
  * 凑对比度做的多次 `lerp` + `luminance` 循环、以及三次 `ColorScheme.copy`。
  * 单看都是微秒级，但它们全落在「点下日夜开关」那一帧上，冷启动后第一次切换就会被感知成顿挫。
  * 缓存之后同一套方案只算一次，App 启动时再用 [warmUpColorSchemes] 把账提前付掉。
+ *
+ * 用定长数组而不是 `Map<String, …>`：方案数是编译期已知的（5 色 × 2 模式），
+ * 键只是一对下标，没必要为它造一个 key 类再算字符串哈希 —— 那笔开销正好也在切换那一帧上。
+ *
+ * 线程安全：写入的是不可变对象（字段全是 `val`），并发重复构建同一个槽位最多多算一次、
+ * 结果等价；读者要么看到 null 自己去建，要么看到一套完整的方案，不会看到半成品。
  */
-private val ResolvedThemes = ConcurrentHashMap<SchemeKey, ResolvedTheme>()
-
-private data class SchemeKey(val darkTheme: Boolean, val colorSchemeId: String)
+private val ResolvedThemes = arrayOfNulls<ResolvedTheme>(ThemePalette.entries.size * 2)
 
 /**
  * 取（必要时构建）一套可直接交给 `MaterialTheme` 的完整主题。
  *
  * 纯函数，不依赖 Compose 运行时，可以从任意线程调用 —— 预热正是跑在后台线程上的。
- * 结果不可变，并发重复构建同一个 key 只会多算一次，不会写坏缓存。
  */
-private fun resolveTheme(darkTheme: Boolean, palette: ThemePalette): ResolvedTheme =
-    ResolvedThemes.getOrPut(SchemeKey(darkTheme, palette.id)) {
-        val colorScheme = buildColorScheme(darkTheme, palette)
-        ResolvedTheme(
-            colorScheme = colorScheme,
-            colors = resolveMikomiColors(colorScheme, dark = darkTheme),
-        )
-    }
+private fun resolveTheme(darkTheme: Boolean, palette: ThemePalette): ResolvedTheme {
+    val slot = palette.ordinal * 2 + if (darkTheme) 1 else 0
+    ResolvedThemes[slot]?.let { return it }
+    val colorScheme = buildColorScheme(darkTheme, palette)
+    val resolved = ResolvedTheme(
+        colorScheme = colorScheme,
+        colors = resolveMikomiColors(colorScheme, dark = darkTheme),
+    )
+    ResolvedThemes[slot] = resolved
+    return resolved
+}
 
 /**
  * 预热所有配色的日 / 夜两套方案。
@@ -251,42 +290,32 @@ fun warmUpColorSchemes() {
 /** 真正的方案构建：主色按模式改写，中性色与表面层级按模式锁定。 */
 private fun buildColorScheme(darkTheme: Boolean, palette: ThemePalette): ColorScheme {
     // 所有配色（含默认蓝色）都用预设主色覆盖基础方案，其余语义色保持不变。
-    // 主色在日 / 夜保持同一色值并把夜间版本自动提亮到可读对比度，
-    // 只有容器色按模式区分，避免深色界面出现大块亮色。
+    // 主色在日 / 夜保持同一色值，夜间版本自动提亮到可读对比度；
+    // 容器色与中性色按模式区分，避免深色界面出现大块亮色。
+    val neutrals = if (darkTheme) NightNeutrals else DayNeutrals
+    // 容器在两种模式下都取「当前模式的主色容器」：选中态因此始终和主色同族。
+    val primaryContainer = if (darkTheme) palette.darkPrimaryContainer else palette.lightPrimaryContainer
+    val onPrimaryContainer =
+        if (darkTheme) palette.darkOnPrimaryContainer else palette.lightOnPrimaryContainer
+
     val colorScheme = (if (darkTheme) BaseDarkColorScheme else BaseLightColorScheme).copy(
         primary = if (darkTheme) palette.lightPrimary.forNight() else palette.lightPrimary,
         onPrimary = PaletteOnPrimary,
-        primaryContainer = if (darkTheme) {
-            palette.darkPrimaryContainer
-        } else {
-            palette.lightPrimaryContainer
-        },
-        onPrimaryContainer = if (darkTheme) {
-            palette.darkOnPrimaryContainer
-        } else {
-            palette.lightOnPrimaryContainer
-        },
+        primaryContainer = primaryContainer,
+        onPrimaryContainer = onPrimaryContainer,
         // 次要色与容器：容器一律取主色容器，让「选中态」在整套主题里长得一致；
         // 纯色（secondary / tertiary）取中性，避免出现第二个强调色。
-        secondary = if (darkTheme) SecondaryNight else SecondaryDay,
-        onSecondary = if (darkTheme) OnNeutralDay else Color.White,
-        secondaryContainer = if (darkTheme) {
-            palette.darkPrimaryContainer
-        } else {
-            palette.lightPrimaryContainer
-        },
-        onSecondaryContainer = if (darkTheme) {
-            palette.darkOnPrimaryContainer
-        } else {
-            palette.lightOnPrimaryContainer
-        },
-        tertiary = if (darkTheme) TertiaryNight else TertiaryDay,
-        onTertiary = if (darkTheme) OnNeutralDay else Color.White,
-        tertiaryContainer = if (darkTheme) TertiaryContainerNight else TertiaryContainerDay,
-        onTertiaryContainer = if (darkTheme) OnNeutralNight else OnNeutralDay,
+        secondary = neutrals.secondary,
+        onSecondary = neutrals.onSecondary,
+        secondaryContainer = primaryContainer,
+        onSecondaryContainer = onPrimaryContainer,
+        tertiary = neutrals.tertiary,
+        onTertiary = neutrals.onTertiary,
+        tertiaryContainer = neutrals.tertiaryContainer,
+        onTertiaryContainer = neutrals.onTertiaryContainer,
         // 反色面：Snackbar 一类「浮在页面之上的深色条」用它，别让 M3 的 #313033 紫调漏出来。
-        inverseSurface = if (darkTheme) Color(0xFFEDEDF0) else Color(0xFF2E2E32),
-        inverseOnSurface = if (darkTheme) OnNeutralDay else Color(0xFFF5F5F7),
+        inverseSurface = neutrals.inverseSurface,
+        inverseOnSurface = neutrals.inverseOnSurface,
         inversePrimary = palette.lightPrimary,
         // 色调高度（tonal elevation）的着色源：不写就取 M3 默认的紫。
         surfaceTint = palette.lightPrimary,
@@ -305,18 +334,19 @@ private fun buildColorScheme(darkTheme: Boolean, palette: ThemePalette): ColorSc
  *
  * 纯黑背景的对比度 = (L + 0.05) / 0.05，[NIGHT_MIN_CONTRAST] 取 3.8
  * （图标与大号文字 3:1、正文接近 4.5:1 的折中）。
+ *
+ * 比值直接用 [contrastRatio] 算，不再本地复写一份「对黑」的公式 ——
+ * 两处各写一遍的话，改了门槛或改了合成方式就会有一处悄悄过期。
  */
 private fun Color.forNight(): Color {
     var color = this
     var step = 0
-    while (contrastOnBlack(color) < NIGHT_MIN_CONTRAST && step < MAX_LIGHTEN_STEPS) {
+    while (color.contrastRatio(Color.Black) < NIGHT_MIN_CONTRAST && step < MAX_LIGHTEN_STEPS) {
         color = lerp(color, Color.White, LIGHTEN_STEP)
         step++
     }
     return color
 }
-
-private fun contrastOnBlack(color: Color): Float = (color.luminance() + 0.05f) / 0.05f
 
 /** 夜间主色的最低可读对比度（纯黑背景）。 */
 private const val NIGHT_MIN_CONTRAST = 3.8f

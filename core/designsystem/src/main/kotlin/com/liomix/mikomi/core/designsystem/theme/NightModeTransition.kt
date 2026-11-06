@@ -3,12 +3,14 @@ package com.liomix.mikomi.core.designsystem.theme
 import android.app.Activity
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import android.view.PixelCopy
 import android.view.View
@@ -95,39 +97,54 @@ fun NightModeTransitionHost(
         // 抓帧是异步的：用原子锁在最外层同步上锁，避免连点时抓到同一帧、切两次主题。
         if (busy.compareAndSet(false, true)) {
             val targetDark = !currentIsDark.value
-            scope.launch {
+            // 系统关掉动画时（开发者选项的「动画时长 0」、无障碍「移除动画」、省电模式），
+            // 圆形揭示会在第一帧直接落到终点 —— 遮罩等于不存在，但为它准备的那笔账一分不少：
+            // 整窗 ARGB_8888 快照（1080×2400 ≈ 10MB）、一次 PixelCopy 全窗回读、一次 decor 重新布局。
+            // 用户什么动画都看不到，这三次开销却全落在点击那一帧上。所以先问系统要不要动画。
+            if (!view.context.animationsEnabled()) {
                 try {
-                    val activity = view.context.findActivity()
-                    val session = activity?.let { act ->
-                        val snapshot = captureWindow(act) ?: return@let null
-                        val originInWindow = windowOriginOf(view, origin.value)
-                        prepareWindowReveal(act, snapshot, originInWindow, targetDark)
-                    }
-                    if (session == null) {
-                        // 拿不到窗口帧（老系统 / 抓帧失败）：直接切，不留遮罩。
-                        onToggle(targetDark)
-                        return@launch
-                    }
-                    if (targetDark) {
-                        // 日 → 夜：**先把真实内容裁到半径 0**（等于完全裁掉），旧快照垫在它下面。
-                        // 这一步画面没有任何变化 —— 内容此刻还是旧配色，与被裁出来的快照逐像素一致。
-                        // 然后才切主题，新配色只可能出现在圆里。
-                        // 反过来「先切主题、等两帧、再启动揭示」会在中间留下一帧
-                        // 「整屏已变黑但遮罩还没生效」，就是那一下闪。
-                        session.start(REVEAL_DURATION_MILLIS)
-                        onToggle(true)
-                    } else {
-                        // 夜 → 日：快照盖在最上层，本身就挡住了整块新界面，
-                        // 可以放心先切主题、等新配色真正画上屏，再让圆收缩；
-                        // 否则圆里缩出来的还是旧配色。
-                        onToggle(false)
-                        withFrameNanos { }
-                        withFrameNanos { }
-                        session.start(REVEAL_DURATION_MILLIS)
-                    }
-                    session.awaitEnd()
+                    onToggle(targetDark)
                 } finally {
                     busy.set(false)
+                }
+            } else {
+                scope.launch {
+                    try {
+                        val activity = view.context.findActivity()
+                        val session = activity?.let { act ->
+                            val snapshot = captureWindow(act) ?: return@let null
+                            // 没上报过原点时取内容中心：不要用 (0,0)，那会让圆从左上角斜着扫进来，
+                            // 看起来像「页面自己变了」而不是「从开关这里扩散出去」。
+                            val originInRoot = origin.value ?: Offset(view.width / 2f, view.height / 2f)
+                            val originInWindow = windowOriginOf(view, originInRoot)
+                            prepareWindowReveal(act, snapshot, originInWindow, targetDark)
+                        }
+                        if (session == null) {
+                            // 拿不到窗口帧（老系统 / 抓帧失败）：直接切，不留遮罩。
+                            onToggle(targetDark)
+                            return@launch
+                        }
+                        if (targetDark) {
+                            // 日 → 夜：**先把真实内容裁到半径 0**（等于完全裁掉），旧快照垫在它下面。
+                            // 这一步画面没有任何变化 —— 内容此刻还是旧配色，与被裁出来的快照逐像素一致。
+                            // 然后才切主题，新配色只可能出现在圆里。
+                            // 反过来「先切主题、等两帧、再启动揭示」会在中间留下一帧
+                            // 「整屏已变黑但遮罩还没生效」，就是那一下闪。
+                            session.start(REVEAL_DURATION_MILLIS)
+                            onToggle(true)
+                        } else {
+                            // 夜 → 日：快照盖在最上层，本身就挡住了整块新界面，
+                            // 可以放心先切主题、等新配色真正画上屏，再让圆收缩；
+                            // 否则圆里缩出来的还是旧配色。
+                            onToggle(false)
+                            withFrameNanos { }
+                            withFrameNanos { }
+                            session.start(REVEAL_DURATION_MILLIS)
+                        }
+                        session.awaitEnd()
+                    } finally {
+                        busy.set(false)
+                    }
                 }
             }
         }
@@ -156,6 +173,20 @@ private fun windowOriginOf(view: View, originInRoot: Offset): Offset {
 }
 
 /**
+ * 系统是否允许播放动画。
+ *
+ * `ANIMATOR_DURATION_SCALE = 0` 时，`RenderNodeAnimator` 会在提交的那一帧直接落到终点 ——
+ * 揭示动画仍然「成功」，只是没有任何过程可言。API 26 起有直接答案，
+ * 更早的系统只能读那个设置项（minSdk 24）。读不到一律当作「允许」。
+ */
+private fun Context.animationsEnabled(): Boolean =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        ValueAnimator.areAnimatorsEnabled()
+    } else {
+        Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
+    }
+
+/**
  * 抓取整个窗口的一帧（供揭示动画当「旧画面」）。
  *
  * [PixelCopy] 读的是 GPU 合成后的真实像素；`GraphicsLayer.toImageBitmap()` 那种
@@ -182,7 +213,7 @@ private suspend fun captureWindow(activity: Activity): Bitmap? {
                 window,
                 bitmap,
                 { code -> if (continuation.isActive) continuation.resume(code) },
-                Handler(Looper.getMainLooper()),
+                MainHandler,
             )
         }
     } catch (e: Exception) {
@@ -346,13 +377,21 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-/** 揭示原点持有者：不走 Compose State，避免每次布局都触发重组。 */
+/**
+ * 揭示原点持有者：不走 Compose State，避免每次布局都触发重组。
+ *
+ * `null` ＝ 还没人上报过（开关还没被布局）。不能用 [Offset.Zero] 表示「不知道」——
+ * 那是内容左上角，会被当成一个合法原点，圆就从角落斜着扫进来。
+ */
 private class OriginHolder {
-    var value: Offset = Offset.Zero
+    var value: Offset? = null
 }
 
 /** 揭示时长（与 Telegram 相同的 400ms）。 */
 private const val REVEAL_DURATION_MILLIS = 400
+
+/** PixelCopy 的回调 Handler：主线程单例。 */
+private val MainHandler = Handler(Looper.getMainLooper())
 
 /** 揭示缓动：easeInOutQuad，等价于 Telegram 的 `Easings.easeInOutQuad`。 */
 private val RevealInterpolator = PathInterpolator(0.455f, 0.03f, 0.515f, 0.955f)

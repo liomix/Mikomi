@@ -36,47 +36,46 @@ data class ThemeToast(
     @DrawableRes val iconRes: Int? = null,
 )
 
-/** 主题设置 ViewModel：配色、夜间模式、桌面图标。 */
+/**
+ * 主题页状态。
+ *
+ * 四个字段全来自同一份 [com.liomix.mikomi.core.model.UserPreferences]，
+ * 所以由一条流一次性给出，而不是让 UI 层分别收集四条流（那会出现「配色已新、图标还旧」的中间帧）。
+ */
+data class ThemeUiState(
+    val colorSchemeId: String = ThemePalette.Default.id,
+    val theme: String = "system",
+    val appIconId: String = AppIconStyle.Default.id,
+    val transitionStyleId: String = TransitionStyle.Translate.id,
+)
+
+/** 主题设置 ViewModel：配色、夜间模式、桌面图标、封面动效。 */
 @HiltViewModel
 class ThemeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val userDataRepository: UserDataRepository,
 ) : ViewModel() {
 
-    /** 当前生效的配色 id（跟随 DataStore 实时变化）。 */
-    val colorSchemeId: StateFlow<String> = userDataRepository.observeUserPreferences()
-        .map { it.colorScheme }
+    /**
+     * 主题页的全部可调项。
+     *
+     * 四条偏好共用一条上游流、一次 `stateIn`：原先每条各自 `map + stateIn`，
+     * 等于把同一份 DataStore 订阅了四遍（四份缓存、四个启动协程、四次重组入口），
+     * 而它们本来就是同一个 `UserPreferences` 的四个字段。
+     */
+    val uiState: StateFlow<ThemeUiState> = userDataRepository.observeUserPreferences()
+        .map { prefs ->
+            ThemeUiState(
+                colorSchemeId = prefs.colorScheme,
+                theme = prefs.theme,
+                appIconId = prefs.appIcon,
+                transitionStyleId = prefs.transitionStyle,
+            )
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = ThemePalette.Default.id,
-        )
-
-    /** 主题模式：`system` / `light` / `dark`。 */
-    val themeMode: StateFlow<String> = userDataRepository.observeUserPreferences()
-        .map { it.theme }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = THEME_SYSTEM,
-        )
-
-    /** 当前桌面图标样式 id。 */
-    val appIconId: StateFlow<String> = userDataRepository.observeUserPreferences()
-        .map { it.appIcon }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = AppIconStyle.Default.id,
-        )
-
-    /** 封面动效 id（作用在封面飞行上）。 */
-    val transitionStyleId: StateFlow<String> = userDataRepository.observeUserPreferences()
-        .map { it.transitionStyle }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = TransitionStyle.Translate.id,
+            initialValue = ThemeUiState(),
         )
 
     /** 一次性提示，由 UI 层用 [com.liomix.mikomi.core.ui.component.base.MikomiToast] 呈现。 */
@@ -141,8 +140,5 @@ class ThemeViewModel @Inject constructor(
 
     private companion object {
         const val TAG = "ThemeViewModel"
-        const val THEME_SYSTEM = "system"
-        const val THEME_LIGHT = "light"
-        const val THEME_DARK = "dark"
     }
 }

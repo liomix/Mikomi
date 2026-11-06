@@ -77,7 +77,8 @@ class MainActivity : ComponentActivity() {
                 .collectAsStateWithLifecycle(initialValue = UserPreferences())
 
             // 乐观切换：点击即刻生效，不必等 DataStore 落盘 + Flow 回读（那一段大约 10~30ms，
-            // 正是「点下去先顿一下才扩散」的来源）。DataStore 追平后自动放弃覆盖值。
+            // 正是「点下去先顿一下才扩散」的来源）。DataStore 追平后自动放弃覆盖值；
+            // 写失败则立刻撤销 —— 否则界面会一直停在「已经切了、其实没存」的假状态。
             var optimisticTheme by remember { mutableStateOf<String?>(null) }
             LaunchedEffect(preferences.theme) {
                 if (optimisticTheme == preferences.theme) optimisticTheme = null
@@ -131,6 +132,8 @@ class MainActivity : ComponentActivity() {
                             try {
                                 userDataRepository.setTheme(mode)
                             } catch (e: Exception) {
+                                // 落盘失败：撤销乐观值，开关回到真实状态，而不是停在假状态。
+                                if (optimisticTheme == mode) optimisticTheme = null
                                 Log.w(TAG, "Persist theme failed, mode=$mode", e)
                             }
                         }

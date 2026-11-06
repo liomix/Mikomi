@@ -100,6 +100,14 @@ private fun PaletteGallery() {
         SwatchRow("名次 ink", listOf(colors.ranks.first.ink, colors.ranks.second.ink, colors.ranks.third.ink))
         SwatchRow("骨架", listOf(colors.skeletonBase, colors.skeletonSweep))
 
+        // 禁用态只有两个数，但它们是两级：容器几乎消失、内容还读得出字。
+        // 用两枚胶囊对照而不是色块 —— 色块看不出「文字还可不可读」，而那正是这两个值要保证的。
+        SectionTitle("禁用态对照（正常 / 禁用）")
+        Row(horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm)) {
+            DisabledStateChip(label = "正常", enabled = true)
+            DisabledStateChip(label = "禁用", enabled = false)
+        }
+
         // 媒体族是常量，但要垫在深底上才看得见（白字压在白画布上等于没有）。
         SectionTitle("媒体前景（压在封面 / 视频上）")
         Column(
@@ -273,6 +281,28 @@ private fun MediaLine(label: String, color: Color) {
             style = MaterialTheme.typography.labelSmall,
             color = MikomiMedia.contentSecondary,
             modifier = Modifier.padding(start = MikomiSpacing.Sm),
+        )
+    }
+}
+
+/**
+ * 禁用态对照样例：同一个胶囊，只按 [MikomiAlpha] 的两级淡化。
+ *
+ * 放进目录不只是「展示两个数」，而是让「禁用态长什么样」以后有地方校准 ——
+ * 这两个值一旦被改动，这里立刻能看出内容是否还读得出字。
+ */
+@Composable
+private fun DisabledStateChip(label: String, enabled: Boolean) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        shape = RoundedCornerShape(MikomiRadius.Sm),
+        color = if (enabled) scheme.primary else scheme.onSurface.copy(alpha = MikomiAlpha.DisabledContainer),
+        contentColor = if (enabled) scheme.onPrimary else scheme.onSurface.copy(alpha = MikomiAlpha.DisabledContent),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(horizontal = MikomiSpacing.Md, vertical = MikomiSpacing.Xxs),
         )
     }
 }

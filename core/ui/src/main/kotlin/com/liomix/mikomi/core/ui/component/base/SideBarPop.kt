@@ -4,7 +4,6 @@ import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.rememberTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -20,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -129,19 +127,9 @@ fun SideBarPop(
         ),
     ) {
         BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-            val scrimColor = MaterialTheme.colorScheme.scrim
-
             // 遮罩：透明度在绘制阶段读 progress，动画全程不重组，只重绘这一层。
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .drawBehind {
-                        drawRect(scrimColor.copy(alpha = MikomiSideBarSpec.ScrimAlpha * progress))
-                    }
-                    .pointerInput(onDismissRequest) {
-                        detectTapGestures { onDismissRequest() }
-                    },
-            )
+            // 与底部面板共用同一份实现（SheetScrim），遮罩深度只有一个来源。
+            SheetScrim(progress = { progress }, onDismiss = onDismissRequest)
 
             // 面板宽度既受调用方的 width 约束，也受屏幕比例约束，窄屏不会铺满整页。
             val panelWidth = minOf(width, maxWidth * MikomiSideBarSpec.MaxWidthFraction)

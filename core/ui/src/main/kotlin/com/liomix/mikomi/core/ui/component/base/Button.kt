@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.theme.MikomiAlpha
 import com.liomix.mikomi.core.designsystem.theme.MikomiElevation
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
@@ -178,12 +179,12 @@ fun PressButton(
 
     val scheme = MaterialTheme.colorScheme
     val containerColor = when {
-        !enabled -> scheme.onSurface.copy(alpha = MikomiMotion.Disabled.ContainerAlpha)
+        !enabled -> scheme.onSurface.copy(alpha = MikomiAlpha.DisabledContainer)
         style.tone == PressButtonTone.Primary -> scheme.primary
         else -> scheme.primaryContainer
     }
     val contentColor = when {
-        !enabled -> scheme.onSurface.copy(alpha = MikomiMotion.Disabled.ContentAlpha)
+        !enabled -> scheme.onSurface.copy(alpha = MikomiAlpha.DisabledContent)
         style.tone == PressButtonTone.Primary -> scheme.onPrimary
         else -> scheme.onPrimaryContainer
     }
@@ -268,12 +269,12 @@ fun PressIconButton(
         color = if (enabled) {
             containerColor
         } else {
-            scheme.onSurface.copy(alpha = MikomiMotion.Disabled.ContainerAlpha)
+            scheme.onSurface.copy(alpha = MikomiAlpha.DisabledContainer)
         },
         contentColor = if (enabled) {
             contentColor
         } else {
-            scheme.onSurface.copy(alpha = MikomiMotion.Disabled.ContentAlpha)
+            scheme.onSurface.copy(alpha = MikomiAlpha.DisabledContent)
         },
         interactionSource = interactionSource,
     ) {

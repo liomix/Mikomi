@@ -192,17 +192,6 @@ object MikomiMotion {
         const val OverlayAlpha = 25f / 255f
     }
 
-    /**
-     * 禁用态的透明度（M3 规范值）。
-     *
-     * 按在「置灰」上的两档：底色降得多、文字降得更多 —— 文字先变得不可读，
-     * 用户才不会去点。
-     */
-    object Disabled {
-        /** 禁用底色透明度。 */
-        const val ContainerAlpha = 0.12f
-
-        /** 禁用文字透明度。 */
-        const val ContentAlpha = 0.38f
-    }
+    // 禁用态的淡化系数不在这里 —— 搬去了 `MikomiAlpha`（Colors.kt）。
+    // 它们一次都不动，是颜色规则，不是动效。
 }

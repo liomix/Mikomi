@@ -384,6 +384,32 @@ private val PreviewCanvas = Color(0xFFFEFEFE)
 val MikomiShadowColor: Color = Color.Black
 
 /**
+ * 禁用态的淡化系数。
+ *
+ * 值取自 M3（容器 0.12 / 内容 0.38）。这两个数不是随手取的：0.12 让容器「几乎消失
+ * 但仍占位」，0.38 让内容保住可辨识度，再低就分不清「禁用」和「没画出来」。
+ *
+ * ## 为什么在颜色层，不在动效层
+ *
+ * 它此前挂在 `MikomiMotion.Disabled` 下 —— 「禁用态」最早是从按压动效那一族里分出来的。
+ * 但这两个值**一次都不动**：它们是「拿基色淡化」的颜色规则，与时长、曲线无关。
+ * 放在 `Motion` 里，找禁用态的人不会去那里翻，改动画的人又会以为它们跟着动效走。
+ *
+ * ## 用它，别用整体 alpha
+ *
+ * 组件在自己的 `enabled` 分支里用这两个值。**不要**用 `Modifier.alpha()` 整体压暗：
+ * 整体 alpha 会连带压掉投影与描边，看起来像「半透明贴纸」；M3 的语义是
+ * 「容器转中性灰、内容变淡」，两者是分开的两级。
+ */
+object MikomiAlpha {
+    /** 禁用态的容器淡化：叠在 `onSurface` 上当作底色。 */
+    const val DisabledContainer: Float = 0.12f
+
+    /** 禁用态的内容淡化：文字与图标。 */
+    const val DisabledContent: Float = 0.38f
+}
+
+/**
  * 解析一套扩展色。
  *
  * 纯函数、不依赖组合运行时，可以从任意线程调用（`warmUpColorSchemes` 就在后台线程上跑）。

@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -31,7 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
@@ -171,7 +169,6 @@ fun BottomPop(
             val dismissPx = minAnchorPx * MikomiSheetSpec.DismissFraction
             val velocityThresholdPx = with(density) { MikomiSheetSpec.SnapVelocity.toPx() }
             val panelHeight = with(density) { maxAnchorPx.toDp() }
-            val scrimColor = MaterialTheme.colorScheme.scrim
             val velocityTracker = remember { VelocityTracker() }
 
             LaunchedEffect(expanded, anchorPx) {
@@ -184,16 +181,10 @@ fun BottomPop(
             }
 
             // 遮罩：透明度跟随露出高度，拖拽时同步变淡；动画期间只在绘制阶段读 state。
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .drawBehind {
-                        val progress = (visible / maxAnchorPx).coerceIn(0f, 1f)
-                        drawRect(scrimColor.copy(alpha = MikomiSheetSpec.ScrimAlpha * progress))
-                    }
-                    .pointerInput(Unit) {
-                        detectTapGestures { dismissAction.value() }
-                    },
+            // 绘制与点击关闭都由 SheetScrim 负责 —— 与侧栏共用同一份，深度不会跑偏。
+            SheetScrim(
+                progress = { visible / maxAnchorPx },
+                onDismiss = { dismissAction.value() },
             )
 
             Surface(

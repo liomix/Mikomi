@@ -275,6 +275,7 @@ Mikomi 默认**离线优先**：
 | M3 装不下的语义色（评分金、标签色板、名次色、骨架墨色） | `MikomiTheme.colors` | 标签 `colors.tag(hue)`、名次 `colors.rank(n)`；局部覆写 `LocalMikomiColors` |
 | 压在图像 / 视频上的前景色（封面白字、遮罩、信箱区、HUD、进度条） | `MikomiTheme.colors.media` | 非组合位置用顶层 `MikomiMedia` |
 | 绘制阴影的恒定黑 | `MikomiShadowColor` | — |
+| 禁用态淡化（容器 / 内容两级） | `MikomiAlpha.DisabledContainer` / `.DisabledContent` | 组件在自己 `enabled` 分支里用；**别**用 `Modifier.alpha()` 整体压暗，那会连带压掉投影与描边 |
 | 字号 | `MaterialTheme.typography`（15 槽位全部显式声明） | M3 之外的样式见 `MikomiTextStyles` |
 | 间距 / 圆角 / 尺寸 / 投影 | `MikomiSpacing` / `MikomiRadius` / `MikomiSizes` / `MikomiElevation` | 每组的全量档位见 `.steps` |
 | 线宽（描边、分隔线、进度） | `MikomiStroke` | — |
@@ -282,11 +283,12 @@ Mikomi 默认**离线优先**：
 | 形状 | `MaterialTheme.shapes`（由 `MikomiRadius` 派生） | 胶囊用 `MikomiPillShape` |
 | 时长 / 缓动 / 按压规格 | `MikomiMotion.Duration` / `.Curve` / `.Press` | — |
 | **单个控件有多大**（开关轨道、标签胶囊、底栏、播放器控制条） | `spec/ComponentSpec.kt`（`MikomiSwitchSpec` 等） | 这些**不是** token，见规则 3 |
+| 浮层遮罩深度（底部面板、侧栏共用） | `MikomiScrimSpec.Alpha` | 遮罩本身只由 `SheetScrim`（core:ui，internal）画，不要在浮层里各写 `drawBehind` |
 | 按压反馈 | 主题下发到 `LocalIndication`，调用点不用管 | 沉浸子树用 `LocalMikomiRippleColor` 覆写 |
 | 页面转场档位（推进 / 淡入 / 无） | `PageTransitionStyle`（`core:model`）→ `MikomiNavHost(pageTransitionId)` → `LocalPageTransitionStyle` | 推进 150ms、淡入 200ms；与「封面动效」是两条独立偏好，可任意组合。档位在页面**首次组合时冻结** |
 | 系统是否允许动画 | `Context.animationsEnabled()`（`MotionPolicy.kt`） | 夜间圆形揭示与页面转场共用这一条判据，关掉就什么都不播 |
 
-六条硬规则：
+七条硬规则：
 
 1. **页面里不写色值、不写字号、不写圆角、不写线宽、不写节奏类间距。** 需要新颜色就往 `MikomiColors` / `MikomiMediaColors` 加字段；需要新字号就往 `Typography` / `MikomiTextStyles` 加档。
 2. **唯一允许绕过设计系统的位置是 `feature:animap`。** 巡礼页是嵌在 WebView 里的站点 UI，配色由站点决定、且固定浅色（深色浮层压在浅色地图上读不出来）。**新代码不许再新增第二个例外** —— 需要特殊视觉时用 `LocalMikomiColors` 做子树覆写，而不是就地写死色值。
@@ -294,6 +296,7 @@ Mikomi 默认**离线优先**：
 4. **token 变更必须同步目录，且目录读 `.steps` 而不是手抄。** `TokenGallery.kt`（token + 规格）与 `ComponentGallery.kt`（组件）是设计系统的可视化验收面。尺寸 object 自带 `steps: List<MikomiStep>`，目录从它渲染、审计拿它对账 —— 手抄的清单漏过 `None` 与 `Xxxl` 两档，漏掉的刻度等于没人会用。
 5. **绕过的字面量用 `./gradlew tokenAudit` 查，对比度用 `./gradlew contrastAudit` 查。** 前者扫描 `designsystem/theme` 之外的全部 Kotlin，把字面量分成 `[!]` 布局位置（必须换成 token）与 `[·]` 控件体格（规则允许），并打印每档使用次数（某档 0 次要么删、要么还没用上；某档 1 次而邻档 200 次，说明有人在按手感挑值）。后者直接读 `Colors.kt` 算 WCAG 比值，标签 18 对与名次 6 对全部要过 4.5:1，解析不到预期条数会 fail 而不是静默通过。两条默认**只报告不失败**（评审入口）；`-Pstrict` 或 `./gradlew verifyDesign` 才 fail（闸门）。默认不 fail 是因为「布局位置」与「控件体格」的区分靠调用点名字猜，让它直接阻断构建会逼人往 `design-ok` 里塞理由 —— 那正好是把闸门变成后门。
 6. **确实该留的字面量写 `// design-ok: 理由`。** 行内（或前后三行内）带这个标记的字面量会被归入「已评审的组件规格」并从 `[!]` 里摘出去，同时**在末尾打印总数**。故意做成「可数」的：豁免一旦不可见，就会退化成新的后门。没有理由的 `design-ok` 不是豁免，是欠账。
+7. **浮层类组件共用同一套骨架。** 底部面板与侧栏的遮罩都由 `SheetScrim` 画：深度取 `MikomiScrimSpec.Alpha`、点击关闭接同一个 `onDismiss`、进度以 `() -> Float` 传入以便只在绘制阶段读取。此前两个浮层各写一份逐字相同的 `drawBehind + detectTapGestures`，连 `ScrimAlpha` 都是各存一份 0.32 —— 改一处忘另一处时，两个浮层的深度就会分叉，而这种分叉肉眼几乎看不出来（0.28 与 0.32）。**判据：同一段代码在第二个组件里出现时，就该问它是不是这一族组件的共同骨架。**
 
 **审计有三个盲区**，改审计代码时要一起看：① 分行写的 `padding(` 要先把多行压平再匹配；② `PaddingValues` 是 `padding` 的同级入口，不在 `padding(` 的正则里；③ `design-ok` 必须打印总数，否则豁免变成后门。
 
@@ -344,6 +347,7 @@ token 表最怕的不是「值不好」，而是「没人知道它为什么是�
 | 5 | 收拾日 / 夜这条链：系统关掉动画时直接换色、揭示原点缺失时回退内容中心；删 `darkPrimary` 死字段、色卡首色重复与 8 处 `if (darkTheme)` 三元，方案缓存改定长数组 | 动画时长 0 时遮罩等于不存在，但 10MB 快照 + 全窗回读 + 整窗布局一分不少；原点没上报时圆从左上角斜扫进来；`darkPrimary` 五个色值从没被任何路径读过 |
 | 6 | 「动态效果」拆成动漫封面动效与页面动效两条独立偏好（页面动效三档接进 `NavDisplay`）；页面转场尊重系统「减少动画」；底栏显隐与三处孤值（140 / 180 / 260）收口到 `MikomiMotion` 档位 | 两类动效被塞进同一个选项里，选封面就选不了页面；页面转场写死在 `NavHost` 里、用户无从选择；底栏用默认 spring，收尾比全站慢一截；三个值都不在档位上，调档时必漏 |
 | 7 | 页面动效档位改由 `LocalPageTransitionStyle` 下发、每个页面首次组合时冻结一份；装饰器实例不再随档位重建 | 在设置页点「淡入 / 无」时，当前页自己重播了一次入场：装饰链换实例等于把整页重新挂载，`LaunchedEffect(style)` 又把进度从 1 拉回 0 |
+| 8 | 组件库对齐 TG 的三条：禁用态从 `MikomiMotion.Disabled` 搬到 `MikomiAlpha`（颜色层）；两份 `ScrimAlpha` 合成 `MikomiScrimSpec`；浮层遮罩抽成 `SheetScrim` 由 `BottomPop` / `SideBarPop` 共用 | 0.12 / 0.38 一次都不动，却被放进「动效」命名空间，找禁用态的人不会去那里翻；两个浮层各写一份遮罩，深度各存一份 0.32，一处改动两处手感分叉 |
 
 ### 5.5 可访问性与对比度
 

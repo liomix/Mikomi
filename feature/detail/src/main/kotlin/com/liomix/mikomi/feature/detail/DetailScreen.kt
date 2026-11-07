@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -56,6 +57,7 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
+import com.liomix.mikomi.core.designsystem.spec.MikomiWindowSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
@@ -67,6 +69,7 @@ import com.liomix.mikomi.core.ui.component.base.PressButton
 import com.liomix.mikomi.core.ui.component.base.PressButtonStyle
 import com.liomix.mikomi.core.ui.component.base.PressIconButton
 import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
 import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.feature.detail.component.CreditDetailSheet
 import com.liomix.mikomi.feature.detail.component.collapsingHeader
@@ -240,9 +243,12 @@ private fun DetailContent(
     val commentScroll = rememberScrollState()
     val teasingListState = rememberLazyListState()
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         // 整页橡皮筋把内容推走时，屏幕顶部会露出一条缝。这里垫一层与头部同源的模糊封面，
         // 露出来的是「封面自己的上沿」，而不是一条页面底色（深色主题下是纯黑）。
+        //
+        // 宽屏下它仍然铺满整屏：内容列收窄之后，这条缝要是跟着收窄，两侧就会在越界时
+        // 露出页面底色 —— 而那正是这一层存在的理由。
         HeaderEdgeBackdrop(
             model = anime.coverUrl,
             headerHeight = HEADER_HEIGHT,
@@ -251,77 +257,97 @@ private fun DetailContent(
                 .fillMaxWidth()
                 .height(HEADER_STRETCH_LIMIT),
         )
-        Column(
+        // 宽屏（≥840dp）把整块内容收成可读列并居中：头部、Tab 栏、正文、悬浮按钮
+        // 一起收。只收宽度、不动高度，折叠头那套「按帧算位移」的逻辑一行都不用改。
+        //
+        // 为什么整块收而不是只收正文：头部在 1120dp 宽下会把「封面 + 信息」拉成
+        // 一条 2000px 的横条，信息列只剩三行小字贴着左边；收列之后封面与信息同宽同排，
+        // 读者视线不用横跨半个屏幕。
+        val wide = LocalMikomiWindowSize.current.isExpandedWidth
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(collapseConnection)
-                // 橡皮筋：整页（头部 + Tab 栏 + 内容）被拉出的临时位移，只在两端越界时非 0；
-                // 读取发生在布局阶段，不触发重组。
-                .offset { IntOffset(0, collapse.stretchPx.roundToInt()) },
-        ) {
-            // 头部 + Tab 栏：同一个块。Tab 栏叠在封面底部，随收缩沿封面上移，
-            // 裁切由 collapsingHeader 负责 —— 露不出来的只有封面下半截，标题永远在。
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .collapsingHeader(collapse),
-            ) {
-                DetailHeader(
-                    anime = anime,
-                    // 头部能收到多高由评分的位置决定：实测底边 + Tab 栏 + 余量。
-                    // 读的是布局结果，不是每帧变化的量，滚动里不会重复回调。
-                    onInfoBottomMeasured = { infoBottomPx ->
-                        collapse.updateMinVisible(infoBottomPx + headerTailPx)
+                .then(
+                    if (wide) {
+                        Modifier.widthIn(max = MikomiWindowSpec.ContentMaxWidth)
+                    } else {
+                        Modifier
                     },
-                    modifier = Modifier.fillMaxSize(),
                 )
-                DetailTabBar(
-                    selectedTab = selectedTab,
-                    onSelect = { selectedTab = it },
-                    // 贴住可见区域的下边缘：读取放进 offset 的 lambda 里，走布局阶段。
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .offset { IntOffset(0, -collapse.offsetPx.roundToInt()) },
-                )
-            }
-            // 内容区：占满剩余高度，内部各自滚动。
-            Box(
+                .fillMaxSize(),
+        ) {
+            Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+                    .fillMaxSize()
+                    .nestedScroll(collapseConnection)
+                    // 橡皮筋：整页（头部 + Tab 栏 + 内容）被拉出的临时位移，只在两端越界时非 0；
+                    // 读取发生在布局阶段，不触发重组。
+                    .offset { IntOffset(0, collapse.stretchPx.roundToInt()) },
             ) {
-                when (selectedTab) {
-                    DetailTabType.OVERVIEW -> ScrollableTabPane(scrollState = overviewScroll) {
-                        OverviewTab(anime = anime)
-                    }
-
-                    DetailTabType.CREDITS -> ScrollableTabPane(scrollState = creditsScroll) {
-                        CreditsTab(
-                            creditsState = creditsState,
-                            onLoadCredits = onLoadCredits,
-                            onCharacterClick = onCharacterClick,
-                            onStaffClick = onStaffClick,
-                        )
-                    }
-
-                    DetailTabType.TEASING -> TeasingTab(
-                        state = teasingState,
-                        listState = teasingListState,
-                        onLoadTeasing = onLoadTeasing,
-                        onLoadMore = onLoadMoreTeasing,
-                        onRetry = onRetryTeasing,
+                // 头部 + Tab 栏：同一个块。Tab 栏叠在封面底部，随收缩沿封面上移，
+                // 裁切由 collapsingHeader 负责 —— 露不出来的只有封面下半截，标题永远在。
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .collapsingHeader(collapse),
+                ) {
+                    DetailHeader(
+                        anime = anime,
+                        // 头部能收到多高由评分的位置决定：实测底边 + Tab 栏 + 余量。
+                        // 读的是布局结果，不是每帧变化的量，滚动里不会重复回调。
+                        onInfoBottomMeasured = { infoBottomPx ->
+                            collapse.updateMinVisible(infoBottomPx + headerTailPx)
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    DetailTabBar(
+                        selectedTab = selectedTab,
+                        onSelect = { selectedTab = it },
+                        // 贴住可见区域的下边缘：读取放进 offset 的 lambda 里，走布局阶段。
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .offset { IntOffset(0, -collapse.offsetPx.roundToInt()) },
                     )
                 }
-            }
-        }
+                // 内容区：占满剩余高度，内部各自滚动。
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                ) {
+                    when (selectedTab) {
+                        DetailTabType.OVERVIEW -> ScrollableTabPane(scrollState = overviewScroll) {
+                            OverviewTab(anime = anime)
+                        }
 
-        // 右下角悬浮按钮组：收藏（圆形星标）+ 追番（扩展按钮）。
-        BottomActions(
-            isFavorite = isFavorite,
-            onToggleFavorite = onToggleFavorite,
-            onFollowClick = onPlayClick,
-            modifier = Modifier.align(Alignment.BottomEnd),
-        )
+                        DetailTabType.CREDITS -> ScrollableTabPane(scrollState = creditsScroll) {
+                            CreditsTab(
+                                creditsState = creditsState,
+                                onLoadCredits = onLoadCredits,
+                                onCharacterClick = onCharacterClick,
+                                onStaffClick = onStaffClick,
+                            )
+                        }
+
+                        DetailTabType.TEASING -> TeasingTab(
+                            state = teasingState,
+                            listState = teasingListState,
+                            onLoadTeasing = onLoadTeasing,
+                            onLoadMore = onLoadMoreTeasing,
+                            onRetry = onRetryTeasing,
+                        )
+                    }
+                }
+            }
+
+            // 右下角悬浮按钮组：收藏（圆形星标）+ 追番（扩展按钮）。
+            // 跟着内容列走 —— 挂在整屏右下角的话，宽屏上它会飘到离正文半屏远的地方。
+            BottomActions(
+                isFavorite = isFavorite,
+                onToggleFavorite = onToggleFavorite,
+                onFollowClick = onPlayClick,
+                modifier = Modifier.align(Alignment.BottomEnd),
+            )
+        }
     }
 }
 

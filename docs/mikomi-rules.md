@@ -356,6 +356,7 @@ token 表最怕的不是「值不好」，而是「没人知道它为什么是�
 | 12 | 尺寸从「八种分散值」收成三档（`IconXs`16 / `IconSm`20 / `IconMd`24）并登记进 `MikomiSizes.steps`；新增 `MikomiIcon` 作为唯一图标入口（`size` 默认 `IconMd`），72 处调用全部迁移；3 个弹幕图标从 `res/drawable` 收进 `MikomiIcons`；`tools/icon-gen/` 入库；图片补默认占位/失败底色与列表封面预取 | 尺寸以前**没有负责人**：只有 4 处读 token、32 处写字面量（11/13/14/15/16/18/20/22/24）、23 处不写 size 靠 `ImageVector.defaultWidth=24.dp` —— 改 token 只有 4 处会动。`IconSm` 是 18 而事实主档是 20；评分星标同一语义写了 11 和 13 两个值。弹幕 3 个 xml 是图标系统之外的第二条通路。图片的 `placeholder`/`error` 参数存在但全仓没传过，首帧与失败都是透明洞 |
 | 13 | 图标从「有约定」变成「有闸门」：新增 `iconAudit` 接进 `verifyDesign`（裸 `Icon(`、尺寸走 `modifier`、注释/家族/`builder name`/`autoMirror`、死图标）；32 处 `modifier = Modifier.size(...)` 收进 `size` 参数；`tools/icon-gen/icons.tsv` 记每段代码块指纹，`--verify` 先离线比对再溯源；图片的浏览器 UA 从逐请求参数搬到 `MikomiImageLoader` 的拦截器 | 尺寸入口统一之前仍有 32 处走 `modifier.size`、16 处走 `size` 参数、25 处走默认 —— 三条路并存，而 `MikomiIcon` 的 KDoc 已经写着「不必再记 `Modifier.size`」，文档与代码对不上。几何是副本，仓库里没有上游源码：手改一行 `pathData` 编译照样过，只是那个图标从此和别的不是一套，而 `--verify` 在没有 sources.jar 的机器上整体报「追不回」，等于没有校验。UA 参数只有 2/77 处传 `true`，漏传的代价是永久 403 且无日志 |
 | 14 | 建窗口系统三层：`MikomiWindowSpec`（断点 / 24dp 回滞 / 内容列 720 · 弹层 640 · 底栏 520）、`LocalMikomiWindowSize`（由 `LocalWindowInfo.containerDpSize` 算档，壳在根部 provide）、`MikomiInsets` 七个语义入口；26 处裸 `WindowInsets.*` / `statusBarsPadding` / `imePadding` 全部收编；新增 `windowAudit` 接进 `verifyDesign` | 窗口这一层此前只有一份「怎么写」的散文：全仓 0 处窗口尺寸类、26 处各写各的 `WindowInsets`、3 处 `ModalBottomSheet` 内又叠一层键盘/导航栏让位、首页底部避让写死 112dp（手势导航正好、三键导航少 24dp）、`WindowInsets.statusBars` 不含挖孔（刘海机横屏返回键落在挖孔下），而这些都是「本机跑一万次也复现不了」的形态 |
+| 15 | 宽窗口导航形态：`useNavigationRail = !isCompactWidth && !isCompactHeight`，`MikomiRailSpec` 落地（80dp 占位、胶囊垂直居中、二级页不显示、不进沉浸、关顶级页横滑、不拦返回），底栏与侧栏共用同一个 `onNavSelect`；侧栏形态 `LocalBottomBarSpace` 下发 `0.dp`；详情页与个人页**整块**收进 `ContentMaxWidth`（详情封面宽屏固定 220dp） | 第 14 轮只做了「按窗口判档」，形态一动没动：平板上仍是 520dp 居中的悬浮底栏，食指要横跨半个屏幕；详情页正文一行 130 字（1120dp 宽）、个人页三个动作按钮各 300dp。这三件事在第 14 轮的评分里合计 19 分（大屏导航 7/15、宽屏可读 12/20、多窗格 3/15），且**都不需要新依赖** —— `NavigationSuiteScaffold` 拿不到，但手写一条 72dp 的侧栏不需要任何东西 |
 
 ### 5.5 可访问性与对比度
 
@@ -539,7 +540,7 @@ if (window.isExpandedWidth) { /* 收成可读列 */ }
 
 | 常量 | 值 | 作用范围 |
 | --- | --- | --- |
-| `MikomiWindowSpec.ContentMaxWidth` | 720dp | expanded 窗口下的正文列（`BaseScreenLayout`、社区页） |
+| `MikomiWindowSpec.ContentMaxWidth` | 720dp | expanded 窗口下的正文列（`BaseScreenLayout`、社区页、详情页、个人页） |
 | `MikomiWindowSpec.SheetMaxWidth` | 640dp | `BottomPop` 面板（与 M3 `SheetMaxWidth` 同值） |
 | `MikomiWindowSpec.NavBarMaxWidth` | 520dp | 悬浮底栏 |
 
@@ -549,6 +550,21 @@ if (window.isExpandedWidth) { /* 收成可读列 */ }
 顶栏与内容列必须同宽：内容已经居中成 720dp 的列，返回键却还贴在 1200dp 屏幕的最左边，
 读起来像两栏不相干的东西。`BaseScreenTopBar` 因此按 `originX = (width - contentWidth) / 2`
 摆放三个槽位，标题仍然落在屏幕中线上。
+
+**收列要收哪一层，是每个页面自己的判断，但只有两种答案：**
+
+- **内容流页面**（`BaseScreenLayout` / 社区页）：只收正文，顶栏按内容列对齐。
+- **整块页面**（详情页、个人页）：头部、Tab、正文、悬浮按钮**整块一起收**。这类页面的
+  头部自带背景与几何（详情页的封面按行高反推、个人页的照片层按 `constraints.maxWidth`
+  算中心），只收正文会留下「头图横贯全屏、正文缩在中间」的错位。
+
+实现方式也统一：**外层 `Box(contentAlignment = TopCenter)` + 内层
+`Modifier.widthIn(max = ContentMaxWidth).fillMaxSize()`**。顺序不能反 —— `widthIn` 必须在外，
+先收缩约束，`fillMaxSize` 才会填满收缩后的 720dp 而不是原来的全宽。
+个人页靠这一条白拿：照片层与折叠头读的都是 `constraints.maxWidth`，约束一收它们自动跟着收。
+
+**网格不适用内容列。** 海报网格走 `GridCells.Adaptive`，宽屏该做的是**加列**而不是收窄 ——
+收窄只会让 9 列变 5 列、封面变小，反而更差。
 
 ### 6.4 导航区
 
@@ -560,8 +576,37 @@ if (window.isExpandedWidth) { /* 收成可读列 */ }
 - 页面给底栏让位要**算**出来，不能写死。首页曾经写 `112.dp`，它正好等于
   「栏体 56 + 外边距 8 + 手势条 24 + 呼吸 24」—— 换成三键导航（48dp）就少 24dp，最后一行被压住。
   现在的口径是 `LocalBottomBarSpace + 导航栏 inset + 呼吸`。
-- 要加宽屏导航形态（rail / drawer）时，按 §6.5 的多窗格一起做，不要单独把底栏换成
-  `NavigationSuiteScaffold` —— 那会同时改掉视觉规格和手势切换的语义。
+- 要加宽屏导航形态时**不要换 `NavigationSuiteScaffold`**：那会同时改掉视觉规格与手势语义，
+  而且 `material3-adaptive-navigation-suite` 不在离线缓存里。侧栏见下一条。
+
+#### 6.4.1 宽窗口用侧栏（已落地）
+
+判据是**两个条件同时成立**：
+
+```kotlin
+val useNavigationRail = !windowSize.isCompactWidth && !windowSize.isCompactHeight
+```
+
+只看宽度不够：手机横屏约 844×390dp，宽度已经算 Expanded，但高度只有 390dp —— 再从左边
+挖走 80dp 是雪上加霜。**高度落在 Compact 时导航套件整体让位**，那点空间还给内容，
+这跟 M3 `NavigationSuiteScaffold` 在高度 Compact 时返回 `NavigationSuiteType.None` 是同一条策略。
+实测：横屏手机（800×360dp）仍然走底栏，横屏平板（1120×736dp）走侧栏。
+
+| 项 | 决定 | 理由 |
+| --- | --- | --- |
+| 占位还是悬浮 | **占位**（`Row` 里真实占 80dp） | 悬浮侧栏要在每个页面上算「左边被挡了多少」，页面就不得不认识导航栏；占位之后页面拿到的宽度本来就是干净的 |
+| 宽度 | `MikomiRailSpec.Width` 80dp（inset 加在**外面**） | `windowInsetsPadding` 写在 `width` 之前，横屏挖孔在侧边时整体右移、胶囊宽度不变；写反了 inset 会从 80dp 里扣，四个字被截成省略号 |
+| 垂直位置 | 胶囊**居中** | 只有四个条目时顶部对齐会让屏幕左上角很重、下面空一大片；居中的胶囊与手机那条悬浮底栏共享同一个视觉重心（屏幕中线），换形态时不觉得「导航搬家了」 |
+| 二级页面 | **不显示** | 详情页、播放器要的是整屏；「有导航栏的地方就是家」 |
+| 沉浸 | **不进沉浸** | 手机上沉浸是把底部 56dp 还给地图；平板的地图已经拿到侧栏之外的全部宽度，再藏一次只是让左边 80dp 空出来，布局白跳一帧 |
+| 顶级页横滑 | **关掉** | 屏幕上已经有一条明摆着的导航区，横滑不再是发现性的手势；而平板主页（海报网格、时间表）更容易出现真正的横向滚动，两者抢同一次拖动，抢输的一定是用户想滚的那层 |
+| 返回键 | **不拦截** | 侧栏形态下不存在「被藏起来的导航栏」，按返回去唤出它只会看起来像没反应 |
+
+底栏与侧栏**共用同一个 `onNavSelect`**（`MikomiNavHost` 里 `remember` 出来的那个）。
+两处各写一遍，迟早有一边忘了预热巡礼页或忘了复位沉浸状态，而这种差异只在那一种形态上复现。
+
+形态切换时 `LocalBottomBarSpace` 下发 `0.dp`：内容在侧栏右边一路铺到底，
+页面因此一行都不用改（Home / Community / Profile 都只读这一个值）。
 
 ### 6.5 多窗格（尚未落地）
 
@@ -597,7 +642,8 @@ if (window.isExpandedWidth) { /* 收成可读列 */ }
 | 遗留的全局值 | `AndroidUtilities.statusBarHeight` / `navigationBarHeight` 仍是 `public static int`，源码里已标 `@Deprecated`，旧页面还在读 | 没有任何全局 inset 变量，只有 `MikomiInsets` 的 Composable 入口 | 全局 int 存的是整屏值，多窗口/分屏下必然错位 —— 这正是「横屏刘海机顶栏压到挖孔下」这类 bug 的来源。这层从第一天就不留这个口子 |
 | 圆角屏裁剪 | 从 `WindowInsets.getRoundedCorner()`（Android 12+）取四个角半径，参与 `drawChild` 的裁剪路径 | 没做 | 多窗口/自由窗口下窗口四角是圆的，铺到角上的内容会被系统圆角切掉。**已知缺口，未排期** |
 | 判档输入 | `isTablet()` / `isSmallTablet()`（设备类别，`Boolean` 静态缓存）+ `isInMultiwindow` + `Configuration.orientation` | 窗口自身 `containerDpSize`，带 24dp 回滞 | TG 判的是「这是什么设备」，分屏/自由窗口下必须靠 `isInMultiwindow` 特判才不误用双栏；我们判的是「窗口现在多宽」，分屏天然正确，代价是必须带回滞（§6.1） |
-| 平板 | 双窗格（列表 + 内容）：`ActionBarLayout` 左右两个 Fragment 栈，`checkLayout()` 按档把页面在两栈间搬；左栏宽度走 `getTabletLeftFragmentSize(width, insets.left, insets.right)` —— 是宽度的函数，且左右挖孔都算进去 | 单窗格 + 内容列 + 底栏（未做多窗格） | 本 App 的详情页是「整屏头图」型，硬拆两栏要先重做头图；`adaptive-navigation3` 又不在离线缓存里（§6.5）。**但 `getTabletLeftFragmentSize` 那个「分栏宽度吃 insets」的做法必须学** —— 分栏时左栏贴的是挖孔侧 |
+| 大屏导航形态 | 手机 5 tab 底栏 → 平板双栏：左边是列表（会话/设置分类），导航随列表一起变成那一栏，等于「导航区」和「列表区」合并 | 底栏 → **侧栏**（80dp 占位、胶囊垂直居中、二级页不显示），内容区吃剩下全部宽度 | 合并导航与列表要求列表本身是「按分类分的」，而本 App 的首页是海报网格、巡礼页是全屏地图 —— 都不是可合并的结构。**独立的侧栏是这两种页面都能用的唯一形态**（§6.4.1） |
+| 多窗格 | 双窗格（列表 + 内容）：`ActionBarLayout` 左右两个 Fragment 栈，`checkLayout()` 按档把页面在两栈间搬；左栏宽度走 `getTabletLeftFragmentSize(width, insets.left, insets.right)` —— 是宽度的函数，且左右挖孔都算进去 | **未做**（单窗格 + 内容列 + 侧栏） | 本 App 的详情页是「整屏头图」型，硬拆两栏要先重做头图；`adaptive-navigation3` 又不在离线缓存里（§6.5）。**但 `getTabletLeftFragmentSize` 那个「分栏宽度吃 insets」的做法必须学** —— 分栏时左栏贴的是挖孔侧 |
 | 内容宽度 | 弹层宽度写死上限：`layersActionBarLayout` 用 `min(dp(500), width - dp(16))` 测量；列表列宽由 `getTabletLeftFragmentSize` 的返回值决定，不按百分比 | `ContentMaxWidth` 720 / `SheetMaxWidth` 640 / `NavBarMaxWidth` 520，全部是常量 | 同一思路：可读宽度是常量而不是屏幕的百分比。差别在于我们把三个常量收进 `MikomiWindowSpec` 并可被 `windowAudit` 引用，TG 散在各处 `dp(...)` 调用里 |
 | 键盘 | `ChatActivity` 监听键盘高度、自己驱动面板位移 | `MikomiInsets.BottomOrIme` 一条让位规则，键盘动画交给系统 | 我们不做「输入框贴着键盘走」的聊天式交互，只要求「内容不被遮住」 |
 | 方向 | 播放页请求横屏，其余跟随传感器 | 同（`PlayerWindowEffect.fullscreenOrientation`，大屏与多窗口不请求） | 大屏强制横屏是反模式，多窗口下系统也会忽略 |
@@ -770,6 +816,12 @@ if (window.isExpandedWidth) { /* 收成可读列 */ }
 - 页面判档是否读 `LocalMikomiWindowSize`？有没有又出现 `screenWidthDp` 或自己算断点？
 - 给底栏/键盘让位的数值是**算**出来的，还是又写死了一个 `112.dp`？
 - 新增的全屏画面（播放器、地图）在横屏刘海机上，四边是否都用了挖孔感知的入口？
+- 新增页面在 expanded 窗口下会不会把正文拉成一行 100 字以上？整屏背景/头图型页面要**整块**
+  收列（§6.3），内容流页面只收正文。
+- 新写的导航或页面分隔，是不是默认「底栏一定存在」？侧栏形态下 `LocalBottomBarSpace`
+  是 `0.dp`，读它的页面不用改，但**硬编码底栏避让**的地方会多留一条空白。
+- 新增的顶级页手势（横滑切页、长按、双击）在侧栏形态下会不会与页面自身的横向滚动打架？
+  壳层的顶级页横滑已经关掉（§6.4.1），页面内部的横向滚动不受影响。
 
 ### Compose 与性能
 

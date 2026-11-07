@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -55,11 +56,21 @@ import com.liomix.mikomi.core.ui.component.base.SkeletonBox
 import com.liomix.mikomi.core.ui.component.business.heroTarget
 import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
 import com.liomix.mikomi.core.ui.image.rememberMikomiImagePainter
+import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
 import com.liomix.mikomi.core.ui.window.MikomiInsets
 import java.util.Locale
 
 /** 详情页封面圆角（飞行时会与列表卡的 8dp 之间插值）。 */
 private val DETAIL_COVER_RADIUS = 14.dp
+
+/**
+ * 宽屏下封面的固定宽度。
+ *
+ * 手机上封面是 `weight(1f)`（与右侧信息列各占一半）。到了可读内容列里再对半分，
+ * 封面会被 `aspectRatio` 按「行高」反推成一条竖长条，而信息列宽出一倍、右边空一片。
+ * 固定在 220dp（约 330dp 高，2:3 不变）之后，封面尺寸与手机上接近，信息列自然变宽。
+ */
+private val DETAIL_COVER_WIDE_WIDTH = 220.dp
 
 /**
  * 头部背景的模糊半径。
@@ -169,12 +180,19 @@ internal fun DetailHeader(
                 horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Room),
             ) {
                 // 左侧封面（飞行终点：与列表卡封面同一个 key，点进来时封面飞到这里）。
+                //
+                // 宽屏用固定宽度而不是 `weight(1f)`：内容列收窄后两等分会让封面被
+                // `aspectRatio` 按行高反推成一条竖条，见 DETAIL_COVER_WIDE_WIDTH。
+                val coverWidthModifier = if (LocalMikomiWindowSize.current.isExpandedWidth) {
+                    Modifier.width(DETAIL_COVER_WIDE_WIDTH)
+                } else {
+                    Modifier.weight(1f)
+                }
                 MikomiAsyncImage(
                     url = anime.coverUrl,
                     contentDescription = anime.title,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .weight(1f)
+                    modifier = coverWidthModifier
                         .aspectRatio(2f / 3f)
                         .clip(RoundedCornerShape(DETAIL_COVER_RADIUS))
                         .heroTarget(

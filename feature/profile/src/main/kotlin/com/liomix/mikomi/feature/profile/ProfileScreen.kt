@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
@@ -66,6 +67,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
+import com.liomix.mikomi.core.designsystem.spec.MikomiWindowSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
@@ -76,6 +78,7 @@ import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.component.base.Tab
 import com.liomix.mikomi.core.ui.component.base.TabBar
 import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
+import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
 import com.liomix.mikomi.core.ui.window.rememberMikomiBottomInset
 import com.liomix.mikomi.core.ui.window.rememberMikomiTopInset
 import com.liomix.mikomi.feature.profile.component.ProfileTabContent
@@ -326,162 +329,183 @@ fun ProfileScreen(
         }
     }
 
-    BoxWithConstraints(
+    // 宽屏（≥840dp）收成可读列并居中：动作卡、标签栏、历史/收藏网格一起收。
+    //
+    // 不收列的话，1120dp 的平板上三个动作按钮各占 300dp 宽，昵称与简介居中在一片
+    // 空旷里 —— 元素本身没错，是「同一行该有多少内容」这件事没有上限。
+    //
+    // 收列用外层 Box + contentAlignment，而不是自己算左右偏移：照片层与折叠头
+    // 都按 `constraints.maxWidth` 算中心，把约束收窄它们就自动跟着收，几何代码一行不改。
+    val wide = LocalMikomiWindowSize.current.isExpandedWidth
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(palette.background),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        // 头部占位随折叠逐帧收缩，下面的内容自然上移。
-        // 不能再用「整列 offset 上移」：Column 会把最后一个子项的高度夹在「剩余高度」以内，
-        // 上移多少，卡片下沿就跟着抬起多少，屏幕底部会露出一条页面背景（截图里那块空白）。
-        val headerHeightPx = with(density) { headerHeight.toPx() }
-
-        // 卡片下沿停在悬浮导航栏上沿 14dp：底栏占位 = 系统导航栏 inset + 栏体 + 底部外边距。
-        // 栏体那部分是壳下发的（LocalBottomBarSpace），这里不关心底部浮着什么。
-        val navBarInset = rememberMikomiBottomInset()
-        val contentBottomSpace = navBarInset + LocalBottomBarSpace.current + ContentBottomGap
-        val barHeightPx = with(density) { barHeight.toPx() }
-        val actionCardHeightPx = with(density) { ActionCardHeight.toPx() }
-        val photoInsetPx = with(density) { PhotoBottomInset.toPx() }
-
-        // 上膛后动作卡整体收掉（高度压到 0 + 淡出），标签栏跟着顶上来，
-        // 于是撑满态只剩「照片 + 昵称 + 简介」，下面的标签/内容不会被挡住。
-        val cardsHeightPx: () -> Float = { actionCardHeightPx * (1f - snapState.value) }
-        val photoBottomPx: () -> Float = {
-            barHeightPx + headerHeightPx - collapsePx + pullLayout() + cardsHeightPx() +
-                photoInsetPx + stretchPx
-        }
-
-        // 照片层画在**内容层之下**：下拉撑开时它会盖住动作卡所在的整块区域，
-        // 动作卡再画在照片上（半透明），标签与内容卡片在照片下沿之后。
-        ProfilePhoto(
-            progress = collapseFraction,
-            dragT = dragFraction,
-            snap = snap,
-            photoBottom = photoBottomPx,
-            restCenter = Offset(
-                x = constraints.maxWidth / 2f,
-                y = barHeightPx + with(density) { (HeaderAvatarSize / 2).toPx() },
-            ),
-            collapsedCenter = Offset(
-                x = with(density) { (CollapsedInset + CollapsedAvatarSize / 2).toPx() },
-                y = with(density) { (statusBar + TopBarHeight / 2).toPx() },
-            ),
-        )
-
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(top = barHeight, bottom = contentBottomSpace),
+                .then(
+                    if (wide) {
+                        Modifier.widthIn(max = MikomiWindowSpec.ContentMaxWidth)
+                    } else {
+                        Modifier
+                    },
+                )
+                .fillMaxSize(),
         ) {
-            Spacer(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // 在**布局阶段**读 collapsePx：收缩只触发重排，不触发重组。
-                    .layout { measurable, constraints ->
-                        // 折叠收缩 + 下拉拉长：两个方向共用同一块头部占位，
-                        // 下拉时下面的动作卡/标签/卡片被整体推下去。
-                        val h = (headerHeightPx - collapsePx + pullLayout() + stretchPx)
-                            .coerceIn(0f, headerHeightPx + pullThresholdPx + maxStretchPx)
-                            .roundToInt()
-                        val placeable = measurable.measure(
-                            Constraints.fixed(constraints.maxWidth, h),
-                        )
-                        layout(placeable.width, placeable.height) {
-                            placeable.place(0, 0)
-                        }
-                    }
-                    .draggable(
-                        state = headerDragState,
-                        orientation = Orientation.Vertical,
-                        onDragStopped = {
-                            armed = false
-                            if (pullPx > 0f) {
-                                animate(pullPx, 0f, animationSpec = tween(SnapMillis)) { v, _ -> pullPx = v }
-                            }
-                            settleCollapse()
-                        },
-                    ),
+            // 头部占位随折叠逐帧收缩，下面的内容自然上移。
+            // 不能再用「整列 offset 上移」：Column 会把最后一个子项的高度夹在「剩余高度」以内，
+            // 上移多少，卡片下沿就跟着抬起多少，屏幕底部会露出一条页面背景（截图里那块空白）。
+            val headerHeightPx = with(density) { headerHeight.toPx() }
+
+            // 卡片下沿停在悬浮导航栏上沿 14dp：底栏占位 = 系统导航栏 inset + 栏体 + 底部外边距。
+            // 栏体那部分是壳下发的（LocalBottomBarSpace），这里不关心底部浮着什么。
+            val navBarInset = rememberMikomiBottomInset()
+            val contentBottomSpace = navBarInset + LocalBottomBarSpace.current + ContentBottomGap
+            val barHeightPx = with(density) { barHeight.toPx() }
+            val actionCardHeightPx = with(density) { ActionCardHeight.toPx() }
+            val photoInsetPx = with(density) { PhotoBottomInset.toPx() }
+
+            // 上膛后动作卡整体收掉（高度压到 0 + 淡出），标签栏跟着顶上来，
+            // 于是撑满态只剩「照片 + 昵称 + 简介」，下面的标签/内容不会被挡住。
+            val cardsHeightPx: () -> Float = { actionCardHeightPx * (1f - snapState.value) }
+            val photoBottomPx: () -> Float = {
+                barHeightPx + headerHeightPx - collapsePx + pullLayout() + cardsHeightPx() +
+                    photoInsetPx + stretchPx
+            }
+
+            // 照片层画在**内容层之下**：下拉撑开时它会盖住动作卡所在的整块区域，
+            // 动作卡再画在照片上（半透明），标签与内容卡片在照片下沿之后。
+            ProfilePhoto(
+                progress = collapseFraction,
+                dragT = dragFraction,
+                snap = snap,
+                photoBottom = photoBottomPx,
+                restCenter = Offset(
+                    x = constraints.maxWidth / 2f,
+                    y = barHeightPx + with(density) { (HeaderAvatarSize / 2).toPx() },
+                ),
+                collapsedCenter = Offset(
+                    x = with(density) { (CollapsedInset + CollapsedAvatarSize / 2).toPx() },
+                    y = with(density) { (statusBar + TopBarHeight / 2).toPx() },
+                ),
             )
 
-            ActionCardsRow(
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = barHeight, bottom = contentBottomSpace),
+            ) {
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        // 在**布局阶段**读 collapsePx：收缩只触发重排，不触发重组。
+                        .layout { measurable, constraints ->
+                            // 折叠收缩 + 下拉拉长：两个方向共用同一块头部占位，
+                            // 下拉时下面的动作卡/标签/卡片被整体推下去。
+                            val h = (headerHeightPx - collapsePx + pullLayout() + stretchPx)
+                                .coerceIn(0f, headerHeightPx + pullThresholdPx + maxStretchPx)
+                                .roundToInt()
+                            val placeable = measurable.measure(
+                                Constraints.fixed(constraints.maxWidth, h),
+                            )
+                            layout(placeable.width, placeable.height) {
+                                placeable.place(0, 0)
+                            }
+                        }
+                        .draggable(
+                            state = headerDragState,
+                            orientation = Orientation.Vertical,
+                            onDragStopped = {
+                                armed = false
+                                if (pullPx > 0f) {
+                                    animate(pullPx, 0f, animationSpec = tween(SnapMillis)) { v, _ -> pullPx = v }
+                                }
+                                settleCollapse()
+                            },
+                        ),
+                )
+
+                ActionCardsRow(
+                    palette = palette,
+                    expand = snap,
+                    modifier = Modifier.layout { measurable, constraints ->
+                        // 高度随上膛进度压到 0：标签栏跟着往上顶，撑满态只留照片+名字。
+                        val h = cardsHeightPx().roundToInt().coerceAtLeast(0)
+                        val placeable = measurable.measure(Constraints.fixed(constraints.maxWidth, h))
+                        layout(placeable.width, h) { placeable.place(0, 0) }
+                    },
+                    onThemeClick = onThemeClick,
+                    onEditInfo = onEditInfo,
+                    onSettingsClick = onSettingsClick,
+                )
+
+                Spacer(modifier = Modifier.height(MikomiSpacing.Room))
+
+                ProfileTabs(
+                    palette = palette,
+                    selected = selectedTab,
+                    onSelect = { selectedTab = it },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Spacer(modifier = Modifier.height(MikomiSpacing.Md))
+
+                ProfileTabContent(
+                    state = contentState,
+                    listState = contentListState,
+                    cardColor = palette.card,
+                    dividerColor = palette.divider,
+                    skeletonColor = palette.skeleton,
+                    modifier = Modifier
+                        // 吃掉剩余高度：任意折叠进度下卡片下沿都贴着屏幕底，不会露背景。
+                        .weight(1f)
+                        .nestedScroll(collapseConnection)
+                        // 左右滑动切换标签：竖向交给列表，横向由这里接管。
+                        .pointerInput(selectedTab) {
+                            var dragged = 0f
+                            detectHorizontalDragGestures(
+                                onDragStart = { dragged = 0f },
+                                onDragEnd = {
+                                    val threshold = SwipeThreshold.toPx()
+                                    if (dragged <= -threshold) {
+                                        selectedTab = (selectedTab + 1).coerceAtMost(TabCount - 1)
+                                    }
+                                    if (dragged >= threshold) {
+                                        selectedTab = (selectedTab - 1).coerceAtLeast(0)
+                                    }
+                                    dragged = 0f
+                                },
+                                onHorizontalDrag = { change, amount ->
+                                    dragged += amount
+                                    change.consume()
+                                },
+                            )
+                        },
+                )
+            }
+
+            // 头部层必须画在内容层之上，且中间**不能**再夹一层不透明底色：
+            // 内容层从顶栏下缘开始布局，本来就不会画到顶栏里，不需要底色遮挡；
+            // 之前那层底色（画在头像之后）正好把停进顶栏的头像和昵称盖住了。
+            ProfileNameOverlay(
+                palette = palette,
+                progress = collapseFraction,
+                dragT = dragFraction,
+                snap = snap,
+                photoBottom = photoBottomPx,
+                nameRestCenterY = barHeightPx + with(density) { (HeaderAvatarSize + 14.dp + 11.dp).toPx() },
+                nameTargetCenterY = with(density) { (statusBar + TopBarHeight / 2).toPx() },
+            )
+
+            ProfileTopBar(
                 palette = palette,
                 expand = snap,
-                modifier = Modifier.layout { measurable, constraints ->
-                    // 高度随上膛进度压到 0：标签栏跟着往上顶，撑满态只留照片+名字。
-                    val h = cardsHeightPx().roundToInt().coerceAtLeast(0)
-                    val placeable = measurable.measure(Constraints.fixed(constraints.maxWidth, h))
-                    layout(placeable.width, h) { placeable.place(0, 0) }
-                },
-                onThemeClick = onThemeClick,
-                onEditInfo = onEditInfo,
-                onSettingsClick = onSettingsClick,
-            )
-
-            Spacer(modifier = Modifier.height(MikomiSpacing.Room))
-
-            ProfileTabs(
-                palette = palette,
-                selected = selectedTab,
-                onSelect = { selectedTab = it },
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(modifier = Modifier.height(MikomiSpacing.Md))
-
-            ProfileTabContent(
-                state = contentState,
-                listState = contentListState,
-                cardColor = palette.card,
-                dividerColor = palette.divider,
-                skeletonColor = palette.skeleton,
-                modifier = Modifier
-                    // 吃掉剩余高度：任意折叠进度下卡片下沿都贴着屏幕底，不会露背景。
-                    .weight(1f)
-                    .nestedScroll(collapseConnection)
-                    // 左右滑动切换标签：竖向交给列表，横向由这里接管。
-                    .pointerInput(selectedTab) {
-                        var dragged = 0f
-                        detectHorizontalDragGestures(
-                            onDragStart = { dragged = 0f },
-                            onDragEnd = {
-                                val threshold = SwipeThreshold.toPx()
-                                if (dragged <= -threshold) {
-                                    selectedTab = (selectedTab + 1).coerceAtMost(TabCount - 1)
-                                }
-                                if (dragged >= threshold) {
-                                    selectedTab = (selectedTab - 1).coerceAtLeast(0)
-                                }
-                                dragged = 0f
-                            },
-                            onHorizontalDrag = { change, amount ->
-                                dragged += amount
-                                change.consume()
-                            },
-                        )
-                    },
+                height = barHeight,
+                onNotificationsClick = onNotificationsClick,
             )
         }
-
-        // 头部层必须画在内容层之上，且中间**不能**再夹一层不透明底色：
-        // 内容层从顶栏下缘开始布局，本来就不会画到顶栏里，不需要底色遮挡；
-        // 之前那层底色（画在头像之后）正好把停进顶栏的头像和昵称盖住了。
-        ProfileNameOverlay(
-            palette = palette,
-            progress = collapseFraction,
-            dragT = dragFraction,
-            snap = snap,
-            photoBottom = photoBottomPx,
-            nameRestCenterY = barHeightPx + with(density) { (HeaderAvatarSize + 14.dp + 11.dp).toPx() },
-            nameTargetCenterY = with(density) { (statusBar + TopBarHeight / 2).toPx() },
-        )
-
-        ProfileTopBar(
-            palette = palette,
-            expand = snap,
-            height = barHeight,
-            onNotificationsClick = onNotificationsClick,
-        )
     }
 }
 

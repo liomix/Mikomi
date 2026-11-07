@@ -15,8 +15,11 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +44,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.liomix.mikomi.R
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
+import com.liomix.mikomi.core.designsystem.spec.MikomiRailSpec
 import com.liomix.mikomi.core.designsystem.spec.MikomiWindowSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.animationsEnabled
@@ -136,6 +140,22 @@ fun MikomiNavHost(
     // 底部导航栏随之隐藏；返回顶级目的地后恢复显示。
     val isTopLevel = navigator.current in topLevelDestinations
 
+    // 窗口尺寸档在壳这一层算一次，页面只读 —— 每个页面各自读一次窗口信息，
+    // 就等于每个页面都有自己的断点口径，迟早各说一套。
+    val windowSize = rememberMikomiWindowSize()
+
+    // 导航形态：宽度至少 Medium（600dp）**且**高度不是 Compact 时换成侧栏。
+    //
+    // 只看宽度是不够的：手机横屏（约 844×390）宽度已算 Expanded，但高度只有 390dp，
+    // 内容本来就不够用，再从左边挖走 80dp 是雪上加霜 —— 横屏手机继续用悬浮底栏。
+    // 这也是 M3 `NavigationSuiteScaffold` 的默认策略：高度落在 Compact 时导航套件
+    // 直接让位（`NavigationSuiteType.None`），把那点空间还给内容。
+    val useNavigationRail = !windowSize.isCompactWidth && !windowSize.isCompactHeight
+
+    // 侧栏只在顶级页面出现：详情页、播放器要的是整屏，左边挂一条导航栏会毁掉沉浸感。
+    // 二级页面本来就会隐藏底部导航栏，这里维持同一个心智 —— 有导航栏的地方就是「家」。
+    val showNavigationRail = useNavigationRail && isTopLevel
+
     // 沉浸状态权威副本直接在 Activity Retained 作用域的 ImmersionBridge，
     // 跨 entry 重建和配置变更存活，且不依赖任何绑定时序。
     val immersiveRequested by immersionBridge.immersive
@@ -143,9 +163,12 @@ fun MikomiNavHost(
 
     // 顶级目的地切换、巡礼页自动沉浸计时由同一个 effect 协调，
     // 避免多个 effect 竞争写入同一份沉浸状态。
-    LaunchedEffect(currentTopLevel) {
+    LaunchedEffect(currentTopLevel, useNavigationRail) {
         immersionBridge.resetForTopLevelNavigation()
         if (currentTopLevel != AniMapDestination) return@LaunchedEffect
+        // 侧栏形态下不进入沉浸：沉浸是为了把手机底部那条 56dp 还给地图，而平板的地图
+        // 已经拿到了侧栏之外的全部宽度，再藏一次只是让左边 80dp 空出来 —— 布局白跳一帧。
+        if (useNavigationRail) return@LaunchedEffect
         kotlinx.coroutines.delay(NAV_BAR_AUTO_HIDE_DELAY_MILLIS)
         if (!immersionBridge.navBarTemp.value) {
             immersionBridge.onImmersiveChange(true)
@@ -172,6 +195,24 @@ fun MikomiNavHost(
     // 预热巡礼页需要一个 Activity：WebView 要挂在它的窗口上（不可见）才能真正布局与加载。
     val activity = view.context as? Activity
 
+    // 顶级页切换的收口。底栏与侧栏**必须共用这一份**：两处各写一遍，
+    // 迟早会有一边忘了预热巡礼页或忘了复位沉浸状态，而这种差异只在那一种形态上复现。
+    val onNavSelect: (Any) -> Unit = remember(navigator, immersionBridge, activity) {
+        { key ->
+            (key as? NavKey)?.let { destination ->
+                // 点巡礼 tab 时补一次预热：首页停留不足 4 秒就点进来时，
+                // 空闲预热还没触发，这里至少能把 Chromium 初始化塞进转场动画。
+                // 已经预热过则直接返回，没有额外开销。
+                if (destination == AniMapDestination) {
+                    activity?.let { AniMapWarmer.warmUp(it) }
+                }
+                // 先同步复位，避免切回巡礼页的首帧沿用上一次的沉浸状态而隐藏底栏。
+                immersionBridge.resetForTopLevelNavigation()
+                navigator.selectTopLevel(destination)
+            }
+        }
+    }
+
     // 首页静止时预热巡礼页：这是唯一能把「点进去等七八秒」变成「点进去就有」的时机。
     //
     // 巡礼页的等待里，Chromium 初始化、HTML 往返、JS 与作品数据都不要求页面可见，
@@ -190,8 +231,11 @@ fun MikomiNavHost(
     // 根屏仅在巡礼页处于沉浸状态时才拦截返回，用于临时显示导航栏。
     // 其它目的地交还给系统返回，避免首页或“我的”页无法正常退出应用。
     val isRootScreen = !navigator.canGoBack
+    // 侧栏形态下不存在「被藏起来的导航栏」，返回不该被吃掉一帧去唤出它 ——
+    // 否则平板上按返回会看起来没反应（导航栏本来就在）。
     val shouldRevealNavBar =
-        currentTopLevel == AniMapDestination && immersiveRequested && !showNavBar
+        !useNavigationRail &&
+            currentTopLevel == AniMapDestination && immersiveRequested && !showNavBar
     BackHandler(enabled = isRootScreen && shouldRevealNavBar) {
         immersionBridge.onNavBarTempChange(true)
     }
@@ -232,13 +276,17 @@ fun MikomiNavHost(
             .background(MaterialTheme.colorScheme.background)
             // 顶级页面之间左右滑动切换：竖向手势与子级横向滚动（轮播、分页）都优先，
             // 只有它们没消费的横向手势才落到这里，因此不会抢详情页/轮播的滑动。
-            .pointerInput(isTopLevel, topLevelOrder, currentTopLevel, activity) {
+            .pointerInput(isTopLevel, topLevelOrder, currentTopLevel, activity, useNavigationRail) {
                 // 巡礼页例外：那个页面的主体是真实 WebView（地图），平移要原地收到每一帧
                 // move。而 Compose 的指针事件先于原生子 View 派发——这里一旦判定成横向
                 // 拖动并 consume，WebView 就再也收不到 move，真机表现正是「上下能拖、
                 // 左右只挪一个 touchSlop 就卡住」。横向平移是地图的核心交互，切页只是便利，
                 // 所以巡礼页放弃横滑，要换页点底部导航栏（沉浸中先点底部手势条唤出）。
                 if (!isTopLevel || currentTopLevel == AniMapDestination) return@pointerInput
+                // 侧栏形态下关掉顶级页横滑：屏幕上已经有一条明摆着的导航区，横滑不再是
+                // 发现性的手势；而平板上的主页面（海报网格、时间表）更容易出现真正的横向
+                // 滚动，两者抢同一次拖动时，抢输的一定是用户想滚的那一层。
+                if (useNavigationRail) return@pointerInput
                 var dragged = 0f
                 var warmUpRequested = false
                 detectHorizontalDragGestures(
@@ -314,104 +362,152 @@ fun MikomiNavHost(
             listOf(saveableStateDecorator, viewModelStoreDecorator, pageMotionEntryDecorator)
         }
         // 窗口尺寸档在壳这一层算一次，页面只读 —— 每个页面各自读一次窗口信息，
-        // 就等于每个页面都有自己的断点口径，迟早各说一套。
-        val windowSize = rememberMikomiWindowSize()
+        // 就等于每个页面都有自己的断点口径，迟早各说一套。（值在上面算过了，
+        // 因为返回键行为与横滑手势都要先知道形态。）
         CompositionLocalProvider(
             LocalMikomiWindowSize provides windowSize,
             LocalHeroFlightController provides heroController,
             // 底栏占多高由壳告诉页面，页面不必知道那是一条导航栏 —— 见 LocalBottomBarSpace。
-            LocalBottomBarSpace provides MikomiNavBarBottomSpace,
+            // 侧栏形态下「底部占位」这件事不存在：内容在 rail 右边一路铺到底，所以归零。
+            // 页面因此一行都不用改（Home / Community / Profile 都只读这一个值）。
+            LocalBottomBarSpace provides if (showNavigationRail) 0.dp else MikomiNavBarBottomSpace,
             // 页面不再从构造参数收 Navigator，统一从这里取。
             LocalNavigator provides navigator,
             // 只影响「首次组合」那一瞬间的页面：装饰器会把它冻结，之后不再跟变。
             LocalPageMotionDirection provides motionDirection,
             LocalPageTransitionStyle provides pageTransition,
         ) {
-            NavDisplay(
-                backStack = navigator.stack,
-                onBack = navBackHandler,
-                entryProvider = navEntryProvider,
-                entryDecorators = entryDecorators,
-                // 关掉 AnimatedContent 的尺寸动画：页面本就是整屏，尺寸动画只会让新旧页
-                // 互相裁剪（表现为页面被裁成一条/半张再展开）。
-                //
-                // 进入这一步的插值不由框架算：新页自己按帧推进（见 TelegramPageMotion），
-                // 这里只给旧页挂一个肉眼不可见的退场，用它的时长当「转场窗口」。
-                transitionSpec = {
-                    // 进入时的旧页：推进档让它几乎不动地留住（等新页滑到位），
-                    // 淡入档让它正常淡出（与新页交叉），无动效档直接撤。
-                    (EnterTransition.None togetherWith pageHold(pageTransition)).using(null)
-                },
-                popTransitionSpec = {
-                    (EnterTransition.None togetherWith pageExit(pageTransition, pageOffsetPx))
-                        .using(null)
-                },
-                // 预测性返回复用返回转场：tween 会按手势进度 seek，拖动时旧页跟手右移。
-                predictivePopTransitionSpec = {
-                    (EnterTransition.None togetherWith pageExit(pageTransition, pageOffsetPx))
-                        .using(null)
-                },
-            )
+            Row(modifier = Modifier.fillMaxSize()) {
+                if (showNavigationRail) {
+                    NavigationRailHost(
+                        items = navItems,
+                        selectedKey = currentTopLevel,
+                        onSelect = onNavSelect,
+                    )
+                }
+                // 页面区自己拿剩下的宽度：侧栏占位而不是悬浮，所以这里不需要任何避让，
+                // 页面也拿不到「左边被挡了 80dp」这种信息（它本来也不该知道）。
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                ) {
+                    NavDisplay(
+                        backStack = navigator.stack,
+                        onBack = navBackHandler,
+                        entryProvider = navEntryProvider,
+                        entryDecorators = entryDecorators,
+                        // 关掉 AnimatedContent 的尺寸动画：页面本就是整屏，尺寸动画只会让新旧页
+                        // 互相裁剪（表现为页面被裁成一条/半张再展开）。
+                        //
+                        // 进入这一步的插值不由框架算：新页自己按帧推进（见 TelegramPageMotion），
+                        // 这里只给旧页挂一个肉眼不可见的退场，用它的时长当「转场窗口」。
+                        transitionSpec = {
+                            // 进入时的旧页：推进档让它几乎不动地留住（等新页滑到位），
+                            // 淡入档让它正常淡出（与新页交叉），无动效档直接撤。
+                            (EnterTransition.None togetherWith pageHold(pageTransition))
+                                .using(null)
+                        },
+                        popTransitionSpec = {
+                            (EnterTransition.None togetherWith pageExit(pageTransition, pageOffsetPx))
+                                .using(null)
+                        },
+                        // 预测性返回复用返回转场：tween 会按手势进度 seek，拖动时旧页跟手右移。
+                        predictivePopTransitionSpec = {
+                            (EnterTransition.None togetherWith pageExit(pageTransition, pageOffsetPx))
+                                .using(null)
+                        },
+                    )
+                }
+            }
         }
 
         // 沉浸式或非顶级页面（详情/播放器等二级页面）下隐藏底部导航栏，
         // 滑入/滑出动画；其余页面正常显示。沉浸中可通过手势条临时唤出（showNavBar），
         // 2 秒后自动收起。
-        AnimatedVisibility(
-            visible = isTopLevel && (!immersiveRequested || showNavBar),
-            // 显隐时长走 token：默认的 spring 收尾很长，底栏读起来像「飘」上来，
-            // 与全站 150/200ms 的节奏不是一套。进场 Standard、退场 Accelerate，
-            // 和页面进出用同一组曲线（tg 的 EASE_OUT / EASE_IN）。
-            enter = slideInVertically(
-                animationSpec = tween(
-                    MikomiMotion.Duration.Short,
-                    easing = MikomiMotion.Curve.Standard,
+        //
+        // 侧栏形态下这一整条底栏不参与组合（连 AnimatedVisibility 都不挂）：那条 56dp 的
+        // 横条在平板上没有位置，让它「隐藏」而不是「不存在」只会在进出页面时多算一次
+        // 无意义的动画。两种形态互斥，不共存。
+        if (!useNavigationRail) {
+            AnimatedVisibility(
+                visible = isTopLevel && (!immersiveRequested || showNavBar),
+                // 显隐时长走 token：默认的 spring 收尾很长，底栏读起来像「飘」上来，
+                // 与全站 150/200ms 的节奏不是一套。进场 Standard、退场 Accelerate，
+                // 和页面进出用同一组曲线（tg 的 EASE_OUT / EASE_IN）。
+                enter = slideInVertically(
+                    animationSpec = tween(
+                        MikomiMotion.Duration.Short,
+                        easing = MikomiMotion.Curve.Standard,
+                    ),
+                    initialOffsetY = { it },
+                ) + fadeIn(
+                    tween(MikomiMotion.Duration.Short, easing = MikomiMotion.Curve.Standard),
                 ),
-                initialOffsetY = { it },
-            ) + fadeIn(
-                tween(MikomiMotion.Duration.Short, easing = MikomiMotion.Curve.Standard),
-            ),
-            exit = slideOutVertically(
-                animationSpec = tween(
-                    MikomiMotion.Duration.Short,
-                    easing = MikomiMotion.Curve.Accelerate,
+                exit = slideOutVertically(
+                    animationSpec = tween(
+                        MikomiMotion.Duration.Short,
+                        easing = MikomiMotion.Curve.Accelerate,
+                    ),
+                    targetOffsetY = { it },
+                ) + fadeOut(
+                    tween(MikomiMotion.Duration.Short, easing = MikomiMotion.Curve.Accelerate),
                 ),
-                targetOffsetY = { it },
-            ) + fadeOut(
-                tween(MikomiMotion.Duration.Short, easing = MikomiMotion.Curve.Accelerate),
-            ),
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .windowInsetsPadding(MikomiInsets.Bottom)
-                // 外边距由导航栏自己的常量给出（16dp 左右 / 8dp 底部），页面按同一份规格给底栏让位。
-                .padding(
-                    horizontal = MikomiNavBarHorizontalMargin,
-                    vertical = MikomiNavBarBottomMargin,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .windowInsetsPadding(MikomiInsets.Bottom)
+                    // 外边距由导航栏自己的常量给出（16dp 左右 / 8dp 底部），页面按同一份规格给底栏让位。
+                    .padding(
+                        horizontal = MikomiNavBarHorizontalMargin,
+                        vertical = MikomiNavBarBottomMargin,
+                    )
+                    .widthIn(max = MikomiWindowSpec.NavBarMaxWidth),
+            ) {
+                MikomiNavigationBar(
+                    items = navItems,
+                    selectedKey = currentTopLevel,
+                    onSelect = onNavSelect,
                 )
-                .widthIn(max = MikomiWindowSpec.NavBarMaxWidth),
-        ) {
-            MikomiNavigationBar(
-                items = navItems,
-                selectedKey = currentTopLevel,
-                onSelect = { key ->
-                    (key as? NavKey)?.let { destination ->
-                        // 点巡礼 tab 时补一次预热：首页停留不足 4 秒就点进来时，
-                        // 空闲预热还没触发，这里至少能把 Chromium 初始化塞进转场动画。
-                        // 已经预热过则直接返回，没有额外开销。
-                        if (destination == AniMapDestination) {
-                            activity?.let { AniMapWarmer.warmUp(it) }
-                        }
-                        // 先同步复位，避免切回巡礼页的首帧沿用上一次的沉浸状态而隐藏底栏。
-                        immersionBridge.resetForTopLevelNavigation()
-                        navigator.selectTopLevel(destination)
-                    }
-                },
-            )
+            }
         }
 
         // 封面飞行层放在**最后一个**子项：页面与底部导航栏都在它之下，
         // 与 Flutter Hero 画在 Navigator Overlay 最上层一致。它没有 pointerInput，不拦触摸。
         HeroFlightOverlay(controller = heroController)
+    }
+}
+
+/**
+ * 侧栏的摆放：固定占位宽度 + 胶囊在占位里垂直居中。
+ *
+ * 占位（而不是悬浮）是这里唯一真正重要的决定，理由见 [MikomiRailSpec] 的
+ * 「为什么占位不悬浮」。实现上还有两条：
+ *
+ * 1. **inset 加在宽度之外** —— `windowInsetsPadding` 写在 `width` 之前，横屏挖孔在侧边时
+ *    rail 整体右移、胶囊宽度不变。写反了 inset 会从 80dp 里扣，胶囊被压窄，
+ *    「巡礼地图」四个字会被省略号截掉。
+ * 2. **垂直居中而不是顶部对齐** —— 顶部对齐在只有四个条目时会让屏幕左上角很重、
+ *    下面空一大片；居中的胶囊与手机那条悬浮底栏共享同一个视觉重心（屏幕中线），
+ *    换形态时不会觉得「导航搬家了」。
+ */
+@Composable
+private fun NavigationRailHost(
+    items: List<MikomiNavItem>,
+    selectedKey: Any?,
+    onSelect: (Any) -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxHeight()
+            .windowInsetsPadding(MikomiInsets.Horizontal)
+            .width(MikomiRailSpec.Width),
+        contentAlignment = Alignment.Center,
+    ) {
+        MikomiNavigationRail(
+            items = items,
+            selectedKey = selectedKey,
+            onSelect = onSelect,
+        )
     }
 }
 

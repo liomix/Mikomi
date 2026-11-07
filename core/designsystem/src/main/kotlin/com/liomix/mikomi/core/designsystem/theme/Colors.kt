@@ -353,8 +353,10 @@ private const val SkeletonNightSweepAlpha = 31f / 255f
  */
 val MikomiMedia: MikomiMediaColors = MikomiMediaColors(
     content = Color.White,
-    contentSecondary = Color.White.copy(alpha = 0.76f),
-    contentTertiary = Color.White.copy(alpha = 0.45f),
+    // 三档全部是「白的浓淡」，与页面文字的 [MikomiTextAlpha] 同源：
+    // 压在封面上的副标题和卡片里的副标题，是同一条规则的两个落点。
+    contentSecondary = Color.White.copy(alpha = MikomiTextAlpha.Secondary),
+    contentTertiary = Color.White.copy(alpha = MikomiTextAlpha.Tertiary),
     outline = Color.White.copy(alpha = 0.14f),
     surface = Color.White.copy(alpha = 0.14f),
     surfaceProminent = Color.White.copy(alpha = 0.28f),
@@ -407,6 +409,32 @@ object MikomiAlpha {
 
     /** 禁用态的内容淡化：文字与图标。 */
     const val DisabledContent: Float = 0.38f
+}
+
+/**
+ * 文字的浓淡档位。
+ *
+ * ## 字符只有黑与白两种色
+ *
+ * 页面上不带主题色的字符，色相只有两个：日间是黑、夜间是白。层级**不靠换色相表达**，
+ * 只靠同色的浓淡 —— 于是「次级文字」在日间是 70% 的黑、夜间是 70% 的白。
+ *
+ * 这条规则否掉的是另一种做法：给次级文字单独挑一个灰（原来的 #4A4A4F / #B4B4B9）。
+ * 那不是黑也不是白，而是第三种颜色，它与页面底色不同源 —— 换一套配色、换一层容器，
+ * 它就会显脏；而且两种模式要各挑一次，永远对不齐。同色的 alpha 只有一份。
+ *
+ * 三档的分工：主文字不写 alpha（就是纯黑 / 纯白）；[Secondary] 是副标题、简介、时间；
+ * [Tertiary] 是占位、单位、非活跃刻度。再往下不存在第四档 —— 比 [Tertiary] 还淡的字
+ * 在画面上已经读不出来，那不是层次，是信息丢失。
+ *
+ * 禁用态不在这三档里：它走 [MikomiAlpha.DisabledContent] 那条「拿基色淡化」的规则。
+ */
+object MikomiTextAlpha {
+    /** 次级文字：副标题、简介、时间。日间 70% 黑、夜间 70% 白。 */
+    const val Secondary: Float = 0.70f
+
+    /** 三级文字：占位、单位、非活跃刻度。 */
+    const val Tertiary: Float = 0.45f
 }
 
 /**

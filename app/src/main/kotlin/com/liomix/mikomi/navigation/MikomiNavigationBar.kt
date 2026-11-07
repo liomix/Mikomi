@@ -3,7 +3,6 @@ package com.liomix.mikomi.navigation
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -236,7 +235,9 @@ private fun NavItem(
             .selectable(
                 selected = selected,
                 interactionSource = interactionSource,
-                indication = LocalIndication.current,
+                // 不画按压层：触控范围就是这颗胶囊，波纹等于把它描出来。
+                // 点击反馈交给内容色过渡与胶囊滑动。
+                indication = null,
                 role = Role.Tab,
                 onClick = onClick,
             )

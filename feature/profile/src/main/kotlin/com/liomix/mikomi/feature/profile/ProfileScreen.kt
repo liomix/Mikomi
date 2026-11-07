@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -930,6 +931,10 @@ private fun ProfileTabs(
             selectedContentColor = palette.accent,
             unselectedContentColor = palette.tertiary,
             hoveredContentColor = palette.accent,
+            // 四边同一档，取上下的 4dp。组件默认值是「左右 10 / 上下 4」：竖直方向已经贴着胶囊
+            // 边缘，水平方向却多留 6dp，两端看着松。这里把左右收到与上下相同的 4dp ——
+            // 指示器与容器都是胶囊（半圆端），同值内缩才是同心圆，四边间隙处处相等。
+            contentPadding = PaddingValues(MikomiSpacing.Xs),
         ) {
             Tab(
                 index = 0,

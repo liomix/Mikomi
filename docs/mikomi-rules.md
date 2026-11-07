@@ -412,6 +412,7 @@ Mikomi 默认**离线优先**：
 | 压在图像 / 视频上的前景色（封面白字、遮罩、信箱区、HUD、进度条） | `MikomiTheme.colors.media` | 非组合位置用顶层 `MikomiMedia` |
 | 绘制阴影的恒定黑 | `MikomiShadowColor` | — |
 | 禁用态淡化（容器 / 内容两级） | `MikomiAlpha.DisabledContainer` / `.DisabledContent` | 组件在自己 `enabled` 分支里用；**别**用 `Modifier.alpha()` 整体压暗，那会连带压掉投影与描边 |
+| 文字浓淡（次级 / 三级） | `MikomiTextAlpha.Secondary` / `.Tertiary` | 字符只有黑与白两种色，层级靠同色 alpha；`onSurfaceVariant` 就是「正文色 × `Secondary`」，别另挑一个灰 |
 | 字号 | `MaterialTheme.typography`（15 槽位全部显式声明） | M3 之外的样式见 `MikomiTextStyles` |
 | 间距 / 圆角 / 尺寸 / 投影 | `MikomiSpacing` / `MikomiRadius` / `MikomiSizes` / `MikomiElevation` | 每组的全量档位见 `.steps` |
 | 线宽（描边、分隔线、进度） | `MikomiStroke` | — |
@@ -494,6 +495,8 @@ token 表最怕的不是「值不好」，而是「没人知道它为什么是�
 | 16 | 一屏一状态：`DetailUiState` / `HomeUiState` / `RankUiState` 统一为「外层 data class（跨态字段）+ 内层 sealed（内容态）」，`DetailRoute` 订阅 **7 次 → 1 次**、Home / Rank 各 2 → 1；`ThemeViewModel.toasts` 从 `MutableSharedFlow(replay = 0)` 改为 `Channel(CONFLATED)`；新增 `stateAudit`（S1~S6）接进 `verifyDesign` | 详情页曾以「哪个子组件需要就拆哪个」当分层依据，但主创、弹层评论、吐槽全是用户点一下才变的低频值 —— 拆开换来的是非原子更新（`openCreditDetail` 中间那一帧「详情转圈、评论区还空着」）与六个状态参数。一次性提示走 SharedFlow 在无订阅者时**静默丢失**：切桌面图标要等系统确认框，用户切完往往已退回上一页，提示就没了，表现出来是「点了没反应」。这两类错误单次执行完全正确，只在特定时序下出现 |
 
 ### 5.5 可访问性与对比度
+
+**字符只有黑与白两种色（主题色除外）。** 不带主题色的文字，色相只有纯黑 / 纯白两个；层级不靠换色相，靠同色的 alpha（`MikomiTextAlpha`：次级 0.70、三级 0.45）。所以 `onSurface` / `onBackground` 必须是 `#000000` / `#FFFFFF`，`onSurfaceVariant` 必须是「正文色 × 0.70」，`media` 的前景三档是「白 × 1 / 0.70 / 0.45」。**不要给次级文字单独挑一个灰**（曾经的 `#4A4A4F` / `#B4B4B9`）：它不是黑也不是白，与页面底色不同源，换一层容器就偏色，两种模式还得各挑一次。例外只有两类，它们都是**标识**而非正文：标签的九色相文字（浅色块 + 同色相深字）与名次的金 / 银 / 铜 `ink`。
 
 所有交互元素触控目标**至少 48×48dp**。文本对比度：< 18sp 至少 4.5:1；大文本（≥18sp 或 ≥14sp 加粗）至少 3:1。图片按钮、关键状态与错误提示要有无障碍语义。
 

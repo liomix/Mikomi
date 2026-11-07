@@ -58,9 +58,17 @@ private class ModeNeutrals(
     val inverseOnSurface: Color,
 )
 
-/** 中性容器上的前景（两种模式共用同一个近黑 / 近白）。 */
-private val OnNeutralDay = Color(0xFF1A1A1C)
-private val OnNeutralNight = Color(0xFFEDEDF0)
+/**
+ * 中性容器上的前景。
+ *
+ * 字符只有黑与白两种色（见 [MikomiTextAlpha]），所以这里不给「近黑 / 近白」：
+ * #1A1A1C 与 #EDEDF0 在黑底白底上都读得出来，但它们既不是黑也不是白，
+ * 与旁边的正文并排时是两种颜色，而不是同一颜色的深浅。
+ *
+ * 名字说的是「日间用的那一档」（黑）与「夜间用的那一档」（白），不是「日间的背景」。
+ */
+private val OnNeutralDay = Color(0xFF000000)
+private val OnNeutralNight = Color(0xFFFFFFFF)
 
 private val DayNeutrals = ModeNeutrals(
     secondary = Color(0xFF5C5C60),
@@ -70,7 +78,7 @@ private val DayNeutrals = ModeNeutrals(
     tertiaryContainer = Color(0xFFE4E4E7),
     onTertiaryContainer = OnNeutralDay,
     inverseSurface = Color(0xFF2E2E32),
-    inverseOnSurface = Color(0xFFF5F5F7),
+    inverseOnSurface = Color(0xFFFFFFFF),
 )
 
 private val NightNeutrals = ModeNeutrals(
@@ -90,11 +98,24 @@ private val NightBackground = Color(0xFF000000)
 /** 夜间的卡片 / 面板底色。 */
 private val NightSurface = Color(0xFF181818)
 
-/** 夜间正文：中性近白。M3 默认的 #E6E1E5 带紫，见 [withNightSurfaces] 的说明。 */
-private val NightOnSurface = Color(0xFFEDEDF0)
+/**
+ * 夜间正文：纯白。
+ *
+ * 原来是 #EDEDF0 —— 一个为了去紫而挑的「中性近白」。它确实不带紫，但仍不是白：
+ * 与 #FFFFFF 的图标、与封面上压在图像里的纯白文字并排时，是两种颜色。
+ * 字符只有黑与白两种色，所以这里取纯白；刺眼的问题不归色值管，
+ * 由字号、字重与「夜间背景是纯黑」这件事共同决定。
+ */
+private val NightOnSurface = Color(0xFFFFFFFF)
 
-/** 夜间次级文字：中性灰，压在 #181818 上 8.6:1。 */
-private val NightOnSurfaceVariant = Color(0xFFB4B4B9)
+/**
+ * 夜间次级文字：70% 的白。
+ *
+ * 原来是一个独立的灰 #B4B4B9。它是被挑出来的第三种颜色，与纯黑底并不同源；
+ * 换成同色的 alpha 之后，无论压在 #181818 卡片上还是纯黑背景上，
+ * 它都还是「同一个白的变淡」，不会在两种底之间偏色。
+ */
+private val NightOnSurfaceVariant = NightOnSurface.copy(alpha = MikomiTextAlpha.Secondary)
 
 /**
  * 夜间表面层级：背景纯黑、卡片 #181818，仅最高层级略提亮，
@@ -143,8 +164,10 @@ private fun ColorScheme.withDaySurfaces(): ColorScheme = copy(
     // （根层由 MikomiTheme 用 onBackground 兜底 LocalContentColor，Surface 内部用 onSurface）。
     onBackground = Color(0xFF000000),
     onSurface = Color(0xFF000000),
-    // 次级文字：M3 默认 #49454F 也带紫调（压在白上是看不出，但和下面对不上的描边同屏就显脏）。
-    onSurfaceVariant = Color(0xFF4A4A4F),
+    // 次级文字：70% 的黑，不是另一个灰。
+    // 原来的 #4A4A4F 与页面底色、卡片白都不同源，换一层容器就偏色；同色的 alpha 只有一份。
+    // 它是半透明的，验算对比度时必须先合成到 `surface` 上（见 `auditContrast`）。
+    onSurfaceVariant = Color(0xFF000000).copy(alpha = MikomiTextAlpha.Secondary),
     surfaceContainerLowest = Color(0xFFFFFFFF),
     surfaceContainerLow = Color(0xFFFFFFFF),
     surfaceContainer = Color(0xFFF7F7F9),

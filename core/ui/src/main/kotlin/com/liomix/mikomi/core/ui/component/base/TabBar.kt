@@ -3,7 +3,6 @@ package com.liomix.mikomi.core.ui.component.base
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
@@ -431,6 +430,9 @@ private const val IndicatorFadeMillis = MikomiMotion.Duration.Fast
  * 关键约定：**内边距在 `selectable` 内侧**，所以 触控范围 == 指示器矩形 == 实测矩形，
  * 不会出现「看到的胶囊比能点的地方大」。
  *
+ * 也因此这里不挂 indication：波纹画出来正好是这个胶囊，等于把触控范围显示给用户看。
+ * 按压反馈只靠内容色与指示器动效，视觉上不会多出一层灰块。
+ *
  * @param index 组内下标，必须与 [TabBar] 的 `selectedIndex` 同一套编号。
  * @param text 主文案；为 null 时只显示图标。
  * @param supportingText 第二行副标题，非空即两行排布。
@@ -475,7 +477,10 @@ fun Tab(
         .selectable(
             selected = selected,
             interactionSource = interactionSource,
-            indication = LocalIndication.current,
+            // 不画按压层：selectable 的自带波纹是「整个胶囊被填一层灰」，
+            // 在图标+文字的小标签上看着就像把触控范围直接显示出来了。
+            // 点击反馈由内容色过渡与指示器滑动承担（两者本来就在动）。
+            indication = null,
             role = Role.Tab,
         ) { state.onSelect(index) }
         .then(if (resolved.height != null) Modifier.height(resolved.height) else Modifier)

@@ -116,10 +116,18 @@ fun auditContrast(colors: MikomiColors, scheme: ColorScheme): List<ContrastCheck
         background = scheme.surface,
         min = MikomiContrast.Body,
     )
+    // 次级文字是「正文色 + alpha 0.7」，必须先合成到卡片上再算 ——
+    // 直接拿半透明色去算，`luminance()` 只看 RGB，会把 70% 的黑当成纯黑，得出 21:1 的假数。
     checks += ContrastCheck(
         name = "次级文字压卡片",
-        foreground = scheme.onSurfaceVariant,
+        foreground = scheme.onSurfaceVariant.compositeOver(scheme.surface),
         background = scheme.surface,
+        min = MikomiContrast.Body,
+    )
+    checks += ContrastCheck(
+        name = "次级文字压页面底色",
+        foreground = scheme.onSurfaceVariant.compositeOver(scheme.background),
+        background = scheme.background,
         min = MikomiContrast.Body,
     )
 

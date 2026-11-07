@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -218,10 +219,10 @@ fun ThemeScreen(
 }
 
 /**
- * 图标样式选项：圆角图标预览 + 名称。
+ * 图标样式选项：圆形图标预览 + 名称。
  *
- * 触控区域严格等于图标本身（72dp），名称只作说明不可点；
- * 选中时外圈描主色并在内外留出间隙（图标是方形预览，不套用色卡那套收拢描边）。
+ * 触控区域严格等于圆形本身（72dp），名称只作说明不可点；
+ * 选中时外面套一圈主色描边，描边与图标之间留 [APP_ICON_SELECTED_BORDER] 的间隙。
  */
 @Composable
 private fun AppIconOption(
@@ -246,11 +247,12 @@ private fun AppIconOption(
                 .border(
                     width = if (selected) APP_ICON_SELECTED_BORDER else 0.dp,
                     color = borderColor,
-                    shape = RoundedCornerShape(MikomiRadius.Xxl),
+                    shape = CircleShape,
                 )
                 .padding(APP_ICON_SELECTED_BORDER)
-                // 内圆角比外圆角小一档：同心圆角要「外减内边距」，否则描边会被挤成月牙。
-                .clip(RoundedCornerShape(MikomiRadius.Xl))
+                // 圆形预览：图标本体裁成圆，和桌面上圆形图标的样子一致。
+                // 这里不再需要「外圆角减内边距」那套同心圆角换算 —— 圆没有角半径可以相减。
+                .clip(CircleShape)
                 .background(MikomiTheme.colors.previewCanvas)
                 // 点击与涟漪都限制在图标区域内，名称不参与触控。
                 .clickable(onClick = onClick),
@@ -259,10 +261,8 @@ private fun AppIconOption(
             Image(
                 painter = painterResource(style.previewRes),
                 contentDescription = stringResource(style.labelRes),
-                contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(APP_ICON_FOREGROUND_PADDING),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
             )
         }
         Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
@@ -274,9 +274,8 @@ private fun AppIconOption(
     }
 }
 
-/** 图标预览尺寸与前景内边距（贴近自适应图标的前景安全区）。 */
+/** 图标预览尺寸。圆形直径，与下方名称的视觉宽度对齐。 */
 private val APP_ICON_PREVIEW_SIZE = 72.dp
-private val APP_ICON_FOREGROUND_PADDING = 10.dp
 
 /** 应用图标选项的选中描边宽度（色卡已改成 Telegram 那套，这里保持图标选项原有的观感）。 */
 private val APP_ICON_SELECTED_BORDER = 3.dp

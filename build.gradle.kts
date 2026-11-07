@@ -314,17 +314,46 @@ tasks.register("contrastAudit") {
             println("提示：评分金 $gold 压在卡片 $surface 上 ${"%.2f".format(ratio)}:1 —— 低于 4.5，只允许压在图像上。")
         }
 
+        // ---- 字符只有黑 / 白两种色（主题色除外）----
+        //
+        // 不带主题色的文字，色相只有纯黑 / 纯白两个；层级靠同色的 alpha（`MikomiTextAlpha`）。
+        // 这一条以前只写在注释里，于是 #4A4A4F 与 #B4B4B9 两个「第三种颜色」各占了一个槽位，
+        // 两种模式还得各挑一次。这里把它变成断言：正文槽位只能是 #000000 / #FFFFFF，
+        // 次级文字必须是「正文色 × MikomiTextAlpha.Secondary」。
+        //
+        // 改写法（给日间正文抽一个常量之类）时同步改这里 —— 与标签色那几条正则同一套约定：
+        // 解析不到就报错，而不是安静地放行。
+        val textColorRules = listOf(
+            "夜间正文必须是纯白" to "private val NightOnSurface = Color(0xFFFFFFFF)",
+            "夜间次级文字必须是白的 alpha" to
+                "private val NightOnSurfaceVariant = NightOnSurface.copy(alpha = MikomiTextAlpha.Secondary)",
+            "日间正文必须是纯黑" to "onSurface = Color(0xFF000000)",
+            "日间页面正文必须是纯黑" to "onBackground = Color(0xFF000000)",
+            "日间次级文字必须是黑的 alpha" to
+                "onSurfaceVariant = Color(0xFF000000).copy(alpha = MikomiTextAlpha.Secondary)",
+            "媒体族次级文字必须是白的 alpha" to
+                "contentSecondary = Color.White.copy(alpha = MikomiTextAlpha.Secondary)",
+            "媒体族三级文字必须是白的 alpha" to
+                "contentTertiary = Color.White.copy(alpha = MikomiTextAlpha.Tertiary)",
+        )
+        val textViolations = textColorRules.filterNot { (_, expected) ->
+            themeSource.contains(expected) || colorsSource.contains(expected)
+        }
+        for ((name, expected) in textViolations) {
+            failures += "$name：源码里找不到 `$expected`"
+        }
+        println("字符色审计：${textColorRules.size - textViolations.size}/${textColorRules.size} 条成立")
+
         println("")
         println("对比度审计：验算 $checked 对（WCAG AA，正文门槛 4.5:1）")
         if (failures.isEmpty()) {
             println("全部达标")
         } else {
             for (f in failures) println("  [!] $f")
-            throw GradleException("对比度审计未通过：${failures.size} 对不达标。")
+            throw GradleException("对比度审计未通过：${failures.size} 处不达标。")
         }
     }
 }
-
 /**
  * 图标审计。
  *

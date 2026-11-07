@@ -25,23 +25,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
@@ -81,21 +72,6 @@ private val DETAIL_COVER_WIDE_WIDTH = 220.dp
  * 半径只影响一次性的光栅化成本，不进入每帧预算（见 [DetailBackdrop] 注释）。
  */
 private val DETAIL_BACKDROP_BLUR = 40.dp
-
-/**
- * 背景兜底底色。
- *
- * 头部正文固定是白字，所以底必须永远是深的：日间页面底色是 #F1F1F3，封面失败或尚未解码时
- * 若直接透出页面底色，白字会看不见。这里用一层中性深灰兜底，两种主题下都够暗。
- */
-/**
- * 橡皮筋接缝的渐隐带高度。
- *
- * 屏幕顶部那条「封面延伸」和真正的头部画面之间，行号会往回跳一次 —— 模糊后大部分封面看不出来，
- * 强对比封面上却是一条横线。让延伸层的最后这几 dp 化到全透明，错位就摊成一条柔和过渡。
- * 再宽就开始吃掉封面本身的上沿细节，3dp 是「看不出线、也看不出带」的量。
- */
-internal val DETAIL_SEAM_FADE = 3.dp
 
 /**
  * 头部内部两个节点的坐标（普通对象，不是 State）。
@@ -291,69 +267,6 @@ private fun DetailBackdrop(
                     radius = DETAIL_BACKDROP_BLUR,
                     edgeTreatment = BlurredEdgeTreatment.Rectangle,
                 ),
-        )
-    }
-}
-
-/**
- * 屏幕最顶部那条「封面延伸」。
- *
- * 整页橡皮筋把内容往下推时，屏幕顶部会露出 `stretchPx` 那么高的一条缝。
- * 这里用与 [DetailHeader] 背景**完全同源**的一层盖住这条缝：同一张图、同样的完整高度、
- * 同样的模糊半径 —— 两者其实是同一张画的不同裁切，拼起来不会露出页面底色
- * （深色主题下那条底色就是纯黑，非常割裂）。
- *
- * 关键在内部图层仍按头部完整高度渲染，只有同尺寸的模糊结果才真的对得上。
- *
- * 但这张画上面没有多余的像素可画：缝里放的是第 `0..stretchPx` 行，接缝下面重新从第 0 行
- * 开始，行号会往回跳一次。40dp 的模糊已经把这种跳变压得很轻，强对比封面上却仍是一条横线。
- * 所以这一层**盖在头部上面**，最后 [DETAIL_SEAM_FADE] 那一段用 `DstIn` 把 alpha 收到 0，
- * 让位给下面真实的头部画面 —— 错位被摊平在几 dp 里，而不是一刀切。
- *
- * @param headerHeight 头部完整高度，必须与 [DetailHeader] 的折叠高度一致
- * @param stretchPx 整页位移：为 0 时这条缝不存在，整层跳过绘制
- */
-@Composable
-internal fun HeaderEdgeBackdrop(
-    model: Any?,
-    headerHeight: Dp,
-    stretchPx: () -> Float,
-    modifier: Modifier = Modifier,
-) {
-    val fadePx = with(LocalDensity.current) { DETAIL_SEAM_FADE.toPx() }
-    Box(
-        modifier = modifier
-            // 渐隐要靠 DstIn 遮罩，必须先有自己的图层。
-            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-            .drawWithContent {
-                val dy = stretchPx()
-                // 没越界（或是在往上拽）时这条缝不存在，整层不进绘制。
-                if (dy <= 0f) return@drawWithContent
-                val bottom = dy + fadePx
-                clipRect(bottom = bottom) {
-                    this@drawWithContent.drawContent()
-                    // 前 dy 原样，最后 fadePx 一路化到全透明；两个端点之外由 CLAMP 接管，
-                    // 所以这条遮罩只会影响接缝那几 dp。
-                    //
-                    // 这里的黑色**不是配色**：DstIn 只取画笔的 alpha 通道，「黑」代表
-                    // 「这一段原样保留」。所以它不取任何 token，取色器里也不该把它算成硬编码。
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            0f to Color.Black,
-                            1f to Color.Transparent,
-                            startY = dy,
-                            endY = bottom,
-                        ),
-                        blendMode = BlendMode.DstIn,
-                    )
-                }
-            },
-    ) {
-        DetailBackdrop(
-            model = model,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(headerHeight),
         )
     }
 }

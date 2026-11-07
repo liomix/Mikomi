@@ -96,10 +96,11 @@ internal class HeaderCollapse(
         private set
 
     /**
-     * 整页位移：正 = 被往下拽（内容已到顶），负 = 被往上拽（内容已到底）。
+     * 整页橡皮筋：正 = 被往下拽（内容已到顶），负 = 被往上拽（内容已到底）。
      *
      * 它不是滚动，只是「拉过头」的临时形变，松手一定回到 0。
-     * 两端露出来的缝都由 `HeaderEdgeBackdrop` 垫住，所以这里可以放心地移动整页。
+     * 页面读它做的是**以顶边为支点的纵向伸缩**（`scaleY`），不是位移 —— 顶边不动，
+     * 所以屏幕最上面永远不会露出一条缝。
      */
     var stretchPx by mutableFloatStateOf(0f)
         private set
@@ -245,8 +246,8 @@ internal fun rememberHeaderCollapse(
  * 才开始拉橡皮筋。
  *
  * 两端的橡皮筋都发生在 `onPostScroll`（说明子级已经消费不动了）：
- * 内容到顶时继续下拉 → 整页被往下拽；内容到底时继续上滑 → 整页被往上拽。
- * 露出来的缝由页面顶部那层同源封面垫住（`HeaderEdgeBackdrop`），不会看到页面底色。
+ * 内容到顶时继续下拉 → 整页被往下拉长；内容到底时继续上滑 → 整页被压短。
+ * 页面按 [HeaderCollapse.stretchPx] 做以顶边为支点的 `scaleY`，顶部不动，看不到任何缝。
  *
  * 松手后 `onPostFling` 统一收尾：橡皮筋弹回 0、头部吸附到最近的锚点。
  * 这两件事放在独立协程里并行做，fling 本身立刻结束，不拖着页面一起等。
@@ -315,8 +316,8 @@ private class HeaderCollapseConnection(
             if (used > 0f) movedHeader = true
             val rest = dy - used
             if (rest <= 0f) return if (used > 0f) Offset(0f, used) else Offset.Zero
-            // 头部也放完了 —— 再拉就是橡皮筋（整页往下走一点）。
-            // 顶部露出来的那条缝由 `HeaderEdgeBackdrop` 用同一张模糊封面垫住，不会露底色。
+            // 头部也放完了 —— 再拉就是橡皮筋（整页被拉长一点）。
+            // 页面把这段位移换算成以顶边为支点的 scaleY，顶边不动，屏幕最上面不会露缝。
             val stretched = collapse.stretchBy(rest)
             // 拉到极限时 stretchBy 返回 0：这里主动吃掉剩下的位移，
             // 否则底层列表会再叠一层系统自带的回弹，屏幕上就是两套动画抢一个手势。

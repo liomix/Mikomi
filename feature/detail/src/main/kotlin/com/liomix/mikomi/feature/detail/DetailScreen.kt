@@ -45,6 +45,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -239,19 +241,6 @@ private fun DetailLoaded(
     val teasingListState = rememberLazyListState()
 
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        // 整页橡皮筋把内容推走时，屏幕顶部会露出一条缝。这里垫一层与头部同源的模糊封面，
-        // 露出来的是「封面自己的上沿」，而不是一条页面底色（深色主题下是纯黑）。
-        //
-        // 宽屏下它仍然铺满整屏：内容列收窄之后，这条缝要是跟着收窄，两侧就会在越界时
-        // 露出页面底色 —— 而那正是这一层存在的理由。
-        HeaderEdgeBackdrop(
-            model = anime.coverUrl,
-            headerHeight = HEADER_HEIGHT,
-            stretchPx = { collapse.stretchPx },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(HEADER_STRETCH_LIMIT),
-        )
         // 宽屏（≥840dp）把整块内容收成可读列并居中：头部、Tab 栏、正文、悬浮按钮
         // 一起收。只收宽度、不动高度，折叠头那套「按帧算位移」的逻辑一行都不用改。
         //
@@ -274,9 +263,22 @@ private fun DetailLoaded(
                 modifier = Modifier
                     .fillMaxSize()
                     .nestedScroll(collapseConnection)
-                    // 橡皮筋：整页（头部 + Tab 栏 + 内容）被拉出的临时位移，只在两端越界时非 0；
-                    // 读取发生在布局阶段，不触发重组。
-                    .offset { IntOffset(0, collapse.stretchPx.roundToInt()) },
+                    // 橡皮筋：整页（头部 + Tab 栏 + 内容）以**顶边**为支点纵向伸缩，
+                    // 只在两端越界时非 0。
+                    //
+                    // 这里必须缩放而不是位移。位移是把整块内容往下推，屏幕顶部必然露出一条缝，
+                    // 那条缝只能用另一层「同源封面」去补；而补出来的图是从封面第 0 行重新开始画的，
+                    // 接缝处行号会往回跳，状态栏底下就多出一条错位的横线 —— 那正是要消灭的东西。
+                    // 以顶边为支点拉伸时顶边一个像素都不动，状态栏下永远是封面自己的像素，
+                    // 缝从根上不存在，那层垫图也就不需要了。
+                    //
+                    // 读取发生在绘制阶段，滚动过程中不重组。
+                    .graphicsLayer {
+                        val stretch = collapse.stretchPx
+                        if (stretch == 0f || size.height == 0f) return@graphicsLayer
+                        transformOrigin = TransformOrigin(0.5f, 0f)
+                        scaleY = 1f + stretch / size.height
+                    },
             ) {
                 // 头部 + Tab 栏：同一个块。Tab 栏叠在封面底部，随收缩沿封面上移，
                 // 裁切由 collapsingHeader 负责 —— 露不出来的只有封面下半截，标题永远在。

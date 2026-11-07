@@ -3,6 +3,7 @@ package com.liomix.mikomi.core.ui.component.layout
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -27,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.spec.MikomiWindowSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
@@ -36,6 +39,19 @@ import com.liomix.mikomi.core.ui.R
 import com.liomix.mikomi.core.ui.component.base.MikomiIcon
 import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
 import com.liomix.mikomi.core.ui.window.MikomiInsets
+
+/**
+ * 让内容永远「比视口长一点点」，滚动范围因此恒大于 0。
+ *
+ * 为什么需要：`Modifier.verticalScroll` 只在自己能滚的时候才把剩余位移交给 overscroll
+ * 效果（`ScrollableNode.shouldDispatchOverscroll` 要求 canScrollForward/Backward 之一为真）。
+ * 内容不满一屏的页面 maxValue 为 0、两个方向都不可滚，拉伸回弹就整个消失，
+ * 于是同一套骨架在不同页面上手感不一致——短页面「拉不动」，长页面有橡皮筋。
+ *
+ * 1dp 是能做到这一点的最小值：`maxValue` 从 0 变成 1dp 就足以放行，多出来的滚动距离
+ * 肉眼不可见。
+ */
+private val OverscrollSlop = 1.dp
 
 /**
  * [BaseScreenLayout] 的默认留白与间距。
@@ -133,7 +149,9 @@ fun BaseScreenLayout(
 
         val expanded = LocalMikomiWindowSize.current.isExpandedWidth
 
-        Column(
+        // 用 BoxWithConstraints 而不是直接摆 Column：这里需要「滚动视口有多高」这个数，
+        // 而视口高度在 verticalScroll 之后是量不到内容区高度的，只能在它外侧取。
+        BoxWithConstraints(
             modifier = Modifier
                 // weight 而不是 fillMaxSize：顶栏吃掉的高度必须让出来，否则内容会被顶栏遮住一截。
                 .weight(1f)
@@ -152,13 +170,23 @@ fun BaseScreenLayout(
                 // 底部留白在滚动区之外：滚到底时内容停在手势条之上，这一段不跟着滚。
                 // 用 BottomOrIme 而不是「导航栏 + imePadding」：键盘弹起时导航栏被它盖住，
                 // 两者相加会多出一条空带；这个入口自己取两者的较大值，一条链只留一个主人。
-                .windowInsetsPadding(MikomiInsets.BottomOrIme)
-                .then(if (scrollable) Modifier.verticalScroll(scrollState) else Modifier)
-                .then(contentModifier)
-                .padding(contentPadding),
-            verticalArrangement = verticalArrangement,
-            content = content,
-        )
+                .windowInsetsPadding(MikomiInsets.BottomOrIme),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(if (scrollable) Modifier.verticalScroll(scrollState) else Modifier)
+                    .then(contentModifier)
+                    // 内容不满一屏时也要能拉出橡皮筋：ScrollState.maxValue 为 0 时
+                    // ScrollableNode 的 shouldDispatchOverscroll 为假，overscroll 效果
+                    // 根本不会被派发，页面就成了「拉不动」。垫 1dp 让滚动范围恒大于 0，
+                    // 代价是滚到底时内容还能再挪 1dp（肉眼不可见）。
+                    .then(if (scrollable) Modifier.heightIn(min = maxHeight + OverscrollSlop) else Modifier)
+                    .padding(contentPadding),
+                verticalArrangement = verticalArrangement,
+                content = content,
+            )
+        }
     }
 }
 

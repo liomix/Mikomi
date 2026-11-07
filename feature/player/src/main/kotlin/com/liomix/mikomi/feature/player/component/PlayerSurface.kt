@@ -644,7 +644,7 @@ private fun PlayerLockButton(
                 if (locked) R.string.player_unlock else R.string.player_lock,
             ),
             tint = MikomiMedia.content,
-            size = MikomiSizes.IconSm,
+            size = MikomiSizes.IconMd,
         )
     }
 }
@@ -1100,7 +1100,7 @@ private fun ControlIconButton(
             icon = imageVector,
             contentDescription = contentDescription,
             tint = if (active) MaterialTheme.colorScheme.primary else MikomiMedia.content,
-            size = MikomiSizes.IconSm,
+            size = MikomiSizes.IconMd,
         )
     }
 }
@@ -1248,7 +1248,7 @@ private fun VideoScaleMenu(
                 icon = MikomiIcons.FitScreen,
                 contentDescription = stringResource(R.string.player_scale_current, currentLabel),
                 tint = MikomiMedia.content,
-                size = MikomiSizes.IconSm,
+                size = MikomiSizes.IconMd,
             )
         }
 

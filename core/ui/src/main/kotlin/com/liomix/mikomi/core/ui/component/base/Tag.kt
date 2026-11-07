@@ -5,7 +5,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
@@ -75,7 +74,7 @@ enum class TagStyle {
     /** 可选中的选项：胶囊 + 40dp 触控高度，选中时主色淡底 + 主色描边 + 半粗文字。 */
     Selectable,
 
-    /** 陈列型只读标签：描边胶囊，字号大一号。题材、关键词这类内容。 */
+    /** 陈列型只读标签：填色胶囊（24dp，与图标默认档同高），不带描边。题材、计数这类内容。 */
     Content,
 
     /** 元信息徽标：填色小圆角，字号小三档。版本号、状态这类次要信息。 */
@@ -123,7 +122,7 @@ enum class TagStyle {
  * @param shape 形状，默认胶囊（`Meta` 是 6dp 圆角）。
  * @param contentPadding 文字四周留白。
  * @param textStyle 文字样式（字号、行高、字重）。
- * @param minHeight 最小高度；可选中规格默认 40dp，只读规格不设下限。
+ * @param minHeight 最小高度；可选中规格默认 40dp，只读规格默认 24dp（与图标默认档同高）。
  * @param maxLines 最多几行；默认不限（标签一般是短词，长文案由调用方决定是省略还是换行）。
  * @param overflow 超出 [maxLines] 时怎么收尾。
  */
@@ -183,10 +182,13 @@ fun Tag(
         contentColor = contentColor,
         border = borderColor?.let { BorderStroke(MikomiStroke.Thin, animatedBorderColor) },
     ) {
+        // 这里**不能**写 `fillMaxHeight()`：`Surface` 是 `Box(propagateMinConstraints = true)`，
+        // 最小高度（可选中规格 40dp）本来就会传给内容，`fillMaxHeight` 只会多干一件事 ——
+        // 当父级把高度限制住时（例如嵌在 `Row` 里、`Row` 又撑满了一张卡片的高度），
+        // 标签会跟着把最大高度也吃满：收藏区的「共 3 部」曾被拉成 948px 高，
+        // 同一列里的网格因此被挤到 0 高度，整块区域看起来是空的。
         Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .padding(contentPadding),
+            modifier = Modifier.padding(contentPadding),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -221,21 +223,20 @@ private val TagStyle.defaultShape: Shape
 private val TagStyle.defaultContentPadding: PaddingValues
     get() = when (this) {
         TagStyle.Selectable -> PaddingValues(horizontal = MikomiTagSpec.SelectableHorizontalPadding)
-        TagStyle.Content -> PaddingValues(
-            horizontal = MikomiSpacing.Lg,
-            vertical = MikomiSpacing.Sm,
-        )
+        // 只读标签：10dp 横内边距、纵向靠 24dp 的固定高度撑开（与图标默认档同高）。
+        TagStyle.Content -> PaddingValues(horizontal = MikomiTagSpec.ChipHorizontalPadding)
         TagStyle.Meta -> PaddingValues(
             horizontal = MikomiTagSpec.MetaHorizontalPadding,
             vertical = MikomiTagSpec.MetaVerticalPadding,
         )
     }
 
-/** 三套规格的最小高度：只有控件需要撑到 40dp，只读标签跟着文字走。 */
+/** 三套规格的最小高度：可选中 40dp（触控高度破例），只读标签 = 24dp（与图标同高）。 */
 private val TagStyle.defaultMinHeight: Dp
     get() = when (this) {
         TagStyle.Selectable -> SelectableHeight
-        TagStyle.Content, TagStyle.Meta -> 0.dp
+        TagStyle.Content -> MikomiTagSpec.ChipHeight
+        TagStyle.Meta -> 0.dp
     }
 
 /** 三套规格的字号：徽标要压住存在感，所以比文字本体还小一档。 */
@@ -272,9 +273,9 @@ private fun TagStyle.defaultColors(selected: Boolean): TagColors {
         }
 
         TagStyle.Content -> TagColors(
-            container = colors.surface,
-            content = colors.onSurface,
-            border = colors.outlineVariant,
+            // 只读标签的默认态 = 播放页「共 N 集」那颗胶囊：浅一档的容器底、次级文字色、不描边。
+            container = colors.surfaceContainerHigh,
+            content = colors.onSurfaceVariant,
         )
 
         TagStyle.Meta -> TagColors(

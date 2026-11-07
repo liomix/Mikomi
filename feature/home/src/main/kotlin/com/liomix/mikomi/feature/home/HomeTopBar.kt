@@ -77,7 +77,7 @@ fun HomeTopBar(
                     contentDescription = profileContentDescription,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     // 24 -> 20：圆底由 48 收到 40，图标按同比例缩，否则头像会显得顶满。
-                    size = MikomiSizes.IconSm,
+                    size = MikomiSizes.IconMd,
                 )
             }
         }
@@ -105,7 +105,7 @@ fun HomeTopBar(
                     icon = MikomiIcons.Search,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    size = MikomiSizes.IconSm,
+                    size = MikomiSizes.IconMd,
                 )
                 Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
                 Text(

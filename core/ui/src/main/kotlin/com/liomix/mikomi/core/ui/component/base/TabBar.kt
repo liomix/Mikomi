@@ -80,7 +80,7 @@ enum class TabOrientation { Horizontal, Vertical }
 data class TabItemStyle(
     val orientation: TabOrientation = TabOrientation.Horizontal,
     val height: Dp? = null,
-    val iconSize: Dp = MikomiSizes.IconSm,
+    val iconSize: Dp = MikomiSizes.IconMd,
     val iconLabelSpacing: Dp = 5.dp,
     val horizontalPadding: Dp = 8.dp,
     val verticalPadding: Dp = 3.dp,
@@ -92,7 +92,7 @@ data class TabItemStyle(
     companion object {
         /** 个人资料页那种紧凑图标标签：18dp 图标 + 14.5sp 文字。 */
         fun compact(): TabItemStyle = TabItemStyle(
-            iconSize = MikomiSizes.IconSm,
+            iconSize = MikomiSizes.IconMd,
             iconLabelSpacing = 5.dp,
             horizontalPadding = 8.dp,
             verticalPadding = 3.dp,

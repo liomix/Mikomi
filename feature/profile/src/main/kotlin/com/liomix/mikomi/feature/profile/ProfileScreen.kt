@@ -82,6 +82,10 @@ import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
 import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
 import com.liomix.mikomi.core.ui.window.rememberMikomiBottomInset
 import com.liomix.mikomi.core.ui.window.rememberMikomiTopInset
+import com.liomix.mikomi.feature.profile.collection.CollectionEvent
+import com.liomix.mikomi.feature.profile.collection.CollectionUiState
+import com.liomix.mikomi.feature.profile.collection.CollectionArea
+import com.liomix.mikomi.feature.profile.component.ProfileContentCard
 import com.liomix.mikomi.feature.profile.component.ProfileTabContent
 import com.liomix.mikomi.feature.profile.component.rememberProfileTabContentState
 import kotlin.math.roundToInt
@@ -105,9 +109,13 @@ import kotlinx.coroutines.launch
  * @param onThemeClick 动作卡「主题」。
  * @param onSettingsClick 顶栏设置入口与动作卡「设置」。
  * @param onEditInfo 动作卡「编辑信息」（占位）。
+ * @param collection 收藏区状态（由 `ProfileRoute` 订阅；本页不碰数据层）。
+ * @param onCollectionEvent 收藏区的用户动作。打开详情的那一项由 Route 转给导航。
  */
 @Composable
 fun ProfileScreen(
+    collection: CollectionUiState,
+    onCollectionEvent: (CollectionEvent) -> Unit,
     onThemeClick: () -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -453,38 +461,56 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(MikomiSpacing.Md))
 
-                ProfileTabContent(
-                    state = contentState,
-                    listState = contentListState,
-                    cardColor = palette.card,
-                    dividerColor = palette.divider,
-                    skeletonColor = palette.skeleton,
-                    modifier = Modifier
-                        // 吃掉剩余高度：任意折叠进度下卡片下沿都贴着屏幕底，不会露背景。
-                        .weight(1f)
-                        .nestedScroll(collapseConnection)
-                        // 左右滑动切换标签：竖向交给列表，横向由这里接管。
-                        .pointerInput(selectedTab) {
-                            var dragged = 0f
-                            detectHorizontalDragGestures(
-                                onDragStart = { dragged = 0f },
-                                onDragEnd = {
-                                    val threshold = SwipeThreshold.toPx()
-                                    if (dragged <= -threshold) {
-                                        selectedTab = (selectedTab + 1).coerceAtMost(TabCount - 1)
-                                    }
-                                    if (dragged >= threshold) {
-                                        selectedTab = (selectedTab - 1).coerceAtLeast(0)
-                                    }
-                                    dragged = 0f
-                                },
-                                onHorizontalDrag = { change, amount ->
-                                    dragged += amount
-                                    change.consume()
-                                },
-                            )
-                        },
-                )
+                // 内容卡片的外框与手势只声明一次，两个标签共用：
+                // 换标签时卡片的位置、圆角、折叠接力都不该有任何差别。
+                val contentModifier = Modifier
+                    // 吃掉剩余高度：任意折叠进度下卡片下沿都贴着屏幕底，不会露背景。
+                    .weight(1f)
+                    .nestedScroll(collapseConnection)
+                    // 左右滑动切换标签：竖向交给列表，横向由这里接管。
+                    .pointerInput(selectedTab) {
+                        var dragged = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { dragged = 0f },
+                            onDragEnd = {
+                                val threshold = SwipeThreshold.toPx()
+                                if (dragged <= -threshold) {
+                                    selectedTab = (selectedTab + 1).coerceAtMost(TabCount - 1)
+                                }
+                                if (dragged >= threshold) {
+                                    selectedTab = (selectedTab - 1).coerceAtLeast(0)
+                                }
+                                dragged = 0f
+                            },
+                            onHorizontalDrag = { change, amount ->
+                                dragged += amount
+                                change.consume()
+                            },
+                        )
+                    }
+
+                when (selectedTab) {
+                    // 历史：仍是占位网格（真实历史功能未做），保持既有观感。
+                    0 -> ProfileTabContent(
+                        state = contentState,
+                        listState = contentListState,
+                        cardColor = palette.card,
+                        dividerColor = palette.divider,
+                        skeletonColor = palette.skeleton,
+                        modifier = contentModifier,
+                    )
+
+                    1 -> ProfileContentCard(
+                        color = palette.card,
+                        modifier = contentModifier,
+                    ) {
+                        CollectionArea(
+                            state = collection,
+                            onEvent = onCollectionEvent,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
             }
 
             // 头部层必须画在内容层之上，且中间**不能**再夹一层不透明底色：
@@ -896,7 +922,7 @@ private fun ActionCard(
             icon = icon,
             contentDescription = null,
             tint = palette.title,
-            size = MikomiSizes.IconSm,
+            size = MikomiSizes.IconMd,
         )
         Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
         Text(

@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -81,6 +82,9 @@ class DetailViewModel @Inject constructor(
             }
         }
         .catch { emit(BoundContent(animeId.value, DetailContent.Error)) }
+        // 收藏快照自愈：详情页看到的永远是最新数据，顺手把收藏表里那份旧快照覆盖掉。
+        // 只对「已收藏」的番剧真正落行（DAO 的 WHERE 带内容比较），失败也不影响本页。
+        .onEach { bound -> healFavoriteSnapshot(bound.content) }
 
     /** 是否已收藏。跟随本地收藏列表实时变化；收藏成功后 ActionBar 的星标靠它翻转。 */
     private val favorite: Flow<Boolean> = animeId
@@ -121,6 +125,32 @@ class DetailViewModel @Inject constructor(
 
     /** 吐槽首屏是否已发起请求（避免重复拉取）。 */
     private var teasingRequested = false
+
+    /** 上次自愈过的快照（id + 标题 + 封面）：同一内容不重复写库。 */
+    private var healedSnapshot: Triple<String, String, String?>? = null
+
+    /**
+     * 把收藏表里存的标题 / 封面更新成详情页的最新值。
+     *
+     * 收藏页完全靠自己那份快照渲染（不查番剧表、不发网络请求），所以只要用户打开过一次
+     * 已收藏的番剧，这里就顺手把快照对齐一次 —— 改名、换封面之后不会在收藏页里留旧样子。
+     * 内容没变时 DAO 那条 UPDATE 不命中任何行，Room 也不会发失效通知，因此不会自激。
+     */
+    private fun healFavoriteSnapshot(content: DetailContent) {
+        val anime = (content as? DetailContent.Success)?.anime ?: return
+        val snapshot = Triple(anime.id, anime.title, anime.coverUrl)
+        if (snapshot == healedSnapshot) return
+        healedSnapshot = snapshot
+        viewModelScope.launch {
+            try {
+                userDataRepository.refreshFavoriteSnapshot(anime)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Refresh favorite snapshot failed", e)
+            }
+        }
+    }
 
     fun bind(animeId: String) {
         // 无条件重置：共享 ViewModelStore 下 ViewModel 会被复用，
@@ -213,16 +243,21 @@ class DetailViewModel @Inject constructor(
         creditSheet.value = CreditSheetUiState.Hidden
     }
 
-    /** 切换收藏状态（收藏 / 取消收藏）。 */
+    /**
+     * 切换收藏状态（收藏 / 取消收藏）。
+     *
+     * 收藏时把整部番剧交给仓库 —— 收藏表要落一份展示快照，收藏页才能离线把它画出来。
+     * 详情页还没加载出内容时星标不可点，所以这里取不到内容就等于没有动作。
+     */
     fun toggleFavorite() {
-        val id = animeId.value ?: return
-        val isFavorite = uiState.value.isFavorite
+        val state = uiState.value
+        val anime = (state.content as? DetailContent.Success)?.anime ?: return
         viewModelScope.launch {
             try {
-                if (isFavorite) {
-                    userDataRepository.removeFavorite(id)
+                if (state.isFavorite) {
+                    userDataRepository.removeFavorite(anime.id)
                 } else {
-                    userDataRepository.addFavorite(id)
+                    userDataRepository.addFavorite(anime)
                 }
             } catch (e: CancellationException) {
                 throw e

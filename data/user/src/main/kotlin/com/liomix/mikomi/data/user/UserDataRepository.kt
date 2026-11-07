@@ -1,5 +1,6 @@
 package com.liomix.mikomi.data.user
 
+import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.Favorite
 import com.liomix.mikomi.core.model.UserPreferences
 import com.liomix.mikomi.core.model.WatchHistory
@@ -7,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 
 /** 用户数据门面：收藏、历史、偏好。 */
 interface UserDataRepository {
+    /** 收藏列表，最近收藏在前。 */
     fun observeFavorites(): Flow<List<Favorite>>
     fun observeHistory(): Flow<List<WatchHistory>>
     fun observeUserPreferences(): Flow<UserPreferences>
@@ -14,8 +16,30 @@ interface UserDataRepository {
     /** 搜索历史（最新在前，最多 20 条）。 */
     fun observeSearchHistory(): Flow<List<String>>
 
-    suspend fun addFavorite(animeId: String)
+    /**
+     * 收藏。
+     *
+     * 传入整部番剧而不是 id：收藏表要存一份展示快照（标题 / 封面），否则收藏页得回头
+     * 去查一张随时会被清理的表、或者等一次网络请求才画得出来。
+     * 已收藏的重复调用不会改变位次。
+     */
+    suspend fun addFavorite(anime: Anime)
+
     suspend fun removeFavorite(animeId: String)
+
+    /**
+     * 批量取消收藏，返回被删掉的行。
+     *
+     * 返回值是「撤销」的全部依据：调用方留着它，撤销时原样写回，[Favorite.addedAt]
+     * 不变，卡片回到原来的位次。
+     */
+    suspend fun removeFavorites(animeIds: List<String>): List<Favorite>
+
+    /** 撤销取消收藏：把 [favorites] 原样写回。 */
+    suspend fun restoreFavorites(favorites: List<Favorite>)
+
+    /** 详情页拿到最新数据后自愈收藏快照；内容与存量一致时这条更新不落行。 */
+    suspend fun refreshFavoriteSnapshot(anime: Anime)
     suspend fun saveProgress(animeId: String, episodeId: String, positionMs: Long, durationMs: Long)
     /** 设置日 / 夜：`light` / `dark`（`system` 为默认值，仅在用户从未拨过开关时生效）。 */
     suspend fun setTheme(theme: String)

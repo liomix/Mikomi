@@ -1,12 +1,15 @@
 package com.liomix.mikomi.feature.profile.navigation
 
+import com.liomix.mikomi.core.navigation.CollectionDestination
+import com.liomix.mikomi.core.navigation.DetailDestination
 import com.liomix.mikomi.core.navigation.EditorDestination
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.LocalNavigator
 import com.liomix.mikomi.core.navigation.ProfileDestination
 import com.liomix.mikomi.core.navigation.SettingsDestination
 import com.liomix.mikomi.core.navigation.ThemeDestination
-import com.liomix.mikomi.feature.profile.ProfileScreen
+import com.liomix.mikomi.feature.profile.ProfileRoute
+import com.liomix.mikomi.feature.profile.collection.CollectRoute
 import com.liomix.mikomi.feature.profile.editor.EditorScreen
 import dagger.Module
 import dagger.Provides
@@ -23,10 +26,24 @@ object ProfileNavigationModule {
     fun provideEntryProviderInstaller(): EntryProviderInstaller = {
         entry<ProfileDestination> {
             val navigator = LocalNavigator.current
-            ProfileScreen(
+            ProfileRoute(
                 onThemeClick = { navigator.navigate(ThemeDestination) },
                 onSettingsClick = { navigator.navigate(SettingsDestination) },
                 onEditInfo = { navigator.navigate(EditorDestination) },
+                // 收藏卡片直接进详情：与首页点卡片的落点一致。
+                onAnimeClick = { animeId -> navigator.navigate(DetailDestination(animeId)) },
+                // 计数条 / 长按封面进收藏页：带 id 进去就直接是整理态并选中那一部。
+                onCollectionClick = { editAnimeId ->
+                    navigator.navigate(CollectionDestination(editAnimeId))
+                },
+            )
+        }
+        entry<CollectionDestination> { key ->
+            val navigator = LocalNavigator.current
+            CollectRoute(
+                onBackClick = { navigator.goBack() },
+                onAnimeClick = { animeId -> navigator.navigate(DetailDestination(animeId)) },
+                editAnimeId = key.editAnimeId,
             )
         }
         entry<EditorDestination> {

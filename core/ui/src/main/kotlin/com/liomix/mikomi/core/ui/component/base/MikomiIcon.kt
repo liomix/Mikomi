@@ -25,9 +25,9 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
  * `Modifier` 链里挪出来：调用点不必再记 `Modifier.size(...)` 的写法，也不会因为
  * 在链条中间插入别的 modifier（`rotate` / `padding`）而与尺寸互相干扰。
  *
- * 三种尺寸刚好对应三档（§5.3）：[MikomiSizes.IconXs] 文字行内、[MikomiSizes.IconSm]
- * 次级动作、[MikomiSizes.IconMd] 标准。大于 24 的是单个组件的物理尺寸，不走这里，
- * 在组件里写 `private val`。
+ * 只有两档（§5.3）：[MikomiSizes.IconXs] 夹在文字行内，[MikomiSizes.IconMd] 其余一切
+ * —— 图标默认就是 24，没有「小一号」的中间档。大于 24 的是单个组件的物理尺寸，
+ * 不走这里，在组件里写 `private val`。
  *
  * @param icon 语义图标，取自 [com.liomix.mikomi.core.designsystem.icon.MikomiIcons]。
  * @param contentDescription 无障碍描述；纯装饰（旁边已有文字）传 `null`。

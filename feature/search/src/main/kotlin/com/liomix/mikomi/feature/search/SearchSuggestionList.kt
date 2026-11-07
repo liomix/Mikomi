@@ -119,7 +119,7 @@ private fun SuggestionItem(
             icon = MikomiIcons.Search,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            size = MikomiSizes.IconSm,
+            size = MikomiSizes.IconMd,
         )
         Spacer(modifier = Modifier.width(MikomiSpacing.Md))
         Text(

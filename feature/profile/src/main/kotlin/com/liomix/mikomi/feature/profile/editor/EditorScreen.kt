@@ -311,7 +311,7 @@ private fun ValueRow(
             icon = MikomiIcons.ChevronRight,
             contentDescription = null,
             tint = colors.onSurfaceVariant.copy(alpha = 0.7f),
-            size = MikomiSizes.IconSm,
+            size = MikomiSizes.IconMd,
         )
     }
 }

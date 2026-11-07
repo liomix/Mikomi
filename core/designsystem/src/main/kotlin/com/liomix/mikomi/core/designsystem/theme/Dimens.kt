@@ -237,22 +237,13 @@ object MikomiSizes {
     val IconXs: Dp = 16.dp
 
     /**
-     * 图标小号：顶栏动作、搜索结果、列表前导、播放器控制条。
+     * 图标：**全仓只有这一档**。
      *
-     * 原值 18 是「比 20 秀气一点」的孤立取值，全仓有 6 处写成 20、1 处写成 18 ——
-     * 说明实际口径是 20，18 才是那个例外。收敛时以 20 为准。
-     */
-    val IconSm: Dp = 20.dp
-
-    /**
-     * 图标中号：顶栏动作、列表行尾、菜单项、按钮前导图标。
-     *
-     * 24dp 是 Telegram 的图标基准（菜单项、顶栏、返回箭头、按钮前导图标都是它），
-     * 原来这里取 20dp 是「看起来更秀气」的目测值；但在 54dp 高的顶栏里，
-     * 20dp 的图标两侧各留 17dp，比 Material 的 24/56 组合明显偏小、点起来也更难对准。
-     *
-     * 不再设「大号」档：全仓唯一需要大于 24 的图标是播放器中央的播放键，
-     * 那是单个组件的物理尺寸（48dp 触控区里的 32dp 图形），按本文开头那条界线留在组件里。
+     * 24dp 是 Telegram 的图标基准（菜单项、顶栏、返回箭头、按钮前导图标都是它）。
+     * 曾经还有一档 20dp 的「小号」，理由各不相同（顶栏动作、搜索结果、列表前导），
+     * 结果就是同一类图标在不同页面上差 4dp —— 用户的原话是「图标都该是 24」。
+     * 那一档已删除：图标只有 24 和「文字行内 16」（[IconXs]）两种身份，
+     * 需要更大的（播放器中央播放键）是单个组件的物理尺寸，留在组件里写 `private val`。
      */
     val IconMd: Dp = 24.dp
 
@@ -291,7 +282,6 @@ object MikomiSizes {
     /** 全部档位。规则同 [MikomiSpacing.steps]。 */
     val steps: List<MikomiStep> = listOf(
         MikomiStep("IconXs", IconXs),
-        MikomiStep("IconSm", IconSm),
         MikomiStep("IconMd", IconMd),
         MikomiStep("ChipHeight", ChipHeight),
         MikomiStep("AvatarMd", AvatarMd),

@@ -48,10 +48,20 @@ data class EpisodeEntity(
     val durationSec: Long = 0,
 )
 
+/**
+ * 收藏。
+ *
+ * 除 id 与时间外还存一份**收藏那一刻**的展示快照（标题、封面）：收藏页要能离线渲染，
+ * 而 `anime` 表会被首页刷新按来源清理，不能假定被收藏的番剧还在里面。
+ * 快照随收藏写入，打开详情页发现内容变了时覆盖一次（迁移 10→11 也从 `anime` 表回填过）。
+ */
 @Entity(tableName = "favorite")
 data class FavoriteEntity(
     @PrimaryKey val animeId: String,
+    /** 收藏时间，同时是收藏页的排序依据（新的在前）。 */
     val addedAt: Long,
+    @ColumnInfo(defaultValue = "") val title: String = "",
+    val coverUrl: String? = null,
 )
 
 @Entity(tableName = "history")

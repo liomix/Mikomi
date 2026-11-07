@@ -35,7 +35,7 @@ import com.liomix.mikomi.core.database.entity.ScheduleSourceEntryEntity
         AnimeIdentityEntity::class,
         ScheduleConflictEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 abstract class MikomiDatabase : RoomDatabase() {

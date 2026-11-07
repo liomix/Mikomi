@@ -218,4 +218,28 @@ object Migrations {
             )
         }
     }
+
+    /**
+     * 10 → 11：收藏表补上展示快照（标题 / 封面）。
+     *
+     * 只存 id 的话，收藏页画不出任何东西 —— 番剧表会被首页刷新按来源清理，
+     * 收藏的那部番随时可能不在里面。两列默认值必须与实体声明一致（'' / NULL），
+     * 否则 Room 校验迁移后的表结构会直接失败。
+     *
+     * 老行在这里从 `anime` 表回填一次；表里已经没有的留空标题，由详情页下次打开时自愈
+     * （[FavoriteDao.refreshSnapshot]），UI 侧兜底显示为「未知番剧」。
+     */
+    val MIGRATION_10_11 = object : Migration(10, 11) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE favorite ADD COLUMN title TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE favorite ADD COLUMN coverUrl TEXT")
+            db.execSQL(
+                """
+                UPDATE favorite SET
+                    title = COALESCE((SELECT title FROM anime WHERE anime.id = favorite.animeId), ''),
+                    coverUrl = (SELECT coverUrl FROM anime WHERE anime.id = favorite.animeId)
+                """.trimIndent(),
+            )
+        }
+    }
 }

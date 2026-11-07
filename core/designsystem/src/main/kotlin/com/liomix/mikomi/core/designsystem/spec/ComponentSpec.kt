@@ -103,7 +103,7 @@ object MikomiSwitchSpec {
  * | 形态 | 用途 | 横内边距 | 纵内边距 |
  * |---|---|---|---|
  * | `Selectable` | 可点选的胶囊 | 18 | 由最小高度撑开 |
- * | `Content` | 带底色的信息块 | 16（`Lg`） | 8（`Sm`） |
+ * | `Content` | 带底色的信息块（默认形态） | 10（`Compact`） | 由 24dp 高度撑开 |
  * | `Meta` | 元信息小徽标 | 5 | 1 |
  *
  * 后两套的内边距已经能用 token 表达，就直接引用 token；只有 `Selectable` 的 18 和
@@ -113,6 +113,21 @@ object MikomiSwitchSpec {
 object MikomiTagSpec {
     /** 可选中标签的横内边距（实测）。 */
     val SelectableHorizontalPadding: Dp = 18.dp
+
+    /**
+     * 只读标签的高度，等于**图标默认档** `MikomiSizes.IconMd`（24dp）。
+     *
+     * 取 24 的原因不是「看起来合适」，而是它必须与同一行里的图标同高：标签和图标
+     * 一旦有 4dp 的高度差，按中线对齐就会出现「左边贴着行顶、右边悬在下面」——
+     * 打开布局边界一眼就能量出来。等高之后，两者的上、下边距天生相等，不需要任何 offset。
+     *
+     * 12sp 的字放进 24dp：上下各 4dp 余量，够读也不臃肿；先前 20dp 的窄条只有 1dp，
+     * 看起来像贴片而不是标签。
+     */
+    val ChipHeight: Dp = 24.dp
+
+    /** 只读标签的横内边距：与集数胶囊同一档（`Compact` = 10）。 */
+    val ChipHorizontalPadding: Dp = 10.dp
 
     /** 元信息徽标的横内边距（实测）。 */
     val MetaHorizontalPadding: Dp = 5.dp

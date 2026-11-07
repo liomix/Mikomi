@@ -3,6 +3,7 @@ package com.liomix.mikomi.feature.profile.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -64,6 +65,28 @@ internal class ProfileTabContentState {
 internal fun rememberProfileTabContentState(): ProfileTabContentState = remember { ProfileTabContentState() }
 
 /**
+ * 内容卡片的共同外框：白底 + 大圆角 + 左右 14dp（与动作卡左右对齐）。
+ *
+ * 历史占位网格与收藏区共用它 —— 两个标签切换时卡片的位置、圆角、底色必须完全一致，
+ * 否则横向滑动切标签会看到卡片边缘跳一下。
+ */
+@Composable
+internal fun ProfileContentCard(
+    color: Color,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = CARD_HORIZONTAL_PADDING)
+            .clip(RoundedCornerShape(CARD_CORNER))
+            .background(color),
+        content = content,
+    )
+}
+
+/**
  * 标签内容区（历史 / 收藏）：一张固定高度的卡片（底色/分隔线/骨架色由调用方给），
  * 内部是自己可滚动的媒体网格。
  *
@@ -82,13 +105,7 @@ internal fun ProfileTabContent(
     skeletonColor: Color,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = CARD_HORIZONTAL_PADDING)
-            .clip(RoundedCornerShape(CARD_CORNER))
-            .background(cardColor),
-    ) {
+    ProfileContentCard(color = cardColor, modifier = modifier) {
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),

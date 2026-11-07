@@ -6,6 +6,7 @@ import com.liomix.mikomi.core.database.entity.FavoriteEntity
 import com.liomix.mikomi.core.database.entity.HistoryEntity
 import com.liomix.mikomi.core.datastore.SearchHistoryDataSource
 import com.liomix.mikomi.core.datastore.UserPreferencesDataSource
+import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.Favorite
 import com.liomix.mikomi.core.model.UserPreferences
 import com.liomix.mikomi.core.model.WatchHistory
@@ -32,12 +33,35 @@ internal class UserDataRepositoryImpl @Inject constructor(
 
     override fun observeSearchHistory(): Flow<List<String>> = searchHistoryDataSource.history
 
-    override suspend fun addFavorite(animeId: String) {
-        favoriteDao.upsert(FavoriteEntity(animeId = animeId, addedAt = System.currentTimeMillis()))
+    override suspend fun addFavorite(anime: Anime) {
+        val now = System.currentTimeMillis()
+        favoriteDao.insertIfAbsent(
+            animeId = anime.id,
+            addedAt = now,
+            title = anime.title,
+            coverUrl = anime.coverUrl,
+        )
+        // 已存在时上面那条 INSERT OR IGNORE 什么都没做：这里再补一次快照，
+        // 让「重新点收藏」也能把旧标题 / 旧封面刷新掉（位次不变）。
+        favoriteDao.refreshSnapshot(anime.id, anime.title, anime.coverUrl)
     }
 
     override suspend fun removeFavorite(animeId: String) {
         favoriteDao.delete(animeId)
+    }
+
+    override suspend fun removeFavorites(animeIds: List<String>): List<Favorite> {
+        if (animeIds.isEmpty()) return emptyList()
+        return favoriteDao.takeOut(animeIds).map { it.toDomain() }
+    }
+
+    override suspend fun restoreFavorites(favorites: List<Favorite>) {
+        if (favorites.isEmpty()) return
+        favoriteDao.upsertAll(favorites.map { it.toEntity() })
+    }
+
+    override suspend fun refreshFavoriteSnapshot(anime: Anime) {
+        favoriteDao.refreshSnapshot(anime.id, anime.title, anime.coverUrl)
     }
 
     override suspend fun saveProgress(
@@ -109,7 +133,19 @@ internal class UserDataRepositoryImpl @Inject constructor(
         searchHistoryDataSource.clear()
     }
 
-    private fun FavoriteEntity.toDomain(): Favorite = Favorite(animeId = animeId, addedAt = addedAt)
+    private fun FavoriteEntity.toDomain(): Favorite = Favorite(
+        animeId = animeId,
+        title = title,
+        coverUrl = coverUrl,
+        addedAt = addedAt,
+    )
+
+    private fun Favorite.toEntity(): FavoriteEntity = FavoriteEntity(
+        animeId = animeId,
+        addedAt = addedAt,
+        title = title,
+        coverUrl = coverUrl,
+    )
 
     private fun HistoryEntity.toDomain(): WatchHistory = WatchHistory(
         episodeId = episodeId,

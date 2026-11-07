@@ -930,7 +930,7 @@ private fun StageRow(
                 contentDescription = null,
                 tint = tint,
                 modifier = Modifier.padding(top = MikomiSpacing.Xxs),
-                size = MikomiSizes.IconSm,
+                size = MikomiSizes.IconMd,
             )
         }
         Spacer(modifier = Modifier.width(MikomiSpacing.Compact))

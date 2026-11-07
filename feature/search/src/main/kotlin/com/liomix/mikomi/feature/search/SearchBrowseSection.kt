@@ -122,7 +122,7 @@ internal fun SearchBrowseSection(
                                 icon = MikomiIcons.Delete,
                                 contentDescription = stringResource(R.string.search_history_clear),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                size = MikomiSizes.IconSm,
+                                size = MikomiSizes.IconMd,
                             )
                         }
                     },
@@ -199,7 +199,7 @@ private fun SectionHeader(
             icon = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            size = MikomiSizes.IconSm,
+            size = MikomiSizes.IconMd,
         )
         Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
         Text(
@@ -347,7 +347,7 @@ private fun ExpandTab(
                 icon = if (expanded) MikomiIcons.ExpandLess else MikomiIcons.ExpandMore,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                size = MikomiSizes.IconSm,
+                size = MikomiSizes.IconMd,
             )
         }
     }

@@ -74,7 +74,7 @@ private fun CollapsedBar(onClick: () -> Unit) {
             icon = MikomiIcons.Search,
             contentDescription = null,
             tint = SearchIconColor,
-            size = MikomiSizes.IconSm,
+            size = MikomiSizes.IconMd,
         )
         Text(
             text = stringResource(R.string.animap_search_hint),
@@ -115,7 +115,7 @@ private fun ExpandedBar(
             icon = MikomiIcons.Search,
             contentDescription = null,
             tint = SearchIconColor,
-            size = MikomiSizes.IconSm,
+            size = MikomiSizes.IconMd,
         )
         Box(modifier = Modifier.weight(1f)) {
             if (query.isEmpty()) {
@@ -156,7 +156,7 @@ private fun ExpandedBar(
                         onCollapse()
                     }
                 },
-            size = MikomiSizes.IconSm,
+            size = MikomiSizes.IconMd,
         )
     }
 }
@@ -201,7 +201,7 @@ private fun SuggestionRow(hit: AniMapHit, onClick: () -> Unit) {
                     icon = MikomiIcons.Place,
                     contentDescription = null,
                     tint = SearchIconColor,
-                    size = MikomiSizes.IconSm,
+                    size = MikomiSizes.IconMd,
                 )
             }
         } else {

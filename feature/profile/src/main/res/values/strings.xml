@@ -10,7 +10,23 @@
     <string name="profile_tab_history">历史</string>
     <string name="profile_tab_favorite">收藏</string>
     <string name="profile_empty_history">暂无观看历史</string>
-    <string name="profile_empty_favorite">暂无收藏</string>
+
+    <!-- 收藏区 -->
+    <string name="profile_collection_count">共 %1$d 部</string>
+    <string name="profile_collection_title">收藏</string>
+    <string name="profile_collection_edit">编辑</string>
+    <string name="profile_collection_today">今天</string>
+    <string name="profile_collection_yesterday">昨天</string>
+    <string name="profile_collection_done">完成</string>
+    <string name="profile_collection_select_all">全选</string>
+    <string name="profile_collection_select_none">全不选</string>
+    <string name="profile_collection_remove_count">移除 %1$d 部</string>
+    <string name="profile_collection_removed">已移除 %1$d 部</string>
+    <string name="profile_collection_undo">撤销</string>
+    <string name="profile_collection_empty_title">还没有收藏</string>
+    <string name="profile_collection_empty_hint">在番剧详情页点右上角的星标，就会出现在这里</string>
+    <!-- 老数据（迁移前的收藏、番剧表已被清理）没有标题快照时的兜底文案。 -->
+    <string name="profile_collection_unknown">未知番剧</string>
     <!-- 编辑资料页 -->
     <string name="profile_editor_title">编辑资料</string>
     <string name="profile_editor_save">保存</string>

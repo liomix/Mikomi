@@ -41,6 +41,15 @@ data object ThemeDestination : NavKey
 @Serializable
 data object EditorDestination : NavKey
 
+/**
+ * 收藏二级页面（我的页收藏区右上角箭头进入）。
+ *
+ * @param editAnimeId 非空表示「进来就整理，并选中这一部」（长按收藏卡片进来的路径）；
+ *   为 null 时是浏览态，整理要在页面内自己点开。
+ */
+@Serializable
+data class CollectionDestination(val editAnimeId: String? = null) : NavKey
+
 /** Bangumi 代理设置二级页面（设置页「数据源」卡片的第一项）。 */
 @Serializable
 data object ProxyDestination : NavKey

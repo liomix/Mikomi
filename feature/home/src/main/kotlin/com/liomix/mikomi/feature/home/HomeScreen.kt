@@ -140,7 +140,6 @@ private fun HomePullToRefresh(
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
-    isRefreshing: Boolean,
     onAnimeClick: (String) -> Unit,
     onSearchClick: () -> Unit,
     onProfileClick: () -> Unit,
@@ -149,10 +148,10 @@ fun HomeScreen(
     onLoadMore: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    when (uiState) {
+    when (val content = uiState.content) {
         // 骨架屏也支持下拉刷新：首次加载慢/失败时用户可主动触发重试。
-        HomeUiState.Loading -> HomePullToRefresh(
-            isRefreshing = isRefreshing,
+        HomeContent.Loading -> HomePullToRefresh(
+            isRefreshing = uiState.isRefreshing,
             onRefresh = onRefresh,
             modifier = modifier.fillMaxSize(),
         ) {
@@ -164,18 +163,18 @@ fun HomeScreen(
             )
         }
 
-        is HomeUiState.Error -> ErrorState(
-            message = uiState.message.ifEmpty { stringResource(R.string.home_load_failed) },
+        is HomeContent.Error -> ErrorState(
+            message = content.message.ifEmpty { stringResource(R.string.home_load_failed) },
             onRetry = onRefresh,
             modifier = modifier,
         )
 
-        is HomeUiState.Success -> HomeContent(
-            banners = uiState.banners,
-            anime = uiState.anime,
-            isRefreshing = isRefreshing,
-            isLoadingMore = uiState.isLoadingMore,
-            hasMore = uiState.hasMore,
+        is HomeContent.Success -> HomeLoaded(
+            banners = content.banners,
+            anime = content.anime,
+            isRefreshing = uiState.isRefreshing,
+            isLoadingMore = content.isLoadingMore,
+            hasMore = content.hasMore,
             onAnimeClick = onAnimeClick,
             onSearchClick = onSearchClick,
             onProfileClick = onProfileClick,
@@ -234,7 +233,7 @@ private fun HomeSkeleton(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeContent(
+private fun HomeLoaded(
     banners: List<Anime>,
     anime: List<Anime>,
     isRefreshing: Boolean,

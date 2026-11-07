@@ -2,7 +2,6 @@ package com.liomix.mikomi.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.data.anime.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -24,26 +23,35 @@ class HomeViewModel @Inject constructor(
     private val _isPullRefreshing = MutableStateFlow(false)
     private var currentOffset = 0
 
-    /** 下拉刷新指示器：仅用户主动下拉时为真，自动首载不显示。 */
-    val isRefreshing: StateFlow<Boolean> = _isPullRefreshing
-
-    val uiState: StateFlow<HomeUiState> = combine<List<Anime>, List<Anime>, PagingState, HomeUiState>(
+    /**
+     * 首页唯一状态：内容 + 下拉指示器。
+     *
+     * 指示器曾经是单独一条 `StateFlow<Boolean>`，Route 因此收集两次。代价不是两次重组
+     * （Compose 会把同一帧的失效合并），而是**一次业务动作发两个状态**：刷新结束时
+     * 「指示器熄灭」与「数据到达」是两条独立的流，页面要等它们都落地才稳定，
+     * 中间那一帧就是「转圈没了、列表还是旧的」。合成一条之后，一次刷新只发一个对象。
+     */
+    val uiState: StateFlow<HomeUiState> = combine(
         homeRepository.observeBanners(),
         homeRepository.observeRecommended(),
         _paging,
-    ) { banners, recommended, paging ->
-        HomeUiState.Success(
-            banners = banners,
-            anime = recommended,
-            isLoadingMore = paging.isLoadingMore,
-            hasMore = paging.hasMore,
+        _isPullRefreshing,
+    ) { banners, recommended, paging, pullRefreshing ->
+        HomeUiState(
+            isRefreshing = pullRefreshing,
+            content = HomeContent.Success(
+                banners = banners,
+                anime = recommended,
+                isLoadingMore = paging.isLoadingMore,
+                hasMore = paging.hasMore,
+            ),
         )
     }
-        .catch { emit(HomeUiState.Error(it.message.orEmpty())) }
+        .catch { emit(HomeUiState(content = HomeContent.Error(it.message.orEmpty()))) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = HomeUiState.Loading,
+            initialValue = HomeUiState(),
         )
 
     init {

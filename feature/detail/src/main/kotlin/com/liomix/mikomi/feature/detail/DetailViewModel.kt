@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.model.CreditDetail
 import com.liomix.mikomi.data.anime.AnimeCommentRepository
 import com.liomix.mikomi.data.anime.AnimeCreditsRepository
 import com.liomix.mikomi.data.anime.AnimeRepository
@@ -12,18 +11,19 @@ import com.liomix.mikomi.data.user.UserDataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
@@ -31,6 +31,11 @@ import kotlinx.coroutines.launch
  *
  * [animeId] 由 Route 经 [bind] 注入（Navigation3 的 key 参数传递）。
  * 绑定后异步触发 Bangumi 详情刷新；主创（角色/制作人员）在进入主创 Tab 时按需拉取。
+ *
+ * **对外只有一条状态流**（[uiState]）。内部仍是五份可变源，因为 `credits` / `teasing` / 主创弹层
+ * 各有独立的懒加载时机与失败重试路径，硬塞进一个 `MutableStateFlow` 只会让每次写入都要
+ * 重建整个对象、且读的时候要二次解包。对外合并的理由与内部不合并的理由是同一条判据：
+ * **UI 只该有「一次刷新 = 一个状态对象」，而写入方各自有各自的触发条件。**
  */
 @HiltViewModel
 class DetailViewModel @Inject constructor(
@@ -42,67 +47,77 @@ class DetailViewModel @Inject constructor(
 
     private val animeId = MutableStateFlow<String?>(null)
 
+    private val credits = MutableStateFlow<AnimeCreditsUiState>(AnimeCreditsUiState.Idle)
+    private val creditSheet = MutableStateFlow(CreditSheetUiState.Hidden)
+    private val teasing = MutableStateFlow<TeasingUiState>(TeasingUiState.Loading)
+
     /**
-     * 当前已绑定的番剧 id。
+     * 内容态连同它所属的 id。
      *
-     * ViewModel 已按 entry 存活（`rememberViewModelStoreNavEntryDecorator`），但新 entry 的 ViewModel
-     * 拿不到 Nav3 的参数，`bind` 仍要等 `LaunchedEffect`（首帧之后）才执行；在那之前 [uiState] 是
-     * 初始态。UI 层用本字段对账「数据是不是这一部的」，不一致就先按 Loading 渲染 —— 任何路径下
-     * 把「尚未绑定」当成有效数据，症状都是「点 A 打开了 B」。
+     * 二者必须是同一个值：拆成两条流就一定会出现「id 已切到新的、内容还是上一部」的那一帧，
+     * 表现出来是点 A 打开 B 的头图。
      */
-    val boundAnimeId: StateFlow<String?> = animeId.asStateFlow()
-
-    /** 当前番剧是否已收藏（跟随本地收藏列表实时变化）。 */
-    val isFavorite: StateFlow<Boolean> = animeId
-        .filterNotNull()
-        .flatMapLatest { id ->
-            userDataRepository.observeFavorites()
-                .map { favorites -> favorites.any { it.animeId == id } }
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = false,
-        )
-
-    val uiState: StateFlow<DetailUiState> = animeId
+    private val boundContent: Flow<BoundContent> = animeId
         .flatMapLatest { id ->
             if (id == null) {
-                flowOf(DetailUiState.Loading)
+                flowOf(BoundContent(null, DetailContent.Loading))
             } else {
-                // 每次切换 animeId 先回到 Loading，避免复用 ViewModel 时
-                // 短暂渲染上一个动漫的详情（「闪一下」问题）。
-                flow<DetailUiState> {
-                    emit(DetailUiState.Loading)
+                // 每次切换 id 先回到 Loading，避免复用 ViewModel 时短暂渲染上一部。
+                flow {
+                    emit(BoundContent(id, DetailContent.Loading))
                     emitAll(
                         animeRepository.observeAnime(id).map { anime: Anime? ->
-                            if (anime != null) DetailUiState.Success(anime = anime)
-                            else DetailUiState.Loading
+                            BoundContent(
+                                id = id,
+                                content = if (anime != null) {
+                                    DetailContent.Success(anime)
+                                } else {
+                                    DetailContent.Loading
+                                },
+                            )
                         },
                     )
                 }
             }
         }
-        .catch { emit(DetailUiState.Error) }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = DetailUiState.Loading,
+        .catch { emit(BoundContent(animeId.value, DetailContent.Error)) }
+
+    /** 是否已收藏。跟随本地收藏列表实时变化；收藏成功后 ActionBar 的星标靠它翻转。 */
+    private val favorite: Flow<Boolean> = animeId
+        .flatMapLatest { id ->
+            if (id == null) {
+                flowOf(false)
+            } else {
+                userDataRepository.observeFavorites()
+                    .map { favorites -> favorites.any { it.animeId == id } }
+            }
+        }
+        // 收藏表读失败不该把整页拖进错误态：详情内容本身是好的，星标退回「未收藏」即可。
+        .catch { emit(false) }
+
+    val uiState: StateFlow<DetailUiState> = combine(
+        boundContent,
+        favorite,
+        credits,
+        creditSheet,
+        teasing,
+    ) { bound, isFavorite, creditsState, sheet, teasingState ->
+        DetailUiState(
+            boundId = bound.id,
+            content = bound.content,
+            isFavorite = isFavorite,
+            credits = creditsState,
+            creditDetail = sheet.detail,
+            creditComments = sheet.comments,
+            teasing = teasingState,
         )
-
-    private val _creditsState = MutableStateFlow<AnimeCreditsUiState>(AnimeCreditsUiState.Idle)
-    val creditsState: StateFlow<AnimeCreditsUiState> = _creditsState
-
-    private val _creditDetailState =
-        MutableStateFlow<CreditDetailUiState>(CreditDetailUiState.Hidden)
-    val creditDetailState: StateFlow<CreditDetailUiState> = _creditDetailState
-
-    private val _creditCommentsState =
-        MutableStateFlow<CreditCommentsUiState>(CreditCommentsUiState.Hidden)
-    val creditCommentsState: StateFlow<CreditCommentsUiState> = _creditCommentsState
-
-    private val _teasingState = MutableStateFlow<TeasingUiState>(TeasingUiState.Loading)
-    val teasingState: StateFlow<TeasingUiState> = _teasingState
+    }.stateIn(
+        scope = viewModelScope,
+        // 页面不可见 5 秒后停掉三路数据库观察。这是把「一屏一状态」做成**一条导出流**之后
+        // 仍然保留的收益：内部再怎么写，对外只有一个订阅者生命周期要管。
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = DetailUiState(),
+    )
 
     /** 吐槽首屏是否已发起请求（避免重复拉取）。 */
     private var teasingRequested = false
@@ -110,11 +125,13 @@ class DetailViewModel @Inject constructor(
     fun bind(animeId: String) {
         // 无条件重置：共享 ViewModelStore 下 ViewModel 会被复用，
         // 必须每次 bind 都回到干净状态并重新加载，否则「搜过 A 再搜 B 仍显示 A」。
+        //
+        // 四处赋值都在同一个协程 tick 内完成，Compose 的失效是帧级批处理的，
+        // 因此不会渲染出「id 换了但 Tab 还是上一部」的中间态。
         this.animeId.value = animeId
-        _creditsState.value = AnimeCreditsUiState.Idle
-        _creditDetailState.value = CreditDetailUiState.Hidden
-        _creditCommentsState.value = CreditCommentsUiState.Hidden
-        _teasingState.value = TeasingUiState.Loading
+        credits.value = AnimeCreditsUiState.Idle
+        creditSheet.value = CreditSheetUiState.Hidden
+        teasing.value = TeasingUiState.Loading
         teasingRequested = false
         refreshDetail(animeId)
     }
@@ -134,30 +151,31 @@ class DetailViewModel @Inject constructor(
 
     /** 懒加载主创（角色 + 制作人员）；进入主创 Tab 时调用。 */
     fun loadCredits() {
-        val current = _creditsState.value
+        val current = credits.value
         if (current is AnimeCreditsUiState.Loaded || current is AnimeCreditsUiState.Loading) return
         val id = animeId.value ?: return
-        _creditsState.value = AnimeCreditsUiState.Loading
+        credits.value = AnimeCreditsUiState.Loading
         viewModelScope.launch {
             try {
-                val credits = creditsRepository.fetchCredits(id)
-                _creditsState.value = AnimeCreditsUiState.Loaded(
-                    characters = credits.characters,
-                    staff = credits.staff,
+                val result = creditsRepository.fetchCredits(id)
+                credits.value = AnimeCreditsUiState.Loaded(
+                    characters = result.characters,
+                    staff = result.staff,
                 )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Load credits failed", e)
-                _creditsState.value = AnimeCreditsUiState.Error
+                credits.value = AnimeCreditsUiState.Error
             }
         }
     }
 
     /** 打开主创详情弹层（isCharacter 区分角色/制作人员），同时拉详情与评论。 */
     fun openCreditDetail(id: Int, isCharacter: Boolean) {
-        _creditDetailState.value = CreditDetailUiState.Loading
-        _creditCommentsState.value = CreditCommentsUiState.Loading
+        // **一次写入**把两个面同时切到 Loading。分成两次赋值时，中间那一帧是
+        // 「详情转圈、评论区还停在 Hidden」，弹层里会闪一下空白。
+        creditSheet.value = CreditSheetUiState.Loading
         viewModelScope.launch {
             try {
                 val detail = if (isCharacter) {
@@ -165,12 +183,12 @@ class DetailViewModel @Inject constructor(
                 } else {
                     creditsRepository.fetchPersonDetail(id)
                 }
-                _creditDetailState.value = CreditDetailUiState.Loaded(detail)
+                creditSheet.update { it.copy(detail = CreditDetailUiState.Loaded(detail)) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Load credit detail failed", e)
-                _creditDetailState.value = CreditDetailUiState.Error
+                creditSheet.update { it.copy(detail = CreditDetailUiState.Error) }
             }
         }
         viewModelScope.launch {
@@ -180,29 +198,28 @@ class DetailViewModel @Inject constructor(
                 } else {
                     creditsRepository.fetchPersonComments(id)
                 }
-                _creditCommentsState.value = CreditCommentsUiState.Loaded(comments)
+                creditSheet.update { it.copy(comments = CreditCommentsUiState.Loaded(comments)) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Load credit comments failed", e)
-                _creditCommentsState.value = CreditCommentsUiState.Error
+                creditSheet.update { it.copy(comments = CreditCommentsUiState.Error) }
             }
         }
     }
 
     /** 关闭主创详情弹层。 */
     fun dismissCreditDetail() {
-        _creditDetailState.value = CreditDetailUiState.Hidden
-        _creditCommentsState.value = CreditCommentsUiState.Hidden
+        creditSheet.value = CreditSheetUiState.Hidden
     }
 
     /** 切换收藏状态（收藏 / 取消收藏）。 */
     fun toggleFavorite() {
         val id = animeId.value ?: return
-        val favorite = isFavorite.value
+        val isFavorite = uiState.value.isFavorite
         viewModelScope.launch {
             try {
-                if (favorite) {
+                if (isFavorite) {
                     userDataRepository.removeFavorite(id)
                 } else {
                     userDataRepository.addFavorite(id)
@@ -220,11 +237,11 @@ class DetailViewModel @Inject constructor(
         if (teasingRequested) return
         val id = animeId.value ?: return
         teasingRequested = true
-        _teasingState.value = TeasingUiState.Loading
+        teasing.value = TeasingUiState.Loading
         viewModelScope.launch {
             try {
                 val page = commentRepository.fetchTeasingComments(id, TEASING_PAGE_SIZE, offset = 0)
-                _teasingState.value = TeasingUiState.Loaded(
+                teasing.value = TeasingUiState.Loaded(
                     comments = page.comments,
                     hasMore = page.hasMore,
                 )
@@ -232,17 +249,17 @@ class DetailViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Load teasing failed", e)
-                _teasingState.value = TeasingUiState.Error
+                teasing.value = TeasingUiState.Error
             }
         }
     }
 
     /** 加载吐槽下一页（列表滚动到底部时调用）。 */
     fun loadMoreTeasing() {
-        val current = _teasingState.value as? TeasingUiState.Loaded ?: return
+        val current = teasing.value as? TeasingUiState.Loaded ?: return
         if (current.appending || current.appendFailed || !current.hasMore) return
         val id = animeId.value ?: return
-        _teasingState.value = current.copy(appending = true)
+        teasing.value = current.copy(appending = true)
         viewModelScope.launch {
             try {
                 // 以已加载条数作为 offset，避免维护额外游标。
@@ -254,7 +271,7 @@ class DetailViewModel @Inject constructor(
                 // 服务端分页可能因新评论插入而返回重复项，按 id 去重保证列表 key 唯一。
                 val existingIds = current.comments.mapTo(HashSet()) { it.id }
                 val appended = page.comments.filter { it.id !in existingIds }
-                _teasingState.value = TeasingUiState.Loaded(
+                teasing.value = TeasingUiState.Loaded(
                     comments = current.comments + appended,
                     // 无新增内容时终止分页，避免同一 offset 反复请求。
                     hasMore = page.hasMore && appended.isNotEmpty(),
@@ -263,7 +280,7 @@ class DetailViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Load more teasing failed", e)
-                _teasingState.value = current.copy(appending = false, appendFailed = true)
+                teasing.value = current.copy(appending = false, appendFailed = true)
             }
         }
     }
@@ -274,10 +291,10 @@ class DetailViewModel @Inject constructor(
      * 首屏失败 → 重新拉第一页；翻页失败 → 续拉下一页（保留已加载内容）。
      */
     fun retryTeasing() {
-        val current = _teasingState.value
+        val current = teasing.value
         if (current is TeasingUiState.Loaded) {
             if (!current.appendFailed) return
-            _teasingState.value = current.copy(appendFailed = false)
+            teasing.value = current.copy(appendFailed = false)
             loadMoreTeasing()
         } else {
             teasingRequested = false

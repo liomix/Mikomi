@@ -47,8 +47,7 @@ import kotlinx.coroutines.launch
  *
  * 无状态：数据与刷新策略由上层 [RankRoute] 通过 ViewModel 提供。
  *
- * @param uiState 页面状态（加载 / 数据 / 错误）。
- * @param isRefreshing 是否正在刷新，驱动顶栏刷新按钮的表现。
+ * @param uiState 页面状态（刷新指示 + 加载 / 数据 / 错误）。
  * @param onBackClick 顶栏返回。
  * @param onRefreshClick 刷新（顶栏按钮与错误态重试共用同一入口）。
  * @param onAnimeTitleClick 点击榜单条目按标题搜索（AniRpb 视频 id 无法直连详情）。
@@ -56,7 +55,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun RankScreen(
     uiState: RankUiState,
-    isRefreshing: Boolean,
     onBackClick: () -> Unit,
     onRefreshClick: () -> Unit,
     onAnimeTitleClick: (String) -> Unit,
@@ -70,7 +68,7 @@ fun RankScreen(
         title = stringResource(R.string.home_action_rank),
         modifier = modifier,
         onBackClick = onBackClick,
-        actions = { RefreshAction(isRefreshing = isRefreshing, onClick = onRefreshClick) },
+        actions = { RefreshAction(isRefreshing = uiState.refreshing, onClick = onRefreshClick) },
         // 内容自带滚动（标签栏固定 + Pager 内的 LazyColumn），骨架不再套一层垂直滚动。
         scrollable = false,
         contentPadding = PaddingValues(MikomiSpacing.None),
@@ -84,7 +82,7 @@ fun RankScreen(
         )
 
         RankBody(
-            uiState = uiState,
+            content = uiState.content,
             pagerState = pagerState,
             onAnimeTitleClick = onAnimeTitleClick,
             onRefreshClick = onRefreshClick,
@@ -154,29 +152,29 @@ private fun RankTabs(
 /** 状态分发：加载中与空数据都是骨架屏，只有刷新失败才切错误态。 */
 @Composable
 private fun RankBody(
-    uiState: RankUiState,
+    content: RankContent,
     pagerState: PagerState,
     onAnimeTitleClick: (String) -> Unit,
     onRefreshClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    when (uiState) {
-        RankUiState.Loading -> RankCardSkeletonList(modifier = modifier)
+    when (content) {
+        RankContent.Loading -> RankCardSkeletonList(modifier = modifier)
 
-        RankUiState.Error -> ErrorState(
+        RankContent.Error -> ErrorState(
             message = stringResource(R.string.rank_error),
             onRetry = onRefreshClick,
             modifier = modifier,
         )
 
-        is RankUiState.Success -> HorizontalPager(
+        is RankContent.Success -> HorizontalPager(
             state = pagerState,
             modifier = modifier,
         ) { page ->
             RankList(
                 entries = when (RankType.entries[page]) {
-                    RankType.CHINESE -> uiState.chinese
-                    RankType.JAPANESE -> uiState.japanese
+                    RankType.CHINESE -> content.chinese
+                    RankType.JAPANESE -> content.japanese
                 },
                 onAnimeTitleClick = onAnimeTitleClick,
                 modifier = Modifier.fillMaxSize(),

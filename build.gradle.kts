@@ -748,13 +748,207 @@ tasks.register("windowAudit") {
     }
 }
 
+/**
+ * 状态管理审计。
+ *
+ * ## 为什么这一层需要闸门
+ *
+ * 状态层的错误不会崩，只会「偶发一次」。它们共同的特征是**单次执行完全正确**：
+ *
+ * - 一屏拆七条流，某次业务动作只更新了其中三条 —— 页面停在「列表刷新了、页码还是旧的」，
+ *   下一次操作又自己好了；
+ * - 一次性提示走 `MutableSharedFlow(replay = 0)`，没有订阅者时静默丢失 ——
+ *   切桌面图标要等系统确认框，用户切完已经退回上一页，提示就这么没了；
+ * - `stateIn` 忘了 `WhileSubscribed`，页面销毁后数据库观察还在跑 —— 只在弱机型上表现为耗电；
+ * - 状态在 ViewModel 里用 `mutableStateOf` 存 —— 配置变更后值还在，进程重建后就没了。
+ *
+ * 这些都是「本机点三次都对」的那一类，靠 code review 抓不住，所以把它们写成命令。
+ *
+ * ## 判据
+ *
+ * | 编号 | 规则 |
+ * | --- | --- |
+ * | S1 | 一个 `*Route.kt` 只许一次 `collectAsStateWithLifecycle`（一屏一状态） |
+ * | S2 | 不许裸 `collectAsState(`（没有生命周期感知，后台仍收集） |
+ * | S3 | 每个 `stateIn` 必须带 `SharingStarted.WhileSubscribed` |
+ * | S4 | `*ViewModel.kt` 里不许 `mutableStateOf`（状态要么是 StateFlow，要么是 holder） |
+ * | S5 | 一次性事件不许用 `MutableSharedFlow`（无订阅者即丢，必须 Channel） |
+ * | S6 | 每个 `*ViewModel.kt` 必须导出 `val uiState: StateFlow<` |
+ *
+ * S1 留了 `design-ok` 的出口，而不是死判一次：确实存在「一个低频 UiState + 一个每帧值」
+ * 的页面（播放页的进度就是），那时两个订阅是对的。豁免必须可数，报告里会打印用了几个。
+ *
+ * 判的是**UI 侧**（Route 订阅几次），不是 ViewModel 内部有几个可变源 ——
+ * 内部按触发条件分开写是对的（主创、吐槽各有各的懒加载时机），对外合并成一条才是目标。
+ */
+tasks.register("stateAudit") {
+    group = "verification"
+    description = "一屏一状态 / 状态流启动策略 / 一次性事件通道 / 状态归属"
+
+    doLast {
+        val strict = project.hasProperty("strict") ||
+            gradle.startParameter.taskNames.any { it.contains("verifyDesign") }
+
+        val issues = mutableListOf<String>()
+
+        var routeFiles = 0
+        var collectTotal = 0
+        var maxCollect = 0
+        var maxCollectWhere = ""
+        var mutedRoutes = 0
+        var bareCollect = 0
+        var stateInSites = 0
+        var stateInSubscribed = 0
+        var vmFiles = 0
+        var vmMutableState = 0
+        var vmMissingUiState = 0
+        var sharedFlowEvents = 0
+        var channelEvents = 0
+
+        val blockComment = Regex("""/\*[\s\S]*?\*/""")
+        val lineComment = Regex("""//[^\n]*""")
+        val collectRe = Regex("""collectAsStateWithLifecycle\s*\(""")
+        // `collectAsState(` 不会匹配到 `collectAsStateWithLifecycle(` —— 后者 `collectAsState`
+        // 后面跟的是 `With`，不是 `\s*\(`。所以这里不需要额外的边界条件。
+        val bareCollectRe = Regex("""\bcollectAsState\s*\(""")
+        val stateInRe = Regex("""\bstateIn\s*\(""")
+        val mutableStateRe = Regex("""\bmutableStateOf\s*[<(]""")
+        val sharedFlowRe = Regex("""\bMutableSharedFlow\s*[<(]""")
+        val channelRe = Regex("""\bChannel\s*[<(]""")
+
+        for (file in kotlinSources()) {
+            val rel = file.absolutePath.removePrefix(projectDir.absolutePath + File.separator)
+                .replace(File.separatorChar, '/')
+            val name = file.name
+            val raw = file.readText()
+            // design-ok 写在行注释里，而下一个动作会把注释抹成空白 —— 所以豁免必须在
+            // **原文**上找，规则匹配在抹掉注释的文本上做（两者行数一致，抹的时候留了换行）。
+            val rawLines = raw.lines()
+            val text = blockComment.replace(raw) { m ->
+                m.value.replace(Regex("[^\n]"), " ")
+            }.let { lineComment.replace(it, " ") }
+            val lines = text.lines()
+
+            for ((index, line) in lines.withIndex()) {
+                val ln = index + 1
+                // 导入语句不是用法：`import ...collectAsState` 凑数会把「0 处违规」变成假警报。
+                if (line.trimStart().startsWith("import ")) continue
+
+                val muted = (ln - 4..ln).any { k ->
+                    k in 1..rawLines.size && rawLines[k - 1].contains("design-ok")
+                }
+
+                if (bareCollectRe.containsMatchIn(line)) {
+                    bareCollect++
+                    issues += "裸 collectAsState $rel:$ln —— 用 collectAsStateWithLifecycle" +
+                        "（前者在后台仍收集，白烧 CPU）"
+                }
+
+                if (stateInRe.containsMatchIn(line)) {
+                    stateInSites++
+                    // 启动策略可能写在同一行，也可能在下面几行的参数里 —— 而参数之间常夹着
+                    // 解释注释（Detail 那条就夹了三行），所以窗口按 6 行取，宁松勿误报。
+                    val block = (ln..ln + 6).mapNotNull { k -> lines.getOrNull(k - 1) }
+                    if (block.any { it.contains("WhileSubscribed") }) {
+                        stateInSubscribed++
+                    } else {
+                        issues += "stateIn 缺 WhileSubscribed $rel:$ln —— 页面不可见后仍订阅，" +
+                            "数据库观察会一直跑"
+                    }
+                }
+
+                if (name.endsWith("ViewModel.kt") && mutableStateRe.containsMatchIn(line)) {
+                    vmMutableState++
+                    issues += "ViewModel 里的 mutableStateOf $rel:$ln —— 用 StateFlow 或 holder" +
+                        "（Compose 状态在进程重建后不恢复，且绕开了 stateIn 的生命周期）"
+                }
+
+                if (sharedFlowRe.containsMatchIn(line)) {
+                    sharedFlowEvents++
+                    issues += "一次性事件用 MutableSharedFlow $rel:$ln —— 无订阅者时静默丢，" +
+                        "改用 Channel(CONFLATED).receiveAsFlow()"
+                }
+
+                if (channelRe.containsMatchIn(line)) channelEvents++
+            }
+
+            if (name.endsWith("Route.kt")) {
+                routeFiles++
+                val collectLines = lines.mapIndexedNotNull { i, l ->
+                    if (collectRe.containsMatchIn(l)) i + 1 else null
+                }
+                val collects = collectLines.size
+                collectTotal += collects
+                if (collects > maxCollect) {
+                    maxCollect = collects
+                    maxCollectWhere = rel
+                }
+                if (collects > 1) {
+                    // 豁免写在某个 collect 上方四行内才算数（理由紧贴着它解释的那一行）。
+                    val mutedRoute = collectLines.any { cl ->
+                        (cl - 4..cl + 1).any { k ->
+                            k in 1..rawLines.size && rawLines[k - 1].contains("design-ok")
+                        }
+                    }
+                    if (mutedRoute) {
+                        mutedRoutes++
+                    } else {
+                        issues += "一屏 $collects 次订阅 $rel —— 低频状态合并成一条 UiState；" +
+                            "确需分开（每帧值）时写 design-ok"
+                    }
+                }
+            }
+
+            if (name.endsWith("ViewModel.kt")) {
+                vmFiles++
+                // 名字不强求叫 uiState（`PlaybackSettingsViewModel.settings` 也是页面状态），
+                // 但必须有一条对外导出的 StateFlow —— 否则页面只能自己另开一条数据流。
+                if (!Regex("""\bval \w+\s*:\s*StateFlow\s*<""").containsMatchIn(text)) {
+                    vmMissingUiState++
+                    issues += "ViewModel 没有对外导出的 StateFlow $rel —— 页面状态必须从 ViewModel 出"
+                }
+            }
+        }
+
+        println("状态审计：")
+        println("  一屏一状态：$routeFiles 个 Route · 订阅合计 $collectTotal 次 · 单屏最多 $maxCollect 次（${maxCollectWhere.ifEmpty { "无" }}）· design-ok $mutedRoutes 个")
+        println("  stateIn $stateInSites 处（带 WhileSubscribed $stateInSubscribed 处）· 裸 collectAsState $bareCollect 处")
+        println("  ViewModel $vmFiles 个（内含 mutableStateOf $vmMutableState 处 · 缺 uiState $vmMissingUiState 个）")
+        println("  一次性事件：Channel $channelEvents 处 · MutableSharedFlow $sharedFlowEvents 处")
+
+        if (issues.isEmpty()) {
+            println("  全部通过")
+        } else {
+            println("")
+            for ((k, issue) in issues.withIndex()) {
+                if (k >= 15) {
+                    println("    … 其余 ${issues.size - 15} 条省略")
+                    break
+                }
+                println("  [!] $issue")
+            }
+        }
+
+        if (strict) {
+            if (issues.isNotEmpty()) {
+                throw GradleException(
+                    "状态审计未通过：${issues.size} 处。规则见 docs/mikomi-rules.md §3.2。",
+                )
+            }
+            println("")
+            println("strict：通过（一屏一状态、stateIn 生命周期、一次性事件通道）")
+        }
+    }
+}
+
 /** 一次跑完全部审计，并让 tokenAudit 进入 strict（CI / 提交前用）。 */
 tasks.register("verifyDesign") {
     group = "verification"
-    description = "tokenAudit（strict）+ contrastAudit + iconAudit + windowAudit，任一不达标即失败"
+    description = "tokenAudit（strict）+ contrastAudit + iconAudit + windowAudit + stateAudit，任一不达标即失败"
 
     dependsOn("contrastAudit")
     dependsOn(tasks.named("tokenAudit"))
     dependsOn(tasks.named("iconAudit"))
     dependsOn(tasks.named("windowAudit"))
+    dependsOn(tasks.named("stateAudit"))
 }

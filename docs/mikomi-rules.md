@@ -21,7 +21,8 @@ description: Mikomi 项目级 Android 开发规范。开始任何代码编写、
 | 改了什么 | 跑什么 |
 | --- | --- |
 | 任何 Kotlin / 资源 / 路由 | `./gradlew :app:assembleDebug --offline` |
-| 颜色、间距、字号、圆角、线宽、动效档位、图标、安全区、断点 | `./gradlew verifyDesign`（`tokenAudit` + `contrastAudit` + `iconAudit` + `windowAudit`，strict） |
+| 颜色、间距、字号、圆角、线宽、动效档位、图标、安全区、断点 | `./gradlew verifyDesign`（`tokenAudit` + `contrastAudit` + `iconAudit` + `windowAudit` + `stateAudit`，strict） |
+| ViewModel / UiState / Route 订阅 / 一次性事件 | `./gradlew stateAudit`（判据 S1~S6，见 §3.2） |
 | `core:navigation` | `./gradlew :core:navigation:testDebugUnitTest` |
 | 已有测试覆盖的逻辑（`data:anime` 映射、`feature:home` ViewModel） | `./gradlew test` |
 
@@ -153,6 +154,139 @@ Telegram 没有路由表，页面身份就是「类 + Bundle」，跳转全靠 `
 ### 3.2 单向数据流（UDF）
 
 状态从 ViewModel 向下流向 UI，事件从 UI 向上回到 ViewModel。ViewModel 用 `StateFlow<UiState>` 暴露状态，UI 用 `collectAsStateWithLifecycle()` 收集。禁止 UI 直接改 Repository 之外的状态，也禁止 ViewModel 持有 `Context`。
+
+这一层最容易写对一半：类型都对、编译都过、点三次也都对，但某一次业务动作会让页面停在「一半新一半旧」上，下一次操作又自己好了。所以下面四条是**判据**，不是风格建议 —— `stateAudit`（§0.1）会逐条检查。
+
+#### 3.2.1 一屏一状态
+
+**一个 Route 只订阅一次**，`Screen` 只收一个状态参数。
+
+```kotlin
+// 对：一次 collect，一个状态对象
+val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+HomeScreen(uiState = uiState, onRefresh = viewModel::refresh, ...)
+```
+
+```kotlin
+// 错：七次 collect，七个 collector，Screen 六个状态参数
+val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+val boundAnimeId by viewModel.boundAnimeId.collectAsStateWithLifecycle()
+val creditsState by viewModel.creditsState.collectAsStateWithLifecycle()
+val creditDetailState by viewModel.creditDetailState.collectAsStateWithLifecycle()
+val creditCommentsState by viewModel.creditCommentsState.collectAsStateWithLifecycle()
+val teasingState by viewModel.teasingState.collectAsStateWithLifecycle()
+val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
+```
+
+代价不是重组次数：Compose 的失效是帧级批处理的，七条流在同一帧里变化只会重组一次。真实的代价有两个：
+
+1. **一次业务动作变成多个状态**。「刷新结束」原本是一件事，拆开后是指示器熄灭 + 数据到达两条流，页面要等两条都落地才稳定，中间那一帧就是「转圈没了、列表还是旧的」。`bind()` 里连写五处赋值更糟 —— 任何一处抛异常都留下半新半旧的页面。
+2. **接口膨胀**。六个状态参数让 `Screen` 无法用一组样例数据摆出来看，拆组件、写预览都要先造六份假数据。
+
+**外层 data class + 内层 sealed** 是本仓的固定形状：
+
+```kotlin
+data class HomeUiState(
+    val isRefreshing: Boolean = false,      // 跨态字段：骨架屏上也能下拉刷新
+    val content: HomeContent = HomeContent.Loading,
+)
+
+sealed interface HomeContent {              // 只表达「内容现在是什么」
+    data object Loading : HomeContent
+    data class Success(...) : HomeContent
+    data class Error(val message: String) : HomeContent
+}
+```
+
+外层专放**跨态**字段。派生类的错误做法是把 `isRefreshing` 塞进 `Success` —— 空数据时页面停在骨架屏，用户这时点刷新，按钮也该转，塞进 `Success` 就丢了。
+
+**内部不合并**是允许的：`DetailViewModel` 内部仍有 `credits` / `creditSheet` / `teasing` 三份可变源，因为它们各有独立的懒加载时机与重试路径，硬塞进一个 `MutableStateFlow` 只会让每次写入都要重建整个对象。判的是**对外几条流**，不是内部几个源。
+
+#### 3.2.2 按变化频率分层，不按消费方分层
+
+状态放在哪一层，只看**它多久变一次**：
+
+| 频率 | 放哪 | 例子 | 读法 |
+| --- | --- | --- | --- |
+| 每帧（16ms） | Compose snapshot holder（`@Stable` class + `mutableFloatStateOf`） | 播放进度、手势位移、滚动、动画进度 | 绘制阶段读（`Canvas` onDraw / `offset {}` / `graphicsLayer {}`） |
+| 每秒 | 同上 + `derivedStateOf` 压成整数 | 时间文字「01:23」 | 独立 composable 只读这个值 |
+| 用户操作 | 唯一 `UiState` | 列表、Tab 选中、加载态、收藏状态 | 组合阶段读一次 |
+
+`PlayerPlaybackState` 是第一条的范本：进度、时长、缓冲、倍速都在里面，刻意不进 `PlayerUiState`，读取路径分三条（绘制期 / `derivedStateOf` 秒级 / 单值 composable）。
+
+**「哪个子组件需要就拆哪个」是错的判据。** 详情页曾经按这个拆：主创 Tab 要 `creditsState`、弹层要 `creditDetailState` —— 但这两者都是「用户点一下才变」，拆开没有任何收益。反过来，播放页按频率拆得对：进度是每帧值，进 `UiState` 会让选集网格跟着每帧重组。
+
+#### 3.2.3 状态流的启动策略
+
+`stateIn` **必须**带 `SharingStarted.WhileSubscribed`：
+
+```kotlin
+.stateIn(
+    scope = viewModelScope,
+    started = SharingStarted.WhileSubscribed(5_000),  // 页面不可见 5 秒后停订阅
+    initialValue = HomeUiState(),
+)
+```
+
+`Eagerly` / `Lazily` 会让 Room 的 `Flow` 在页面销毁后继续跑查询 —— 只在弱机型上表现为耗电与内存，本机看不出来。5 秒是为了盖住旋转、进出详情页这类短暂不可见。
+
+**不许用裸 `collectAsState(`**：它不感知 `Lifecycle`，页面进后台仍收集、仍重组。
+
+#### 3.2.4 一次性事件必须走 Channel
+
+导航、Toast、滚动到顶这类事件**不是状态**：它只该发生一次，重复消费会重复弹窗。
+
+```kotlin
+// 对
+private val _toasts = Channel<ThemeToast>(Channel.CONFLATED)
+val toasts: Flow<ThemeToast> = _toasts.receiveAsFlow()
+
+// 错：replay = 0 且无订阅者时静默丢弃，tryEmit 还会返回 true
+private val _toasts = MutableSharedFlow<ThemeToast>(extraBufferCapacity = 1)
+```
+
+`MutableSharedFlow` 是「广播给当前订阅者」，没有订阅者就直接丢。真实场景：切桌面图标要等系统确认框，用户切完往往已经退回上一页，`ThemeRoute` 的 collector 已经不在了，提示就这么没了 —— 表现出来是「点了没反应」。
+
+`Channel` 反过来：没人收就先存着，订阅建立后补投。容量选 `CONFLATED` 而不是 `BUFFERED`：连点三次只该看到最后一条提示，不是排三条队依次弹。
+
+订阅侧用 `LaunchedEffect(viewModel) { viewModel.toasts.collect { ... } }`；提示的展示时长（2.6s）与重新计时都留在 UI 层，ViewModel 不该知道一个 Toast 显示几秒。
+
+**不用 `SharedFlow` 的另一个理由**：Channel 是单消费者语义，正好对应「这条提示只能弹一次」；SharedFlow 多订阅者会各弹一遍。
+
+#### 3.2.5 与 Telegram `NotificationCenter` 的对照
+
+TG 的状态同步走 `NotificationCenter`：控制器改完数据 post 一个事件名，所有订阅了该事件名的 Fragment / View 收到后自己去控制器取数据、局部刷新。与本仓的 Flow 方案对照：
+
+| 能力 | Telegram | 本仓 | 说明 |
+| --- | --- | --- | --- |
+| 单一真相 | `MessagesController` / `MessagesStorage` 单例，UI 不持业务数据 | Room（SSOT）+ Repository `Flow` | 同一条思路。我们多一层类型安全 |
+| 变更通知 | `postNotificationName(obj, name, args)` | `StateFlow` / `Flow` | 我们的通知是**值**，它不是：值相等就不再发，省掉一层手写去重 |
+| 事件合并 | `merge = true` 时同名事件的参数合并成一次 UI 刷新（定位、输入这类高频场景） | `StateFlow` 的相等性去重 + Compose 同帧批处理 | 等价物覆盖了大部分场景；**跨行高频更新（如列表里每行的进度）没有对应机制**，那时要显式 `conflate()`。这是 TG 有而我们缺的一条 |
+| 队列语义 | `allowQueue` 控制「UI 未就绪时事件是否排队」 | `Channel(CONFLATED)`：存最新一条，订阅后补投 | 一一对应（§3.2.4） |
+| 生命周期 | `addObserver` / `removeObserver` 手工配对，漏删即泄漏 | `WhileSubscribed` + `collectAsStateWithLifecycle` 自动 | 我们把「配对」这件事交给框架，TG 靠十年 code review |
+| 局部刷新 | `notifyItemChanged(position)`，只重绘一个 cell | 懒列表 `key` + 稳定参数（`AnimePosterCard` 收窄成 `id/title/coverUrl`） | 我们的粒度靠「参数稳定性」拿到，不需要手写位置 |
+
+**不学的两条**：
+
+- **全局可变单例**。TG 的 `AndroidUtilities.statusBarHeight` / `navigationBarHeight` 是 `public static int`（源码自己已标 `@Deprecated`），分屏下必错位。我们的对应物是 `LocalMikomiWindowSize` / `MikomiInsets`（§6）。
+- **字符串事件名**。`NotificationCenter` 的 eventName 是字符串常量，拼错不报错、订阅漏了不报错 —— 那正是「控制器改了但界面没动」这类 bug 的来源。我们的通知是类型化的 Flow，拼错编译不过。
+
+**TG 强的两处，记在这里免得自我感觉太好**：
+
+- 它的 `NotificationCenter` 是**进程级**的，跨页面的数据联动（一处收藏、三处刷新）天然可达；我们的 Flow 是**订阅域内**的，跨页面联动要靠 Repository 的同一条 `Flow` 被多处 `stateIn` —— 可行，但每处都要记得订阅，没有「广播」那种兜底。
+- 它对**同一个事件名的参数做合并**，我们有 `distinctUntilChanged` 只能挡相同值，挡不住「连续三次不同的定位更新只渲染最后一次」，那要 `conflate()`。
+
+#### 3.2.6 验收
+
+```bash
+./gradlew stateAudit            # 只报告
+./gradlew verifyDesign          # strict，任何一条不过即失败
+```
+
+当前基线（2026-11-07）：12 个 Route 全部 **1 次订阅**、12 个 ViewModel **0 处 `mutableStateOf`**、6 处 `stateIn` 全部带 `WhileSubscribed`、一次性事件 **Channel 1 处 / `MutableSharedFlow` 0 处**。
+
+判据编号见 `build.gradle.kts` 的 `stateAudit` KDoc（S1~S6）。S1 留了 `design-ok` 出口：确实存在「一个低频 UiState + 一个每帧值」的页面（播放页进度就是），那时两个订阅是对的，但豁免必须可数 —— 报告里会打印用了几个。
+
 
 ### 3.3 Route + Screen，以及参数化路由怎么写
 
@@ -357,6 +491,7 @@ token 表最怕的不是「值不好」，而是「没人知道它为什么是�
 | 13 | 图标从「有约定」变成「有闸门」：新增 `iconAudit` 接进 `verifyDesign`（裸 `Icon(`、尺寸走 `modifier`、注释/家族/`builder name`/`autoMirror`、死图标）；32 处 `modifier = Modifier.size(...)` 收进 `size` 参数；`tools/icon-gen/icons.tsv` 记每段代码块指纹，`--verify` 先离线比对再溯源；图片的浏览器 UA 从逐请求参数搬到 `MikomiImageLoader` 的拦截器 | 尺寸入口统一之前仍有 32 处走 `modifier.size`、16 处走 `size` 参数、25 处走默认 —— 三条路并存，而 `MikomiIcon` 的 KDoc 已经写着「不必再记 `Modifier.size`」，文档与代码对不上。几何是副本，仓库里没有上游源码：手改一行 `pathData` 编译照样过，只是那个图标从此和别的不是一套，而 `--verify` 在没有 sources.jar 的机器上整体报「追不回」，等于没有校验。UA 参数只有 2/77 处传 `true`，漏传的代价是永久 403 且无日志 |
 | 14 | 建窗口系统三层：`MikomiWindowSpec`（断点 / 24dp 回滞 / 内容列 720 · 弹层 640 · 底栏 520）、`LocalMikomiWindowSize`（由 `LocalWindowInfo.containerDpSize` 算档，壳在根部 provide）、`MikomiInsets` 七个语义入口；26 处裸 `WindowInsets.*` / `statusBarsPadding` / `imePadding` 全部收编；新增 `windowAudit` 接进 `verifyDesign` | 窗口这一层此前只有一份「怎么写」的散文：全仓 0 处窗口尺寸类、26 处各写各的 `WindowInsets`、3 处 `ModalBottomSheet` 内又叠一层键盘/导航栏让位、首页底部避让写死 112dp（手势导航正好、三键导航少 24dp）、`WindowInsets.statusBars` 不含挖孔（刘海机横屏返回键落在挖孔下），而这些都是「本机跑一万次也复现不了」的形态 |
 | 15 | 宽窗口导航形态：`useNavigationRail = !isCompactWidth && !isCompactHeight`，`MikomiRailSpec` 落地（80dp 占位、胶囊垂直居中、二级页不显示、不进沉浸、关顶级页横滑、不拦返回），底栏与侧栏共用同一个 `onNavSelect`；侧栏形态 `LocalBottomBarSpace` 下发 `0.dp`；详情页与个人页**整块**收进 `ContentMaxWidth`（详情封面宽屏固定 220dp） | 第 14 轮只做了「按窗口判档」，形态一动没动：平板上仍是 520dp 居中的悬浮底栏，食指要横跨半个屏幕；详情页正文一行 130 字（1120dp 宽）、个人页三个动作按钮各 300dp。这三件事在第 14 轮的评分里合计 19 分（大屏导航 7/15、宽屏可读 12/20、多窗格 3/15），且**都不需要新依赖** —— `NavigationSuiteScaffold` 拿不到，但手写一条 72dp 的侧栏不需要任何东西 |
+| 16 | 一屏一状态：`DetailUiState` / `HomeUiState` / `RankUiState` 统一为「外层 data class（跨态字段）+ 内层 sealed（内容态）」，`DetailRoute` 订阅 **7 次 → 1 次**、Home / Rank 各 2 → 1；`ThemeViewModel.toasts` 从 `MutableSharedFlow(replay = 0)` 改为 `Channel(CONFLATED)`；新增 `stateAudit`（S1~S6）接进 `verifyDesign` | 详情页曾以「哪个子组件需要就拆哪个」当分层依据，但主创、弹层评论、吐槽全是用户点一下才变的低频值 —— 拆开换来的是非原子更新（`openCreditDetail` 中间那一帧「详情转圈、评论区还空着」）与六个状态参数。一次性提示走 SharedFlow 在无订阅者时**静默丢失**：切桌面图标要等系统确认框，用户切完往往已退回上一页，提示就没了，表现出来是「点了没反应」。这两类错误单次执行完全正确，只在特定时序下出现 |
 
 ### 5.5 可访问性与对比度
 
@@ -799,6 +934,15 @@ val useNavigationRail = !windowSize.isCompactWidth && !windowSize.isCompactHeigh
 - 导航是否类型安全（`data class : NavKey`）？栈的写操作是否只经过 `Navigator`？
 - 模块依赖方向对不对？有没有 feature 互相依赖、有没有循环？`core:model` 是否仍然纯 Kotlin？
 - 数据库版本变了是否有 `Migration`？有没有出现 `fallbackToDestructiveMigration`？
+
+### 状态管理
+
+- 一个 Route 是否只订阅**一次**？第二处订阅是为了一个每帧值，还是只是「那个子组件要用」？（跑 `stateAudit`）
+- 新增的状态字段是**跨态**还是某态专有？跨态的放外层 data class —— 塞进 `Success` 会在 Loading 时丢掉。
+- `stateIn` 是否带 `SharingStarted.WhileSubscribed`？有没有裸 `collectAsState(`（不感知生命周期）？
+- ViewModel 里有没有 `mutableStateOf`？逐帧变化的值是否在独立 holder（`@Stable` class）里，而不是进 UiState？
+- 一次性事件（Toast / 导航 / 滚动请求）是否走 `Channel(CONFLATED).receiveAsFlow()`？用 `MutableSharedFlow` 会在无订阅者时静默丢失。
+- 一次业务动作是否需要多次写入状态？能合成一次 `update {}` 就别写成两行 —— 中间那一帧会被看见。
 
 ### 设计系统
 

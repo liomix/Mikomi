@@ -19,10 +19,8 @@ fun RankRoute(
     viewModel: RankViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val isRefreshing by viewModel.refreshing.collectAsStateWithLifecycle()
     RankScreen(
         uiState = uiState,
-        isRefreshing = isRefreshing,
         onBackClick = onBackClick,
         onRefreshClick = viewModel::refreshByUser,
         onAnimeTitleClick = onAnimeTitleClick,

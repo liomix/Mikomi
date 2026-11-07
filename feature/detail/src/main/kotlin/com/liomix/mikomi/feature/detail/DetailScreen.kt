@@ -144,11 +144,6 @@ private const val TAB_BAR_ALPHA = 0.88f
 @Composable
 fun DetailScreen(
     uiState: DetailUiState,
-    creditsState: AnimeCreditsUiState,
-    creditDetailState: CreditDetailUiState,
-    creditCommentsState: CreditCommentsUiState,
-    teasingState: TeasingUiState,
-    isFavorite: Boolean,
     onToggleFavorite: () -> Unit,
     onLoadCredits: () -> Unit,
     onCharacterClick: (Int) -> Unit,
@@ -166,23 +161,23 @@ fun DetailScreen(
         // 头部封面直接顶到屏幕最上方（状态栏之下由 header 自行留白），insets 在页面内自行处理。
         contentWindowInsets = WindowInsets(0),
     ) { innerPadding ->
-        when (uiState) {
+        when (val content = uiState.content) {
             // 加载态用骨架屏而不是空白页：从列表点进来的首帧若渲染空白页，浅色主题下就是
             // 整屏发白的「白屏闪一下」；骨架屏与真实布局同构，转场过程中也不会突兀。
-            DetailUiState.Loading -> DetailLoadingSkeleton(
+            DetailContent.Loading -> DetailLoadingSkeleton(
                 modifier = Modifier.padding(innerPadding),
             )
 
-            DetailUiState.Error -> ErrorState(
+            DetailContent.Error -> ErrorState(
                 message = stringResource(R.string.detail_load_failed),
                 modifier = Modifier.padding(innerPadding),
             )
 
-            is DetailUiState.Success -> DetailContent(
-                anime = uiState.anime,
-                creditsState = creditsState,
-                teasingState = teasingState,
-                isFavorite = isFavorite,
+            is DetailContent.Success -> DetailLoaded(
+                anime = content.anime,
+                creditsState = uiState.credits,
+                teasingState = uiState.teasing,
+                isFavorite = uiState.isFavorite,
                 onToggleFavorite = onToggleFavorite,
                 onLoadCredits = onLoadCredits,
                 onLoadTeasing = onLoadTeasing,
@@ -197,17 +192,17 @@ fun DetailScreen(
     }
 
     // 主创详情底部弹层。
-    if (creditDetailState != CreditDetailUiState.Hidden) {
+    if (uiState.creditDetail != CreditDetailUiState.Hidden) {
         CreditDetailSheet(
-            detailState = creditDetailState,
-            commentsState = creditCommentsState,
+            detailState = uiState.creditDetail,
+            commentsState = uiState.creditComments,
             onDismiss = onDismissCreditDetail,
         )
     }
 }
 
 @Composable
-private fun DetailContent(
+private fun DetailLoaded(
     anime: Anime,
     creditsState: AnimeCreditsUiState,
     teasingState: TeasingUiState,

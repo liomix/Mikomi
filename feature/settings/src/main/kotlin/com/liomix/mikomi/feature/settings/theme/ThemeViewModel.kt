@@ -17,12 +17,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -81,9 +81,19 @@ class ThemeViewModel @Inject constructor(
             initialValue = ThemeUiState(),
         )
 
-    /** 一次性提示，由 UI 层用 [com.liomix.mikomi.core.ui.component.base.MikomiToast] 呈现。 */
-    private val _toasts = MutableSharedFlow<ThemeToast>(extraBufferCapacity = 1)
-    val toasts: SharedFlow<ThemeToast> = _toasts.asSharedFlow()
+    /**
+     * 一次性提示，由 UI 层用 [com.liomix.mikomi.core.ui.component.base.MikomiToast] 呈现。
+     *
+     * 用 `Channel(CONFLATED)` 而不是 `MutableSharedFlow`：SharedFlow 是「广播给当前订阅者」，
+     * `replay = 0` 时**没有订阅者就直接丢弃**（`tryEmit` 还会返回 true，静默丢）。
+     * 切桌面图标要等系统弹确认框，用户切完往往已经退回上一页 —— ThemeRoute 的 collector
+     * 那时已经不在了，提示就这么没了，表现出来是「点了没反应」。
+     *
+     * Channel 反过来：没人收就先存着（容量 1），订阅建立后补投一次。
+     * `CONFLATED` 而不是 `BUFFERED`：连点三次只该看到最后一条提示，不是排三条队依次弹。
+     */
+    private val _toasts = Channel<ThemeToast>(Channel.CONFLATED)
+    val toasts: Flow<ThemeToast> = _toasts.receiveAsFlow()
 
     fun selectColorScheme(id: String) {
         viewModelScope.launch {
@@ -126,7 +136,7 @@ class ThemeViewModel @Inject constructor(
     /**
      * 切换桌面图标：先让系统启用对应 alias，成功后再落库。
      *
-     * 失败时保留原选择，并通过 [messages] 提示用户。
+     * 失败时保留原选择，并通过 [toasts] 提示用户。
      */
     fun selectAppIcon(id: String) {
         val style = AppIconStyle.fromId(id)
@@ -137,11 +147,11 @@ class ThemeViewModel @Inject constructor(
                     userDataRepository.setAppIcon(style.id)
                     // 图标用「刚切换成的样式」：DataStore 是异步落库的，
                     // 等 appIconId 回流会让弹窗短暂显示旧图标。
-                    _toasts.tryEmit(
+                    _toasts.trySend(
                         ThemeToast(R.string.settings_app_icon_changed, style.glyphRes),
                     )
                 } else {
-                    _toasts.tryEmit(
+                    _toasts.trySend(
                         ThemeToast(R.string.settings_app_icon_failed, style.glyphRes),
                     )
                 }
@@ -149,7 +159,7 @@ class ThemeViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Select app icon failed, id=$id", e)
-                _toasts.tryEmit(ThemeToast(R.string.settings_app_icon_failed, style.glyphRes))
+                _toasts.trySend(ThemeToast(R.string.settings_app_icon_failed, style.glyphRes))
             }
         }
     }

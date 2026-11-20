@@ -48,7 +48,7 @@ import androidx.compose.ui.unit.Dp
  * - 容器已经按键盘让过位，里面又写一次 `imePadding()`：让了两份，底部空出一条黑带。
  *
  * 所以键盘相关的只有 [BottomOrIme] 一个入口，且一条修饰链上只能出现一次。
- * `windowAudit` 会盯着这件事（见 `docs/mikomi-rules.md` §6.6）。
+ * `windowAudit` 会盯着这件事（细则见 `docs/规范偏差附录.md` A 节；正文对应 §5.1）。
  *
  * ## 为什么不用 `WindowInsetsRulers`（Compose 1.9+ 的新 API）
  *

@@ -357,8 +357,8 @@ cd Mikomi
 - 从 `main` 分支创建 `feature/*` 或 `fix/*` 分支
 - 提交信息格式：`type(scope): description`，如 `feat(home): add ranking section`
 - PR 需通过 CI 检查（构建 + 测试 + lint）后方可合入，使用 Squash Merge 保持主干清晰
-- **提交前必读**：[`docs/mikomi-rules.md`](docs/mikomi-rules.md) — 项目级开发规范
-  （命名 / Compose / 架构与导航 / 设计系统 / 安全 / 性能 / 验收命令）
+- **提交前必读**：[`docs/Mikomi开发规范.md`](docs/Mikomi开发规范.md) — 项目级开发规范
+  （20 节：架构与导航 / Compose / 数据与网络 / 设计系统 / 性能 / 测试与质量门）
 
 ---
 
@@ -368,6 +368,6 @@ cd Mikomi
 
 ## 📚 文档
 
-- [`docs/mikomi-rules.md`](docs/mikomi-rules.md) — 项目级开发规范（**唯一基线**：命名、Compose、架构与导航、设计系统与数值基准、安全、性能、验收命令）
-- [`docs/telegram-smoothness.md`](docs/reference/telegram-smoothness.md) — Telegram 为什么丝滑：逐层取证 + Mikomi 能抄的几条
-- [`docs/lottie-guide.md`](docs/reference/lottie-guide.md) — Lottie 动效接入与性能约定
+- [`docs/Mikomi开发规范.md`](docs/Mikomi开发规范.md) — 项目级开发规范（**唯一基线**：20 节，架构与导航、Compose、数据层、网络与解析、设计系统、性能、测试与质量门）
+- [`docs/项目结构.md`](docs/项目结构.md) — 26 个模块、292 个文件的逐层目录树与依赖方向
+- [`docs/规范偏差附录.md`](docs/规范偏差附录.md) — 规范与代码的对账结果（只读配套表，不构成规则）

@@ -40,6 +40,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -156,7 +157,11 @@ fun ProfileScreen(
     var stretchPx by remember { mutableFloatStateOf(0f) }
     val maxStretchPx = with(density) { MaxStretch.toPx() }
 
-    var selectedTab by remember { mutableIntStateOf(0) }
+    // 必须用 rememberSaveable：`remember` 只活在当前这次组合里，从收藏页返回时
+    // `NavDisplay` 会把这一页重新挂回来（装饰链重来），普通的 remember 一律归零 ——
+    // 表现就是「在收藏 tab 点进收藏页，返回后跳回历史 tab」。
+    // 导航层已经装了 `rememberSaveableStateHolderNavEntryDecorator`，这里只要选对 API。
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val contentState = rememberProfileTabContentState()
     val contentListState = rememberLazyListState()
 

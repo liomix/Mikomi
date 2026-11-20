@@ -10,19 +10,24 @@ plugins {
 }
 
 // ===========================================================================
-// 设计系统的四条自检命令
+// 设计系统的五条自检命令
 // ===========================================================================
 //
-// `docs/mikomi-rules.md` §5.2 定了五条硬规则。写在散文里的规则只能靠人记，而人工清仓的
-// 成果会在下一次赶工时慢慢回潮 —— 回潮时没有人会发现。所以这里把它们变成命令：
+// 口径在 `docs/Mikomi开发规范.md`：§4.6 禁视觉字面量、§5.9 视觉常量一律来自主题、
+// §5.1 edge-to-edge 在宿主单点处理、§5.2 单向数据流。写在散文里的规则只能靠人记，
+// 而人工清仓的成果会在下一次赶工时慢慢回潮 —— 回潮时没有人会发现。所以把它们变成命令：
 //
 //   ./gradlew tokenAudit     字面量 / 档位对账 / 使用分布
 //   ./gradlew contrastAudit  配色对比度（WCAG AA）
 //   ./gradlew iconAudit      图标唯一入口 / 尺寸来源 / 语义表一致性
 //   ./gradlew windowAudit    安全区唯一入口 / edge-to-edge 单点 / 断点来源 / 清单约束
-//   ./gradlew verifyDesign   = 上面四条 + strict（任何违规都 fail）
+//   ./gradlew stateAudit     一屏一状态 / 订阅次数 / 一次性事件
+//   ./gradlew verifyDesign   = 上面五条 + strict（任何违规都 fail）
 //
-// 前四条默认**只报告不失败**（评审入口）；`-Pstrict` 或 `verifyDesign` 才 fail（闸门）。
+// 对比度、图标、窗口三者的**细则**正文未逐条收录（正文只留原则），登记在
+// `docs/规范偏差附录.md` A 节 —— 审计照跑，依据可查。
+//
+// 前五条默认**只报告不失败**（评审入口）；`-Pstrict` 或 `verifyDesign` 才 fail（闸门）。
 // 之所以默认不 fail：控件体格（`size(180.dp)` 的封面）按规则本来就该留在组件里，
 // 让机器分辨「布局位置」与「控件体格」已经需要靠调用点名字猜，再让它直接阻断构建，
 // 会逼着人往 `design-ok` 里塞理由 —— 那正好是把闸门变成后门的方式。
@@ -225,7 +230,7 @@ tasks.register("tokenAudit") {
             if (problems > 0) {
                 throw GradleException(
                     "设计系统审计未通过：布局字面量 $mustFix 处、档位表不一致 $tableMismatch 处。" +
-                        "规则见 docs/mikomi-rules.md §5.2。",
+                        "规则见 docs/Mikomi开发规范.md §4.6、§5.9；档位表见 docs/规范偏差附录.md A 节。",
                 )
             }
             println("")
@@ -564,7 +569,7 @@ tasks.register("iconAudit") {
         if (strict) {
             if (issues.isNotEmpty()) {
                 throw GradleException(
-                    "图标审计未通过：${issues.size} 处。规则见 docs/mikomi-rules.md §5.6。",
+                    "图标审计未通过：${issues.size} 处。规则见 docs/规范偏差附录.md A 节（正文未收录图标细则）。",
                 )
             }
             println("")
@@ -768,7 +773,8 @@ tasks.register("windowAudit") {
         if (strict) {
             if (issues.isNotEmpty()) {
                 throw GradleException(
-                    "窗口审计未通过：${issues.size} 处。规则见 docs/mikomi-rules.md §6.6。",
+                    "窗口审计未通过：${issues.size} 处。规则见 docs/Mikomi开发规范.md §5.1；" +
+                        "安全区与断点细则见 docs/规范偏差附录.md A 节。",
                 )
             }
             println("")
@@ -961,7 +967,7 @@ tasks.register("stateAudit") {
         if (strict) {
             if (issues.isNotEmpty()) {
                 throw GradleException(
-                    "状态审计未通过：${issues.size} 处。规则见 docs/mikomi-rules.md §3.2。",
+                    "状态审计未通过：${issues.size} 处。规则见 docs/Mikomi开发规范.md §5.2、§11.3。",
                 )
             }
             println("")

@@ -39,5 +39,5 @@ tools
 # ---- 项目数据（memory / skills 是本机状态，不入库）----
 .workbuddy/
 
-# ---- 文档：参考资料不入库；docs/mikomi-rules.md 是唯一基线，入库 ----
-docs/reference/
+# ---- 只在本机开发,文档不入库 ----
+docs

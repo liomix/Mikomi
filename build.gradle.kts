@@ -7,6 +7,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.hilt) apply false
+    // 模块边界校验任务（规范 §3.7）。只装在根项目：边界是全局性质，单模块看不到别人的边。
+    id("mikomi.module-graph")
 }
 
 // ===========================================================================

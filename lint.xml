@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    全工程唯一的 lint 配置（规范 §2.5）。
+
+    配置本身的开关不在这里：`abortOnError = true` / `warningsAsErrors = false` 写在
+    build-logic 的 `AndroidLint.kt` —— 「什么级别阻断」与「哪些检查不适用」是两件事，
+    分开放，才不会在 26 个模块里各写一遍。
+
+    关掉一条检查的门槛（照 §2.5 原文）：这条检查的判定标准由别处决定，
+    或者它的误报成本高于它发现的真问题。每条都要在这里写清理由。
+-->
+<lint>
+
+    <!--
+        依赖升级节奏由规范 §1.5 决定，不由 lint 决定。
+
+        这三条会在每次构建里提示「X 有新版本」，但本项目的版本只在 gradle/libs.versions.toml
+        里成组升级（§2.3 的 bundles）—— 逐条跟着提示升，等于把 bundle 拆散，
+        最后得到一套「Compose 是一个月前、Navigation3 是上周」的混合版本。
+        这类提示一旦常态存在，整个 lint 报告就会被训练成「不用看」。
+    -->
+    <issue id="GradleDependency" severity="ignore" />
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+    <issue id="NewerVersionAvailable" severity="ignore" />
+
+</lint>

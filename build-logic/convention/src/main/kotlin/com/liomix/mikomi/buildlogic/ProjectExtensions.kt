@@ -10,6 +10,8 @@ internal const val MIN_SDK = 24
 internal const val TARGET_SDK = 36
 
 internal fun Project.configureAndroidLibrary(extension: LibraryExtension) {
+    // 根目录一份 lint.xml，由 AndroidLint.kt 统一接入（规范 §2.5）。
+    val lintConfigFile = rootDir.resolve("lint.xml")
     extension.apply {
         compileSdk = COMPILE_SDK
         defaultConfig {
@@ -19,10 +21,12 @@ internal fun Project.configureAndroidLibrary(extension: LibraryExtension) {
             sourceCompatibility = JavaVersion.VERSION_17
             targetCompatibility = JavaVersion.VERSION_17
         }
+        lint { configureMikomiLint(lintConfigFile) }
     }
 }
 
 internal fun Project.configureAndroidApplication(extension: ApplicationExtension) {
+    val lintConfigFile = rootDir.resolve("lint.xml")
     extension.apply {
         compileSdk = COMPILE_SDK
         defaultConfig {
@@ -46,5 +50,6 @@ internal fun Project.configureAndroidApplication(extension: ApplicationExtension
             sourceCompatibility = JavaVersion.VERSION_17
             targetCompatibility = JavaVersion.VERSION_17
         }
+        lint { configureMikomiLint(lintConfigFile) }
     }
 }

@@ -49,5 +49,10 @@ gradlePlugin {
             id = "mikomi.android.data"
             implementationClass = "com.liomix.mikomi.buildlogic.MikomiDataConventionPlugin"
         }
+        // 根项目专用：模块边界校验（规范 §3.7）。它不是模块约定插件，只注册一个校验任务。
+        register("mikomiModuleGraph") {
+            id = "mikomi.module-graph"
+            implementationClass = "com.liomix.mikomi.buildlogic.MikomiModuleGraphPlugin"
+        }
     }
 }

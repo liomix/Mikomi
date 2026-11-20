@@ -177,8 +177,10 @@ private fun windowOriginOf(view: View, originInRoot: Offset): Offset {
  * 软件重放方式在多数机型上拿到的是全透明位图（尺寸正常、内容为空），不能用于遮罩。
  */
 private suspend fun captureWindow(activity: Activity): Bitmap? {
-    // PixelCopy 的 Window 重载从 Android 7.0（N）开始提供。
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return null
+    // PixelCopy 这个类从 API 24（N）就有，但**接收 Window 的那个重载**是 API 26（O）才加的。
+    // 这里曾经按 N 判，minSdk 24 的设备上一进日夜切换就会 NoSuchMethodError ——
+    // 由 `./gradlew lintDebug` 的 NewApi 检查发现。守卫按重载的实际版本判，拿不到就退化为瞬时切换。
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return null
     val window = activity.window
     val decor = window.peekDecorView() ?: return null
     val width = decor.width

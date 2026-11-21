@@ -30,16 +30,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
-import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
-import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
-import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
+import com.liomix.mikomi.core.designsystem.MikomiIcons
+import com.liomix.mikomi.core.designsystem.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.MikomiRadius
+import com.liomix.mikomi.core.designsystem.MikomiSizes
+import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.MikomiStroke
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.Tag
+import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
 
 /** 简介最多展示行数。 */
 private const val MAX_SYNOPSIS_LINES = 4
@@ -152,7 +153,7 @@ private fun ExpandToggle(
         ),
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = Modifier.clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick),
     )
 }
 
@@ -170,7 +171,7 @@ private fun ExpandChip(
     ) {
         Row(
             modifier = Modifier
-                .clickable(onClick = onClick)
+                .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
                 .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {

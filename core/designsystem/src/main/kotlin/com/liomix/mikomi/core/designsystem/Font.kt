@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.designsystem.theme
+package com.liomix.mikomi.core.designsystem
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

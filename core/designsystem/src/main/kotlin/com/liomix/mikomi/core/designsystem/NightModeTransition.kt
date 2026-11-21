@@ -1,5 +1,6 @@
-package com.liomix.mikomi.core.designsystem.theme
+package com.liomix.mikomi.core.designsystem
 
+import android.R
 import android.app.Activity
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
@@ -95,54 +96,45 @@ fun NightModeTransitionHost(
         // 抓帧是异步的：用原子锁在最外层同步上锁，避免连点时抓到同一帧、切两次主题。
         if (busy.compareAndSet(false, true)) {
             val targetDark = !currentIsDark.value
-            // 系统关掉动画时（开发者选项的「动画时长 0」、无障碍「移除动画」、省电模式），
-            // 圆形揭示会在第一帧直接落到终点 —— 遮罩等于不存在，但为它准备的那笔账一分不少：
-            // 整窗 ARGB_8888 快照（1080×2400 ≈ 10MB）、一次 PixelCopy 全窗回读、一次 decor 重新布局。
-            // 用户什么动画都看不到，这三次开销却全落在点击那一帧上。所以先问系统要不要动画。
-            if (!view.context.animationsEnabled()) {
+            // 一律播圆形揭示：不再问「系统是否允许动画」。
+            // 那条判据是给「动画时长 0 / 移除动画 / 省电模式」做的降级，代价是同一个开关
+            // 在不同手机上行为不同。动画是产品的行为，由 App 自己的设置决定。
+            scope.launch {
                 try {
-                    onToggle(targetDark)
+                    val activity = view.context.findActivity()
+                    val session = activity?.let { act ->
+                        val snapshot = captureWindow(act) ?: return@let null
+                        // 没上报过原点时取内容中心：不要用 (0,0)，那会让圆从左上角斜着扫进来，
+                        // 看起来像「页面自己变了」而不是「从开关这里扩散出去」。
+                        val originInRoot = origin.value ?: Offset(view.width / 2f, view.height / 2f)
+                        val originInWindow = windowOriginOf(view, originInRoot)
+                        prepareWindowReveal(act, snapshot, originInWindow, targetDark)
+                    }
+                    if (session == null) {
+                        // 拿不到窗口帧（老系统 / 抓帧失败）：直接切，不留遮罩。
+                        onToggle(targetDark)
+                        return@launch
+                    }
+                    if (targetDark) {
+                        // 日 → 夜：**先把真实内容裁到半径 0**（等于完全裁掉），旧快照垫在它下面。
+                        // 这一步画面没有任何变化 —— 内容此刻还是旧配色，与被裁出来的快照逐像素一致。
+                        // 然后才切主题，新配色只可能出现在圆里。
+                        // 反过来「先切主题、等两帧、再启动揭示」会在中间留下一帧
+                        // 「整屏已变黑但遮罩还没生效」，就是那一下闪。
+                        session.start(REVEAL_DURATION_MILLIS)
+                        onToggle(true)
+                    } else {
+                        // 夜 → 日：快照盖在最上层，本身就挡住了整块新界面，
+                        // 可以放心先切主题、等新配色真正画上屏，再让圆收缩；
+                        // 否则圆里缩出来的还是旧配色。
+                        onToggle(false)
+                        withFrameNanos { }
+                        withFrameNanos { }
+                        session.start(REVEAL_DURATION_MILLIS)
+                    }
+                    session.awaitEnd()
                 } finally {
                     busy.set(false)
-                }
-            } else {
-                scope.launch {
-                    try {
-                        val activity = view.context.findActivity()
-                        val session = activity?.let { act ->
-                            val snapshot = captureWindow(act) ?: return@let null
-                            // 没上报过原点时取内容中心：不要用 (0,0)，那会让圆从左上角斜着扫进来，
-                            // 看起来像「页面自己变了」而不是「从开关这里扩散出去」。
-                            val originInRoot = origin.value ?: Offset(view.width / 2f, view.height / 2f)
-                            val originInWindow = windowOriginOf(view, originInRoot)
-                            prepareWindowReveal(act, snapshot, originInWindow, targetDark)
-                        }
-                        if (session == null) {
-                            // 拿不到窗口帧（老系统 / 抓帧失败）：直接切，不留遮罩。
-                            onToggle(targetDark)
-                            return@launch
-                        }
-                        if (targetDark) {
-                            // 日 → 夜：**先把真实内容裁到半径 0**（等于完全裁掉），旧快照垫在它下面。
-                            // 这一步画面没有任何变化 —— 内容此刻还是旧配色，与被裁出来的快照逐像素一致。
-                            // 然后才切主题，新配色只可能出现在圆里。
-                            // 反过来「先切主题、等两帧、再启动揭示」会在中间留下一帧
-                            // 「整屏已变黑但遮罩还没生效」，就是那一下闪。
-                            session.start(REVEAL_DURATION_MILLIS)
-                            onToggle(true)
-                        } else {
-                            // 夜 → 日：快照盖在最上层，本身就挡住了整块新界面，
-                            // 可以放心先切主题、等新配色真正画上屏，再让圆收缩；
-                            // 否则圆里缩出来的还是旧配色。
-                            onToggle(false)
-                            withFrameNanos { }
-                            withFrameNanos { }
-                            session.start(REVEAL_DURATION_MILLIS)
-                        }
-                        session.awaitEnd()
-                    } finally {
-                        busy.set(false)
-                    }
                 }
             }
         }
@@ -316,7 +308,7 @@ internal fun prepareWindowReveal(
     toDark: Boolean,
 ): WindowRevealSession? {
     val decor = activity.window.peekDecorView() as? ViewGroup ?: return null
-    val content = activity.findViewById<ViewGroup>(android.R.id.content) ?: return null
+    val content = activity.findViewById<ViewGroup>(R.id.content) ?: return null
     if (content.width <= 0 || content.height <= 0) {
         snapshot.recycle()
         return null

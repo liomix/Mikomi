@@ -37,11 +37,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
-import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
-import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
-import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
+import com.liomix.mikomi.core.designsystem.MikomiIcons
+import com.liomix.mikomi.core.designsystem.MikomiRadius
+import com.liomix.mikomi.core.designsystem.MikomiMotion
+import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.MikomiStroke
 import com.liomix.mikomi.core.model.BangumiApiMode
 import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.core.ui.layout.BaseScreenLayout

@@ -55,11 +55,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.lerp
-import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
-import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
-import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
+import com.liomix.mikomi.core.designsystem.MikomiMotion
+import com.liomix.mikomi.core.designsystem.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.MikomiSizes
+import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.MikomiTextStyles
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.roundToInt

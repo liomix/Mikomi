@@ -66,15 +66,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
-import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
-import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
-import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
-import com.liomix.mikomi.core.designsystem.spec.MikomiPlayerSpec
-import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
-import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
-import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
-import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
+import com.liomix.mikomi.core.designsystem.MikomiIcons
+import com.liomix.mikomi.core.designsystem.MikomiMedia
+import com.liomix.mikomi.core.designsystem.MikomiMotion
+import com.liomix.mikomi.core.designsystem.MikomiPlayerSpec
+import com.liomix.mikomi.core.designsystem.MikomiRadius
+import com.liomix.mikomi.core.designsystem.MikomiSizes
+import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.MikomiStroke
+import com.liomix.mikomi.core.designsystem.MikomiTextStyles
 import com.liomix.mikomi.core.media.MikomiPlayer
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
 import com.liomix.mikomi.core.ui.base.MikomiIcon
@@ -88,6 +88,7 @@ import com.liomix.mikomi.feature.player.R
 import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
+import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
 
 /*
  * 控制条的尺寸规格（进度条热区、按钮、间距、最小宽度）都在 `MikomiPlayerSpec` 里。
@@ -1075,7 +1076,7 @@ private fun ControlSlot(
             .clip(shape)
             .background(containerColor)
             .alpha(if (enabled) 1f else DISABLED_ALPHA)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
         content = content,
     )

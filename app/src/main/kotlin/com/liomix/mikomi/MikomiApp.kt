@@ -2,7 +2,7 @@ package com.liomix.mikomi
 
 import android.app.Application
 import com.liomix.mikomi.core.common.dispatcher.DefaultDispatcher
-import com.liomix.mikomi.core.designsystem.theme.warmUpColorSchemes
+import com.liomix.mikomi.core.designsystem.warmUpColorSchemes
 import com.liomix.mikomi.core.ui.image.MikomiImageLoader
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject

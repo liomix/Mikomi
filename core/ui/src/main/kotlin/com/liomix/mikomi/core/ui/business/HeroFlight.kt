@@ -24,7 +24,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.MikomiMotion
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.ui.image.rememberCoverRequest
 

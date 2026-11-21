@@ -1,16 +1,18 @@
-package com.liomix.mikomi.core.designsystem.theme
+package com.liomix.mikomi.core.designsystem
 
-import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.IndicationNodeFactory
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 
@@ -181,6 +183,23 @@ private fun ColorScheme.withDaySurfaces(): ColorScheme = copy(
 )
 
 /**
+ * 按压层（**opt-in**）。
+ *
+ * 主题把解析好的 ripple 放在这里，但**不**注入 `LocalIndication`。
+ * 区别在于「自动生效」还是「显式取用」：
+ *
+ * - 注入 `LocalIndication` 时，全仓每个 `clickable` 都会带上它 —— 于是封面飞行、
+ *   播放器手势区、Tab 胶囊这些不该有水波的地方，都得逐个写 `indication = null` 去关，
+ *   而「逐个关掉」这类事总会漏一个，且漏了没人发现。
+ * - 放在这里，只有写了 `indication = LocalMikomiIndication.current` 的地方才有反馈。
+ *   默认值 null 表示「没有主题」（预览、单测），此时各处回落到 Compose 默认 ripple。
+ *
+ * 颜色固定成中性墨色 + 9.8%（Telegram 的 `0x19`）：压在蓝底、黑底、白底上都只是
+ * 「这一块暗了一下」，不像 M3 默认 ripple 那样取主色、在选中态上叠出第三层同色。
+ */
+val LocalMikomiIndication = staticCompositionLocalOf<IndicationNodeFactory?> { null }
+
+/**
  * 应用主题。
  *
  * 这是设计系统的唯一入口：颜色（[ColorScheme] + [MikomiColors]）、字号（[Typography]）、
@@ -197,14 +216,14 @@ fun MikomiTheme(
     content: @Composable () -> Unit,
 ) {
     // 配色 id 只在设置页变化，没必要每次重组都走一遍 fromId 的字符串比较。
-    val palette = remember(colorSchemeId) { ThemePalette.fromId(colorSchemeId) }
+    val palette = remember(colorSchemeId) { ThemePalette.Companion.fromId(colorSchemeId) }
     // 按（模式 + 配色）取缓存：切日夜时这里是一次数组下标，不再重算方案。
     val theme = remember(darkTheme, palette) { resolveTheme(darkTheme, palette) }
-    // 按压层：中性墨色 + Telegram 的 9.8%，理由见 `Indication.kt`。
-    val rippleColor = remember(theme) {
-        theme.colorScheme.onBackground.copy(alpha = MikomiMotion.Pressed.OverlayAlpha)
+    // 按压层：中性墨色，理由见 [LocalMikomiIndication]。
+    val ink = theme.colorScheme.onBackground
+    val indication = remember(ink) {
+        ripple(color = ink.copy(alpha = MikomiMotion.Pressed.OverlayAlpha))
     }
-    val indication = rememberMikomiIndication(rippleColor)
 
     MaterialTheme(
         colorScheme = theme.colorScheme,
@@ -216,13 +235,12 @@ fun MikomiTheme(
         // Text、Icon 因此会一直是黑色（夜间不可读）。这里统一兜底为 onBackground，
         // Surface 内部仍会用自己的 contentColor 覆盖。
         //
-        // LocalIndication 一并在这里下发：这样全仓的 clickable / Surface(onClick)
-        // 都用同一套按压反馈，调用点不必逐个配置。
+        // LocalIndication **不在这里下发**：按压反馈要显式取（[LocalMikomiIndication]），
+        // 否则不该有水波的地方得逐个写 `indication = null` 去关，而「逐个关掉」总会漏一个。
         CompositionLocalProvider(
             LocalContentColor provides theme.colorScheme.onBackground,
             LocalMikomiColors provides theme.colors,
-            LocalMikomiRippleColor provides rippleColor,
-            LocalIndication provides indication,
+            LocalMikomiIndication provides indication,
             content = content,
         )
     }

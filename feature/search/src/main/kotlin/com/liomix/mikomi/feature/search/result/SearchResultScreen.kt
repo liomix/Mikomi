@@ -17,7 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.MikomiSpacing
 import com.liomix.mikomi.core.ui.business.AnimePosterCard
 import com.liomix.mikomi.core.ui.business.PosterCardSkeleton
 import com.liomix.mikomi.core.ui.business.PosterSkeletonRow

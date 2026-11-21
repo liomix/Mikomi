@@ -30,9 +30,10 @@ import androidx.compose.ui.unit.dp
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.liomix.mikomi.core.designsystem.theme.LocalNightModeToggleController
-import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.LocalNightModeToggleController
+import com.liomix.mikomi.core.designsystem.MikomiMotion
 import com.liomix.mikomi.feature.settings.R
+import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
 
 /**
  * 日 / 夜切换行（复刻 Telegram 聊天设置页的「Night Mode」一行）。
@@ -82,7 +83,7 @@ fun BAndWSwitch(
         modifier = modifier
             .fillMaxWidth()
             .height(ToggleRowHeight)
-            .clickable(enabled = controller != null) { controller?.toggle?.invoke() }
+            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, enabled = controller != null) { controller?.toggle?.invoke() }
             .padding(start = ToggleRowStartPadding, end = ToggleRowEndPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {

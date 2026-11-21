@@ -23,9 +23,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
-import com.liomix.mikomi.core.designsystem.spec.MikomiSideBarSpec
-import com.liomix.mikomi.core.designsystem.theme.MikomiElevation
-import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.MikomiSideBarSpec
+import com.liomix.mikomi.core.designsystem.MikomiElevation
+import com.liomix.mikomi.core.designsystem.MikomiMotion
 
 /**
  * 侧栏弹窗贴的是哪一侧。

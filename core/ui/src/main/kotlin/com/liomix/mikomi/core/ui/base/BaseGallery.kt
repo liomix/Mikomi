@@ -17,15 +17,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
-import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.theme.MikomiTagHue
-import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
+import com.liomix.mikomi.core.designsystem.MikomiIcons
+import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.MikomiTagHue
+import com.liomix.mikomi.core.designsystem.MikomiTheme
 
 /*
  * 组件目录（Component Gallery）。
  *
- * 设计系统的 token 目录在 `core:designsystem`（`TokenGallery.kt`）；这里放**组件**——
+ * 设计系统的 token 目录在 `core:designsystem`（`DesignSystemPreview.kt`）；这里放**组件**——
  * 它依赖设计系统，放在 designsystem 里会成环。
  *
  * 每一屏把同一个组件的所有形态摊平：看得见「Filled 和 Elevated 差多少」，

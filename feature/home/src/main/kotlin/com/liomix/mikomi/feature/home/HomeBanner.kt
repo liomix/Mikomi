@@ -48,12 +48,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
-import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
-import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
-import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
-import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
+import com.liomix.mikomi.core.designsystem.MikomiIcons
+import com.liomix.mikomi.core.designsystem.MikomiMotion
+import com.liomix.mikomi.core.designsystem.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.MikomiSizes
+import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.MikomiTheme
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.core.ui.base.ScrollingText
@@ -262,7 +262,7 @@ private fun BannerItem(
         ) {
             ScrollingText(
                 text = anime.title,
-                // 字距不加：中文方块字加 0.1sp 只会让标题看起来是散的（见 `Type.kt`）。
+                // 字距不加：中文方块字加 0.1sp 只会让标题看起来是散的（见 `Font.kt`）。
                 style = MaterialTheme.typography.titleMedium.copy(
                     color = MikomiTheme.colors.media.content,
                 ),

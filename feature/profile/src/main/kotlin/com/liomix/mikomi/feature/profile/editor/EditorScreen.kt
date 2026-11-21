@@ -43,16 +43,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
-import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
-import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
-import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
+import com.liomix.mikomi.core.designsystem.MikomiIcons
+import com.liomix.mikomi.core.designsystem.MikomiRadius
+import com.liomix.mikomi.core.designsystem.MikomiSizes
+import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.MikomiStroke
 import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.core.ui.base.SideBarPop
 import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
 import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.feature.profile.R
+import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
 
 /** 昵称字数上限。 */
 private const val NameLimit = 24
@@ -217,7 +218,7 @@ private fun AvatarSection(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(CircleShape)
-                .clickable(onClick = onPickAvatarClick),
+                .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onPickAvatarClick),
         ) {
             Image(
                 painter = painterResource(R.drawable.mikomi_avatar),
@@ -293,7 +294,7 @@ private fun ValueRow(
             .fillMaxWidth()
             // 先 clickable 再 padding：点击区因此包住这一整行（含左右 20dp 留白），
             // 一直贴到卡片边缘与圆角，而不是只到文字为止。
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
             .padding(horizontal = MikomiSpacing.Room, vertical = MikomiSpacing.Lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {

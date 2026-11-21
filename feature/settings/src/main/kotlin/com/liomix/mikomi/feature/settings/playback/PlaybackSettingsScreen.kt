@@ -12,7 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.MikomiSpacing
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
 import com.liomix.mikomi.core.ui.base.Tag
 import com.liomix.mikomi.core.ui.layout.BaseScreenLayout

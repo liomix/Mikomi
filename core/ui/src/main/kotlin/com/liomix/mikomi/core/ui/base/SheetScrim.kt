@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.input.pointer.pointerInput
-import com.liomix.mikomi.core.designsystem.spec.MikomiScrimSpec
+import com.liomix.mikomi.core.designsystem.MikomiScrimSpec
 
 /*
  * 浮层共用的遮罩层。

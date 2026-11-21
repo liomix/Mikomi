@@ -70,11 +70,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
-import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
-import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
-import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
+import com.liomix.mikomi.core.designsystem.MikomiIcons
+import com.liomix.mikomi.core.designsystem.MikomiRadius
+import com.liomix.mikomi.core.designsystem.MikomiSizes
+import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.MikomiStroke
 import com.liomix.mikomi.core.model.VdoPlgContent
 import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.core.ui.base.Switch
@@ -91,6 +91,7 @@ import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardHeader
 import com.liomix.mikomi.feature.settings.component.SettingsCardSection
 import kotlinx.coroutines.launch
+import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
 
 /**
  * 插件源设置页。
@@ -694,7 +695,7 @@ private fun RepoRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(MikomiRadius.Xl))
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
             .padding(horizontal = MikomiSpacing.Room, vertical = MikomiSpacing.Md),
         verticalAlignment = Alignment.CenterVertically,
     ) {

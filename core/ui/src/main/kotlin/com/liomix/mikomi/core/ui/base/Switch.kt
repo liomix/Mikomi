@@ -29,10 +29,10 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.IntOffset
-import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
-import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.spec.MikomiSwitchSpec
-import com.liomix.mikomi.core.designsystem.theme.MikomiShadowColor
+import com.liomix.mikomi.core.designsystem.MikomiMotion
+import com.liomix.mikomi.core.designsystem.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.MikomiSwitchSpec
+import com.liomix.mikomi.core.designsystem.MikomiShadowColor
 import kotlin.math.roundToInt
 
 /*

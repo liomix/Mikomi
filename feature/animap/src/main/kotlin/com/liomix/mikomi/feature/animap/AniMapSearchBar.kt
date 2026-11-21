@@ -44,10 +44,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
-import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
+import com.liomix.mikomi.core.designsystem.MikomiIcons
+import com.liomix.mikomi.core.designsystem.MikomiSizes
 import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.core.ui.business.AnimeCoverImage
+import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
 
 /** 搜索条的固定高度（收起态的胶囊与展开态的输入框同一高度，切换时不跳动）。 */
 private val SearchBarHeight = 40.dp
@@ -65,7 +66,7 @@ private fun CollapsedBar(onClick: () -> Unit) {
             .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
             .clip(CircleShape)
             .background(SearchSurface)
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -183,7 +184,7 @@ private fun SuggestionRow(hit: AniMapHit, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
             // 竖向留白 8 -> 4：一行里已经有三行字，再留 8 会让「最近更新」那种长列表
             // 一屏只装下五六条，翻起来很费劲。
             .padding(horizontal = 12.dp, vertical = 4.dp),

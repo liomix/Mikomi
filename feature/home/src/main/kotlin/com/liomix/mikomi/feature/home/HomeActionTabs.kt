@@ -20,10 +20,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
-import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
-import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.MikomiIcons
+import com.liomix.mikomi.core.designsystem.MikomiRadius
+import com.liomix.mikomi.core.designsystem.MikomiSpacing
 import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
 
 /** 首页快捷入口动作。 */
 enum class HomeQuickAction {
@@ -93,7 +94,7 @@ private fun ActionButton(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(MikomiRadius.Md))
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
             .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Sm),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

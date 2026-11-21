@@ -6,7 +6,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.liomix.mikomi.core.designsystem.theme.ThemePalette
+import com.liomix.mikomi.core.designsystem.ThemePalette
 import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.data.user.UserDataRepository

@@ -50,14 +50,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
-import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
-import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
-import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
-import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
-import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
+import com.liomix.mikomi.core.designsystem.MikomiIcons
+import com.liomix.mikomi.core.designsystem.MikomiMotion
+import com.liomix.mikomi.core.designsystem.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.MikomiRadius
+import com.liomix.mikomi.core.designsystem.MikomiSizes
+import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.MikomiStroke
+import com.liomix.mikomi.core.designsystem.MikomiTheme
 import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.core.ui.base.ScrollingText
@@ -67,6 +67,7 @@ import com.liomix.mikomi.core.ui.base.TabBar
 import com.liomix.mikomi.core.ui.base.TabItemStyle
 import com.liomix.mikomi.core.ui.business.AnimeCoverImage
 import java.util.Locale
+import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
 
 /** 历史未展开时最多显示的 tag 数。 */
 private const val HISTORY_COLLAPSED_COUNT = 8
@@ -419,7 +420,7 @@ private fun HotRow(
             .fillMaxWidth()
             .padding(horizontal = MikomiSpacing.Tight)
             .clip(RoundedCornerShape(MikomiRadius.Xl))
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
             .padding(horizontal = MikomiSpacing.Sm, vertical = MikomiSpacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {

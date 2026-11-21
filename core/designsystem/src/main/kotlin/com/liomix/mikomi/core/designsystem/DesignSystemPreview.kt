@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.designsystem.theme
+package com.liomix.mikomi.core.designsystem
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,10 +23,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.spec.MikomiNavBarSpec
-import com.liomix.mikomi.core.designsystem.spec.MikomiPlayerSpec
-import com.liomix.mikomi.core.designsystem.spec.MikomiSwitchSpec
-import com.liomix.mikomi.core.designsystem.spec.MikomiTagSpec
 import java.util.Locale
 
 /*
@@ -318,7 +314,9 @@ private fun SwatchRow(label: String, colors: List<Color>) {
                         .size(width = 28.dp, height = 20.dp)
                         .background(color, RoundedCornerShape(MikomiRadius.Xs))
                         // 浅色与页面底接近时没有这圈描边就看不见块本身。
-                        .border(MikomiStroke.Thin, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(MikomiRadius.Xs)),
+                        .border(
+                            MikomiStroke.Thin, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(
+                                MikomiRadius.Xs)),
                 )
             }
         }
@@ -498,18 +496,18 @@ private fun DimensPreview() {
             SpecLine(
                 "标签胶囊",
                 "高 ${MikomiSizes.ChipHeight.value.toInt()}dp / 横内边距 " +
-                    "${MikomiTagSpec.SelectableHorizontalPadding.value.toInt()}dp",
+                        "${MikomiTagSpec.SelectableHorizontalPadding.value.toInt()}dp",
             )
             SpecLine(
                 "底栏",
                 "${MikomiNavBarSpec.BodyHeight.value.toInt()}dp / 圆角 ${MikomiNavBarSpec.CornerRadius.value.toInt()} / " +
-                    "条目 ${MikomiNavBarSpec.ItemHeight.value.toInt()}dp",
+                        "条目 ${MikomiNavBarSpec.ItemHeight.value.toInt()}dp",
             )
             SpecLine(
                 "播放器控制钮",
                 "${MikomiPlayerSpec.ControlSize.value.toInt()}dp / 图标 " +
-                    "${MikomiPlayerSpec.ControlIconSize.value.toInt()} / 间隙 " +
-                    "${MikomiPlayerSpec.ControlGap.value.toInt()}dp",
+                        "${MikomiPlayerSpec.ControlIconSize.value.toInt()} / 间隙 " +
+                        "${MikomiPlayerSpec.ControlGap.value.toInt()}dp",
             )
 
             SectionTitle("投影")

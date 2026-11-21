@@ -44,11 +44,11 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.lerp
-import com.liomix.mikomi.core.designsystem.spec.MikomiNavBarSpec
-import com.liomix.mikomi.core.designsystem.spec.MikomiRailSpec
-import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
-import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
+import com.liomix.mikomi.core.designsystem.MikomiNavBarSpec
+import com.liomix.mikomi.core.designsystem.MikomiRailSpec
+import com.liomix.mikomi.core.designsystem.MikomiMotion
+import com.liomix.mikomi.core.designsystem.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.MikomiTextStyles
 import com.liomix.mikomi.core.ui.base.MikomiIcon
 import kotlin.math.roundToInt
 

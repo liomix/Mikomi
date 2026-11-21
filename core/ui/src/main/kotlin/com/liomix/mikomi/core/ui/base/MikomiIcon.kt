@@ -8,7 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
-import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
+import com.liomix.mikomi.core.designsystem.MikomiSizes
 
 /**
  * 全站唯一的图标入口。
@@ -29,7 +29,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
  * —— 图标默认就是 24，没有「小一号」的中间档。大于 24 的是单个组件的物理尺寸，
  * 不走这里，在组件里写 `private val`。
  *
- * @param icon 语义图标，取自 [com.liomix.mikomi.core.designsystem.icon.MikomiIcons]。
+ * @param icon 语义图标，取自 [com.liomix.mikomi.core.designsystem.MikomiIcons]。
  * @param contentDescription 无障碍描述；纯装饰（旁边已有文字）传 `null`。
  * @param size 显示尺寸，默认 [MikomiSizes.IconMd]。
  */

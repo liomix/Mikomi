@@ -35,9 +35,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
-import com.liomix.mikomi.core.designsystem.spec.MikomiSheetSpec
-import com.liomix.mikomi.core.designsystem.spec.MikomiWindowSpec
-import com.liomix.mikomi.core.designsystem.theme.MikomiElevation
+import com.liomix.mikomi.core.designsystem.MikomiSheetSpec
+import com.liomix.mikomi.core.designsystem.MikomiWindowSpec
+import com.liomix.mikomi.core.designsystem.MikomiElevation
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import kotlin.math.abs

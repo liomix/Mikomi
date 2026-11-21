@@ -1,10 +1,7 @@
-package com.liomix.mikomi.core.designsystem.spec
+package com.liomix.mikomi.core.designsystem
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
-import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
-import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 
 /*
  * 组件规格层（spec）。

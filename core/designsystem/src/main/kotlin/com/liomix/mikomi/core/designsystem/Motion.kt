@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.designsystem.theme
+package com.liomix.mikomi.core.designsystem
 
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
@@ -142,6 +142,8 @@ object MikomiMotion {
         val Overshoot: Easing = object : Easing {
             override fun transform(fraction: Float): Float {
                 val t = fraction - 1f
+                // 必须写全 `MikomiMotion.Press`：本对象里有个同名的 `Press`（缓动），
+                // 裸写 `Press.OvershootAmount` 会被解析成 `Easing` 上的属性而编译不过。
                 val amount = MikomiMotion.Press.OvershootAmount
                 return t * t * ((amount + 1f) * t + amount) + 1f
             }

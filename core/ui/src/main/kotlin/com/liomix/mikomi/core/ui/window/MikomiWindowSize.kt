@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
-import com.liomix.mikomi.core.designsystem.spec.MikomiWindowSpec
+import com.liomix.mikomi.core.designsystem.MikomiWindowSpec
 
 /** 窗口宽度档。数值与 Material 3 的窗口尺寸类一致（见 [MikomiWindowSpec]）。 */
 enum class MikomiWidthClass { Compact, Medium, Expanded }

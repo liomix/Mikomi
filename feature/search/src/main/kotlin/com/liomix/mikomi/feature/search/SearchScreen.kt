@@ -12,7 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
+import com.liomix.mikomi.core.designsystem.MikomiMotion
 import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.ui.window.MikomiInsets
 

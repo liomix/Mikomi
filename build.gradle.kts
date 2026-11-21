@@ -91,11 +91,12 @@ tasks.register("tokenAudit") {
         // 后者不能给依赖任务传 property，所以这里读一下任务图。
         val strict = project.hasProperty("strict") ||
             gradle.startParameter.taskNames.any { it.contains("verifyDesign") }
-        // 例外与规则一致：animap 是唯一允许绕过设计系统的模块；theme 目录自己就是 token 的定义处。
+        // 例外与规则一致：animap 是唯一允许绕过设计系统的模块；
+        // designsystem 自己就是 token 的定义处（目录扁平化后不再有 theme/ 子层）。
         val skip = listOf(
             File.separator + "build" + File.separator,
             File.separator + "animap" + File.separator,
-            File.separator + "designsystem" + File.separator + "theme" + File.separator,
+            File.separator + "designsystem" + File.separator,
         )
         // 标签 / 是否布局位置 / 正则
         val labels = listOf("间距（布局位置）", "控件体格（规则允许）", "字号", "色值", "圆角")
@@ -187,7 +188,7 @@ tasks.register("tokenAudit") {
         println("已评审的组件规格（写了 `design-ok`）：$suppressed 处")
 
         // ---- 档位对账 + 使用分布 ----
-        val dimensFile = File(projectDir, "$designSystemDir/theme/Dimens.kt")
+        val dimensFile = File(projectDir, "$designSystemDir/Dimens.kt")
         val dimensSource = dimensFile.readText()
         // 使用计数：一次遍历全部源码，累计 `Object.Name` 的出现次数（定义处不计）。
         val usage = HashMap<String, Int>()
@@ -263,8 +264,8 @@ tasks.register("contrastAudit") {
     description = "验算 Colors.kt / Theme.kt 里配色的 WCAG 对比度"
 
     doLast {
-        val colorsSource = File(projectDir, "$designSystemDir/theme/Colors.kt").readText()
-        val themeSource = File(projectDir, "$designSystemDir/theme/Theme.kt").readText()
+        val colorsSource = File(projectDir, "$designSystemDir/Colors.kt").readText()
+        val themeSource = File(projectDir, "$designSystemDir/Theme.kt").readText()
 
         val failures = mutableListOf<String>()
         var checked = 0
@@ -393,8 +394,8 @@ tasks.register("iconAudit") {
             gradle.startParameter.taskNames.any { it.contains("verifyDesign") }
 
         /** 唯一入口所在的文件：它内部的那一次 `Icon(` 是合法的。 */
-        val wrapperRel = "core/ui/src/main/kotlin/com/liomix/mikomi/core/ui/component/base/MikomiIcon.kt"
-        val iconsRel = "$designSystemDir/icon/MikomiIcons.kt"
+        val wrapperRel = "core/ui/src/main/kotlin/com/liomix/mikomi/core/ui/base/MikomiIcon.kt"
+        val iconsRel = "$designSystemDir/MikomiIcons.kt"
         val iconsFile = File(projectDir, iconsRel)
         /** 允许出现在注释里的家族。新增来源要同时改这里与 docs §5.6。 */
         val families = listOf("Rounded", "Outlined", "AutoMirrored.Rounded", "Dart-Mikomi")

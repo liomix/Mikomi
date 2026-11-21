@@ -19,8 +19,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
-import com.liomix.mikomi.core.designsystem.theme.NightModeTransitionHost
+import com.liomix.mikomi.core.designsystem.MikomiTheme
+import com.liomix.mikomi.core.designsystem.NightModeTransitionHost
 import com.liomix.mikomi.core.model.UserPreferences
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
 import com.liomix.mikomi.core.navigation.ImmersionBridge

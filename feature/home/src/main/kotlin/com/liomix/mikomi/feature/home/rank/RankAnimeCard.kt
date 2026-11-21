@@ -30,11 +30,11 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
+import com.liomix.mikomi.core.designsystem.MikomiStroke
 import com.liomix.mikomi.core.model.RankEntry
-import com.liomix.mikomi.core.designsystem.theme.MikomiShadowColor
-import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
-import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
+import com.liomix.mikomi.core.designsystem.MikomiShadowColor
+import com.liomix.mikomi.core.designsystem.MikomiTextStyles
+import com.liomix.mikomi.core.designsystem.MikomiTheme
 import com.liomix.mikomi.core.ui.base.ScrollingText
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.image.MikomiAsyncImage

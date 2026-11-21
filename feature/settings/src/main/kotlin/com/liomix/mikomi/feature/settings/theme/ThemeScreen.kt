@@ -35,10 +35,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
-import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
-import com.liomix.mikomi.core.designsystem.theme.ThemePalette
+import com.liomix.mikomi.core.designsystem.MikomiRadius
+import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.MikomiTheme
+import com.liomix.mikomi.core.designsystem.ThemePalette
 import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.ui.base.MikomiToast
@@ -52,6 +52,7 @@ import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardSection
 import com.liomix.mikomi.feature.settings.component.ThemeSwatch
 import com.liomix.mikomi.feature.settings.theme.appicon.AppIconStyle
+import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
 
 /**
  * 主题设置页。
@@ -255,7 +256,7 @@ private fun AppIconOption(
                 .clip(CircleShape)
                 .background(MikomiTheme.colors.previewCanvas)
                 // 点击与涟漪都限制在图标区域内，名称不参与触控。
-                .clickable(onClick = onClick),
+                .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick),
             contentAlignment = Alignment.Center,
         ) {
             Image(

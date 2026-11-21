@@ -43,11 +43,10 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.liomix.mikomi.R
-import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
-import com.liomix.mikomi.core.designsystem.spec.MikomiRailSpec
-import com.liomix.mikomi.core.designsystem.spec.MikomiWindowSpec
-import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
-import com.liomix.mikomi.core.designsystem.theme.animationsEnabled
+import com.liomix.mikomi.core.designsystem.MikomiIcons
+import com.liomix.mikomi.core.designsystem.MikomiRailSpec
+import com.liomix.mikomi.core.designsystem.MikomiWindowSpec
+import com.liomix.mikomi.core.designsystem.MikomiMotion
 import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.navigation.AniMapDestination
@@ -326,16 +325,10 @@ fun MikomiNavHost(
     ) {
         // 48dp 位移按当前密度换算一次：slideOut 的 offset lambda 没有 Density 作用域。
         val pageOffsetPx = with(LocalDensity.current) { PAGE_MOTION_TRAVEL.roundToPx() }
-        // 系统关掉动画时（开发者选项「动画时长 0」、无障碍「移除动画」、部分省电模式），
-        // 自绘帧仍然会跑，只是每一帧都直接算到终点 —— 用户一帧都看不到，CPU 照付。
-        // 与夜间切换的圆形揭示用同一条判据：直接落位，什么都不播。
-        val systemAnimationsEnabled = remember(view) { view.context.animationsEnabled() }
-        val pageTransition = remember(pageTransitionId, systemAnimationsEnabled) {
-            if (systemAnimationsEnabled) {
-                PageTransitionStyle.fromId(pageTransitionId)
-            } else {
-                PageTransitionStyle.None
-            }
+        // 一律按用户选的档位播入场动画，不因为系统关掉动画而走 None。
+        // 转场是产品行为，决定权在 App 的设置里，不在系统的省电模式里。
+        val pageTransition = remember(pageTransitionId) {
+            PageTransitionStyle.fromId(pageTransitionId)
         }
         // 页面入场动画挂在 entry 装饰器上，装饰器实例必须稳定，否则每次重组都会重建一遍
         // 装饰链、连带把每个页面的动画状态也重置。换样式时**也不能**重建（重建 = 当前页

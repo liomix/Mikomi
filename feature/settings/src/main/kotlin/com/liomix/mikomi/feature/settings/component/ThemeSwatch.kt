@@ -40,9 +40,9 @@ import androidx.compose.ui.unit.dp
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.liomix.mikomi.core.designsystem.theme.MikomiMedia
-import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
-import com.liomix.mikomi.core.designsystem.theme.ThemePalette
+import com.liomix.mikomi.core.designsystem.MikomiMedia
+import com.liomix.mikomi.core.designsystem.MikomiMotion
+import com.liomix.mikomi.core.designsystem.ThemePalette
 import com.liomix.mikomi.feature.settings.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive

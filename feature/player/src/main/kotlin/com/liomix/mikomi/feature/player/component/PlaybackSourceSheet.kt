@@ -56,13 +56,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
-import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
-import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
-import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
-import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
-import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
+import com.liomix.mikomi.core.designsystem.MikomiIcons
+import com.liomix.mikomi.core.designsystem.MikomiMotion
+import com.liomix.mikomi.core.designsystem.MikomiPillShape
+import com.liomix.mikomi.core.designsystem.MikomiRadius
+import com.liomix.mikomi.core.designsystem.MikomiSizes
+import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.MikomiStroke
 import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.core.ui.base.Tag
 import com.liomix.mikomi.core.ui.base.TagColors
@@ -73,6 +73,7 @@ import com.liomix.mikomi.feature.player.PlayerLine
 import com.liomix.mikomi.feature.player.PlayerSource
 import com.liomix.mikomi.feature.player.R
 import com.liomix.mikomi.feature.player.SourceAvailability
+import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
 
 /** 换源弹窗内容区的固定高度。线路多少都这么高，避免高度随数据跳动。 */
 private val SheetHeight = 360.dp
@@ -469,7 +470,7 @@ private fun EntryRow(
             .height(LineRowHeight)
             .clip(RoundedCornerShape(MikomiRadius.Md))
             .background(containerColor)
-            .clickable(enabled = enabled, onClick = onSelect)
+            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, enabled = enabled, onClick = onSelect)
             .alpha(if (enabled || playing) 1f else 0.55f)
             .padding(start = MikomiSpacing.Md, end = MikomiSpacing.Xs),
         verticalAlignment = Alignment.CenterVertically,
@@ -563,7 +564,7 @@ private fun RowAction(
         modifier = Modifier
             .size(RowActionSize)
             .clip(CircleShape)
-            .clickable(onClick = onClick),
+            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         MikomiIcon(

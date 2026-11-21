@@ -325,8 +325,27 @@ private val RankThird = MikomiRankColor(
     ink = Color(0xFF8A4E17),
 )
 
-/** 前三名的色板。不随日 / 夜变 —— 金属色压在封面上，两种模式下都成立。 */
+/** 前三名的色板（日间）。金属色压在封面上，两种模式下都成立；**但文字墨色要变**，见下。 */
 private val RankColors = MikomiRanks(RankFirst, RankSecond, RankThird)
+
+/**
+ * 前三名的色板（夜间）。
+ *
+ * `fill` / `outline` 与日间相同 —— 它们压在封面图上，与页面底色无关。
+ * 变的是 `ink`：它是**当文字用**的（名次数字），压在 `#181818` 的卡片上一资格外吃亏。
+ * 日间那三个墨色在夜间只有 3.26 / 3.26 / 2.69，最后一条连大号文字的 3.0 都不到。
+ *
+ * 数值说明：名次数字是 26~42sp 粗体，属于 WCAG 的「大号文字」，门槛 3.0:1。
+ * 下面三个值是在日间墨色上向白混合 5% / 5% / 10% 得到的，实测：
+ * 压卡片 3.63 / 3.62 / 3.39，压纯黑底 4.29 / 4.28 / 4.01。
+ * 门禁：`ContrastTest.everyPaletteAndModePassesContrast`。
+ */
+private val RankFirstNight = RankFirst.copy(ink = Color(0xFF8B6D0D))
+private val RankSecondNight = RankSecond.copy(ink = Color(0xFF67727D))
+private val RankThirdNight = RankThird.copy(ink = Color(0xFF96602E))
+
+/** 前三名的色板（夜间）：只换文字墨色。 */
+private val RankColorsNight = MikomiRanks(RankFirstNight, RankSecondNight, RankThirdNight)
 
 /** 骨架底色透明度：浅色 8.6% 黑（Telegram `setAlpha(listSelector, 22)`）。 */
 private const val SkeletonDayBaseAlpha = 22f / 255f
@@ -449,7 +468,7 @@ internal fun resolveMikomiColors(scheme: ColorScheme, dark: Boolean): MikomiColo
     return MikomiColors(
         rating = Gold,
         tags = MikomiTagColors(if (dark) TagNight else TagDay),
-        ranks = RankColors,
+        ranks = if (dark) RankColorsNight else RankColors,
         skeletonBase = ink.copy(
             alpha = if (dark) SkeletonNightBaseAlpha else SkeletonDayBaseAlpha,
         ),

@@ -29,7 +29,7 @@ import kotlin.math.min
  *
  * - `./gradlew contrastAudit`：不经过 Compose，直接解析源码里的色值再算一遍。
  * - [auditContrast]：同一套配对表的 Kotlin 版本，输入是**解析后的主题**
- *   （防解析逻辑改错，比如夜间提亮循环的阈值）。当前没有生产调用方，留给测试与工具用。
+ *   （防解析逻辑改错，比如夜间提亮循环的阈值）。由 `ContrastTest` 对 5×2 套方案逐一调用。
  *
  * 两者是刻意的重复：Gradle 那边验源码里写的值（防手动改色改错），Kotlin 这边验解析结果。
  * 曾经还有一份对比度画廊在 IDE 里跑同样的配对，已随预览页一起删除 —— 能交给构建守的东西
@@ -181,19 +181,24 @@ fun auditContrast(colors: MikomiColors, scheme: ColorScheme): List<ContrastCheck
     }
 
     // ---- 名次文字：只在页面上当文字用，所以对两种页面底色各验一次 ----
+    //
+    // 门槛用 [MikomiContrast.Large] 而不是 Body：名次数字是 26~42sp 粗体（见
+    // `MikomiTextStyles.rankNumber`），属于 WCAG 的「大号文字」，3.0:1 即可。
+    // 早先这里按正文 4.5 验，结果是夜间那三套金属墨色全年低于门槛却没人发现 ——
+    // 门槛错档和色值错一样会让检查失去意义（`ContrastTest` 现在两套都验）。
     for (place in 1..3) {
         val rank = colors.rank(place) ?: continue
         checks += ContrastCheck(
             name = "第 $place 名的文字压页面底色",
             foreground = rank.ink,
             background = scheme.background,
-            min = MikomiContrast.Body,
+            min = MikomiContrast.Large,
         )
         checks += ContrastCheck(
             name = "第 $place 名的文字压卡片",
             foreground = rank.ink,
             background = scheme.surface,
-            min = MikomiContrast.Body,
+            min = MikomiContrast.Large,
         )
     }
 

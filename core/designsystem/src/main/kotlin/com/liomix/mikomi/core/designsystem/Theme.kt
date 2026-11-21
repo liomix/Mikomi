@@ -224,8 +224,14 @@ fun MikomiTheme(
 /**
  * 设计系统的取值入口。
  *
- * 只放「必须有主题才能读到」的东西；间距、圆角、动效都是编译期常量，
- * 直接用 [MikomiSpacing] / [MikomiRadius] / [MikomiMotion] 即可，不必经过这里。
+ * ## 两个入口怎么分工（不是两种写法，是两类东西）
+ *
+ * | 取什么 | 从哪取 | 为什么 |
+ * |---|---|---|
+ * | 颜色（`colors.rating`） | 这里的 `MikomiTheme.colors` | 五套预设 × 日夜 = 10 套值，必须经过 `CompositionLocal` 才能"随主题变" |
+ * | 间距 / 圆角 / 尺寸 / 时长 / 曲线 | 顶层 `MikomiSpacing` / `MikomiRadius` / `MikomiSizes` / `MikomiMotion` | 编译期常量，与主题无关；再套一层对象只是多一次间接 |
+ *
+ * 判断标准只有一条：**这个值随主题变吗**。随主题变的走这里，不随的直接用顶层常量。
  */
 object MikomiTheme {
 
@@ -252,7 +258,7 @@ object MikomiTheme {
  * 两者必须一起解析、一起缓存 —— 扩展色里的骨架墨色取自 [ColorScheme.onSurface]，
  * 分开算就会出现「配色换了、骨架还是上一套的墨」这种半新半旧的状态。
  */
-private class ResolvedTheme(
+internal class ResolvedTheme(
     val colorScheme: ColorScheme,
     val colors: MikomiColors,
 )
@@ -277,8 +283,11 @@ private val ResolvedThemes = arrayOfNulls<ResolvedTheme>(ThemePalette.entries.si
  * 取（必要时构建）一套可直接交给 `MaterialTheme` 的完整主题。
  *
  * 纯函数，不依赖 Compose 运行时，可以从任意线程调用 —— 预热正是跑在后台线程上的。
+ *
+ * `internal` 而不是 `private`：`ContrastTest` 要拿真实解析结果验算对比度，
+ * 以及验证同槽位二次调用返回同一个实例（缓存命中）。
  */
-private fun resolveTheme(darkTheme: Boolean, palette: ThemePalette): ResolvedTheme {
+internal fun resolveTheme(darkTheme: Boolean, palette: ThemePalette): ResolvedTheme {
     val slot = palette.ordinal * 2 + if (darkTheme) 1 else 0
     ResolvedThemes[slot]?.let { return it }
     val colorScheme = buildColorScheme(darkTheme, palette)

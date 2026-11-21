@@ -19,4 +19,6 @@ dependencies {
     api(libs.androidx.compose.ui.tooling.preview)
     api(libs.androidx.compose.material3)
     debugApi(libs.androidx.compose.ui.tooling)
+
+    testImplementation(libs.junit)
 }

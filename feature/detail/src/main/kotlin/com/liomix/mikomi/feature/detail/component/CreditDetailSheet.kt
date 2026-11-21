@@ -47,8 +47,8 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.CreditComment
 import com.liomix.mikomi.core.model.CreditDetail
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
-import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
 import com.liomix.mikomi.feature.detail.CreditCommentsUiState
 import com.liomix.mikomi.feature.detail.CreditDetailUiState

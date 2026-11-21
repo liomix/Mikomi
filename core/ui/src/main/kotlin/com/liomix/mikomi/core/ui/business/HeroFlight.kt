@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component.business
+package com.liomix.mikomi.core.ui.business
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween

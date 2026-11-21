@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component.base
+package com.liomix.mikomi.core.ui.base
 
 import android.graphics.Canvas
 import android.graphics.LinearGradient

@@ -59,13 +59,13 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.model.AniRpbHotItem
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
-import com.liomix.mikomi.core.ui.component.base.ScrollingText
-import com.liomix.mikomi.core.ui.component.base.SkeletonBox
-import com.liomix.mikomi.core.ui.component.base.Tab
-import com.liomix.mikomi.core.ui.component.base.TabBar
-import com.liomix.mikomi.core.ui.component.base.TabItemStyle
-import com.liomix.mikomi.core.ui.component.business.AnimeCoverImage
+import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.ScrollingText
+import com.liomix.mikomi.core.ui.base.SkeletonBox
+import com.liomix.mikomi.core.ui.base.Tab
+import com.liomix.mikomi.core.ui.base.TabBar
+import com.liomix.mikomi.core.ui.base.TabItemStyle
+import com.liomix.mikomi.core.ui.business.AnimeCoverImage
 import java.util.Locale
 
 /** 历史未展开时最多显示的 tag 数。 */

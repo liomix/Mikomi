@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -34,7 +33,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.InvalidVdoPlgSourceException
 import com.liomix.mikomi.feature.settings.R
 

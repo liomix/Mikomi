@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component
+package com.liomix.mikomi.core.ui.base
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -18,18 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
-import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTagHue
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
-import com.liomix.mikomi.core.ui.component.base.PressButton
-import com.liomix.mikomi.core.ui.component.base.PressButtonStyle
-import com.liomix.mikomi.core.ui.component.base.PressIconButton
-import com.liomix.mikomi.core.ui.component.base.SkeletonBox
-import com.liomix.mikomi.core.ui.component.base.Switch
-import com.liomix.mikomi.core.ui.component.base.Tag
-import com.liomix.mikomi.core.ui.component.base.TagColors
-import com.liomix.mikomi.core.ui.component.base.TagStyle
 
 /*
  * 组件目录（Component Gallery）。

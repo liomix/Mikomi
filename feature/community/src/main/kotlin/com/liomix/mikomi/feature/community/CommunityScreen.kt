@@ -16,14 +16,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.spec.MikomiWindowSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
-import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
+import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.layout.LocalBottomBarSpace
 import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
 import com.liomix.mikomi.core.ui.window.rememberMikomiBottomInset
 import com.liomix.mikomi.core.ui.window.rememberMikomiTopInset

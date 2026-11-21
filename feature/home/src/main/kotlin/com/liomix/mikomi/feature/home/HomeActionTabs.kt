@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -24,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.MikomiIcon
 
 /** 首页快捷入口动作。 */
 enum class HomeQuickAction {

@@ -37,10 +37,10 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiTagHue
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.model.AnimeCharacter
 import com.liomix.mikomi.core.model.StaffMember
-import com.liomix.mikomi.core.ui.component.base.EmptyState
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
-import com.liomix.mikomi.core.ui.component.base.ScrollingText
-import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.base.EmptyState
+import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.ScrollingText
+import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
 
 /** 主创卡片固定宽度（名字无限滚动 + 关系 badge 需要更宽空间）。 */

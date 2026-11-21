@@ -46,8 +46,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
-import com.liomix.mikomi.core.ui.component.business.AnimeCoverImage
+import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.business.AnimeCoverImage
 
 /** 搜索条的固定高度（收起态的胶囊与展开态的输入框同一高度，切换时不跳动）。 */
 private val SearchBarHeight = 40.dp

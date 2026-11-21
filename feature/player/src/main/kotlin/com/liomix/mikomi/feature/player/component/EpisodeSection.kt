@@ -57,9 +57,9 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
-import com.liomix.mikomi.core.ui.component.base.ScrollingText
-import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.ScrollingText
+import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.core.ui.window.rememberMikomiBottomInset
 import com.liomix.mikomi.feature.player.EpisodeItem

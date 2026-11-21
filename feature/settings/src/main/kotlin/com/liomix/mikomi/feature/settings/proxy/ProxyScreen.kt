@@ -43,8 +43,8 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.model.BangumiApiMode
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
-import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
+import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardHeader

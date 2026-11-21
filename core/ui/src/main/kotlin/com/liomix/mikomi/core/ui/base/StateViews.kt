@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component.base
+package com.liomix.mikomi.core.ui.base
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

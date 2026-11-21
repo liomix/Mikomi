@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component.layout
+package com.liomix.mikomi.core.ui.layout
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -36,7 +36,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.ui.R
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
 import com.liomix.mikomi.core.ui.window.MikomiInsets
 

@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component.base
+package com.liomix.mikomi.core.ui.base
 
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box

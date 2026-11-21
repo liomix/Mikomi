@@ -35,9 +35,9 @@ import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.TeasingComment
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
-import com.liomix.mikomi.core.ui.component.base.SkeletonBox
-import com.liomix.mikomi.core.ui.component.base.SkeletonShimmer
+import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.SkeletonBox
+import com.liomix.mikomi.core.ui.base.SkeletonShimmer
 import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
 
 /** 吐槽头像直径（对齐 Dart 版 40）。 */

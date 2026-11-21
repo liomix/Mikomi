@@ -16,7 +16,7 @@ import coil3.compose.rememberAsyncImagePainter
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import com.liomix.mikomi.core.ui.component.base.skeletonBaseColor
+import com.liomix.mikomi.core.ui.base.skeletonBaseColor
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
@@ -58,7 +58,7 @@ fun rememberCoverRequest(
  * 背景色；深色主题下就是一块比周围更黑的洞。
  *
  * 用骨架色而不是固定灰，是因为加载中和加载不出来在视觉上都该是「还没有内容」，
- * 和 [com.liomix.mikomi.core.ui.component.base.SkeletonBox] 用同一种底色，
+ * 和 [com.liomix.mikomi.core.ui.base.SkeletonBox] 用同一种底色，
  * 列表里滚过去才不会有「先灰一下再黑一下」的跳变。
  */
 @Composable

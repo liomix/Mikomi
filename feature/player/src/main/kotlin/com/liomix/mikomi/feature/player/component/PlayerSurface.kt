@@ -77,7 +77,7 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.media.MikomiPlayer
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.feature.player.PlaybackMode
 import com.liomix.mikomi.feature.player.PlayerFailure

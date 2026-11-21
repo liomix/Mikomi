@@ -66,11 +66,11 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.ui.component.base.ErrorState
-import com.liomix.mikomi.core.ui.component.base.PressButton
-import com.liomix.mikomi.core.ui.component.base.PressButtonStyle
-import com.liomix.mikomi.core.ui.component.base.PressIconButton
-import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.base.ErrorState
+import com.liomix.mikomi.core.ui.base.PressButton
+import com.liomix.mikomi.core.ui.base.PressButtonStyle
+import com.liomix.mikomi.core.ui.base.PressIconButton
+import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
 import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.feature.detail.component.CreditDetailSheet

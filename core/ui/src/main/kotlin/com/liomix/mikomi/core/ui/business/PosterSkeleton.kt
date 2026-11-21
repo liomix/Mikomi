@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component.business
+package com.liomix.mikomi.core.ui.business
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -16,8 +16,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.ui.component.base.SkeletonBox
-import com.liomix.mikomi.core.ui.component.base.SkeletonShimmer
+import com.liomix.mikomi.core.ui.base.SkeletonBox
+import com.liomix.mikomi.core.ui.base.SkeletonShimmer
 
 /**
  * 海报卡骨架：与 [AnimePosterCard] 同构（2:3 封面块 + 单行标题条）。

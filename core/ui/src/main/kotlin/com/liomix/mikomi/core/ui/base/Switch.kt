@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component.base
+package com.liomix.mikomi.core.ui.base
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Easing
@@ -29,7 +29,6 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.spec.MikomiSwitchSpec

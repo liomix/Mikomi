@@ -18,10 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.ui.component.business.AnimePosterCard
-import com.liomix.mikomi.core.ui.component.business.PosterCardSkeleton
-import com.liomix.mikomi.core.ui.component.business.PosterSkeletonRow
-import com.liomix.mikomi.core.ui.component.base.SkeletonShimmer
+import com.liomix.mikomi.core.ui.business.AnimePosterCard
+import com.liomix.mikomi.core.ui.business.PosterCardSkeleton
+import com.liomix.mikomi.core.ui.business.PosterSkeletonRow
+import com.liomix.mikomi.core.ui.base.SkeletonShimmer
 import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.feature.search.LoadState
 import com.liomix.mikomi.feature.search.R

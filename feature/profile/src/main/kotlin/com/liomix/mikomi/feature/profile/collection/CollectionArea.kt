@@ -30,10 +30,10 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextAlpha
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.model.Favorite
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
-import com.liomix.mikomi.core.ui.component.base.Tag
-import com.liomix.mikomi.core.ui.component.business.AnimePosterCard
-import com.liomix.mikomi.core.ui.component.business.PosterCardSkeleton
+import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.Tag
+import com.liomix.mikomi.core.ui.business.AnimePosterCard
+import com.liomix.mikomi.core.ui.business.PosterCardSkeleton
 import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
 import com.liomix.mikomi.feature.profile.R
 

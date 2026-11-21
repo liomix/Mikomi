@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component.base
+package com.liomix.mikomi.core.ui.base
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -31,7 +31,6 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiPillShape
 import com.liomix.mikomi.core.designsystem.spec.MikomiTagSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
-import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 
 /** 元信息徽标的小圆角：它是「贴住文字的一块底」，不是胶囊。 */

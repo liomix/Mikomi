@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.core.ui.window.MikomiInsets
 
 /**

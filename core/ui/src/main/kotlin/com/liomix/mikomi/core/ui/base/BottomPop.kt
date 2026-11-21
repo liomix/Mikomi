@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component.base
+package com.liomix.mikomi.core.ui.base
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
@@ -35,11 +35,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.spec.MikomiSheetSpec
 import com.liomix.mikomi.core.designsystem.spec.MikomiWindowSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiElevation
-import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import kotlin.math.abs

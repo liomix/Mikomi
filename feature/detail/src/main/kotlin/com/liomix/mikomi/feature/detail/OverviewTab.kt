@@ -37,9 +37,9 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
-import com.liomix.mikomi.core.ui.component.base.SkeletonBox
-import com.liomix.mikomi.core.ui.component.base.Tag
+import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.SkeletonBox
+import com.liomix.mikomi.core.ui.base.Tag
 
 /** 简介最多展示行数。 */
 private const val MAX_SYNOPSIS_LINES = 4

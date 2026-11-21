@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -37,10 +36,10 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.icon.MikomiIcons
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
-import com.liomix.mikomi.core.ui.component.base.Tab
-import com.liomix.mikomi.core.ui.component.base.TabBar
-import com.liomix.mikomi.core.ui.component.base.TabItemStyle
+import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.Tab
+import com.liomix.mikomi.core.ui.base.TabBar
+import com.liomix.mikomi.core.ui.base.TabItemStyle
 import com.liomix.mikomi.feature.player.PlayerTab
 import com.liomix.mikomi.feature.player.R
 

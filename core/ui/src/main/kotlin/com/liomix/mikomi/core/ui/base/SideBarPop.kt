@@ -1,10 +1,9 @@
-package com.liomix.mikomi.core.ui.component.base
+package com.liomix.mikomi.core.ui.base
 
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.rememberTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -21,15 +20,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.liomix.mikomi.core.designsystem.spec.MikomiSideBarSpec
 import com.liomix.mikomi.core.designsystem.theme.MikomiElevation
 import com.liomix.mikomi.core.designsystem.theme.MikomiMotion
-import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 
 /**
  * 侧栏弹窗贴的是哪一侧。

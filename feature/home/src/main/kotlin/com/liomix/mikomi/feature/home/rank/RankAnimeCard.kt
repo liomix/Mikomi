@@ -35,8 +35,8 @@ import com.liomix.mikomi.core.model.RankEntry
 import com.liomix.mikomi.core.designsystem.theme.MikomiShadowColor
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
-import com.liomix.mikomi.core.ui.component.base.ScrollingText
-import com.liomix.mikomi.core.ui.component.base.SkeletonBox
+import com.liomix.mikomi.core.ui.base.ScrollingText
+import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
 
 /**

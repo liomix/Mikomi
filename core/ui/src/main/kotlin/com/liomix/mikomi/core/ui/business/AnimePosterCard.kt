@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component.business
+package com.liomix.mikomi.core.ui.business
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -14,9 +14,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
-import com.liomix.mikomi.core.ui.component.base.ScrollingText
+import com.liomix.mikomi.core.ui.base.ScrollingText
 
 /**
  * 番剧海报卡：2:3 封面 + 单行滚动标题。

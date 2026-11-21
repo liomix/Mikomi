@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component.layout
+package com.liomix.mikomi.core.ui.layout
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.dp

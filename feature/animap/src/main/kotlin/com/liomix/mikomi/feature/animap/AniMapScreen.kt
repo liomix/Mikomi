@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -42,7 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.liomix.mikomi.core.navigation.ImmersionBridge
-import com.liomix.mikomi.core.ui.component.base.LottieLoading
+import com.liomix.mikomi.core.ui.base.LottieLoading
 import com.liomix.mikomi.core.ui.window.MikomiInsets
 
 /** 巡礼地图（anitabi）页面地址。 */

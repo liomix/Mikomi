@@ -41,10 +41,10 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.designsystem.theme.ThemePalette
 import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
-import com.liomix.mikomi.core.ui.component.base.MikomiToast
-import com.liomix.mikomi.core.ui.component.base.MikomiToastData
-import com.liomix.mikomi.core.ui.component.base.Tag
-import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
+import com.liomix.mikomi.core.ui.base.MikomiToast
+import com.liomix.mikomi.core.ui.base.MikomiToastData
+import com.liomix.mikomi.core.ui.base.Tag
+import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
 import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.component.BAndWSwitch

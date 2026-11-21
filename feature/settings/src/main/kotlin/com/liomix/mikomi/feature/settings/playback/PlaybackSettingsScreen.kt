@@ -12,11 +12,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
-import com.liomix.mikomi.core.ui.component.base.Tag
-import com.liomix.mikomi.core.ui.component.layout.BaseScreenLayout
+import com.liomix.mikomi.core.ui.base.Tag
+import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardSection

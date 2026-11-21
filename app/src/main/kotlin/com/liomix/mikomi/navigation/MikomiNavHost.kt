@@ -60,10 +60,10 @@ import com.liomix.mikomi.core.navigation.LocalNavigator
 import com.liomix.mikomi.core.navigation.ProfileDestination
 import com.liomix.mikomi.core.navigation.rememberNavigator
 import com.liomix.mikomi.core.navigation.topLevelDestinations
-import com.liomix.mikomi.core.ui.component.business.HeroFlightController
-import com.liomix.mikomi.core.ui.component.business.HeroFlightOverlay
-import com.liomix.mikomi.core.ui.component.business.LocalHeroFlightController
-import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
+import com.liomix.mikomi.core.ui.business.HeroFlightController
+import com.liomix.mikomi.core.ui.business.HeroFlightOverlay
+import com.liomix.mikomi.core.ui.business.LocalHeroFlightController
+import com.liomix.mikomi.core.ui.layout.LocalBottomBarSpace
 import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
 import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.core.ui.window.rememberMikomiWindowSize

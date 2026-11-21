@@ -63,11 +63,10 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiStroke
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
-import com.liomix.mikomi.core.ui.component.base.Tag
-import com.liomix.mikomi.core.ui.component.base.TagColors
-import com.liomix.mikomi.core.ui.component.base.TagStyle
-import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.Tag
+import com.liomix.mikomi.core.ui.base.TagColors
+import com.liomix.mikomi.core.ui.base.TagStyle
 import com.liomix.mikomi.data.video.VdoSourceFamily
 import com.liomix.mikomi.feature.player.PlaybackMode
 import com.liomix.mikomi.feature.player.PlayerLine

@@ -76,10 +76,10 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
 import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTextStyles
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
-import com.liomix.mikomi.core.ui.component.base.Tab
-import com.liomix.mikomi.core.ui.component.base.TabBar
-import com.liomix.mikomi.core.ui.component.layout.LocalBottomBarSpace
+import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.Tab
+import com.liomix.mikomi.core.ui.base.TabBar
+import com.liomix.mikomi.core.ui.layout.LocalBottomBarSpace
 import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
 import com.liomix.mikomi.core.ui.window.rememberMikomiBottomInset
 import com.liomix.mikomi.core.ui.window.rememberMikomiTopInset

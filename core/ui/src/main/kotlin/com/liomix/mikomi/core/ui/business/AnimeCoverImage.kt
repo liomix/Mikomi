@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.component.business
+package com.liomix.mikomi.core.ui.business
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -18,8 +18,8 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import com.liomix.mikomi.core.designsystem.theme.MikomiRadius
-import com.liomix.mikomi.core.ui.component.base.SkeletonBox
-import com.liomix.mikomi.core.ui.component.base.skeletonBaseColor
+import com.liomix.mikomi.core.ui.base.SkeletonBox
+import com.liomix.mikomi.core.ui.base.skeletonBaseColor
 import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
 
 /** 加载失败后的最大自动重试次数；超过后停留占位色块，避免无限循环请求。 */

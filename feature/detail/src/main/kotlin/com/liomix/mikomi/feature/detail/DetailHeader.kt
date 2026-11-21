@@ -41,10 +41,10 @@ import com.liomix.mikomi.core.designsystem.theme.MikomiSizes
 import com.liomix.mikomi.core.designsystem.theme.MikomiSpacing
 import com.liomix.mikomi.core.designsystem.theme.MikomiTheme
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.ui.component.base.MikomiIcon
-import com.liomix.mikomi.core.ui.component.base.ScrollingText
-import com.liomix.mikomi.core.ui.component.base.SkeletonBox
-import com.liomix.mikomi.core.ui.component.business.heroTarget
+import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.ScrollingText
+import com.liomix.mikomi.core.ui.base.SkeletonBox
+import com.liomix.mikomi.core.ui.business.heroTarget
 import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
 import com.liomix.mikomi.core.ui.image.rememberMikomiImagePainter
 import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize

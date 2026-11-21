@@ -43,9 +43,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.business.AnimeCoverImage
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 import androidx.compose.foundation.clickable
@@ -71,11 +71,11 @@ private fun CollapsedBar(onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        MikomiIcon(
-            icon = MikomiIcons.Search,
+        Icon(
+            icon = Icons.Search,
             contentDescription = null,
             tint = SearchIconColor,
-            size = MikomiSizes.IconMd,
+            size = Sizes.IconMd,
         )
         Text(
             text = stringResource(R.string.animap_search_hint),
@@ -112,11 +112,11 @@ private fun ExpandedBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        MikomiIcon(
-            icon = MikomiIcons.Search,
+        Icon(
+            icon = Icons.Search,
             contentDescription = null,
             tint = SearchIconColor,
-            size = MikomiSizes.IconMd,
+            size = Sizes.IconMd,
         )
         Box(modifier = Modifier.weight(1f)) {
             if (query.isEmpty()) {
@@ -142,8 +142,8 @@ private fun ExpandedBar(
             )
         }
         val hasQuery = query.isNotEmpty()
-        MikomiIcon(
-            icon = MikomiIcons.Close,
+        Icon(
+            icon = Icons.Close,
             contentDescription = stringResource(
                 if (hasQuery) R.string.animap_search_clear else R.string.animap_search_close,
             ),
@@ -157,7 +157,7 @@ private fun ExpandedBar(
                         onCollapse()
                     }
                 },
-            size = MikomiSizes.IconMd,
+            size = Sizes.IconMd,
         )
     }
 }
@@ -198,11 +198,11 @@ private fun SuggestionRow(hit: AniMapHit, onClick: () -> Unit) {
                     .background(SearchChipColor),
                 contentAlignment = Alignment.Center,
             ) {
-                MikomiIcon(
-                    icon = MikomiIcons.Place,
+                Icon(
+                    icon = Icons.Place,
                     contentDescription = null,
                     tint = SearchIconColor,
-                    size = MikomiSizes.IconMd,
+                    size = Sizes.IconMd,
                 )
             }
         } else {

@@ -20,10 +20,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /**
@@ -72,17 +72,17 @@ fun HomeTopBar(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                MikomiIcon(
-                    icon = MikomiIcons.Person,
+                Icon(
+                    icon = Icons.Person,
                     contentDescription = profileContentDescription,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     // 24 -> 20：圆底由 48 收到 40，图标按同比例缩，否则头像会显得顶满。
-                    size = MikomiSizes.IconMd,
+                    size = Sizes.IconMd,
                 )
             }
         }
 
-        Spacer(modifier = Modifier.width(MikomiSpacing.Md))
+        Spacer(modifier = Modifier.width(Spacing.Md))
 
         Surface(
             shape = CircleShape,
@@ -98,16 +98,16 @@ fun HomeTopBar(
                     .fillMaxSize()
                     // 14 / 18 / 8 全部对齐巡礼页搜索条：同样的内缩、同样的图标尺寸，
                     // 两处搜索框并排看是同一个东西。
-                    .padding(horizontal = MikomiSpacing.Gutter),
+                    .padding(horizontal = Spacing.Gutter),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MikomiIcon(
-                    icon = MikomiIcons.Search,
+                Icon(
+                    icon = Icons.Search,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    size = MikomiSizes.IconMd,
+                    size = Sizes.IconMd,
                 )
-                Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
+                Spacer(modifier = Modifier.width(Spacing.Sm))
                 Text(
                     text = searchHint,
                     style = MaterialTheme.typography.bodyMedium,

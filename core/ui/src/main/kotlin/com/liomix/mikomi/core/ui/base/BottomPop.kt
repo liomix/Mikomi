@@ -35,9 +35,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
-import com.liomix.mikomi.core.designsystem.MikomiSheetSpec
-import com.liomix.mikomi.core.designsystem.MikomiWindowSpec
-import com.liomix.mikomi.core.designsystem.MikomiElevation
+import com.liomix.mikomi.core.designsystem.SheetSpec
+import com.liomix.mikomi.core.designsystem.WindowSpec
+import com.liomix.mikomi.core.designsystem.Elevation
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import kotlin.math.abs
@@ -47,7 +47,7 @@ import kotlinx.coroutines.launch
 /**
  * 底部弹窗：从屏幕底部升起，可上下拖动，松手吸附到调用方定义的锚点。
  *
- * 尺寸与手感参数（圆角、抓手 36×4、关闭阈值 0.55、橡皮筋 0.55）在 `MikomiSheetSpec` 里 ——
+ * 尺寸与手感参数（圆角、抓手 36×4、关闭阈值 0.55、橡皮筋 0.55）在 `SheetSpec` 里 ——
  * 它们属于「这个组件的固有规格」，不该由页面各调一次。
  *
  * 锚点用**比例**定义（面板高度 / 可用高度），而不是 dp：
@@ -90,7 +90,7 @@ fun BottomPop(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
-    anchors: List<Float> = MikomiSheetSpec.Anchors,
+    anchors: List<Float> = SheetSpec.Anchors,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val fractions = remember(anchors) { anchors.sanitized() }
@@ -166,8 +166,8 @@ fun BottomPop(
             }
             val minAnchorPx = anchorPx.first()
             val maxAnchorPx = anchorPx.last()
-            val dismissPx = minAnchorPx * MikomiSheetSpec.DismissFraction
-            val velocityThresholdPx = with(density) { MikomiSheetSpec.SnapVelocity.toPx() }
+            val dismissPx = minAnchorPx * SheetSpec.DismissFraction
+            val velocityThresholdPx = with(density) { SheetSpec.SnapVelocity.toPx() }
             val panelHeight = with(density) { maxAnchorPx.toDp() }
             val velocityTracker = remember { VelocityTracker() }
 
@@ -193,7 +193,7 @@ fun BottomPop(
                     // 宽屏上限：面板横跨 1200dp 时，一条列表行读起来像表格，
                     // 抓手也离手指很远。640dp 与 M3 的 SheetMaxWidth 同值，
                     // 在手机上（宽度本来就小于 640）不会生效。
-                    .widthIn(max = MikomiWindowSpec.SheetMaxWidth)
+                    .widthIn(max = WindowSpec.SheetMaxWidth)
                     .fillMaxWidth()
                     .height(panelHeight)
                     .graphicsLayer {
@@ -237,12 +237,12 @@ fun BottomPop(
                         }
                     },
                 shape = RoundedCornerShape(
-                    topStart = MikomiSheetSpec.CornerSize,
-                    topEnd = MikomiSheetSpec.CornerSize,
+                    topStart = SheetSpec.CornerSize,
+                    topEnd = SheetSpec.CornerSize,
                 ),
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
-                tonalElevation = MikomiElevation.Raised,
-                shadowElevation = MikomiElevation.Sheet,
+                tonalElevation = Elevation.Raised,
+                shadowElevation = Elevation.Sheet,
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     SheetHandle()
@@ -270,14 +270,14 @@ private fun SheetHandle() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = MikomiSheetSpec.HandlePadding),
+            .padding(vertical = SheetSpec.HandlePadding),
         contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
                 .size(
-                    width = MikomiSheetSpec.HandleWidth,
-                    height = MikomiSheetSpec.HandleHeight,
+                    width = SheetSpec.HandleWidth,
+                    height = SheetSpec.HandleHeight,
                 )
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
@@ -338,14 +338,14 @@ private fun Float.rubberBanded(
 /** 越界距离 → 实际可移动距离。距离越长收益越小，永远拉不满一屏。 */
 private fun rubberBandDistance(distance: Float, dimension: Float): Float {
     if (distance <= 0f || dimension <= 0f) return 0f
-    return dimension * (1f - 1f / (distance * MikomiSheetSpec.RubberBandCoefficient / dimension + 1f))
+    return dimension * (1f - 1f / (distance * SheetSpec.RubberBandCoefficient / dimension + 1f))
 }
 
 /** 过滤非法值、夹到有效区间、升序去重；调用方给空列表时退回默认锚点。 */
 private fun List<Float>.sanitized(): List<Float> = asSequence()
     .filter { it.isFinite() && it > 0f }
-    .map { it.coerceIn(MikomiSheetSpec.MinAnchorFraction, 1f) }
+    .map { it.coerceIn(SheetSpec.MinAnchorFraction, 1f) }
     .distinct()
     .sorted()
     .toList()
-    .ifEmpty { MikomiSheetSpec.Anchors }
+    .ifEmpty { SheetSpec.Anchors }

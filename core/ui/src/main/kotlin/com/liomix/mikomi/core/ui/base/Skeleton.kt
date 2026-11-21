@@ -25,9 +25,9 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiTheme
-import com.liomix.mikomi.core.ui.window.rememberMikomiWindowWidthPx
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.AppTheme
+import com.liomix.mikomi.core.ui.window.rememberWindowWidthPx
 
 /**
  * 骨架屏基础块：带扫光动画的占位块。
@@ -52,7 +52,7 @@ import com.liomix.mikomi.core.ui.window.rememberMikomiWindowWidthPx
 @Composable
 fun SkeletonBox(
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(MikomiRadius.Md),
+    shape: Shape = RoundedCornerShape(Radius.Md),
     baseColor: Color? = null,
     sweepColor: Color? = null,
 ) {
@@ -71,12 +71,12 @@ fun SkeletonBox(
  * 给「图片还没画出来」的容器垫底用：与骨架块完全同色，所以骨架 → 图片的过渡里
  * 任何一帧都不会露出页面底色（也就是「空白块」）。见 `AnimeCoverImage`。
  *
- * 取色来自设计系统（`MikomiTheme.colors.skeletonBase`），不再由本文件按
+ * 取色来自设计系统（`AppTheme.colors.skeletonBase`），不再由本文件按
  * 「onSurface 加多少 alpha」现算 —— 否则同一套墨色会在骨架、封面占位、分页提示
  * 三个地方各写一份系数，改一处另外两处就不跟。
  */
 @Composable
-fun skeletonBaseColor(): Color = MikomiTheme.colors.skeletonBase
+fun skeletonBaseColor(): Color = AppTheme.colors.skeletonBase
 
 /**
  * 一屏骨架共用的扫光参数。
@@ -121,11 +121,11 @@ fun SkeletonShimmer(content: @Composable () -> Unit) {
  */
 @Composable
 fun Modifier.shimmer(
-    shape: Shape = RoundedCornerShape(MikomiRadius.Md),
+    shape: Shape = RoundedCornerShape(Radius.Md),
     baseColor: Color? = null,
     sweepColor: Color? = null,
 ): Modifier {
-    val colors = MikomiTheme.colors
+    val colors = AppTheme.colors
     val base = baseColor ?: colors.skeletonBase
     val sweep = sweepColor ?: colors.skeletonSweep
 
@@ -161,7 +161,7 @@ fun Modifier.shimmer(
 @Composable
 private fun rememberShimmerSweep(): ShimmerSweep {
     val density = LocalDensity.current
-    val windowWidthPx = rememberMikomiWindowWidthPx().coerceAtLeast(1f)
+    val windowWidthPx = rememberWindowWidthPx().coerceAtLeast(1f)
     val gradientWidth = with(density) { SweepGradientWidth.toPx() }
     // 行程：-2×渐变宽 → 2×列表宽。
     val travel = 2f * gradientWidth + 2f * windowWidthPx

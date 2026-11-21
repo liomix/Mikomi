@@ -30,10 +30,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiElevation
-import com.liomix.mikomi.core.designsystem.MikomiMotion
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.Elevation
+import com.liomix.mikomi.core.designsystem.Motion
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Spacing
 
 /**
  * 提示弹窗内容。
@@ -42,7 +42,7 @@ import com.liomix.mikomi.core.designsystem.MikomiSpacing
  * @param iconRes 可选图标，建议传**无底色**（透明背景）的图片，这样在深色
  *   弹窗背景上不会出现白色底块。
  */
-data class MikomiToastData(
+data class ToastData(
     val message: String,
     @DrawableRes val iconRes: Int? = null,
 )
@@ -57,19 +57,19 @@ data class MikomiToastData(
  * ```
  * Box(Modifier.fillMaxSize()) {
  *     Content()
- *     MikomiToast(
+ *     Toast(
  *         data = toast,
  *         modifier = Modifier
  *             .align(Alignment.BottomCenter)
- *             .windowInsetsPadding(MikomiInsets.Bottom)
- *             .padding(horizontal = MikomiSpacing.Xl, bottom = MikomiSpacing.Xl),
+ *             .windowInsetsPadding(Insets.Bottom)
+ *             .padding(horizontal = Spacing.Xl, bottom = Spacing.Xl),
  *     )
  * }
  * ```
  */
 @Composable
-fun MikomiToast(
-    data: MikomiToastData?,
+fun Toast(
+    data: ToastData?,
     modifier: Modifier = Modifier,
 ) {
     // 保留最后一次非空内容：exit 动画期间 data 已经变成 null，但仍要显示旧文案。
@@ -90,15 +90,15 @@ fun MikomiToast(
         Surface(
             shape = RoundedCornerShape(TOAST_CORNER),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = MikomiElevation.Raised,
-            shadowElevation = MikomiElevation.Floating,
+            tonalElevation = Elevation.Raised,
+            shadowElevation = Elevation.Floating,
         ) {
             Row(
                 modifier = Modifier
                     .widthIn(max = TOAST_MAX_WIDTH)
                     .padding(
-                        horizontal = MikomiSpacing.Lg,
-                        vertical = MikomiSpacing.Md,
+                        horizontal = Spacing.Lg,
+                        vertical = Spacing.Md,
                     ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -109,7 +109,7 @@ fun MikomiToast(
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.size(TOAST_ICON_SIZE),
                     )
-                    Spacer(modifier = Modifier.width(MikomiSpacing.Md))
+                    Spacer(modifier = Modifier.width(Spacing.Md))
                 }
                 Text(
                     text = content.message,
@@ -127,13 +127,13 @@ fun MikomiToast(
 private val TOAST_ICON_SIZE = 28.dp
 
 /** 弹窗圆角。 */
-private val TOAST_CORNER = MikomiRadius.Xxl
+private val TOAST_CORNER = Radius.Xxl
 
 /** 弹窗最大宽度，避免长文案铺满整屏。 */
 private val TOAST_MAX_WIDTH = 360.dp
 
 /** 入场时长。退场比它短：关闭动作要显得更利落。 */
-private const val TOAST_ENTER_MILLIS = MikomiMotion.Duration.Medium
+private const val TOAST_ENTER_MILLIS = Motion.Duration.Medium
 
 /** 退场时长。 */
-private const val TOAST_EXIT_MILLIS = MikomiMotion.Duration.Short
+private const val TOAST_EXIT_MILLIS = Motion.Duration.Short

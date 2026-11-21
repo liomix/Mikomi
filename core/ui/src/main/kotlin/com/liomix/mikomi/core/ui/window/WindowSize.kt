@@ -15,13 +15,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
-import com.liomix.mikomi.core.designsystem.MikomiWindowSpec
+import com.liomix.mikomi.core.designsystem.WindowSpec
 
-/** 窗口宽度档。数值与 Material 3 的窗口尺寸类一致（见 [MikomiWindowSpec]）。 */
-enum class MikomiWidthClass { Compact, Medium, Expanded }
+/** 窗口宽度档。数值与 Material 3 的窗口尺寸类一致（见 [WindowSpec]）。 */
+enum class WidthClass { Compact, Medium, Expanded }
 
 /** 窗口高度档。高度档只用来区分「矮窗口」（横屏手机、分屏上半屏）。 */
-enum class MikomiHeightClass { Compact, Medium, Expanded }
+enum class HeightClass { Compact, Medium, Expanded }
 
 /**
  * 当前窗口的尺寸档。
@@ -34,18 +34,18 @@ enum class MikomiHeightClass { Compact, Medium, Expanded }
  * 布局阶段到手的真实约束，比窗口宽度更准（它已经扣掉了 padding）。
  */
 @Immutable
-data class MikomiWindowSize(
-    val width: MikomiWidthClass = MikomiWidthClass.Compact,
-    val height: MikomiHeightClass = MikomiHeightClass.Compact,
+data class WindowSize(
+    val width: WidthClass = WidthClass.Compact,
+    val height: HeightClass = HeightClass.Compact,
 ) {
     /** 折叠屏合起、手机竖屏、分屏的一半 —— 单列是唯一合理的排布。 */
-    val isCompactWidth: Boolean get() = width == MikomiWidthClass.Compact
+    val isCompactWidth: Boolean get() = width == WidthClass.Compact
 
     /** 平板横屏、折叠屏展开、桌面窗口拉宽 —— 可以开始收起内容列了。 */
-    val isExpandedWidth: Boolean get() = width == MikomiWidthClass.Expanded
+    val isExpandedWidth: Boolean get() = width == WidthClass.Expanded
 
     /** 横屏手机、分屏上半屏：可用高度不足以放下「头图 + 内容」。 */
-    val isCompactHeight: Boolean get() = height == MikomiHeightClass.Compact
+    val isCompactHeight: Boolean get() = height == HeightClass.Compact
 }
 
 /**
@@ -55,7 +55,7 @@ data class MikomiWindowSize(
  * 默认值是 compact/compact：这就是「没有窗口信息时按手机竖屏排」——
  * `@Preview` 与单测因此不需要额外搭一层壳。
  */
-val LocalMikomiWindowSize = staticCompositionLocalOf { MikomiWindowSize() }
+val LocalWindowSize = staticCompositionLocalOf { WindowSize() }
 
 /**
  * 读当前窗口尺寸档。
@@ -73,13 +73,13 @@ val LocalMikomiWindowSize = staticCompositionLocalOf { MikomiWindowSize() }
  * ## 回滞
  *
  * 自由窗口拖动时这个值每像素都变。直接判档会让整页在断点上来回翻，
- * 所以档位变化要越过 [MikomiWindowSpec.BreakpointHysteresis] 才生效。
+ * 所以档位变化要越过 [WindowSpec.BreakpointHysteresis] 才生效。
  *
  * 状态写入放在 [SideEffect] 里而不是组合期：组合期写状态会触发「组合 → 失效 → 再组合」，
  * 而这里的目的恰好是**不**在每一次尺寸变化时立刻改变整棵树。
  */
 @Composable
-fun rememberMikomiWindowSize(): MikomiWindowSize {
+fun rememberWindowSize(): WindowSize {
     val windowInfo = LocalWindowInfo.current
     val configuration = LocalConfiguration.current
 
@@ -99,14 +99,14 @@ fun rememberMikomiWindowSize(): MikomiWindowSize {
  * 窗口宽度的像素值。
  *
  * **只给「按宽度算量」的绘制参数用**：扫光的行程要按「每 400ms 平移一个列表宽」反推周期，
- * 那个列表宽就是窗口宽。判档请读 [LocalMikomiWindowSize] —— 拿这个值写
+ * 那个列表宽就是窗口宽。判档请读 [LocalWindowSize] —— 拿这个值写
  * `if (widthPx > 600.dp.toPx())` 等于绕开档位重新发明一次断点。
  *
  * 分屏/自由窗口下它给的是**窗口**宽度（`containerDpSize`），不是屏幕宽度：
  * 用屏幕宽算出来的扫光速度会在半屏里慢一半。
  */
 @Composable
-fun rememberMikomiWindowWidthPx(): Float {
+fun rememberWindowWidthPx(): Float {
     val windowInfo = LocalWindowInfo.current
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
@@ -126,8 +126,8 @@ fun rememberMikomiWindowWidthPx(): Float {
  * 写在组合函数里就变成「组合期读状态 + 组合期写状态」的一团。
  */
 private class WindowSizeTracker(initial: DpSize) {
-    var size: MikomiWindowSize by mutableStateOf(
-        MikomiWindowSize(
+    var size: WindowSize by mutableStateOf(
+        WindowSize(
             width = classifyWidth(initial.width, previous = null),
             height = classifyHeight(initial.height, previous = null),
         ),
@@ -135,7 +135,7 @@ private class WindowSizeTracker(initial: DpSize) {
         private set
 
     fun update(next: DpSize) {
-        val candidate = MikomiWindowSize(
+        val candidate = WindowSize(
             width = classifyWidth(next.width, previous = size.width),
             height = classifyHeight(next.height, previous = size.height),
         )
@@ -150,61 +150,61 @@ private class WindowSizeTracker(initial: DpSize) {
  * compact → medium 要 ≥ 624，medium → compact 要 < 576。
  * 手指停在 600 上下抖动时，档位不动；真的把窗口拖走，档位也不会拖泥带水。
  */
-private fun classifyWidth(width: Dp, previous: MikomiWidthClass?): MikomiWidthClass {
-    val hysteresis = MikomiWindowSpec.BreakpointHysteresis
+private fun classifyWidth(width: Dp, previous: WidthClass?): WidthClass {
+    val hysteresis = WindowSpec.BreakpointHysteresis
     return when (previous) {
         null -> when {
-            width < MikomiWindowSpec.WidthMediumMin -> MikomiWidthClass.Compact
-            width < MikomiWindowSpec.WidthExpandedMin -> MikomiWidthClass.Medium
-            else -> MikomiWidthClass.Expanded
+            width < WindowSpec.WidthMediumMin -> WidthClass.Compact
+            width < WindowSpec.WidthExpandedMin -> WidthClass.Medium
+            else -> WidthClass.Expanded
         }
 
-        MikomiWidthClass.Compact -> when {
-            width >= MikomiWindowSpec.WidthExpandedMin + hysteresis -> MikomiWidthClass.Expanded
-            width >= MikomiWindowSpec.WidthMediumMin + hysteresis -> MikomiWidthClass.Medium
-            else -> MikomiWidthClass.Compact
+        WidthClass.Compact -> when {
+            width >= WindowSpec.WidthExpandedMin + hysteresis -> WidthClass.Expanded
+            width >= WindowSpec.WidthMediumMin + hysteresis -> WidthClass.Medium
+            else -> WidthClass.Compact
         }
 
-        MikomiWidthClass.Medium -> when {
-            width < MikomiWindowSpec.WidthMediumMin - hysteresis -> MikomiWidthClass.Compact
-            width >= MikomiWindowSpec.WidthExpandedMin + hysteresis -> MikomiWidthClass.Expanded
-            else -> MikomiWidthClass.Medium
+        WidthClass.Medium -> when {
+            width < WindowSpec.WidthMediumMin - hysteresis -> WidthClass.Compact
+            width >= WindowSpec.WidthExpandedMin + hysteresis -> WidthClass.Expanded
+            else -> WidthClass.Medium
         }
 
-        MikomiWidthClass.Expanded -> when {
-            width < MikomiWindowSpec.WidthMediumMin - hysteresis -> MikomiWidthClass.Compact
-            width < MikomiWindowSpec.WidthExpandedMin - hysteresis -> MikomiWidthClass.Medium
-            else -> MikomiWidthClass.Expanded
+        WidthClass.Expanded -> when {
+            width < WindowSpec.WidthMediumMin - hysteresis -> WidthClass.Compact
+            width < WindowSpec.WidthExpandedMin - hysteresis -> WidthClass.Medium
+            else -> WidthClass.Expanded
         }
     }
 }
 
 /** 高度判档。规则同 [classifyWidth]，只是断点不同。 */
-private fun classifyHeight(height: Dp, previous: MikomiHeightClass?): MikomiHeightClass {
-    val hysteresis = MikomiWindowSpec.BreakpointHysteresis
+private fun classifyHeight(height: Dp, previous: HeightClass?): HeightClass {
+    val hysteresis = WindowSpec.BreakpointHysteresis
     return when (previous) {
         null -> when {
-            height < MikomiWindowSpec.HeightMediumMin -> MikomiHeightClass.Compact
-            height < MikomiWindowSpec.HeightExpandedMin -> MikomiHeightClass.Medium
-            else -> MikomiHeightClass.Expanded
+            height < WindowSpec.HeightMediumMin -> HeightClass.Compact
+            height < WindowSpec.HeightExpandedMin -> HeightClass.Medium
+            else -> HeightClass.Expanded
         }
 
-        MikomiHeightClass.Compact -> when {
-            height >= MikomiWindowSpec.HeightExpandedMin + hysteresis -> MikomiHeightClass.Expanded
-            height >= MikomiWindowSpec.HeightMediumMin + hysteresis -> MikomiHeightClass.Medium
-            else -> MikomiHeightClass.Compact
+        HeightClass.Compact -> when {
+            height >= WindowSpec.HeightExpandedMin + hysteresis -> HeightClass.Expanded
+            height >= WindowSpec.HeightMediumMin + hysteresis -> HeightClass.Medium
+            else -> HeightClass.Compact
         }
 
-        MikomiHeightClass.Medium -> when {
-            height < MikomiWindowSpec.HeightMediumMin - hysteresis -> MikomiHeightClass.Compact
-            height >= MikomiWindowSpec.HeightExpandedMin + hysteresis -> MikomiHeightClass.Expanded
-            else -> MikomiHeightClass.Medium
+        HeightClass.Medium -> when {
+            height < WindowSpec.HeightMediumMin - hysteresis -> HeightClass.Compact
+            height >= WindowSpec.HeightExpandedMin + hysteresis -> HeightClass.Expanded
+            else -> HeightClass.Medium
         }
 
-        MikomiHeightClass.Expanded -> when {
-            height < MikomiWindowSpec.HeightMediumMin - hysteresis -> MikomiHeightClass.Compact
-            height < MikomiWindowSpec.HeightExpandedMin - hysteresis -> MikomiHeightClass.Medium
-            else -> MikomiHeightClass.Expanded
+        HeightClass.Expanded -> when {
+            height < WindowSpec.HeightMediumMin - hysteresis -> HeightClass.Compact
+            height < WindowSpec.HeightExpandedMin - hysteresis -> HeightClass.Medium
+            else -> HeightClass.Expanded
         }
     }
 }

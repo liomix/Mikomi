@@ -26,18 +26,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiMotion
-import com.liomix.mikomi.core.designsystem.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.MikomiTagSpec
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiStroke
+import com.liomix.mikomi.core.designsystem.Motion
+import com.liomix.mikomi.core.designsystem.PillShape
+import com.liomix.mikomi.core.designsystem.TagSpec
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Stroke
 
 /** 元信息徽标的小圆角：它是「贴住文字的一块底」，不是胶囊。 */
-private val MetaShape: Shape = RoundedCornerShape(MikomiRadius.Sm)
+private val MetaShape: Shape = RoundedCornerShape(Radius.Sm)
 
 /** 选中态 / 未选中态切换时的颜色过渡时长。 */
-private const val ColorAnimMillis = MikomiMotion.Duration.Short
+private const val ColorAnimMillis = Motion.Duration.Short
 
 /** 选中底色透明度：浅色染主色，避免实心块视觉重量过重（看起来像主按钮）。 */
 
@@ -46,7 +46,7 @@ private const val ColorAnimMillis = MikomiMotion.Duration.Short
 /** 未选中描边透明度：只勾出边界，不抢文字。 */
 
 /** 可选中标签的高度，同时就是它的触控高度（见文件末尾的破例说明）。 */
-private val SelectableHeight = MikomiSizes.ChipHeight
+private val SelectableHeight = Sizes.ChipHeight
 
 /**
  * 标签配色。
@@ -100,7 +100,7 @@ enum class TagStyle {
  *     text = "v1.2.3",
  *     style = TagStyle.Meta,
  *     colors = TagColors(container = …, content = …),
- *     shape = RoundedCornerShape(MikomiRadius.Xs),
+ *     shape = RoundedCornerShape(Radius.Xs),
  *     textStyle = MaterialTheme.typography.labelSmall,
  *     contentPadding = PaddingValues(horizontal = 4.dp, vertical = 1.dp),
  * )
@@ -179,7 +179,7 @@ fun Tag(
         shape = shape,
         color = containerColor,
         contentColor = contentColor,
-        border = borderColor?.let { BorderStroke(MikomiStroke.Thin, animatedBorderColor) },
+        border = borderColor?.let { BorderStroke(Stroke.Thin, animatedBorderColor) },
     ) {
         // 这里**不能**写 `fillMaxHeight()`：`Surface` 是 `Box(propagateMinConstraints = true)`，
         // 最小高度（可选中规格 40dp）本来就会传给内容，`fillMaxHeight` 只会多干一件事 ——
@@ -205,15 +205,15 @@ fun Tag(
 /** 三套规格的形状。 */
 private val TagStyle.defaultShape: Shape
     get() = when (this) {
-        TagStyle.Selectable, TagStyle.Content -> MikomiPillShape
+        TagStyle.Selectable, TagStyle.Content -> PillShape
         TagStyle.Meta -> MetaShape
     }
 
 /*
- * 两套实测内边距不在本文件里，而是住在 designsystem 的 `MikomiTagSpec`。
+ * 两套实测内边距不在本文件里，而是住在 designsystem 的 `TagSpec`。
  *
  * 它们回答的是「这枚标签自己有多胖」，不是「布局要留多少呼吸」，
- * 所以属于组件规格而不是间距 token（判别方法见 `MikomiSwitchSpec` 的文件头）。
+ * 所以属于组件规格而不是间距 token（判别方法见 `SwitchSpec` 的文件头）。
  * 挪出去的理由只有一个：规格写在组件内部就只有写的人知道，
  * 放在规格层才会出现在设计系统的目录与审计里。
  */
@@ -221,12 +221,12 @@ private val TagStyle.defaultShape: Shape
 /** 三套规格的内边距。可选中的那套左右留白更大，因为它是控件而不是文字块。 */
 private val TagStyle.defaultContentPadding: PaddingValues
     get() = when (this) {
-        TagStyle.Selectable -> PaddingValues(horizontal = MikomiTagSpec.SelectableHorizontalPadding)
+        TagStyle.Selectable -> PaddingValues(horizontal = TagSpec.SelectableHorizontalPadding)
         // 只读标签：10dp 横内边距、纵向靠 24dp 的固定高度撑开（与图标默认档同高）。
-        TagStyle.Content -> PaddingValues(horizontal = MikomiTagSpec.ChipHorizontalPadding)
+        TagStyle.Content -> PaddingValues(horizontal = TagSpec.ChipHorizontalPadding)
         TagStyle.Meta -> PaddingValues(
-            horizontal = MikomiTagSpec.MetaHorizontalPadding,
-            vertical = MikomiTagSpec.MetaVerticalPadding,
+            horizontal = TagSpec.MetaHorizontalPadding,
+            vertical = TagSpec.MetaVerticalPadding,
         )
     }
 
@@ -234,7 +234,7 @@ private val TagStyle.defaultContentPadding: PaddingValues
 private val TagStyle.defaultMinHeight: Dp
     get() = when (this) {
         TagStyle.Selectable -> SelectableHeight
-        TagStyle.Content -> MikomiTagSpec.ChipHeight
+        TagStyle.Content -> TagSpec.ChipHeight
         TagStyle.Meta -> 0.dp
     }
 
@@ -259,15 +259,15 @@ private fun TagStyle.defaultColors(selected: Boolean): TagColors {
     return when (this) {
         TagStyle.Selectable -> if (selected) {
             TagColors(
-                container = colors.primary.copy(alpha = MikomiTagSpec.ContainerAlphaSelected),
+                container = colors.primary.copy(alpha = TagSpec.ContainerAlphaSelected),
                 content = colors.primary,
-                border = colors.primary.copy(alpha = MikomiTagSpec.BorderAlphaSelected),
+                border = colors.primary.copy(alpha = TagSpec.BorderAlphaSelected),
             )
         } else {
             TagColors(
                 container = Color.Transparent,
                 content = colors.onSurfaceVariant,
-                border = colors.outlineVariant.copy(alpha = MikomiTagSpec.BorderAlphaUnselected),
+                border = colors.outlineVariant.copy(alpha = TagSpec.BorderAlphaUnselected),
             )
         }
 

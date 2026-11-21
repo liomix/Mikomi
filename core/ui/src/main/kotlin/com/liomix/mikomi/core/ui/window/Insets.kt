@@ -57,7 +57,7 @@ import androidx.compose.ui.unit.Dp
  * 自己拿 placement scope 手搓一层，等于在一个实验 API 上再叠一层自研，
  * 而它要解决的问题（键盘动画期间少跳一点）还没到必须付这个代价的程度。
  */
-object MikomiInsets {
+object Insets {
 
     /** 顶部：状态栏 ∪ 挖孔，不含键盘。 */
     val Top: WindowInsets
@@ -112,7 +112,7 @@ object MikomiInsets {
  * 只应该有一条路：要么整体走 [WindowInsets]，要么整体读这里的值。
  */
 @Immutable
-data class MikomiInsetsDp(
+data class InsetsDp(
     val start: Dp,
     val top: Dp,
     val end: Dp,
@@ -121,10 +121,10 @@ data class MikomiInsetsDp(
 
 /** 读一次当前安全区的 dp 值。窗口尺寸/形态变化时自动重建。 */
 @Composable
-fun rememberMikomiInsetsDp(): MikomiInsetsDp {
+fun rememberInsetsDp(): InsetsDp {
     val direction = LocalLayoutDirection.current
-    val padding = MikomiInsets.Full.asPaddingValues()
-    return MikomiInsetsDp(
+    val padding = Insets.Full.asPaddingValues()
+    return InsetsDp(
         start = padding.calculateStartPadding(direction),
         top = padding.calculateTopPadding(),
         end = padding.calculateEndPadding(direction),
@@ -134,8 +134,8 @@ fun rememberMikomiInsetsDp(): MikomiInsetsDp {
 
 /** 只要底部安全区（导航栏 ∪ 挖孔，不含键盘）的 dp 值。 */
 @Composable
-fun rememberMikomiBottomInset(): Dp = MikomiInsets.Bottom.asPaddingValues().calculateBottomPadding()
+fun rememberBottomInset(): Dp = Insets.Bottom.asPaddingValues().calculateBottomPadding()
 
 /** 只要顶部安全区（状态栏 ∪ 挖孔）的 dp 值。 */
 @Composable
-fun rememberMikomiTopInset(): Dp = MikomiInsets.Top.asPaddingValues().calculateTopPadding()
+fun rememberTopInset(): Dp = Insets.Top.asPaddingValues().calculateTopPadding()

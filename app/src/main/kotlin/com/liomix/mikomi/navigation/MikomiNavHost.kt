@@ -43,10 +43,10 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.liomix.mikomi.R
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiRailSpec
-import com.liomix.mikomi.core.designsystem.MikomiWindowSpec
-import com.liomix.mikomi.core.designsystem.MikomiMotion
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.RailSpec
+import com.liomix.mikomi.core.designsystem.WindowSpec
+import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.navigation.AniMapDestination
@@ -63,9 +63,9 @@ import com.liomix.mikomi.core.ui.business.HeroFlightController
 import com.liomix.mikomi.core.ui.business.HeroFlightOverlay
 import com.liomix.mikomi.core.ui.business.LocalHeroFlightController
 import com.liomix.mikomi.core.ui.layout.LocalBottomBarSpace
-import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
-import com.liomix.mikomi.core.ui.window.MikomiInsets
-import com.liomix.mikomi.core.ui.window.rememberMikomiWindowSize
+import com.liomix.mikomi.core.ui.window.LocalWindowSize
+import com.liomix.mikomi.core.ui.window.Insets
+import com.liomix.mikomi.core.ui.window.rememberWindowSize
 import com.liomix.mikomi.feature.animap.AniMapWarmer
 
 /** 进入巡礼页后自动隐藏底部导航栏的延时（毫秒）：不靠滑动判定，进页面 2s 后自动进入沉浸。 */
@@ -105,26 +105,26 @@ fun MikomiNavHost(
         listOf(
             MikomiNavItem(
                 key = HomeDestination,
-                icon = MikomiIcons.HomeOutline,
-                selectedIcon = MikomiIcons.Home,
+                icon = Icons.HomeOutline,
+                selectedIcon = Icons.Home,
                 label = homeLabel,
             ),
             MikomiNavItem(
                 key = AniMapDestination,
-                icon = MikomiIcons.MapOutline,
-                selectedIcon = MikomiIcons.Map,
+                icon = Icons.MapOutline,
+                selectedIcon = Icons.Map,
                 label = aniMapLabel,
             ),
             MikomiNavItem(
                 key = CommunityDestination,
-                icon = MikomiIcons.ForumOutline,
-                selectedIcon = MikomiIcons.Forum,
+                icon = Icons.ForumOutline,
+                selectedIcon = Icons.Forum,
                 label = communityLabel,
             ),
             MikomiNavItem(
                 key = ProfileDestination,
-                icon = MikomiIcons.PersonOutline,
-                selectedIcon = MikomiIcons.Person,
+                icon = Icons.PersonOutline,
+                selectedIcon = Icons.Person,
                 label = profileLabel,
             ),
         )
@@ -141,7 +141,7 @@ fun MikomiNavHost(
 
     // 窗口尺寸档在壳这一层算一次，页面只读 —— 每个页面各自读一次窗口信息，
     // 就等于每个页面都有自己的断点口径，迟早各说一套。
-    val windowSize = rememberMikomiWindowSize()
+    val windowSize = rememberWindowSize()
 
     // 导航形态：宽度至少 Medium（600dp）**且**高度不是 Compact 时换成侧栏。
     //
@@ -358,7 +358,7 @@ fun MikomiNavHost(
         // 就等于每个页面都有自己的断点口径，迟早各说一套。（值在上面算过了，
         // 因为返回键行为与横滑手势都要先知道形态。）
         CompositionLocalProvider(
-            LocalMikomiWindowSize provides windowSize,
+            LocalWindowSize provides windowSize,
             LocalHeroFlightController provides heroController,
             // 底栏占多高由壳告诉页面，页面不必知道那是一条导航栏 —— 见 LocalBottomBarSpace。
             // 侧栏形态下「底部占位」这件事不存在：内容在 rail 右边一路铺到底，所以归零。
@@ -430,31 +430,31 @@ fun MikomiNavHost(
                 // 和页面进出用同一组曲线（tg 的 EASE_OUT / EASE_IN）。
                 enter = slideInVertically(
                     animationSpec = tween(
-                        MikomiMotion.Duration.Short,
-                        easing = MikomiMotion.Curve.Standard,
+                        Motion.Duration.Short,
+                        easing = Motion.Curve.Standard,
                     ),
                     initialOffsetY = { it },
                 ) + fadeIn(
-                    tween(MikomiMotion.Duration.Short, easing = MikomiMotion.Curve.Standard),
+                    tween(Motion.Duration.Short, easing = Motion.Curve.Standard),
                 ),
                 exit = slideOutVertically(
                     animationSpec = tween(
-                        MikomiMotion.Duration.Short,
-                        easing = MikomiMotion.Curve.Accelerate,
+                        Motion.Duration.Short,
+                        easing = Motion.Curve.Accelerate,
                     ),
                     targetOffsetY = { it },
                 ) + fadeOut(
-                    tween(MikomiMotion.Duration.Short, easing = MikomiMotion.Curve.Accelerate),
+                    tween(Motion.Duration.Short, easing = Motion.Curve.Accelerate),
                 ),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .windowInsetsPadding(MikomiInsets.Bottom)
+                    .windowInsetsPadding(Insets.Bottom)
                     // 外边距由导航栏自己的常量给出（16dp 左右 / 8dp 底部），页面按同一份规格给底栏让位。
                     .padding(
                         horizontal = MikomiNavBarHorizontalMargin,
                         vertical = MikomiNavBarBottomMargin,
                     )
-                    .widthIn(max = MikomiWindowSpec.NavBarMaxWidth),
+                    .widthIn(max = WindowSpec.NavBarMaxWidth),
             ) {
                 MikomiNavigationBar(
                     items = navItems,
@@ -473,7 +473,7 @@ fun MikomiNavHost(
 /**
  * 侧栏的摆放：固定占位宽度 + 胶囊在占位里垂直居中。
  *
- * 占位（而不是悬浮）是这里唯一真正重要的决定，理由见 [MikomiRailSpec] 的
+ * 占位（而不是悬浮）是这里唯一真正重要的决定，理由见 [RailSpec] 的
  * 「为什么占位不悬浮」。实现上还有两条：
  *
  * 1. **inset 加在宽度之外** —— `windowInsetsPadding` 写在 `width` 之前，横屏挖孔在侧边时
@@ -492,8 +492,8 @@ private fun NavigationRailHost(
     Box(
         modifier = Modifier
             .fillMaxHeight()
-            .windowInsetsPadding(MikomiInsets.Horizontal)
-            .width(MikomiRailSpec.Width),
+            .windowInsetsPadding(Insets.Horizontal)
+            .width(RailSpec.Width),
         contentAlignment = Alignment.Center,
     ) {
         MikomiNavigationRail(

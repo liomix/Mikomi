@@ -47,14 +47,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiMedia
-import com.liomix.mikomi.core.designsystem.MikomiMotion
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiTextStyles
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Media
+import com.liomix.mikomi.core.designsystem.Motion
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.TextStyles
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
-import com.liomix.mikomi.core.ui.base.MikomiIcon
-import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.ui.base.Icon
+import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.feature.player.PlayerPlaybackState
 import kotlin.math.abs
 import kotlin.math.max
@@ -85,10 +85,10 @@ private const val BRIGHTNESS_LOW_FRACTION = 0.2f
  * 白色半透明两种画面都稳：暗画面上是一块柔和的亮块，亮画面上靠 0.85 的不透度
  * 仍能拉开层次。半透明而不是实白，是为了不把底下正在看的内容挖掉一块。
  */
-private val HudContainer = MikomiMedia.overlayContainer
+private val HudContainer = Media.overlayContainer
 
 /** 白底上的内容色。近黑而非纯黑：0.85 的白上纯黑偏硬，读起来像警告。 */
-private val HudContent = MikomiMedia.overlayContent
+private val HudContent = Media.overlayContent
 
 /** HUD 图标：比控制层的图标大一档，一眼能看清，不靠文字补。 */
 private val HudIconSize = 32.dp
@@ -99,7 +99,7 @@ private val HudCornerRadius = 12.dp
 private val HudValueTrackWidth = 84.dp
 
 /** 快进 / 快退读数：`00:00/00:00`，比控制条正文大一号。 */
-private val HudTimeStyle = MikomiTextStyles.HudTime
+private val HudTimeStyle = TextStyles.HudTime
 
 /**
  * HUD 需要让开的安全区：状态栏 / 刘海。
@@ -109,7 +109,7 @@ private val HudTimeStyle = MikomiTextStyles.HudTime
  * `statusBarsPadding` 消费过一次，嵌套的调用看到的是零，不会重复下压。
  */
 private val hudSafeArea: WindowInsets
-    @Composable get() = MikomiInsets.Chrome
+    @Composable get() = Insets.Chrome
 
 /**
  * 手势读数的统一落点：**水平居中、竖直略高于画面中心**。
@@ -444,15 +444,15 @@ private fun PlayerGestureHudView(
         // 进度用时间码，不用图标。
         is PlayerGestureHud.Seek -> null
         is PlayerGestureHud.Volume ->
-            if (hud.fraction <= 0f) MikomiIcons.VolumeOff else MikomiIcons.VolumeUp
+            if (hud.fraction <= 0f) Icons.VolumeOff else Icons.VolumeUp
         is PlayerGestureHud.Brightness ->
             if (hud.fraction <= BRIGHTNESS_LOW_FRACTION) {
-                MikomiIcons.BrightnessLow
+                Icons.BrightnessLow
             } else {
-                MikomiIcons.BrightnessMedium
+                Icons.BrightnessMedium
             }
-        is PlayerGestureHud.Speed -> MikomiIcons.Speed
-        is PlayerGestureHud.Toggle -> if (hud.playing) MikomiIcons.Play else MikomiIcons.Pause
+        is PlayerGestureHud.Speed -> Icons.Speed
+        is PlayerGestureHud.Toggle -> if (hud.playing) Icons.Play else Icons.Pause
     }
     val fraction: Float? = when (hud) {
         is PlayerGestureHud.Volume -> hud.fraction
@@ -470,7 +470,7 @@ private fun PlayerGestureHudView(
                 text = "${formatTime(hud.targetMillis / 1_000)}/${formatTime(durationMillis / 1_000)}",
                 // 时间码左右各留一点：圆角白底如果贴着字形，首尾数字会被圆角削掉。
                 // 图标块不需要——图形本身四周是空的，圆角只削到它的空白角。
-                modifier = Modifier.padding(horizontal = MikomiSpacing.Compact),
+                modifier = Modifier.padding(horizontal = Spacing.Compact),
                 // `tnum`：等宽数字。拖动时数字每帧都在变，比例数字会让整块左右抖。
                 // 字阶取设计系统的 HUD 档（22sp Bold），这里只把数字换成等宽 `tnum`——
                 // 拖动时数字每帧都在变，比例数字会让整块左右抖。
@@ -480,7 +480,7 @@ private fun PlayerGestureHudView(
                 maxLines = 1,
             )
         } else if (icon != null) {
-            MikomiIcon(
+            Icon(
                 icon = icon,
                 contentDescription = null,
                 tint = HudContent,
@@ -488,7 +488,7 @@ private fun PlayerGestureHudView(
             )
         }
         if (fraction != null) {
-            Spacer(modifier = Modifier.height(MikomiSpacing.Compact))
+            Spacer(modifier = Modifier.height(Spacing.Compact))
             ValueTrack(fraction = fraction)
         }
     }
@@ -499,7 +499,7 @@ private fun PlayerGestureHudView(
 private fun ValueTrack(fraction: Float) {
     val animated by animateFloatAsState(
         targetValue = fraction.coerceIn(0f, 1f),
-        animationSpec = tween(durationMillis = MikomiMotion.Duration.Instant),
+        animationSpec = tween(durationMillis = Motion.Duration.Instant),
         label = "playerGestureValue",
     )
     Canvas(

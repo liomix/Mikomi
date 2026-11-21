@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil3.SingletonImageLoader
-import coil3.compose.AsyncImage
+import coil3.compose.AsyncImage as CoilAsyncImage
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.CachePolicy
@@ -29,7 +29,7 @@ import kotlinx.coroutines.launch
  *   点进详情页时直接命中同一份缓存，不会重新解码。
  * - **`crossfade` 由调用方显式决定**：懒列表里必须关（一屏十张同时淡入是明确的每帧开销），
  *   静止页面可以开。
- * - **UA / 超时 / 缓存上限由 [MikomiImageLoader] 统一给**：这里不再留「是否带浏览器 UA」
+ * - **UA / 超时 / 缓存上限由 [ImageLoader] 统一给**：这里不再留「是否带浏览器 UA」
  *   这种按调用点决定的开关 —— 漏传一次的后果是某些图床永久 403，且没有任何报错。
  *
  * 返回值用 [remember] 缓存：`ImageRequest` 不是 data class，每次重组新建一个新实例，
@@ -62,7 +62,7 @@ fun rememberCoverRequest(
  * 列表里滚过去才不会有「先灰一下再黑一下」的跳变。
  */
 @Composable
-fun rememberMikomiPlaceholder(): Painter {
+fun rememberPlaceholder(): Painter {
     val color = skeletonBaseColor()
     return remember(color) { ColorPainter(color) }
 }
@@ -78,15 +78,15 @@ fun rememberMikomiPlaceholder(): Painter {
  * 不是「成功时 painter 里是什么」—— 后者一旦暴露，调用点就会开始依赖库的内部状态。
  */
 @Composable
-fun MikomiAsyncImage(
+fun AsyncImage(
     url: String?,
     contentDescription: String?,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
     alignment: Alignment = Alignment.Center,
     crossfade: Boolean = false,
-    placeholder: Painter? = rememberMikomiPlaceholder(),
-    error: Painter? = rememberMikomiPlaceholder(),
+    placeholder: Painter? = rememberPlaceholder(),
+    error: Painter? = rememberPlaceholder(),
     onLoading: (() -> Unit)? = null,
     onSuccess: (() -> Unit)? = null,
     onError: (() -> Unit)? = null,
@@ -103,7 +103,7 @@ fun MikomiAsyncImage(
         onError?.let { cb -> { _: AsyncImagePainter.State.Error -> cb() } }
     }
 
-    AsyncImage(
+    CoilAsyncImage(
         model = rememberCoverRequest(
             url = url,
             crossfade = crossfade,
@@ -121,13 +121,13 @@ fun MikomiAsyncImage(
 }
 
 /**
- * 需要自己画（模糊、遮罩、`drawWithContent`）时用它取 painter，而不是拿 [MikomiAsyncImage]。
+ * 需要自己画（模糊、遮罩、`drawWithContent`）时用它取 painter，而不是拿 [AsyncImage]。
  *
  * 返回上界是 Compose 的 [Painter] 而不是 coil 的 `AsyncImagePainter`：
  * 调用方只需要「能画的一张图」，不需要知道它是怎么加载的。
  */
 @Composable
-fun rememberMikomiImagePainter(
+fun rememberImagePainter(
     url: String?,
     crossfade: Boolean = false,
 ): Painter = rememberAsyncImagePainter(
@@ -140,7 +140,7 @@ fun rememberMikomiImagePainter(
 /**
  * 列表封面预取：把这一屏（或这一页）还没滚到的封面先落到磁盘缓存。
  *
- * 为什么不在 [MikomiAsyncImage] 里自动做：图片加载是「按可见性触发」的，一个 item 组合
+ * 为什么不在 [AsyncImage] 里自动做：图片加载是「按可见性触发」的，一个 item 组合
  * 出来才开始下载，滚动时新出现的卡片永远是「先占位、再淡入」。Telegram 的做法是
  * 在列表数据到手的瞬间就把接下来的几十张图排进队列，滚动时命中磁盘缓存，用户看到的是
  * 图直接出现。
@@ -149,7 +149,7 @@ fun rememberMikomiImagePainter(
  *
  * - **`memoryCachePolicy = DISABLED`**：这里不知道图片最终显示多大，把解码结果塞进内存
  *   缓存只会占着一份尺寸不对的位图。预取的目标是**网络往返**，落盘就够了，真正显示时
- *   由 `MikomiAsyncImage` 按实际尺寸解码，磁盘命中。
+ *   由 `AsyncImage` 按实际尺寸解码，磁盘命中。
  * - **`runCatching` 静默失败**：预取是「顺手帮忙」，失败了不该抛到组合层，
  *   也不该和真正显示时的失败混在一起报错。
  *

@@ -21,12 +21,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiStroke
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.model.RankEntry
 import com.liomix.mikomi.core.ui.base.ErrorState
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.Tab
 import com.liomix.mikomi.core.ui.base.TabBar
@@ -71,7 +71,7 @@ fun RankScreen(
         actions = { RefreshAction(isRefreshing = uiState.refreshing, onClick = onRefreshClick) },
         // 内容自带滚动（标签栏固定 + Pager 内的 LazyColumn），骨架不再套一层垂直滚动。
         scrollable = false,
-        contentPadding = PaddingValues(MikomiSpacing.None),
+        contentPadding = PaddingValues(Spacing.None),
         verticalArrangement = Arrangement.Top,
     ) {
         RankTabs(
@@ -111,8 +111,8 @@ private fun RefreshAction(
                 strokeWidth = RefreshIndicatorStroke,
             )
         } else {
-            MikomiIcon(
-                icon = MikomiIcons.Refresh,
+            Icon(
+                icon = Icons.Refresh,
                 contentDescription = stringResource(R.string.rank_refresh),
             )
         }
@@ -135,7 +135,7 @@ private fun RankTabs(
         onSelect = onSelect,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Md),
+            .padding(horizontal = Spacing.Lg, vertical = Spacing.Md),
         itemStyle = TabItemStyle.text(),
         itemSpacing = 0.dp,
     ) {
@@ -202,9 +202,9 @@ private fun RankList(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            start = MikomiSpacing.Md,
-            end = MikomiSpacing.Md,
-            top = MikomiSpacing.Sm,
+            start = Spacing.Md,
+            end = Spacing.Md,
+            top = Spacing.Sm,
             // 导航栏留白由 BaseScreenLayout 统一消费，这里只补悬浮栏的避让余量。
             bottom = FloatingBarClearance,
         ),
@@ -238,9 +238,9 @@ private fun RankCardSkeletonList(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            start = MikomiSpacing.Md,
-            end = MikomiSpacing.Md,
-            top = MikomiSpacing.Sm,
+            start = Spacing.Md,
+            end = Spacing.Md,
+            top = Spacing.Sm,
             bottom = FloatingBarClearance,
         ),
         verticalArrangement = Arrangement.spacedBy(RankCardSpacing),
@@ -266,7 +266,7 @@ private enum class RankType(@param:StringRes val labelRes: Int) {
 private val RefreshIndicatorSize = 20.dp
 
 /** 顶栏刷新进度环的线宽。 */
-private val RefreshIndicatorStroke = MikomiStroke.Thick
+private val RefreshIndicatorStroke = Stroke.Thick
 
 /**
  * 列表底部为悬浮排序栏留出的避让余量。

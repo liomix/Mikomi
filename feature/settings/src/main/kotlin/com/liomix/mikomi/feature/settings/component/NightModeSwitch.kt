@@ -30,7 +30,7 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.liomix.mikomi.core.ui.business.LocalNightModeToggleController
-import com.liomix.mikomi.core.designsystem.MikomiMotion
+import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 
@@ -67,7 +67,7 @@ fun BAndWSwitch(
     }
     val frame by animateFloatAsState(
         targetValue = if (darkMode) PROGRESS_SUN else PROGRESS_MOON,
-        animationSpec = tween(durationMillis = durationMillis, easing = MikomiMotion.Curve.Linear),
+        animationSpec = tween(durationMillis = durationMillis, easing = Motion.Curve.Linear),
         label = "nightModeLottieProgress",
     )
 

@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.liomix.mikomi.core.navigation.ImmersionBridge
 import com.liomix.mikomi.core.ui.base.LottieLoading
-import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.ui.window.Insets
 
 /** 巡礼地图（anitabi）页面地址。 */
 const val ANIMAP_URL = "https://www.anitabi.cn/map?c=138.5098%2C37.2073&z=5.2"
@@ -193,7 +193,7 @@ fun AniMapScreen(
             // 必须铺到手势条底下；而键盘弹起时它又必须整块让开。两者不是同一条边。
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(MikomiInsets.Top)
+                .windowInsetsPadding(Insets.Top)
                 .then(if (searchExpanded) Modifier else Modifier.imePadding()),
             factory = { context ->
                 // 复用缓存的 WebView：切换回巡礼页不再重新加载地图。
@@ -264,7 +264,7 @@ fun AniMapScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .windowInsetsPadding(MikomiInsets.Bottom)
+                    .windowInsetsPadding(Insets.Bottom)
                     .padding(bottom = 10.dp)
                     .width(96.dp)
                     .height(20.dp)
@@ -342,7 +342,7 @@ fun AniMapScreen(
             },
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .windowInsetsPadding(MikomiInsets.Chrome)
+                .windowInsetsPadding(Insets.Chrome)
                 .padding(horizontal = 12.dp, vertical = 10.dp)
                 // 记下面板的实际底边：点空白的判定范围要从这里往下，不能盖住建议条目。
                 .onGloballyPositioned { searchBarBottomPx = it.boundsInParent().bottom.toInt() },

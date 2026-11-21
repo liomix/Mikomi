@@ -30,15 +30,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiWindowSpec
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiTextStyles
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.WindowSpec
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.TextStyles
 import com.liomix.mikomi.core.ui.R
-import com.liomix.mikomi.core.ui.base.MikomiIcon
-import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
-import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.ui.base.Icon
+import com.liomix.mikomi.core.ui.window.LocalWindowSize
+import com.liomix.mikomi.core.ui.window.Insets
 
 /**
  * 让内容永远「比视口长一点点」，滚动范围因此恒大于 0。
@@ -62,12 +62,12 @@ private val OverscrollSlop = 1.dp
 object BaseScreenDefaults {
     /** 内容区四周留白。 */
     val ContentPadding: PaddingValues = PaddingValues(
-        horizontal = MikomiSpacing.Lg,
-        vertical = MikomiSpacing.Sm,
+        horizontal = Spacing.Lg,
+        vertical = Spacing.Sm,
     )
 
     /** 内容子项之间的纵向间距。 */
-    val SectionSpacing: Arrangement.Vertical = Arrangement.spacedBy(MikomiSpacing.Lg)
+    val SectionSpacing: Arrangement.Vertical = Arrangement.spacedBy(Spacing.Lg)
 }
 
 /**
@@ -78,7 +78,7 @@ object BaseScreenDefaults {
  */
 private object TopBarDefaults {
     /** 顶栏内容高度，不含状态栏。 */
-    val Height = MikomiSizes.TopBarHeight
+    val Height = Sizes.TopBarHeight
 
     /**
      * 返回箭头的视觉尺寸。
@@ -87,10 +87,10 @@ private object TopBarDefaults {
      * 但那只在图标**没有触控背景**时才成立：24dp 图形配 54dp 栏高，左右各有 15dp 留白，
      * 才是 Material 与 TG 都在用的比例；20dp 会显得整个顶栏「空得发慌」，热区也偏小。
      */
-    val IconSize = MikomiSizes.IconMd
+    val IconSize = Sizes.IconMd
 
     /** 右侧多个动作之间的间距。 */
-    val ActionSpacing = MikomiSpacing.Xs
+    val ActionSpacing = Spacing.Xs
 }
 
 /**
@@ -147,7 +147,7 @@ fun BaseScreenLayout(
             actions = actions,
         )
 
-        val expanded = LocalMikomiWindowSize.current.isExpandedWidth
+        val expanded = LocalWindowSize.current.isExpandedWidth
 
         // 用 BoxWithConstraints 而不是直接摆 Column：这里需要「滚动视口有多高」这个数，
         // 而视口高度在 verticalScroll 之后是量不到内容区高度的，只能在它外侧取。
@@ -161,7 +161,7 @@ fun BaseScreenLayout(
                 .then(
                     if (expanded) {
                         Modifier
-                            .widthIn(max = MikomiWindowSpec.ContentMaxWidth)
+                            .widthIn(max = WindowSpec.ContentMaxWidth)
                             .align(Alignment.CenterHorizontally)
                     } else {
                         Modifier
@@ -170,7 +170,7 @@ fun BaseScreenLayout(
                 // 底部留白在滚动区之外：滚到底时内容停在手势条之上，这一段不跟着滚。
                 // 用 BottomOrIme 而不是「导航栏 + imePadding」：键盘弹起时导航栏被它盖住，
                 // 两者相加会多出一条空带；这个入口自己取两者的较大值，一条链只留一个主人。
-                .windowInsetsPadding(MikomiInsets.BottomOrIme),
+                .windowInsetsPadding(Insets.BottomOrIme),
         ) {
             Column(
                 modifier = Modifier
@@ -206,7 +206,7 @@ fun BaseScreenLayout(
  * 为什么用 [SubcomposeLayout]：动作是调用方给的 slot，组件无法预先知道里面有几个、
  * 各多宽，只能在布局阶段先组合并测量出来，之后才能算出标题能占多少宽度。
  *
- * 宽屏（expanded）时整条顶栏收进与内容同宽的列里（[MikomiWindowSpec.ContentMaxWidth]）：
+ * 宽屏（expanded）时整条顶栏收进与内容同宽的列里（[WindowSpec.ContentMaxWidth]）：
  * 否则内容已经居中成一条 720dp 的列，返回键却还贴在 1200dp 屏幕的最左边，
  * 中间的空白会让人以为这一栏和下面的内容没有关系。收起之后，「屏幕中线」自动变成
  * 「内容列中线」，两者仍然重合。
@@ -220,27 +220,27 @@ private fun BaseScreenTopBar(
     onBackClick: (() -> Unit)?,
     actions: @Composable RowScope.() -> Unit,
 ) {
-    val expanded = LocalMikomiWindowSize.current.isExpandedWidth
+    val expanded = LocalWindowSize.current.isExpandedWidth
 
     SubcomposeLayout(
         modifier = Modifier
             .fillMaxWidth()
-            .windowInsetsPadding(MikomiInsets.Chrome)
+            .windowInsetsPadding(Insets.Chrome)
             .height(TopBarDefaults.Height),
     ) { constraints ->
         val width = constraints.maxWidth
         // 收列：定宽列在屏幕里居中，顶栏的三个槽位都相对这条列摆放。
         val contentWidth =
-            if (expanded) minOf(width, MikomiWindowSpec.ContentMaxWidth.roundToPx()) else width
+            if (expanded) minOf(width, WindowSpec.ContentMaxWidth.roundToPx()) else width
         val originX = (width - contentWidth) / 2
 
         val backPlaceable = if (onBackClick != null) {
             subcompose(BackSlotKey) {
                 IconButton(onClick = onBackClick) {
-                    MikomiIcon(
-                        icon = MikomiIcons.BackIos,
+                    Icon(
+                        icon = Icons.BackIos,
                         contentDescription = stringResource(R.string.core_ui_back),
-                        size = MikomiSizes.IconMd,
+                        size = Sizes.IconMd,
                     )
                 }
             }.first().measure(Constraints())
@@ -264,7 +264,7 @@ private fun BaseScreenTopBar(
             Text(
                 text = title,
                 // 字阶来自设计系统：19sp Bold，是「顶栏」这一档，不是 titleLarge 改小一档。
-                style = MikomiTextStyles.TopBarTitle,
+                style = TextStyles.TopBarTitle,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

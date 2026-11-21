@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
  * 遮罩深度，侧边栏的宽度占比与入场时长。它们改的是**行为**（面板会停在哪、拖多浅就关），
  * 不是外观；放进规格层会让人以为「这里调一下只是变宽一点」。
  * 底部弹窗与侧栏是**反例之外**：那两组值（抓手尺寸、面板宽度、锚点比例、关闭阈值）
- * 已经整体搬进 [MikomiSheetSpec] / [MikomiSideBarSpec] —— 因为「松手到多低算关闭」
+ * 已经整体搬进 [SheetSpec] / [SideBarSpec] —— 因为「松手到多低算关闭」
  * 是同一个手势在整机上的行为，不该由每个页面各调一次。
  *
  * 只搬**不可覆盖的物理规格**：轨道有多宽、胶囊圆角多大、图标与文字隔几像素。
@@ -57,7 +57,7 @@ import androidx.compose.ui.unit.dp
  *
  * 触碰范围不受影响：整行 48dp 可点（见 [TouchTargetHeight]）。
  */
-object MikomiSwitchSpec {
+object SwitchSpec {
     /** 轨道宽度。 */
     val TrackWidth: Dp = 37.dp
 
@@ -89,7 +89,7 @@ object MikomiSwitchSpec {
     const val DisabledAlpha: Float = 0.45f
 
     /** 触控高度：整行可点，不是轨道本身的 20dp。 */
-    val TouchTargetHeight: Dp = MikomiSizes.TouchTarget
+    val TouchTargetHeight: Dp = Sizes.TouchTarget
 }
 
 /**
@@ -107,12 +107,12 @@ object MikomiSwitchSpec {
  * `Meta` 的 5 / 1 是实测值 —— 它们分别受「胶囊长度看起来与文字成比例」与
  * 「小徽标不撑高行距」两个约束，落在间距阶梯之外。
  */
-object MikomiTagSpec {
+object TagSpec {
     /** 可选中标签的横内边距（实测）。 */
     val SelectableHorizontalPadding: Dp = 18.dp
 
     /**
-     * 只读标签的高度，等于**图标默认档** `MikomiSizes.IconMd`（24dp）。
+     * 只读标签的高度，等于**图标默认档** `Sizes.IconMd`（24dp）。
      *
      * 取 24 的原因不是「看起来合适」，而是它必须与同一行里的图标同高：标签和图标
      * 一旦有 4dp 的高度差，按中线对齐就会出现「左边贴着行顶、右边悬在下面」——
@@ -155,7 +155,7 @@ object MikomiTagSpec {
  * 三个字的「主页」和四个字的「发现」不会刻意对齐到同宽 —— 代价是整组要居中，
  * 收益是胶囊不会在短标签上比文字宽出一截。
  */
-object MikomiNavBarSpec {
+object NavBarSpec {
     /** 栏体高度：48dp 条目 + 上下各 4dp 内边距。 */
     val BodyHeight: Dp = 56.dp
 
@@ -193,7 +193,7 @@ object MikomiNavBarSpec {
      * （Tag / TabBar / 图标选中态）都走 150~200，差 10ms 读不出来，但多一个孤值
      * 就意味着以后调档位时会漏掉它。
      */
-    const val ContentColorMillis: Int = MikomiMotion.Duration.Fast
+    const val ContentColorMillis: Int = Motion.Duration.Fast
 }
 
 /**
@@ -202,7 +202,7 @@ object MikomiNavBarSpec {
  * 不是另起一套视觉，而是把底栏那条胶囊**竖过来**：同样是 `surfaceContainer` 的胶囊、
  * 同样的 4dp 内边距、同样的 48dp 条目、同样的 24dp 图标与 12sp 标签、同一个选中胶囊
  * 指示器（`NavBarIndicator` 只用 `Rect`，与方向无关）。所以这里只定义「竖过来之后
- * 长度变了的那几个数」，颜色、图标、字号、动效一律复用 [MikomiNavBarSpec]。
+ * 长度变了的那几个数」，颜色、图标、字号、动效一律复用 [NavBarSpec]。
  *
  * ## 为什么宽度是 80 而不是 M3 的 80/「刚好包住内容」
  *
@@ -217,7 +217,7 @@ object MikomiNavBarSpec {
  * 会压住正文中间那一列（比压住底部一行更碍事），而且页面无法预知「哪一列被挡住」。
  * 所以 rail **占位**：内容区从它右边开始，胶囊在占位里居中，谁也不压谁。
  */
-object MikomiRailSpec {
+object RailSpec {
     /** rail 占用的宽度（内容区从这条线的右边开始）。 */
     val Width: Dp = 80.dp
 
@@ -243,7 +243,7 @@ object MikomiRailSpec {
  * 这些值全部是**播放器独有**的，不该上提成全局 token —— 页面按钮永远是 48dp，
  * 而控制条必须在一行里塞下播放/上一集/下一集/倍速/画质/全屏五个动作，只能收紧。
  */
-object MikomiPlayerSpec {
+object PlayerSpec {
     /** 进度条热区高度。 */
     val SeekBarHeight: Dp = 40.dp
 
@@ -278,7 +278,7 @@ object MikomiPlayerSpec {
  *
  * 遮罩的**点击关闭**也归这条规格管：遮罩是「点一下就消失」的，不是装饰。
  */
-object MikomiScrimSpec {
+object ScrimSpec {
     /** 遮罩最深不透明度。 */
     const val Alpha: Float = 0.32f
 }
@@ -293,14 +293,14 @@ object MikomiScrimSpec {
  * 抓手 36 × 4dp 是按面板宽度量的：面板越宽，抓手相对越短，所以它不跟着屏宽变，
  * 也不该成为全局尺寸档。
  *
- * 遮罩深度不在这里 —— 浮层类共用 [MikomiScrimSpec]。
+ * 遮罩深度不在这里 —— 浮层类共用 [ScrimSpec]。
  */
-object MikomiSheetSpec {
+object SheetSpec {
     /** 默认锚点：半展开与接近全屏。比例是「面板高度 / 可用高度」。 */
     val Anchors: List<Float> = listOf(0.5f, 0.92f)
 
     /** 面板顶部两个圆角（贴边那侧不圆）。 */
-    val CornerSize: Dp = MikomiRadius.Sheet
+    val CornerSize: Dp = Radius.Sheet
 
     /** 顶部抓手的宽。 */
     val HandleWidth: Dp = 36.dp
@@ -337,7 +337,7 @@ object MikomiSheetSpec {
  * 所以另设一个比例上限兜底 —— 「绝对宽度 + 比例上限」这组搭配常见于聊天类侧栏，
  * 它不是把两种方案二选一，而是各有各管的那一端。
  */
-object MikomiSideBarSpec {
+object SideBarSpec {
     /** 面板宽度。 */
     val Width: Dp = 320.dp
 
@@ -345,13 +345,13 @@ object MikomiSideBarSpec {
     const val MaxWidthFraction: Float = 0.86f
 
     /** 面板靠屏幕内侧的两个圆角。贴边那侧不圆，否则会露出底下的页面。 */
-    val CornerSize: Dp = MikomiRadius.Xxl
+    val CornerSize: Dp = Radius.Xxl
 
     /** 入场时长。 */
-    const val EnterMillis: Int = MikomiMotion.Duration.Medium
+    const val EnterMillis: Int = Motion.Duration.Medium
 
     /** 退场时长。比入场短，关闭动作要显得更利落。 */
-    const val ExitMillis: Int = MikomiMotion.Duration.Short
+    const val ExitMillis: Int = Motion.Duration.Short
 
 }
 
@@ -371,7 +371,7 @@ object MikomiSideBarSpec {
  *
  * 本项目的断点判定**不**依赖 `material3-adaptive`（离线构建里没有这个产物），
  * 而是自己从 `LocalWindowInfo.containerDpSize` 算 —— 数据源相同，只是不引入依赖，
- * 见 `core:ui/window/MikomiWindowSize.kt`。
+ * 见 `core:ui/window/WindowSize.kt`。
  *
  * ## 为什么要一条回滞带
  *
@@ -382,7 +382,7 @@ object MikomiSideBarSpec {
  * 这里取 24dp（约半个网格列宽）而不是 52dp：52dp 对「整页重排」够用，但我们是按
  * **窗口尺寸类**分档，档位之间的差值本身就有几百 dp，回滞只需要盖住手指抖动。
  */
-object MikomiWindowSpec {
+object WindowSpec {
     /** 中号窗口的宽度下限（compact < 600 ≤ medium）。 */
     val WidthMediumMin: Dp = 600.dp
 

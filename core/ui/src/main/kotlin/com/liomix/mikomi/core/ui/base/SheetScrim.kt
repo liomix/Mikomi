@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.input.pointer.pointerInput
-import com.liomix.mikomi.core.designsystem.MikomiScrimSpec
+import com.liomix.mikomi.core.designsystem.ScrimSpec
 
 /*
  * 浮层共用的遮罩层。
@@ -60,7 +60,7 @@ internal fun SheetScrim(
                 val value = progress().coerceIn(0f, 1f)
                 // 0 时不必画：浮层刚挂载的头一帧就是 0，省掉一次全屏矩形填充。
                 if (value > 0f) {
-                    drawRect(scrimColor.copy(alpha = MikomiScrimSpec.Alpha * value))
+                    drawRect(scrimColor.copy(alpha = ScrimSpec.Alpha * value))
                 }
             }
             .pointerInput(onDismiss) {

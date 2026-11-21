@@ -34,11 +34,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.ui.base.MikomiIcon
-import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.ui.base.Icon
+import com.liomix.mikomi.core.ui.window.Insets
 
 /**
  * 搜索栏：返回 + 胶囊输入框 + 搜索按钮。
@@ -67,13 +67,13 @@ internal fun SearchTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .windowInsetsPadding(MikomiInsets.Chrome)
-            .padding(start = MikomiSpacing.Xs, end = MikomiSpacing.Sm, top = MikomiSpacing.Sm, bottom = MikomiSpacing.Md),
+            .windowInsetsPadding(Insets.Chrome)
+            .padding(start = Spacing.Xs, end = Spacing.Sm, top = Spacing.Sm, bottom = Spacing.Md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBack) {
-            MikomiIcon(
-                icon = MikomiIcons.Back,
+            Icon(
+                icon = Icons.Back,
                 contentDescription = stringResource(R.string.search_back),
             )
         }
@@ -85,7 +85,7 @@ internal fun SearchTopBar(
             autoFocus = autoFocus,
             modifier = Modifier.weight(1f),
         )
-        Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
+        Spacer(modifier = Modifier.width(Spacing.Xs))
         TextButton(
             onClick = { submit(query) },
             enabled = query.isNotBlank(),
@@ -119,16 +119,16 @@ private fun SearchField(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = MikomiSpacing.Lg, end = MikomiSpacing.Xs),
+                .padding(start = Spacing.Lg, end = Spacing.Xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MikomiIcon(
-                icon = MikomiIcons.Search,
+            Icon(
+                icon = Icons.Search,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                size = MikomiSizes.IconMd,
+                size = Sizes.IconMd,
             )
-            Spacer(modifier = Modifier.width(MikomiSpacing.Compact))
+            Spacer(modifier = Modifier.width(Spacing.Compact))
             BasicTextField(
                 value = query,
                 onValueChange = onQueryChange,
@@ -164,11 +164,11 @@ private fun SearchField(
                     onClick = onClear,
                     modifier = Modifier.size(36.dp),
                 ) {
-                    MikomiIcon(
-                        icon = MikomiIcons.Close,
+                    Icon(
+                        icon = Icons.Close,
                         contentDescription = stringResource(R.string.search_clear),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        size = MikomiSizes.IconMd,
+                        size = Sizes.IconMd,
                     )
                 }
             }
@@ -195,7 +195,7 @@ internal fun SearchCenteredHint(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = MikomiSpacing.Xxl),
+            .padding(horizontal = Spacing.Xxl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -205,7 +205,7 @@ internal fun SearchCenteredHint(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (subtitle != null) {
-            Spacer(modifier = Modifier.height(MikomiSpacing.Tight))
+            Spacer(modifier = Modifier.height(Spacing.Tight))
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
@@ -213,7 +213,7 @@ internal fun SearchCenteredHint(
             )
         }
         if (actionLabel != null && onAction != null) {
-            Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
+            Spacer(modifier = Modifier.height(Spacing.Sm))
             TextButton(onClick = onAction) {
                 Text(text = actionLabel)
             }

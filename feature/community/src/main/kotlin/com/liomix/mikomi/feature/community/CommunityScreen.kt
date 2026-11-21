@@ -16,16 +16,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiWindowSpec
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiTextStyles
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.WindowSpec
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.TextStyles
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.layout.LocalBottomBarSpace
-import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
-import com.liomix.mikomi.core.ui.window.rememberMikomiBottomInset
-import com.liomix.mikomi.core.ui.window.rememberMikomiTopInset
+import com.liomix.mikomi.core.ui.window.LocalWindowSize
+import com.liomix.mikomi.core.ui.window.rememberBottomInset
+import com.liomix.mikomi.core.ui.window.rememberTopInset
 
 /**
  * 社区页（顶级目的地）。
@@ -37,9 +37,9 @@ import com.liomix.mikomi.core.ui.window.rememberMikomiTopInset
  */
 @Composable
 fun CommunityScreen(modifier: Modifier = Modifier) {
-    val statusBarInset = rememberMikomiTopInset()
-    val navigationBarInset = rememberMikomiBottomInset()
-    val expanded = LocalMikomiWindowSize.current.isExpandedWidth
+    val statusBarInset = rememberTopInset()
+    val navigationBarInset = rememberBottomInset()
+    val expanded = LocalWindowSize.current.isExpandedWidth
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -51,7 +51,7 @@ fun CommunityScreen(modifier: Modifier = Modifier) {
                 // 内容却只有一行，读起来像「页面没加载完」。收列之后标题与内容同宽。
                 .then(
                     if (expanded) {
-                        Modifier.widthIn(max = MikomiWindowSpec.ContentMaxWidth)
+                        Modifier.widthIn(max = WindowSpec.ContentMaxWidth)
                     } else {
                         Modifier
                     },
@@ -68,9 +68,9 @@ fun CommunityScreen(modifier: Modifier = Modifier) {
                 // 页面内大标题：字阶取 headlineSmall（24sp），只把字重提到 SemiBold。
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
                 modifier = Modifier.padding(
-                    start = MikomiSpacing.Room,
-                    end = MikomiSpacing.Room,
-                    top = MikomiSpacing.Gutter,
+                    start = Spacing.Room,
+                    end = Spacing.Room,
+                    top = Spacing.Gutter,
                 ),
             )
 
@@ -90,26 +90,26 @@ fun CommunityScreen(modifier: Modifier = Modifier) {
 private fun CommunityEmptyState(modifier: Modifier = Modifier) {
     val colorScheme = MaterialTheme.colorScheme
     Column(
-        modifier = modifier.padding(horizontal = MikomiSpacing.Xxl),
+        modifier = modifier.padding(horizontal = Spacing.Xxl),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        MikomiIcon(
-            icon = MikomiIcons.Forum,
+        Icon(
+            icon = Icons.Forum,
             contentDescription = null,
             tint = colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
-            size = MikomiSizes.AvatarMd,
+            size = Sizes.AvatarMd,
         )
-        Spacer(modifier = Modifier.height(MikomiSpacing.Md))
+        Spacer(modifier = Modifier.height(Spacing.Md))
         Text(
             text = stringResource(R.string.community_empty_title),
             color = colorScheme.onSurface,
-            style = MikomiTextStyles.BodySecondary.copy(fontWeight = FontWeight.Medium),
+            style = TextStyles.BodySecondary.copy(fontWeight = FontWeight.Medium),
         )
-        Spacer(modifier = Modifier.height(MikomiSpacing.Tight))
+        Spacer(modifier = Modifier.height(Spacing.Tight))
         Text(
             text = stringResource(R.string.community_empty_body),
             color = colorScheme.onSurfaceVariant,
-            style = MikomiTextStyles.Caption,
+            style = TextStyles.Caption,
             textAlign = TextAlign.Center,
         )
     }

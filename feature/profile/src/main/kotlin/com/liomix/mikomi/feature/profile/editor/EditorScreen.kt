@@ -42,15 +42,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiStroke
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.Stroke
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.SideBarPop
 import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
-import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.feature.profile.R
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 
@@ -64,7 +64,7 @@ private const val HandleLimit = 20
 private const val BioLimit = 70
 
 /** 卡片圆角（与设置页一致）。 */
-private val CardShape = RoundedCornerShape(MikomiRadius.Xxl)
+private val CardShape = RoundedCornerShape(Radius.Xxl)
 
 /** 头像直径。 */
 private val AvatarSize = 96.dp
@@ -129,8 +129,8 @@ fun EditorScreen(
                     onClick = { onSave(name.trim(), handle, bio.trim()) },
                     enabled = canSave,
                 ) {
-                    MikomiIcon(
-                        icon = MikomiIcons.Check,
+                    Icon(
+                        icon = Icons.Check,
                         contentDescription = stringResource(R.string.profile_editor_save),
                         tint = if (canSave) {
                             colors.primary
@@ -143,10 +143,10 @@ fun EditorScreen(
             // 键盘留白由 BaseScreenLayout 的内容区统一让（BottomOrIme）：
             // 这里再写一次 imePadding 就是两份，键盘弹起时底部会空出一条黑带。
             contentPadding = PaddingValues(
-                start = MikomiSpacing.Lg,
-                end = MikomiSpacing.Lg,
-                top = MikomiSpacing.Sm,
-                bottom = MikomiSpacing.Xl,
+                start = Spacing.Lg,
+                end = Spacing.Lg,
+                top = Spacing.Sm,
+                bottom = Spacing.Xl,
             ),
         ) {
             AvatarSection(
@@ -231,7 +231,7 @@ private fun AvatarSection(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .background(colors.background, CircleShape)
-                .padding(MikomiSpacing.Xxs),
+                .padding(Spacing.Xxs),
         ) {
             Surface(
                 shape = CircleShape,
@@ -240,10 +240,10 @@ private fun AvatarSection(
                 modifier = Modifier.size(28.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    MikomiIcon(
-                        icon = MikomiIcons.PhotoCamera,
+                    Icon(
+                        icon = Icons.PhotoCamera,
                         contentDescription = null,
-                        size = MikomiSizes.IconXs,
+                        size = Sizes.IconXs,
                     )
                 }
             }
@@ -262,7 +262,7 @@ private fun FieldCard(
         shape = CardShape,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         border = BorderStroke(
-            width = MikomiStroke.Thin,
+            width = Stroke.Thin,
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
         ),
     ) {
@@ -294,7 +294,7 @@ private fun ValueRow(
             // 先 clickable 再 padding：点击区因此包住这一整行（含左右 20dp 留白），
             // 一直贴到卡片边缘与圆角，而不是只到文字为止。
             .mikomiClickable(onClick = onClick)
-            .padding(horizontal = MikomiSpacing.Room, vertical = MikomiSpacing.Lg),
+            .padding(horizontal = Spacing.Room, vertical = Spacing.Lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RowLabel(text = label)
@@ -306,11 +306,11 @@ private fun ValueRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        MikomiIcon(
-            icon = MikomiIcons.ChevronRight,
+        Icon(
+            icon = Icons.ChevronRight,
             contentDescription = null,
             tint = colors.onSurfaceVariant.copy(alpha = 0.7f),
-            size = MikomiSizes.IconMd,
+            size = Sizes.IconMd,
         )
     }
 }
@@ -334,7 +334,7 @@ private fun BioRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = MikomiSpacing.Room, vertical = MikomiSpacing.Lg),
+            .padding(horizontal = Spacing.Room, vertical = Spacing.Lg),
         verticalAlignment = Alignment.Top,
     ) {
         RowLabel(text = label)
@@ -396,8 +396,8 @@ private fun EditorPanel(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(MikomiInsets.Full)
-            .padding(horizontal = MikomiSpacing.Xl, vertical = MikomiSpacing.Room),
+            .windowInsetsPadding(Insets.Full)
+            .padding(horizontal = Spacing.Xl, vertical = Spacing.Room),
     ) {
         Text(
             text = stringResource(target.labelRes),
@@ -405,7 +405,7 @@ private fun EditorPanel(
             fontWeight = FontWeight.SemiBold,
             color = colors.onSurface,
         )
-        Spacer(modifier = Modifier.height(MikomiSpacing.Room))
+        Spacer(modifier = Modifier.height(Spacing.Room))
         when (target) {
             EditorTarget.Handle -> PanelTextField(
                 value = handle,
@@ -420,7 +420,7 @@ private fun EditorPanel(
                 placeholder = stringResource(R.string.profile_editor_name_placeholder),
             )
         }
-        Spacer(modifier = Modifier.height(MikomiSpacing.Compact))
+        Spacer(modifier = Modifier.height(Spacing.Compact))
         Text(
             text = stringResource(
                 when (target) {
@@ -431,7 +431,7 @@ private fun EditorPanel(
             style = MaterialTheme.typography.bodySmall,
             color = colors.onSurfaceVariant,
         )
-        Spacer(modifier = Modifier.height(MikomiSpacing.Room))
+        Spacer(modifier = Modifier.height(Spacing.Room))
         Button(
             onClick = onDoneClick,
             modifier = Modifier.fillMaxWidth(),
@@ -459,7 +459,7 @@ private fun PanelTextField(
                 onValueChange = onValueChange,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = MikomiSpacing.Sm),
+                    .padding(bottom = Spacing.Sm),
                 textStyle = textStyle.copy(color = colors.onSurface),
                 singleLine = true,
                 cursorBrush = SolidColor(colors.primary),
@@ -474,7 +474,7 @@ private fun PanelTextField(
             }
         }
         HorizontalDivider(
-            thickness = MikomiStroke.Thin,
+            thickness = Stroke.Thin,
             color = colors.outlineVariant.copy(alpha = 0.6f),
         )
     }

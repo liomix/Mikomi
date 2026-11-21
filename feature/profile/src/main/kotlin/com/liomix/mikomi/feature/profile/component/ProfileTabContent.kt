@@ -25,9 +25,9 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiStroke
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.Stroke
 
 /** 首屏占位行数：2 行 × 3 列 = 6 个占位格。 */
 private const val INITIAL_ROWS = 2
@@ -135,7 +135,7 @@ private fun MediaRow(dividerColor: Color, skeletonColor: Color, isFirst: Boolean
                         color = dividerColor,
                         start = Offset(step * i, 0f),
                         end = Offset(step * i, size.height),
-                        strokeWidth = MikomiStroke.Thin.toPx(),
+                        strokeWidth = Stroke.Thin.toPx(),
                     )
                 }
                 // 首行上方不画横线，其余行画一条，和 Telegram 的媒体网格一致。
@@ -144,23 +144,23 @@ private fun MediaRow(dividerColor: Color, skeletonColor: Color, isFirst: Boolean
                         color = dividerColor,
                         start = Offset(0f, 0f),
                         end = Offset(size.width, 0f),
-                        strokeWidth = MikomiStroke.Thin.toPx(),
+                        strokeWidth = Stroke.Thin.toPx(),
                     )
                 }
             },
-        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.None),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.None),
     ) {
         repeat(3) {
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .padding(MikomiSpacing.Compact),
+                    .padding(Spacing.Compact),
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(MikomiRadius.Md))
+                        .clip(RoundedCornerShape(Radius.Md))
                         .background(skeletonColor),
                 )
             }

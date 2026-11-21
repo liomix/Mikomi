@@ -12,9 +12,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import com.liomix.mikomi.core.designsystem.MikomiMotion
+import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.core.model.AniRpbHotItem
-import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.ui.window.Insets
 
 /**
  * 搜索页（无状态）。
@@ -56,11 +56,11 @@ fun SearchScreen(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .windowInsetsPadding(MikomiInsets.BottomOrIme),
+                .windowInsetsPadding(Insets.BottomOrIme),
         ) {
             Crossfade(
                 targetState = state.phase,
-                animationSpec = tween(durationMillis = MikomiMotion.Duration.Short),
+                animationSpec = tween(durationMillis = Motion.Duration.Short),
                 label = "searchPhase",
             ) { phase ->
                 when (phase) {

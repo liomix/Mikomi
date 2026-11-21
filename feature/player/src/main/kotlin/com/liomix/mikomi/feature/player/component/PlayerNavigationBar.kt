@@ -32,10 +32,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiMotion
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Motion
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.Tab
 import com.liomix.mikomi.core.ui.base.TabBar
 import com.liomix.mikomi.core.ui.base.TabItemStyle
@@ -91,14 +91,14 @@ internal fun PlayerNavigationBar(
         modifier = modifier
             .fillMaxWidth()
             .height(PlayerBarHeight)
-            .padding(horizontal = MikomiSpacing.Md),
+            .padding(horizontal = Spacing.Md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TabBar(
             selectedIndex = selectedTab.ordinal,
             onSelect = { index -> onTabSelected(PlayerTab.entries[index]) },
             containerColor = Color.Transparent,
-            contentPadding = PaddingValues(MikomiSpacing.None),
+            contentPadding = PaddingValues(Spacing.None),
             itemSpacing = 2.dp,
             itemStyle = TabItemStyle(
                 height = 32.dp,
@@ -115,17 +115,17 @@ internal fun PlayerNavigationBar(
         Row(
             // 触控区收紧到圆本身后，间距必须补回来：之前靠 48dp 热区外扩，
             // 视觉间距是「2 + 4+4」；现在热区=视觉，直接给 8dp。
-            horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.Sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CircleAction(
-                icon = if (danmakuEnabled) MikomiIcons.DanmakuOn else MikomiIcons.DanmakuOff,
+                icon = if (danmakuEnabled) Icons.DanmakuOn else Icons.DanmakuOff,
                 contentDescription = stringResource(R.string.player_danmaku),
                 active = danmakuEnabled,
                 onClick = onDanmakuToggle,
             )
             CircleAction(
-                icon = MikomiIcons.DanmakuSetting,
+                icon = Icons.DanmakuSetting,
                 contentDescription = stringResource(R.string.player_danmaku_settings),
                 onClick = onDanmakuSettingsClick,
             )
@@ -154,7 +154,7 @@ private fun CircleAction(
         } else {
             MaterialTheme.colorScheme.surfaceContainerHigh
         },
-        animationSpec = tween(durationMillis = MikomiMotion.Duration.Fast),
+        animationSpec = tween(durationMillis = Motion.Duration.Fast),
         label = "playerActionBackground",
     )
     val tint by animateColorAsState(
@@ -163,7 +163,7 @@ private fun CircleAction(
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         },
-        animationSpec = tween(durationMillis = MikomiMotion.Duration.Fast),
+        animationSpec = tween(durationMillis = Motion.Duration.Fast),
         label = "playerActionTint",
     )
 
@@ -176,7 +176,7 @@ private fun CircleAction(
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
-        MikomiIcon(
+        Icon(
             icon = icon,
             contentDescription = null,
             tint = tint,
@@ -209,7 +209,7 @@ private fun SourceChip(
             .mikomiClickable(onClick = onClick),
     ) {
         Row(
-            modifier = Modifier.padding(start = MikomiSpacing.Xs, end = MikomiSpacing.Compact),
+            modifier = Modifier.padding(start = Spacing.Xs, end = Spacing.Compact),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -226,7 +226,7 @@ private fun SourceChip(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
-            Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
+            Spacer(modifier = Modifier.width(Spacing.Xs))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,

@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.dp
  * ## 为什么是普通 object 而不是 CompositionLocal
  *
  * 尺寸不像颜色那样需要「局部换一套」——没有哪个页面要在自己的子树里把 8dp 变成 12dp。
- * 把它做成 `CompositionLocal` 只会让每个 `MikomiSpacing.Lg` 都变成一次组合期读取 +
+ * 把它做成 `CompositionLocal` 只会让每个 `Spacing.Lg` 都变成一次组合期读取 +
  * 一次失效订阅。更要紧的是：`PressButtonStyle.Filled` 这类规格是**非组合**的 `val`，
  * 在类初始化时就要拿到数值，根本读不到 `CompositionLocal`。所以尺寸是编译期常量，
  * 颜色才走 `CompositionLocal`（见 `Colors.kt`）。
@@ -28,18 +28,18 @@ import androidx.compose.ui.unit.dp
  *
  * ## 为什么要这个类
  *
- * 以前有过一份手抄的档位清单（`"Sm" to MikomiSpacing.Sm` 一条条写，在已删除的预览页里）。
+ * 以前有过一份手抄的档位清单（`"Sm" to Spacing.Sm` 一条条写，在已删除的预览页里）。
  * 手抄的清单会漏 —— 加 `Compact` 那次就漏过，`None` 与 `Xxxl` 也一直没在目录里出现过。
  * 漏掉的档位不是「显示问题」：目录看不见的刻度，等于没人会去用它。
  *
- * 现在每个尺寸 object 自带一份 [MikomiStep] 表，审计读这张表，
+ * 现在每个尺寸 object 自带一份 [Step] 表，审计读这张表，
  * 于是「新增档位」只需要改一处，且漏登记会被 `./gradlew tokenAudit` 数出来。
  *
  * 名字是手写的字符串（Kotlin 的反射拿不到 `val` 名，也不该为目录引入反射），
  * 但**数量与顺序由审计对账**，所以写错名字会立刻暴露。
  */
 @Immutable
-data class MikomiStep(val name: String, val value: Dp) {
+data class Step(val name: String, val value: Dp) {
     /** 目录里显示的数值，如 `12dp`。 */
     val label: String get() = "${value.value.toInt()}dp"
 }
@@ -73,7 +73,7 @@ data class MikomiStep(val name: String, val value: Dp) {
  * 每个布局都是人肉写的。照搬会得到 8 / 10 / 12 三档只差 2dp 的阶梯 —— 那是常量表，
  * 不是体系。所以节拍只收比值 ≥ 1.5 的档，独属于 TG 的那几个值改为**按角色**进来。
  */
-object MikomiSpacing {
+object Spacing {
     /** 0dp。显式写出「不要间距」，比传 0.dp 更容易被 review 看见。 */
     val None: Dp = 0.dp
 
@@ -115,7 +115,7 @@ object MikomiSpacing {
      * 14dp：页面水槽 —— 内容与屏幕边缘、列表行的左右内边距。
      *
      * 这一档不是节拍，是**角色**（见文件头）。取值来源是全仓实测：
-     * `padding(horizontal = MikomiSpacing.Gutter)` 散布在搜索、社区、插件商店、代理、日程、个人页六个模块，
+     * `padding(horizontal = Spacing.Gutter)` 散布在搜索、社区、插件商店、代理、日程、个人页六个模块，
      * 是它们共用的同一条水槽；而 [Lg]（16）在这类位置上一次都没用过。
      *
      * 与 [Lg] 的分工：内容贴边 → 用这里；两个区块之间 → 用 [Lg]。
@@ -155,20 +155,20 @@ object MikomiSpacing {
      * 审计（`./gradlew tokenAudit`）读这张表 ——
      * **它必须与本 object 里的 `val` 一一对应**，漏一条或写错名会被审计数出来。
      */
-    val steps: List<MikomiStep> = listOf(
-        MikomiStep("None", None),
-        MikomiStep("Xxs", Xxs),
-        MikomiStep("Xs", Xs),
-        MikomiStep("Tight", Tight),
-        MikomiStep("Sm", Sm),
-        MikomiStep("Compact", Compact),
-        MikomiStep("Md", Md),
-        MikomiStep("Gutter", Gutter),
-        MikomiStep("Lg", Lg),
-        MikomiStep("Room", Room),
-        MikomiStep("Xl", Xl),
-        MikomiStep("Xxl", Xxl),
-        MikomiStep("Xxxl", Xxxl),
+    val steps: List<Step> = listOf(
+        Step("None", None),
+        Step("Xxs", Xxs),
+        Step("Xs", Xs),
+        Step("Tight", Tight),
+        Step("Sm", Sm),
+        Step("Compact", Compact),
+        Step("Md", Md),
+        Step("Gutter", Gutter),
+        Step("Lg", Lg),
+        Step("Room", Room),
+        Step("Xl", Xl),
+        Step("Xxl", Xxl),
+        Step("Xxxl", Xxxl),
     )
 }
 
@@ -188,7 +188,7 @@ object MikomiSpacing {
  * 档位数比数值更重要：8 档以上就会出现「12 和 14 我该选哪个」的犹豫。新增档位前先确认
  * 至少有 3 个调用点会用到它，否则它只是把常量换了个名字。
  */
-object MikomiRadius {
+object Radius {
     /** 4dp：贴边的小块（进度条、极小的角标）。 */
     val Xs: Dp = 4.dp
 
@@ -210,20 +210,20 @@ object MikomiRadius {
     /** 28dp：对话框 —— 与顶栏高度同一量级，看起来像「从底边长出来的」。 */
     val Sheet: Dp = 28.dp
 
-    /** 全部档位。规则同 [MikomiSpacing.steps]。 */
-    val steps: List<MikomiStep> = listOf(
-        MikomiStep("Xs", Xs),
-        MikomiStep("Sm", Sm),
-        MikomiStep("Md", Md),
-        MikomiStep("Lg", Lg),
-        MikomiStep("Xl", Xl),
-        MikomiStep("Xxl", Xxl),
-        MikomiStep("Sheet", Sheet),
+    /** 全部档位。规则同 [Spacing.steps]。 */
+    val steps: List<Step> = listOf(
+        Step("Xs", Xs),
+        Step("Sm", Sm),
+        Step("Md", Md),
+        Step("Lg", Lg),
+        Step("Xl", Xl),
+        Step("Xxl", Xxl),
+        Step("Sheet", Sheet),
     )
 }
 
 /** 固定尺寸：触控目标、图标、行高。只收跨组件共用的那几个。 */
-object MikomiSizes {
+object Sizes {
     /** 无障碍最小触控目标（rule §5.3）。凡是可点的独立控件都要撑到它。 */
     val TouchTarget: Dp = 48.dp
 
@@ -279,16 +279,16 @@ object MikomiSizes {
     /** 中头像：评论、日程、列表中的人物位。 */
     val AvatarMd: Dp = 40.dp
 
-    /** 全部档位。规则同 [MikomiSpacing.steps]。 */
-    val steps: List<MikomiStep> = listOf(
-        MikomiStep("IconXs", IconXs),
-        MikomiStep("IconMd", IconMd),
-        MikomiStep("ChipHeight", ChipHeight),
-        MikomiStep("AvatarMd", AvatarMd),
-        MikomiStep("TouchTarget", TouchTarget),
-        MikomiStep("ButtonHeight", ButtonHeight),
-        MikomiStep("TopBarHeight", TopBarHeight),
-        MikomiStep("RowDouble", RowDouble),
+    /** 全部档位。规则同 [Spacing.steps]。 */
+    val steps: List<Step> = listOf(
+        Step("IconXs", IconXs),
+        Step("IconMd", IconMd),
+        Step("ChipHeight", ChipHeight),
+        Step("AvatarMd", AvatarMd),
+        Step("TouchTarget", TouchTarget),
+        Step("ButtonHeight", ButtonHeight),
+        Step("TopBarHeight", TopBarHeight),
+        Step("RowDouble", RowDouble),
     )
 }
 
@@ -299,7 +299,7 @@ object MikomiSizes {
  * 所以「浮起感」优先用底色差 + 留白表达，阴影只在真正悬浮于内容之上时才用，
  * 且只有这四档。
  */
-object MikomiElevation {
+object Elevation {
     /** 贴平：默认值，绝大多数表面。 */
     val Flat: Dp = 0.dp
 
@@ -315,13 +315,13 @@ object MikomiElevation {
     /** 抽屉：从底部升起、需要明确脱离页面的一层。 */
     val Sheet: Dp = 12.dp
 
-    /** 全部档位。规则同 [MikomiSpacing.steps]。 */
-    val steps: List<MikomiStep> = listOf(
-        MikomiStep("Flat", Flat),
-        MikomiStep("Raised", Raised),
-        MikomiStep("Floating", Floating),
-        MikomiStep("Overlay", Overlay),
-        MikomiStep("Sheet", Sheet),
+    /** 全部档位。规则同 [Spacing.steps]。 */
+    val steps: List<Step> = listOf(
+        Step("Flat", Flat),
+        Step("Raised", Raised),
+        Step("Floating", Floating),
+        Step("Overlay", Overlay),
+        Step("Sheet", Sheet),
     )
 }
 
@@ -332,7 +332,7 @@ object MikomiElevation {
  *
  * 它是**唯一一类不该跟着间距走**的尺寸：线宽表达的是「这里有一条边界」，
  * 它的取值由屏幕密度和视觉重量决定，跟布局节奏没有关系。把 `1.dp` 混在
- * [MikomiSpacing] 里选，下一次有人想「让描边粗一点」时会去动间距阶梯。
+ * [Spacing] 里选，下一次有人想「让描边粗一点」时会去动间距阶梯。
  *
  * ## 只留三档
  *
@@ -343,7 +343,7 @@ object MikomiElevation {
  * 注意：`0.5.dp` 不在这里。低于 1px 的线在不同密度下会被抹成 0 或 1px 的跳变，
  * 「更细的分隔线」应当换更淡的颜色（`outlineVariant`），而不是换更细的线。
  */
-object MikomiStroke {
+object Stroke {
     /** 1dp：分隔线、卡片描边、进度条轨道。绝大多数边界都是这一档。 */
     val Thin: Dp = 1.dp
 
@@ -353,10 +353,10 @@ object MikomiStroke {
     /** 2dp：强调描边 —— 选中态、错误态这种「必须一眼分辨」的边界。 */
     val Thick: Dp = 2.dp
 
-    /** 全部档位。规则同 [MikomiSpacing.steps]。 */
-    val steps: List<MikomiStep> = listOf(
-        MikomiStep("Thin", Thin),
-        MikomiStep("Medium", Medium),
-        MikomiStep("Thick", Thick),
+    /** 全部档位。规则同 [Spacing.steps]。 */
+    val steps: List<Step> = listOf(
+        Step("Thin", Thin),
+        Step("Medium", Medium),
+        Step("Thick", Thick),
     )
 }

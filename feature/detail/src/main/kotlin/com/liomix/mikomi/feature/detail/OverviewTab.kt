@@ -29,14 +29,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiStroke
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.PillShape
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.Tag
 import com.liomix.mikomi.core.ui.base.mikomiClickable
@@ -73,8 +73,8 @@ internal fun OverviewTab(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(MikomiSpacing.Lg),
-        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xl),
+            .padding(Spacing.Lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.Xl),
     ) {
         // 简介。
         Column(
@@ -84,7 +84,7 @@ internal fun OverviewTab(
                     stiffness = Spring.StiffnessLow,
                 ),
             ),
-            verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.Md),
         ) {
             Text(
                 text = stringResource(R.string.detail_synopsis),
@@ -111,7 +111,7 @@ internal fun OverviewTab(
 
         // 标签。
         if (anime.genres.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.Md)) {
                 Text(
                     text = stringResource(R.string.detail_tags),
                     style = MaterialTheme.typography.titleMedium,
@@ -123,8 +123,8 @@ internal fun OverviewTab(
                     anime.genres.take(MAX_VISIBLE_TAGS)
                 }
                 FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
-                    verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.Sm),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.Sm),
                 ) {
                     visibleTags.forEach { tag ->
                         Tag(text = tag)
@@ -163,15 +163,15 @@ private fun ExpandChip(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = RoundedCornerShape(MikomiRadius.Xxl),
-        border = BorderStroke(MikomiStroke.Thin, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(Radius.Xxl),
+        border = BorderStroke(Stroke.Thin, MaterialTheme.colorScheme.outlineVariant),
         color = MaterialTheme.colorScheme.surface,
         modifier = modifier,
     ) {
         Row(
             modifier = Modifier
                 .mikomiClickable(onClick = onClick)
-                .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Sm),
+                .padding(horizontal = Spacing.Lg, vertical = Spacing.Sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -181,11 +181,11 @@ private fun ExpandChip(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(modifier = Modifier.size(MikomiSpacing.Xs))
-            MikomiIcon(
-                icon = if (expanded) MikomiIcons.Remove else MikomiIcons.Add,
+            Spacer(modifier = Modifier.size(Spacing.Xs))
+            Icon(
+                icon = if (expanded) Icons.Remove else Icons.Add,
                 contentDescription = null,
-                size = MikomiSizes.IconXs,
+                size = Sizes.IconXs,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -200,43 +200,43 @@ private fun OverviewSkeleton(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(MikomiSpacing.Lg),
-        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xl),
+            .padding(Spacing.Lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.Xl),
     ) {
         // 简介标题 + 段落骨架。
-        Column(verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.Md)) {
             SkeletonBox(
                 modifier = Modifier.size(width = 48.dp, height = 18.dp),
-                shape = MikomiPillShape,
+                shape = PillShape,
             )
             SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(14.dp),
-                shape = MikomiPillShape,
+                shape = PillShape,
             )
             SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(14.dp),
-                shape = MikomiPillShape,
+                shape = PillShape,
             )
             SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
                     .height(14.dp),
-                shape = MikomiPillShape,
+                shape = PillShape,
             )
         }
         // 标签标题 + chip 骨架。
-        Column(verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.Md)) {
             SkeletonBox(
                 modifier = Modifier.size(width = 48.dp, height = 18.dp),
-                shape = MikomiPillShape,
+                shape = PillShape,
             )
             FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
-                verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.Sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.Sm),
             ) {
                 repeat(6) { index ->
                     SkeletonBox(
@@ -244,7 +244,7 @@ private fun OverviewSkeleton(
                             width = (56 + (index % 3) * 20).dp,
                             height = 32.dp,
                         ),
-                        shape = RoundedCornerShape(MikomiRadius.Xl),
+                        shape = RoundedCornerShape(Radius.Xl),
                     )
                 }
             }

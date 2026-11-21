@@ -14,11 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.ui.base.MikomiIcon
-import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.ui.base.Icon
+import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.feature.player.R
 
 /**
@@ -32,20 +32,20 @@ internal fun CommentSection(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .windowInsetsPadding(MikomiInsets.Bottom),
+            .windowInsetsPadding(Insets.Bottom),
         contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            MikomiIcon(
-                icon = MikomiIcons.Forum,
+            Icon(
+                icon = Icons.Forum,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
-                size = MikomiSizes.AvatarMd,
+                size = Sizes.AvatarMd,
             )
-            Spacer(modifier = Modifier.height(MikomiSpacing.Md))
+            Spacer(modifier = Modifier.height(Spacing.Md))
             Text(
                 text = stringResource(R.string.player_comments_placeholder),
                 style = MaterialTheme.typography.bodyMedium,

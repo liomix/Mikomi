@@ -82,7 +82,7 @@ class ThemeViewModel @Inject constructor(
         )
 
     /**
-     * 一次性提示，由 UI 层用 [com.liomix.mikomi.core.ui.base.MikomiToast] 呈现。
+     * 一次性提示，由 UI 层用 [com.liomix.mikomi.core.ui.base.Toast] 呈现。
      *
      * 用 `Channel(CONFLATED)` 而不是 `MutableSharedFlow`：SharedFlow 是「广播给当前订阅者」，
      * `replay = 0` 时**没有订阅者就直接丢弃**（`tryEmit` 还会返回 true，静默丢）。

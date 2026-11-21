@@ -29,14 +29,14 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.IntOffset
-import com.liomix.mikomi.core.designsystem.MikomiMotion
-import com.liomix.mikomi.core.designsystem.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.MikomiSwitchSpec
-import com.liomix.mikomi.core.designsystem.MikomiShadowColor
+import com.liomix.mikomi.core.designsystem.Motion
+import com.liomix.mikomi.core.designsystem.PillShape
+import com.liomix.mikomi.core.designsystem.SwitchSpec
+import com.liomix.mikomi.core.designsystem.ShadowColor
 import kotlin.math.roundToInt
 
 /*
- * 轨道尺寸、拇指行程、投影与内阴影都在 `MikomiSwitchSpec` 里。
+ * 轨道尺寸、拇指行程、投影与内阴影都在 `SwitchSpec` 里。
  *
  * 造型来自一段 CSS（`.slider` + `::before`）：可见轨道 37 × 20 是 Telegram 设置项里
  * `Switch` 的布局框（`LayoutHelper.createFrame(37, 20, …)`），CSS 的 `60 × 30` 加
@@ -47,11 +47,11 @@ import kotlin.math.roundToInt
 /** CSS 的 `transition: .3s`，缓动也是 `ease`（不是 Material 的 FastOutSlowIn）。
  * 时长与曲线是动效 token，不属于规格层 —— 它们跟整机的节奏一致，不是这个控件的物理尺寸。
  */
-private const val SwitchAnimMillis = MikomiMotion.Duration.Long
-private val SwitchEasing: Easing = MikomiMotion.Curve.Press
+private const val SwitchAnimMillis = Motion.Duration.Long
+private val SwitchEasing: Easing = Motion.Curve.Press
 
-/** 轨道内阴影的强度：按模糊摊薄后的值给（见 `MikomiSwitchSpec.InnerShadowAlpha`）。 */
-private val InnerShadowColor = MikomiShadowColor.copy(alpha = MikomiSwitchSpec.InnerShadowAlpha)
+/** 轨道内阴影的强度：按模糊摊薄后的值给（见 `SwitchSpec.InnerShadowAlpha`）。 */
+private val InnerShadowColor = ShadowColor.copy(alpha = SwitchSpec.InnerShadowAlpha)
 
 /**
  * 胶囊开关。
@@ -60,7 +60,7 @@ private val InnerShadowColor = MikomiShadowColor.copy(alpha = MikomiSwitchSpec.I
  * 靠轨道 `overflow: hidden` 只露出其中一半。因此关的时候拨片是「左边齐、右边圆」，
  * 开的时候翻过来 —— 换成一个圆形拇指就没有这个形状特征了，那是 Material / Telegram 的开关。
  *
- * 三个位置（CSS 的 `translateX`，按比例缩到 ±[MikomiSwitchSpec.ThumbTravel]）：
+ * 三个位置（CSS 的 `translateX`，按比例缩到 ±[SwitchSpec.ThumbTravel]）：
  * - 关 → 贴左，露出左半；
  * - 按住 → 居中，整块盖住轨道（CSS 的 `:active`，也是这个组件唯一的按压反馈；
  *   没有水波纹，因为拨片自己会「张开」）；
@@ -74,7 +74,7 @@ private val InnerShadowColor = MikomiShadowColor.copy(alpha = MikomiSwitchSpec.I
  *   **夜间不能也用它** —— 夜间的 `surfaceContainerLowest` 是 #0D0D0D，拨片会和轨道糊成一块，
  *   所以夜间改用 `onSurface`（近白）。
  *
- * 尺寸按 CSS 的比例缩到 37 × 20（Telegram 开关的布局框）。要改大小请改 `MikomiSwitchSpec`，
+ * 尺寸按 CSS 的比例缩到 37 × 20（Telegram 开关的布局框）。要改大小请改 `SwitchSpec`，
  * 别在调用点套缩放 —— 拨片靠「等宽 + 平移 + 裁切」成立，缩放会把圆角和行程的比例一起带歪。
  *
  * 两种用法：
@@ -126,21 +126,21 @@ fun Switch(
         animationSpec = tween(SwitchAnimMillis, easing = SwitchEasing),
         label = "switchThumbProgress",
     )
-    val travelPx = with(LocalDensity.current) { MikomiSwitchSpec.ThumbTravel.toPx() }
+    val travelPx = with(LocalDensity.current) { SwitchSpec.ThumbTravel.toPx() }
     // -行程 .. +行程：progress 0.5 时正好停在窗口正中（拨片盖满整条轨道）。
     val thumbOffsetPx = ((progress - 0.5f) * 2f * travelPx)
 
     Box(
         modifier = modifier
-            .alpha(if (enabled) 1f else MikomiSwitchSpec.DisabledAlpha)
+            .alpha(if (enabled) 1f else SwitchSpec.DisabledAlpha)
             .then(
                 if (onCheckedChange == null) {
                     // 纯视觉：**一个手势都不挂**，点在这一块上会直接穿透到外层行。
-                    Modifier.size(MikomiSwitchSpec.TrackWidth, MikomiSwitchSpec.TrackHeight)
+                    Modifier.size(SwitchSpec.TrackWidth, SwitchSpec.TrackHeight)
                 } else {
                     // 独立开关：点击槽补到 48dp 高（轨道 38dp 居中），够最小触控目标。
                     Modifier
-                        .size(width = MikomiSwitchSpec.TrackWidth, height = MikomiSwitchSpec.TouchTargetHeight)
+                        .size(width = SwitchSpec.TrackWidth, height = SwitchSpec.TouchTargetHeight)
                         .toggleable(
                             value = checked,
                             onValueChange = { onCheckedChange(it) },
@@ -156,8 +156,8 @@ fun Switch(
     ) {
         Box(
             modifier = Modifier
-                .size(width = MikomiSwitchSpec.TrackWidth, height = MikomiSwitchSpec.TrackHeight)
-                .clip(MikomiPillShape)
+                .size(width = SwitchSpec.TrackWidth, height = SwitchSpec.TrackHeight)
+                .clip(PillShape)
                 .background(trackColor)
                 // 内阴影必须夹在「底色」和「拨片」之间：`drawBehind` 画的正是子项之前那一刻，
                 // 所以阴影盖得住底色、又压不到拨片上（CSS 的 inset shadow 也是这样被 ::before 盖住的）。
@@ -166,23 +166,23 @@ fun Switch(
             // 活动窗口：拨片被裁在这里面，多出来的那半块看不见。
             Box(
                 modifier = Modifier
-                    .padding(MikomiSwitchSpec.ThumbInset)
-                    .clip(MikomiPillShape),
+                    .padding(SwitchSpec.ThumbInset)
+                    .clip(PillShape),
             ) {
                 Box(
                     modifier = Modifier
                         .offset { IntOffset(thumbOffsetPx.roundToInt(), 0) }
-                        .size(width = MikomiSwitchSpec.ThumbWidth, height = MikomiSwitchSpec.ThumbHeight)
+                        .size(width = SwitchSpec.ThumbWidth, height = SwitchSpec.ThumbHeight)
                         // 投影是整块拨片的：平移出去的那半边被窗口裁掉，所以只在露出来的那一侧看到影子 ——
                         // 这正是 CSS 里 `overflow: hidden` 裁掉 `box-shadow` 的结果，也是这个造型的「厚度」来源。
                         .shadow(
-                            elevation = MikomiSwitchSpec.ThumbShadowElevation,
-                            shape = MikomiPillShape,
+                            elevation = SwitchSpec.ThumbShadowElevation,
+                            shape = PillShape,
                             clip = false,
-                            ambientColor = MikomiShadowColor,
-                            spotColor = MikomiShadowColor,
+                            ambientColor = ShadowColor,
+                            spotColor = ShadowColor,
                         )
-                        .background(colors.thumb, MikomiPillShape),
+                        .background(colors.thumb, PillShape),
                 )
             }
         }
@@ -194,12 +194,12 @@ fun Switch(
  *
  * 不真的做一次模糊：Compose 里要对一个形状做「内阴影」要么离屏渲染一遍再反转 alpha，
  * 要么手写带 `BlurMaskFilter` 的 nativeCanvas（低版本会被硬件加速吞掉）。
- * 这里用两条交叉的线性渐变近似 —— 上下一道、左右一道，各自从边缘往内 [MikomiSwitchSpec.InnerShadowBlur] 化到透明。
+ * 这里用两条交叉的线性渐变近似 —— 上下一道、左右一道，各自从边缘往内 [SwitchSpec.InnerShadowBlur] 化到透明。
  * 拨片是圆角胶囊、整条轨道才 37 × 20，两者在屏幕上的差别看不出来，却省掉一个离屏图层。
  */
 private fun DrawScope.drawTrackInnerShadow() {
-    val fadeY = (MikomiSwitchSpec.InnerShadowBlur.toPx() / size.height).coerceIn(0f, 0.5f)
-    val fadeX = (MikomiSwitchSpec.InnerShadowBlur.toPx() / size.width).coerceIn(0f, 0.5f)
+    val fadeY = (SwitchSpec.InnerShadowBlur.toPx() / size.height).coerceIn(0f, 0.5f)
+    val fadeX = (SwitchSpec.InnerShadowBlur.toPx() / size.width).coerceIn(0f, 0.5f)
     drawRect(
         brush = Brush.verticalGradient(
             0f to InnerShadowColor,

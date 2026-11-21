@@ -26,13 +26,13 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.PillShape
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 
@@ -74,7 +74,7 @@ internal fun SearchSuggestionList(
             } else {
                 LazyColumn(
                     modifier = modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = MikomiSpacing.Sm),
+                    contentPadding = PaddingValues(vertical = Spacing.Sm),
                 ) {
                     items(
                         items = suggestions,
@@ -112,16 +112,16 @@ private fun SuggestionItem(
         modifier = modifier
             .fillMaxWidth()
             .mikomiClickable(onClick = onClick)
-            .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Gutter),
+            .padding(horizontal = Spacing.Lg, vertical = Spacing.Gutter),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MikomiIcon(
-            icon = MikomiIcons.Search,
+        Icon(
+            icon = Icons.Search,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            size = MikomiSizes.IconMd,
+            size = Sizes.IconMd,
         )
-        Spacer(modifier = Modifier.width(MikomiSpacing.Md))
+        Spacer(modifier = Modifier.width(Spacing.Md))
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
@@ -130,12 +130,12 @@ private fun SuggestionItem(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        Spacer(modifier = Modifier.width(MikomiSpacing.Md))
-        MikomiIcon(
-            icon = MikomiIcons.NorthWest,
+        Spacer(modifier = Modifier.width(Spacing.Md))
+        Icon(
+            icon = Icons.NorthWest,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            size = MikomiSizes.IconXs,
+            size = Sizes.IconXs,
         )
     }
 }
@@ -162,25 +162,25 @@ private fun SuggestionSkeleton(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(vertical = MikomiSpacing.Sm),
+            .padding(vertical = Spacing.Sm),
     ) {
         repeat(SUGGESTION_SKELETON_COUNT) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Gutter),
+                    .padding(horizontal = Spacing.Lg, vertical = Spacing.Gutter),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SkeletonBox(
                     modifier = Modifier.size(20.dp),
-                    shape = RoundedCornerShape(MikomiRadius.Md),
+                    shape = RoundedCornerShape(Radius.Md),
                 )
-                Spacer(modifier = Modifier.width(MikomiSpacing.Md))
+                Spacer(modifier = Modifier.width(Spacing.Md))
                 SkeletonBox(
                     modifier = Modifier
                         .fillMaxWidth(0.6f)
                         .height(14.dp),
-                    shape = MikomiPillShape,
+                    shape = PillShape,
                 )
             }
         }

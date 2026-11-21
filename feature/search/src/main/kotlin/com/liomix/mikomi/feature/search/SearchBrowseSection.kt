@@ -49,16 +49,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiMotion
-import com.liomix.mikomi.core.designsystem.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiStroke
-import com.liomix.mikomi.core.designsystem.MikomiTheme
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Motion
+import com.liomix.mikomi.core.designsystem.PillShape
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.Stroke
+import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.model.AniRpbHotItem
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.ScrollingText
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.Tab
@@ -107,22 +107,22 @@ internal fun SearchBrowseSection(
     LazyColumn(
         state = listState,
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = MikomiSpacing.Xl),
+        contentPadding = PaddingValues(bottom = Spacing.Xl),
     ) {
         if (state.history.isNotEmpty()) {
             item(key = "history_header") {
                 SectionHeader(
-                    icon = MikomiIcons.History,
+                    icon = Icons.History,
                     title = stringResource(R.string.search_history),
                     // 紧贴搜索框，减少顶部空白。
                     topPadding = 2.dp,
                     action = {
                         IconButton(onClick = onClearHistory) {
-                            MikomiIcon(
-                                icon = MikomiIcons.Delete,
+                            Icon(
+                                icon = Icons.Delete,
                                 contentDescription = stringResource(R.string.search_history_clear),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                size = MikomiSizes.IconMd,
+                                size = Sizes.IconMd,
                             )
                         }
                     },
@@ -141,7 +141,7 @@ internal fun SearchBrowseSection(
 
         item(key = "hot_header") {
             SectionHeader(
-                icon = MikomiIcons.Whatshot,
+                icon = Icons.Whatshot,
                 title = stringResource(R.string.search_hot_ranking),
             )
         }
@@ -192,16 +192,16 @@ private fun SectionHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = MikomiSpacing.Lg, end = MikomiSpacing.Sm, top = topPadding, bottom = MikomiSpacing.Sm),
+            .padding(start = Spacing.Lg, end = Spacing.Sm, top = topPadding, bottom = Spacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MikomiIcon(
+        Icon(
             icon = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            size = MikomiSizes.IconMd,
+            size = Sizes.IconMd,
         )
-        Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
+        Spacer(modifier = Modifier.width(Spacing.Sm))
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
@@ -224,7 +224,7 @@ private fun HotTabs(
         onSelect = { index -> onSelect(SearchHotTab.entries[index]) },
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Xs),
+            .padding(horizontal = Spacing.Lg, vertical = Spacing.Xs),
         itemStyle = TabItemStyle.text(),
         itemSpacing = 0.dp,
     ) {
@@ -259,10 +259,10 @@ private fun HistoryTags(
     FlowRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = MikomiSpacing.Lg)
+            .padding(horizontal = Spacing.Lg)
             .animateContentSize(),
-        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
-        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.Sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.Sm),
     ) {
         visible.forEach { keyword ->
             HistoryTab(
@@ -293,12 +293,12 @@ private fun HistoryTab(
             .widthIn(max = CHIP_MAX_WIDTH),
         shape = CircleShape,
         color = Color.Transparent,
-        border = BorderStroke(MikomiStroke.Thin, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(Stroke.Thin, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Box(
             modifier = Modifier
                 .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-                .padding(horizontal = MikomiSpacing.Gutter, vertical = MikomiSpacing.Sm),
+                .padding(horizontal = Spacing.Gutter, vertical = Spacing.Sm),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -326,14 +326,14 @@ private fun ExpandTab(
             .mikomiClickable(onClick = onClick),
         shape = CircleShape,
         color = Color.Transparent,
-        border = BorderStroke(MikomiStroke.Thin, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(Stroke.Thin, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
             modifier = Modifier.padding(
-                start = MikomiSpacing.Gutter,
-                end = MikomiSpacing.Compact,
-                top = MikomiSpacing.Sm,
-                bottom = MikomiSpacing.Sm,
+                start = Spacing.Gutter,
+                end = Spacing.Compact,
+                top = Spacing.Sm,
+                bottom = Spacing.Sm,
             ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -344,12 +344,12 @@ private fun ExpandTab(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Spacer(modifier = Modifier.width(MikomiSpacing.Xxs))
-            MikomiIcon(
-                icon = if (expanded) MikomiIcons.ExpandLess else MikomiIcons.ExpandMore,
+            Spacer(modifier = Modifier.width(Spacing.Xxs))
+            Icon(
+                icon = if (expanded) Icons.ExpandLess else Icons.ExpandMore,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                size = MikomiSizes.IconMd,
+                size = Sizes.IconMd,
             )
         }
     }
@@ -366,12 +366,12 @@ private fun HotRankingCard(
     LaunchedEffect(Unit) { revealed = true }
     val alpha by animateFloatAsState(
         targetValue = if (revealed) 1f else 0f,
-        animationSpec = tween(durationMillis = MikomiMotion.Duration.Medium),
+        animationSpec = tween(durationMillis = Motion.Duration.Medium),
         label = "hotAlpha",
     )
     val offsetY by animateFloatAsState(
         targetValue = if (revealed) 0f else 16f,
-        animationSpec = tween(durationMillis = MikomiMotion.Duration.Medium),
+        animationSpec = tween(durationMillis = Motion.Duration.Medium),
         label = "hotOffset",
     )
 
@@ -397,13 +397,13 @@ private fun BillboardSurface(
     content: @Composable () -> Unit,
 ) {
     Surface(
-        shape = RoundedCornerShape(MikomiRadius.Xxl),
+        shape = RoundedCornerShape(Radius.Xxl),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = MikomiSpacing.Lg),
+            .padding(horizontal = Spacing.Lg),
     ) {
-        Column(modifier = Modifier.padding(vertical = MikomiSpacing.Tight)) {
+        Column(modifier = Modifier.padding(vertical = Spacing.Tight)) {
             content()
         }
     }
@@ -419,10 +419,10 @@ private fun HotRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = MikomiSpacing.Tight)
-            .clip(RoundedCornerShape(MikomiRadius.Xl))
+            .padding(horizontal = Spacing.Tight)
+            .clip(RoundedCornerShape(Radius.Xl))
             .mikomiClickable(onClick = onClick)
-            .padding(horizontal = MikomiSpacing.Sm, vertical = MikomiSpacing.Sm),
+            .padding(horizontal = Spacing.Sm, vertical = Spacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -432,13 +432,13 @@ private fun HotRow(
             color = rankColor(item.rank),
             modifier = Modifier.width(28.dp),
         )
-        Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
+        Spacer(modifier = Modifier.width(Spacing.Sm))
         AnimeCoverImage(
             url = item.coverUrl,
             contentDescription = item.title,
             modifier = Modifier.width(40.dp),
         )
-        Spacer(modifier = Modifier.width(MikomiSpacing.Md))
+        Spacer(modifier = Modifier.width(Spacing.Md))
         Column(modifier = Modifier.weight(1f)) {
             ScrollingText(
                 text = item.title,
@@ -447,7 +447,7 @@ private fun HotRow(
                 enabled = false,
             )
             if (item.updateText.isNotBlank()) {
-                Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
+                Spacer(modifier = Modifier.height(Spacing.Xxs))
                 Text(
                     text = item.updateText,
                     style = MaterialTheme.typography.labelSmall,
@@ -457,7 +457,7 @@ private fun HotRow(
                 )
             }
             if (item.currentEpisodes > 0 || item.score != null || item.playCount > 0) {
-                Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
+                Spacer(modifier = Modifier.height(Spacing.Xxs))
                 HotMeta(item = item)
             }
         }
@@ -487,13 +487,13 @@ private fun HotMeta(
         }
         if (item.score != null) {
             if (hasPrevious) MetaSeparator(color = metaColor)
-            MikomiIcon(
-                icon = MikomiIcons.Star,
+            Icon(
+                icon = Icons.Star,
                 contentDescription = null,
-                tint = MikomiTheme.colors.rating,
-                size = MikomiSizes.IconXs,
+                tint = AppTheme.colors.rating,
+                size = Sizes.IconXs,
             )
-            Spacer(modifier = Modifier.width(MikomiSpacing.Xxs))
+            Spacer(modifier = Modifier.width(Spacing.Xxs))
             Text(
                 text = String.format(Locale.ROOT, "%.1f", item.score),
                 style = MaterialTheme.typography.labelSmall,
@@ -539,34 +539,34 @@ private fun HotSkeletonCard(modifier: Modifier = Modifier) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = MikomiSpacing.Gutter, vertical = MikomiSpacing.Sm),
+                    .padding(horizontal = Spacing.Gutter, vertical = Spacing.Sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SkeletonBox(
                     modifier = Modifier.size(width = 22.dp, height = 16.dp),
-                    shape = RoundedCornerShape(MikomiRadius.Xs),
+                    shape = RoundedCornerShape(Radius.Xs),
                 )
-                Spacer(modifier = Modifier.width(MikomiSpacing.Md))
+                Spacer(modifier = Modifier.width(Spacing.Md))
                 SkeletonBox(
                     modifier = Modifier.size(width = 36.dp, height = 54.dp),
-                    shape = RoundedCornerShape(MikomiRadius.Sm),
+                    shape = RoundedCornerShape(Radius.Sm),
                 )
-                Spacer(modifier = Modifier.width(MikomiSpacing.Md))
+                Spacer(modifier = Modifier.width(Spacing.Md))
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Tight),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.Tight),
                 ) {
                     SkeletonBox(
                         modifier = Modifier
                             .fillMaxWidth(0.6f)
                             .height(14.dp),
-                        shape = MikomiPillShape,
+                        shape = PillShape,
                     )
                     SkeletonBox(
                         modifier = Modifier
                             .fillMaxWidth(0.25f)
                             .height(11.dp),
-                        shape = RoundedCornerShape(MikomiRadius.Sm),
+                        shape = RoundedCornerShape(Radius.Sm),
                     )
                 }
             }
@@ -584,7 +584,7 @@ private fun HintCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = MikomiSpacing.Xxl),
+                .padding(vertical = Spacing.Xxl),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -607,7 +607,7 @@ private fun RetryCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = MikomiSpacing.Xl),
+                .padding(vertical = Spacing.Xl),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -625,11 +625,11 @@ private fun RetryCard(
 /**
  * 排名文字色：前三名金/银/铜，其余低对比中性色。
  *
- * 名次色取自设计系统（`MikomiColors.rank`）的 `ink` 那一档 —— 名次色有 fill（压在封面上）
+ * 名次色取自设计系统（`Colors.rank`）的 `ink` 那一档 —— 名次色有 fill（压在封面上）
  * 与 ink（当文字用）两种，金属色在白底上只有 1.2:1 的对比度，直接当文字读不出来。
  */
 @Composable
 private fun rankColor(rank: Int): Color =
-    MikomiTheme.colors.rank(rank)?.ink
+    AppTheme.colors.rank(rank)?.ink
         ?: MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
 

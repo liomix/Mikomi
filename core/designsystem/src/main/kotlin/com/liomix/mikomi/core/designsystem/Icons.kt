@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 /**
  * 由 material-icons 提取，勿手改路径。新增图标追加到本对象即可。
  */
-object MikomiIcons {
+object Icons {
 
     /**
      * chevron 图形在 24 视框里的放大倍数。
@@ -185,7 +185,7 @@ object MikomiIcons {
     // 路径是 material-icons 原文，一个点都没动；外面套了一层 group，按 CHEVRON_FILL_SCALE
     // 绕视框中心（12,12）等比放大。理由是这颗图形的留白太大：它在 24 视框里只占
     // x 8.3~15.7、y 6.7~17.3，也就是 6.3×10.6 —— 24dp 的图标看着像 12dp 的小箭头。
-    // 图标档位（MikomiSizes.IconMd）管的是框，管不了图形在框里画多大，只能在图形这一层补。
+    // 图标档位（Sizes.IconMd）管的是框，管不了图形在框里画多大，只能在图形这一层补。
     // 放大后实占约 8.5×14.3，与同框的 Back（x 3~20）站在同一量级。
     // 只动 group 不动 path：改 path 就成了手改 material 原文，缩放不会。
     // 外框仍是 24dp，布局尺寸与点击区域不受影响，autoMirror 也照常生效。

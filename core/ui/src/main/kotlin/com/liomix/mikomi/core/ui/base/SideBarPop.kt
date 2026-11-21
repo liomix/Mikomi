@@ -23,9 +23,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
-import com.liomix.mikomi.core.designsystem.MikomiSideBarSpec
-import com.liomix.mikomi.core.designsystem.MikomiElevation
-import com.liomix.mikomi.core.designsystem.MikomiMotion
+import com.liomix.mikomi.core.designsystem.SideBarSpec
+import com.liomix.mikomi.core.designsystem.Elevation
+import com.liomix.mikomi.core.designsystem.Motion
 
 /**
  * 侧栏弹窗贴的是哪一侧。
@@ -44,7 +44,7 @@ enum class SideBarSide {
 /**
  * 通用侧栏弹窗：从屏幕一侧滑入的面板 + 可点击关闭的遮罩。
  *
- * 宽度 320dp、比例上限 0.86、圆角与进出场时长在 `MikomiSideBarSpec` 里。
+ * 宽度 320dp、比例上限 0.86、圆角与进出场时长在 `SideBarSpec` 里。
  *
  * 组件拥有的是**骨架**：全屏遮罩、贴边面板、进出场动画、返回键关闭、退场播完才销毁。
  * 调用方拥有的是**内容与方向**：面板里放什么、贴哪一侧、多宽。面板不内置标题栏——
@@ -75,7 +75,7 @@ enum class SideBarSide {
  * @param onDismissRequest 请求关闭：点遮罩或按返回键时调用。
  * @param modifier 作用在浮层根布局上；尺寸、定位、间距由组件自己保证，一般不需要传。
  * @param side 面板贴哪一侧。
- * @param width 面板宽度，超过屏宽 [MikomiSideBarSpec.MaxWidthFraction] 时按比例收窄。
+ * @param width 面板宽度，超过屏宽 [SideBarSpec.MaxWidthFraction] 时按比例收窄。
  * @param content 面板内容。可滚动列表请自己给 `Modifier.weight(1f)`，组件不替你滚。
  */
 @Composable
@@ -84,7 +84,7 @@ fun SideBarPop(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     side: SideBarSide = SideBarSide.End,
-    width: Dp = MikomiSideBarSpec.Width,
+    width: Dp = SideBarSpec.Width,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     // 用 MutableTransitionState 而不是 AnimatedVisibility：遮罩和面板要共享同一条进度，
@@ -97,11 +97,11 @@ fun SideBarPop(
         transitionSpec = {
             tween(
                 durationMillis = if (targetState) {
-                    MikomiSideBarSpec.EnterMillis
+                    SideBarSpec.EnterMillis
                 } else {
-                    MikomiSideBarSpec.ExitMillis
+                    SideBarSpec.ExitMillis
                 },
-                easing = MikomiMotion.Curve.Standard,
+                easing = Motion.Curve.Standard,
             )
         },
         label = "progress",
@@ -128,7 +128,7 @@ fun SideBarPop(
             SheetScrim(progress = { progress }, onDismiss = onDismissRequest)
 
             // 面板宽度既受调用方的 width 约束，也受屏幕比例约束，窄屏不会铺满整页。
-            val panelWidth = minOf(width, maxWidth * MikomiSideBarSpec.MaxWidthFraction)
+            val panelWidth = minOf(width, maxWidth * SideBarSpec.MaxWidthFraction)
             val travelSign = if (side == SideBarSide.Start) -1f else 1f
 
             Surface(
@@ -148,8 +148,8 @@ fun SideBarPop(
                     },
                 shape = side.panelShape(),
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
-                tonalElevation = MikomiElevation.Raised,
-                shadowElevation = MikomiElevation.Overlay,
+                tonalElevation = Elevation.Raised,
+                shadowElevation = Elevation.Overlay,
             ) {
                 Column(modifier = Modifier.fillMaxSize(), content = content)
             }
@@ -160,12 +160,12 @@ fun SideBarPop(
 /** 贴边那侧不圆角：圆角露出来会看到底下的页面，像面板浮在半空。 */
 private fun SideBarSide.panelShape(): Shape = when (this) {
     SideBarSide.Start -> RoundedCornerShape(
-        topEnd = MikomiSideBarSpec.CornerSize,
-        bottomEnd = MikomiSideBarSpec.CornerSize,
+        topEnd = SideBarSpec.CornerSize,
+        bottomEnd = SideBarSpec.CornerSize,
     )
 
     SideBarSide.End -> RoundedCornerShape(
-        topStart = MikomiSideBarSpec.CornerSize,
-        bottomStart = MikomiSideBarSpec.CornerSize,
+        topStart = SideBarSpec.CornerSize,
+        bottomStart = SideBarSpec.CornerSize,
     )
 }

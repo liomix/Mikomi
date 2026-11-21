@@ -1,7 +1,7 @@
 package com.liomix.mikomi.core.ui.image
 
 import android.content.Context
-import coil3.ImageLoader
+import coil3.ImageLoader as CoilImageLoader
 import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit
  * 这里给的是「绝对上限 + 比例」里更保守的那个思路 —— 直接写死绝对值，
  * 让缓存行为在两种机器上一致，便于定位「图片为什么重新下载」。
  */
-object MikomiImageLoader {
+object ImageLoader {
 
     /** 磁盘缓存目录，放在 `cacheDir` 下，系统清缓存时一起清掉。 */
     private const val DISK_CACHE_DIR = "image_cache"
@@ -87,12 +87,12 @@ object MikomiImageLoader {
      */
     fun install(context: Context) {
         SingletonImageLoader.setSafe(object : SingletonImageLoader.Factory {
-            override fun newImageLoader(context: Context): ImageLoader = new(context)
+            override fun newImageLoader(context: Context): CoilImageLoader = new(context)
         })
     }
 
     /** 构造 ImageLoader。只在 `Application` 里调一次，交给 `SingletonImageLoader` 持有。 */
-    fun new(context: Context): ImageLoader = ImageLoader.Builder(context)
+    fun new(context: Context): CoilImageLoader = CoilImageLoader.Builder(context)
         .components {
             add(OkHttpNetworkFetcherFactory(callFactory = { client }))
         }

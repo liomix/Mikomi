@@ -28,12 +28,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiStroke
-import com.liomix.mikomi.core.designsystem.MikomiTextStyles
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.Stroke
+import com.liomix.mikomi.core.designsystem.TextStyles
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.InvalidVdoPlgSourceException
 import com.liomix.mikomi.feature.settings.R
 
@@ -72,8 +72,8 @@ fun PlgTstEditorSheet(
                 // safeDrawing（含键盘），再写一次 imePadding 会把内容顶起两份键盘高度。
                 .fillMaxWidth()
                 .fillMaxHeight(0.92f)
-                .padding(horizontal = MikomiSpacing.Lg)
-                .padding(bottom = MikomiSpacing.Md),
+                .padding(horizontal = Spacing.Lg)
+                .padding(bottom = Spacing.Md),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -82,7 +82,7 @@ fun PlgTstEditorSheet(
                     fontWeight = FontWeight.Bold,
                     color = colors.onSurface,
                 )
-                Spacer(modifier = Modifier.width(MikomiSpacing.Compact))
+                Spacer(modifier = Modifier.width(Spacing.Compact))
                 Text(
                     // 插件名同时是文件名，改 JSON 里的 name 就等于改名，所以它必须是显眼的一等信息。
                     text = state.ruleName,
@@ -96,8 +96,8 @@ fun PlgTstEditorSheet(
                     onClick = onFormat,
                     enabled = !state.loading && !state.missing && !state.saving,
                 ) {
-                    MikomiIcon(
-                        icon = MikomiIcons.TextAlign,
+                    Icon(
+                        icon = Icons.TextAlign,
                         contentDescription = stringResource(R.string.settings_plg_tst_editor_format),
                         tint = colors.onSurfaceVariant,
                     )
@@ -106,7 +106,7 @@ fun PlgTstEditorSheet(
                     if (state.saving) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
-                            strokeWidth = MikomiStroke.Thick,
+                            strokeWidth = Stroke.Thick,
                         )
                     } else {
                         Text(stringResource(R.string.settings_plg_tst_editor_save))
@@ -121,19 +121,19 @@ fun PlgTstEditorSheet(
                         .weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Spacer(modifier = Modifier.height(MikomiSpacing.Xxxl))
-                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = MikomiStroke.Thick)
+                    Spacer(modifier = Modifier.height(Spacing.Xxxl))
+                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = Stroke.Thick)
                 }
 
                 state.missing -> Text(
                     text = stringResource(R.string.settings_plg_tst_editor_missing),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = MikomiSpacing.Xl),
+                    modifier = Modifier.padding(vertical = Spacing.Xl),
                 )
 
                 else -> {
-                    Spacer(modifier = Modifier.height(MikomiSpacing.Compact))
+                    Spacer(modifier = Modifier.height(Spacing.Compact))
                     EditorError(reason = state.reason, failure = state.failure)
                     OutlinedTextField(
                         value = state.text,
@@ -141,10 +141,10 @@ fun PlgTstEditorSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        shape = RoundedCornerShape(MikomiRadius.Xl),
+                        shape = RoundedCornerShape(Radius.Xl),
                         // 等宽字体在默认行高下挤成一团，JSON 又全是短行，
                         // 设计系统里单列了「代码」这一档（Monospace / 12sp / 行高 18）。
-                        textStyle = MikomiTextStyles.Code,
+                        textStyle = TextStyles.Code,
                         // 不设 label：面板里只有这一个输入框，标签纯属占地方。
                         placeholder = null,
                     )
@@ -168,17 +168,17 @@ private fun EditorError(
 
     val colors = MaterialTheme.colorScheme
     Surface(
-        shape = RoundedCornerShape(MikomiRadius.Lg),
+        shape = RoundedCornerShape(Radius.Lg),
         color = colors.errorContainer,
         contentColor = colors.onErrorContainer,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = MikomiSpacing.Sm),
+            .padding(bottom = Spacing.Sm),
     ) {
         Text(
             text = message,
             style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = MikomiSpacing.Md, vertical = MikomiSpacing.Sm),
+            modifier = Modifier.padding(horizontal = Spacing.Md, vertical = Spacing.Sm),
         )
     }
 }

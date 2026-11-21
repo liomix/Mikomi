@@ -16,11 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardHeader
@@ -59,7 +59,7 @@ fun SettingsScreen(
         SettingsCard {
             SettingsCardSection {
                 EntryRow(
-                    icon = MikomiIcons.Palette,
+                    icon = Icons.Palette,
                     title = stringResource(R.string.settings_entry_theme),
                     description = stringResource(R.string.settings_entry_theme_desc),
                     onClick = onOpenTheme,
@@ -71,7 +71,7 @@ fun SettingsScreen(
             SettingsCardSection {
                 SettingsCardHeader(stringResource(R.string.settings_group_data_source))
                 EntryRow(
-                    icon = MikomiIcons.Language,
+                    icon = Icons.Language,
                     title = stringResource(R.string.settings_entry_proxy),
                     description = stringResource(R.string.settings_entry_proxy_desc),
                     onClick = onOpenProxy,
@@ -79,7 +79,7 @@ fun SettingsScreen(
             }
             SettingsCardSection(dividerAbove = true) {
                 EntryRow(
-                    icon = MikomiIcons.Extension,
+                    icon = Icons.Extension,
                     title = stringResource(R.string.settings_entry_plugins),
                     description = stringResource(R.string.settings_entry_plugins_desc),
                     onClick = onOpenPlugins,
@@ -91,7 +91,7 @@ fun SettingsScreen(
         SettingsCard {
             SettingsCardSection {
                 EntryRow(
-                    icon = MikomiIcons.PlayCircle,
+                    icon = Icons.PlayCircle,
                     title = stringResource(R.string.settings_entry_playback),
                     description = stringResource(R.string.settings_entry_playback_desc),
                     onClick = onOpenPlayback,
@@ -114,24 +114,24 @@ private fun EntryRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(MikomiRadius.Xl))
+            .clip(RoundedCornerShape(Radius.Xl))
             .mikomiClickable(onClick = onClick)
-            .padding(horizontal = MikomiSpacing.Room, vertical = MikomiSpacing.Lg),
+            .padding(horizontal = Spacing.Room, vertical = Spacing.Lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(
-            shape = RoundedCornerShape(MikomiRadius.Lg),
+            shape = RoundedCornerShape(Radius.Lg),
             color = colors.primary.copy(alpha = 0.12f),
             contentColor = colors.primary,
         ) {
-            MikomiIcon(
+            Icon(
                 icon = icon,
                 contentDescription = null,
-                modifier = Modifier.padding(MikomiSpacing.Sm),
-                size = MikomiSizes.IconMd,
+                modifier = Modifier.padding(Spacing.Sm),
+                size = Sizes.IconMd,
             )
         }
-        Spacer(modifier = Modifier.width(MikomiSpacing.Md))
+        Spacer(modifier = Modifier.width(Spacing.Md))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
@@ -144,9 +144,9 @@ private fun EntryRow(
                 color = colors.onSurfaceVariant,
             )
         }
-        Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
-        MikomiIcon(
-            icon = MikomiIcons.ChevronRight,
+        Spacer(modifier = Modifier.width(Spacing.Sm))
+        Icon(
+            icon = Icons.ChevronRight,
             contentDescription = null,
             tint = colors.onSurfaceVariant,
         )

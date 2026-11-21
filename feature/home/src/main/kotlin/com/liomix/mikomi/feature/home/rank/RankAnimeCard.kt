@@ -22,7 +22,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.Stroke as DrawStroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
@@ -30,14 +30,14 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiStroke
+import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.model.RankEntry
-import com.liomix.mikomi.core.designsystem.MikomiShadowColor
-import com.liomix.mikomi.core.designsystem.MikomiTextStyles
-import com.liomix.mikomi.core.designsystem.MikomiTheme
+import com.liomix.mikomi.core.designsystem.ShadowColor
+import com.liomix.mikomi.core.designsystem.TextStyles
+import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.ui.base.ScrollingText
 import com.liomix.mikomi.core.ui.base.SkeletonBox
-import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
+import com.liomix.mikomi.core.ui.image.AsyncImage
 import androidx.compose.ui.draw.clip
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 
@@ -82,11 +82,11 @@ internal fun RankAnimeCard(
         shape = cardShape,
         // 卡片本身不铺底色：有封面时是整张封面，无封面时留空交给页面骨架屏。
         color = Color.Transparent,
-        contentColor = MikomiTheme.colors.media.content,
+        contentColor = AppTheme.colors.media.content,
         border = BorderStroke(
-            width = MikomiStroke.Thin,
+            width = Stroke.Thin,
             // 前三名用描边色勾一圈：压在封面上时金属色本身就够亮，描边只做收边。
-            color = rankOutline(rank)?.copy(alpha = 0.55f) ?: MikomiTheme.colors.media.outline,
+            color = rankOutline(rank)?.copy(alpha = 0.55f) ?: AppTheme.colors.media.outline,
         ),
         shadowElevation = if (isTopRank) TopRankShadow else 0.dp,
         modifier = modifier
@@ -122,7 +122,7 @@ internal fun RankAnimeCard(
                     enabled = false,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        color = MikomiTheme.colors.media.content,
+                        color = AppTheme.colors.media.content,
                         shadow = RankTitleShadow,
                     ),
                     modifier = Modifier.weight(1f),
@@ -151,7 +151,7 @@ private fun RankNumber(
     val outlineStyle = rememberRankNumberOutline()
     // 字号阶梯（42 / 34 / 26）住在设计系统里：搜索页的排名圆标用的是同一套，
     // 两处各写一份就会出现「同一个第 12 名，两个页面大小不同」。
-    val style = MikomiTextStyles.rankNumber(rank).copy(
+    val style = TextStyles.rankNumber(rank).copy(
         fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Black,
         fontStyle = FontStyle.Italic,
@@ -196,7 +196,7 @@ private fun CoverBackdrop(
     url: String,
     modifier: Modifier = Modifier,
 ) {
-    MikomiAsyncImage(
+    AsyncImage(
         url = url,
         contentDescription = null,
         contentScale = ContentScale.Crop,
@@ -215,11 +215,11 @@ private fun CoverBackdrop(
  */
 @Composable
 private fun rankAccent(rank: Int): Color =
-    MikomiTheme.colors.rank(rank)?.fill ?: MikomiTheme.colors.media.content
+    AppTheme.colors.rank(rank)?.fill ?: AppTheme.colors.media.content
 
 /** 前三名对应的描边色；第 4 名起无描边（返回 null）。 */
 @Composable
-private fun rankOutline(rank: Int): Color? = MikomiTheme.colors.rank(rank)?.outline
+private fun rankOutline(rank: Int): Color? = AppTheme.colors.rank(rank)?.outline
 
 /**
  * 标题文字的深色描影。
@@ -228,14 +228,14 @@ private fun rankOutline(rank: Int): Color? = MikomiTheme.colors.rank(rank)?.outl
  * 所以垫一层黑色描影勾出轮廓（与名次数字同一套做法），比加一层白雾干净。
  */
 private val RankTitleShadow = Shadow(
-    color = MikomiShadowColor.copy(alpha = 0.8f),
+    color = ShadowColor.copy(alpha = 0.8f),
     offset = Offset(0f, 1.5f),
     blurRadius = 8f,
 )
 
 /** 名次文字的深色描影：亮底封面（草地、天空）上靠它勾住轮廓。 */
 private val RankNumberShadow = Shadow(
-    color = MikomiShadowColor.copy(alpha = 0.65f),
+    color = ShadowColor.copy(alpha = 0.65f),
     offset = Offset(0f, 2f),
     blurRadius = 9f,
 )
@@ -278,10 +278,10 @@ private val RankNumberOutlineWidth = 1.2.dp
 
 /** 描边笔：圆角接头，避免斜体衬线的尖角处出现毛刺。宽度需按屏幕密度换算。 */
 @Composable
-private fun rememberRankNumberOutline(): Stroke {
+private fun rememberRankNumberOutline(): DrawStroke {
     val density = LocalDensity.current
     return remember(density) {
-        Stroke(
+        DrawStroke(
             width = with(density) { RankNumberOutlineWidth.toPx() },
             join = StrokeJoin.Round,
         )

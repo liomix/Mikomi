@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.liomix.mikomi.core.ui.base.MikomiToastData
+import com.liomix.mikomi.core.ui.base.ToastData
 import kotlinx.coroutines.delay
 
 /** 主题设置 Route（有状态）：收集配色 / 夜间模式 / 桌面图标，变更写入偏好。 */
@@ -32,13 +32,13 @@ fun ThemeRoute(
 
     // 提示弹窗：文案在 UI 层解析；图标由 ViewModel 给出（切换后的无底色图标）。
     val context = LocalContext.current
-    var toast by remember { mutableStateOf<MikomiToastData?>(null) }
+    var toast by remember { mutableStateOf<ToastData?>(null) }
     // 序号变化即重新计时：连续两次相同提示也能完整显示一次。
     var toastSeq by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(viewModel) {
         viewModel.toasts.collect { event ->
-            toast = MikomiToastData(
+            toast = ToastData(
                 message = context.getString(event.messageRes),
                 iconRes = event.iconRes,
             )

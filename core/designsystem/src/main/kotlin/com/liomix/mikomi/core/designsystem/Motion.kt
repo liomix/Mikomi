@@ -22,16 +22,16 @@ import androidx.compose.runtime.Immutable
 /**
  * 一个具名时长档位（毫秒）。
  *
- * 与 [MikomiStep] 同构，只是单位不是 dp —— 动效的档位是「多久」，不是「多大」，
+ * 与 [Step] 同构，只是单位不是 dp —— 动效的档位是「多久」，不是「多大」，
  * 硬塞进同一个类就得给数值加单位标记，反而更难读。
  */
 @Immutable
-data class MikomiTime(val name: String, val millis: Int) {
+data class Time(val name: String, val millis: Int) {
     /** 目录里显示的数值，如 `200ms`。 */
     val label: String get() = "${millis}ms"
 }
 
-object MikomiMotion {
+object Motion {
 
     /**
      * 时长阶梯。
@@ -76,15 +76,15 @@ object MikomiMotion {
          * 全部时长档位。
          *
          * 与尺寸的 `steps` 同一个用途：审计从它读档位，于是「加了档位忘记登记」
-         * 不再可能发生。类型不是 `Dp` 而是毫秒，所以单独定义（[MikomiTime]）。
+         * 不再可能发生。类型不是 `Dp` 而是毫秒，所以单独定义（[Time]）。
          */
-        val steps: List<MikomiTime> = listOf(
-            MikomiTime("Instant", Instant),
-            MikomiTime("Fast", Fast),
-            MikomiTime("Short", Short),
-            MikomiTime("Medium", Medium),
-            MikomiTime("Long", Long),
-            MikomiTime("ExtraLong", ExtraLong),
+        val steps: List<Time> = listOf(
+            Time("Instant", Instant),
+            Time("Fast", Fast),
+            Time("Short", Short),
+            Time("Medium", Medium),
+            Time("Long", Long),
+            Time("ExtraLong", ExtraLong),
         )
     }
 
@@ -142,9 +142,9 @@ object MikomiMotion {
         val Overshoot: Easing = object : Easing {
             override fun transform(fraction: Float): Float {
                 val t = fraction - 1f
-                // 必须写全 `MikomiMotion.Press`：本对象里有个同名的 `Press`（缓动），
+                // 必须写全 `Motion.Press`：本对象里有个同名的 `Press`（缓动），
                 // 裸写 `Press.OvershootAmount` 会被解析成 `Easing` 上的属性而编译不过。
-                val amount = MikomiMotion.Press.OvershootAmount
+                val amount = Motion.Press.OvershootAmount
                 return t * t * ((amount + 1f) * t + amount) + 1f
             }
         }
@@ -188,6 +188,6 @@ object MikomiMotion {
     }
 
 
-    // 禁用态的淡化系数不在这里 —— 搬去了 `MikomiAlpha`（Colors.kt）。
+    // 禁用态的淡化系数不在这里 —— 搬去了 `Alpha`（Colors.kt）。
     // 它们一次都不动，是颜色规则，不是动效。
 }

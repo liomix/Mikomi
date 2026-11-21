@@ -61,7 +61,7 @@ private class ModeNeutrals(
 /**
  * 中性容器上的前景。
  *
- * 字符只有黑与白两种色（见 [MikomiTextAlpha]），所以这里不给「近黑 / 近白」：
+ * 字符只有黑与白两种色（见 [TextAlpha]），所以这里不给「近黑 / 近白」：
  * #1A1A1C 与 #EDEDF0 在黑底白底上都读得出来，但它们既不是黑也不是白，
  * 与旁边的正文并排时是两种颜色，而不是同一颜色的深浅。
  *
@@ -115,7 +115,7 @@ private val NightOnSurface = Color(0xFFFFFFFF)
  * 换成同色的 alpha 之后，无论压在 #181818 卡片上还是纯黑背景上，
  * 它都还是「同一个白的变淡」，不会在两种底之间偏色。
  */
-private val NightOnSurfaceVariant = NightOnSurface.copy(alpha = MikomiTextAlpha.Secondary)
+private val NightOnSurfaceVariant = NightOnSurface.copy(alpha = TextAlpha.Secondary)
 
 /**
  * 夜间表面层级：背景纯黑、卡片 #181818，仅最高层级略提亮，
@@ -161,13 +161,13 @@ private fun ColorScheme.withDaySurfaces(): ColorScheme = copy(
     surface = Color(0xFFFFFFFF),
     // 默认文字 / 图标用纯黑：M3 的 onBackground(#1C1B1F)、onSurface(#1C1B1F) 都带一点紫调，
     // 压在去掉紫调的中性灰底上会显脏。没显式指定 color 的 Text / Icon 走的正是这两个值
-    // （根层由 MikomiTheme 用 onBackground 兜底 LocalContentColor，Surface 内部用 onSurface）。
+    // （根层由 AppTheme 用 onBackground 兜底 LocalContentColor，Surface 内部用 onSurface）。
     onBackground = Color(0xFF000000),
     onSurface = Color(0xFF000000),
     // 次级文字：70% 的黑，不是另一个灰。
     // 原来的 #4A4A4F 与页面底色、卡片白都不同源，换一层容器就偏色；同色的 alpha 只有一份。
     // 它是半透明的，验算对比度时必须先合成到 `surface` 上（见 `auditContrast`）。
-    onSurfaceVariant = Color(0xFF000000).copy(alpha = MikomiTextAlpha.Secondary),
+    onSurfaceVariant = Color(0xFF000000).copy(alpha = TextAlpha.Secondary),
     surfaceContainerLowest = Color(0xFFFFFFFF),
     surfaceContainerLow = Color(0xFFFFFFFF),
     surfaceContainer = Color(0xFFF7F7F9),
@@ -183,15 +183,15 @@ private fun ColorScheme.withDaySurfaces(): ColorScheme = copy(
 /**
  * 应用主题。
  *
- * 这是设计系统的唯一入口：颜色（[ColorScheme] + [MikomiColors]）、字号（[Typography]）、
- * 形状（[MikomiShapes]）都在这里下发。页面和组件只需要读 `MaterialTheme.*` /
- * [MikomiTheme.colors] / [MikomiTextStyles]，不自己 new 一套数值。
+ * 这是设计系统的唯一入口：颜色（[ColorScheme] + [Colors]）、字号（[Typography]）、
+ * 形状（[Shapes]）都在这里下发。页面和组件只需要读 `MaterialTheme.*` /
+ * [AppTheme.colors] / [TextStyles]，不自己 new 一套数值。
  *
  * @param colorSchemeId 用户选择的配色预设 id（见 [ThemePalette]）；
  *   默认 `default` 为蓝色，不再跟随系统动态取色，保证默认外观统一。
  */
 @Composable
-fun MikomiTheme(
+fun AppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     colorSchemeId: String = ThemePalette.Default.id,
     content: @Composable () -> Unit,
@@ -203,7 +203,7 @@ fun MikomiTheme(
     MaterialTheme(
         colorScheme = theme.colorScheme,
         typography = Typography,
-        shapes = MikomiShapes,
+        shapes = Shapes,
     ) {
         // MaterialTheme 本身不设置 LocalContentColor（默认黑色），
         // 只有 Surface 内部才会按背景推导内容色。页面中直接放在 Box/Column 里的
@@ -215,7 +215,7 @@ fun MikomiTheme(
         // 所以这里不注入任何 indication。
         CompositionLocalProvider(
             LocalContentColor provides theme.colorScheme.onBackground,
-            LocalMikomiColors provides theme.colors,
+            LocalColors provides theme.colors,
             content = content,
         )
     }
@@ -228,28 +228,28 @@ fun MikomiTheme(
  *
  * | 取什么 | 从哪取 | 为什么 |
  * |---|---|---|
- * | 颜色（`colors.rating`） | 这里的 `MikomiTheme.colors` | 五套预设 × 日夜 = 10 套值，必须经过 `CompositionLocal` 才能"随主题变" |
- * | 间距 / 圆角 / 尺寸 / 时长 / 曲线 | 顶层 `MikomiSpacing` / `MikomiRadius` / `MikomiSizes` / `MikomiMotion` | 编译期常量，与主题无关；再套一层对象只是多一次间接 |
+ * | 颜色（`colors.rating`） | 这里的 `AppTheme.colors` | 五套预设 × 日夜 = 10 套值，必须经过 `CompositionLocal` 才能"随主题变" |
+ * | 间距 / 圆角 / 尺寸 / 时长 / 曲线 | 顶层 `Spacing` / `Radius` / `Sizes` / `Motion` | 编译期常量，与主题无关；再套一层对象只是多一次间接 |
  *
  * 判断标准只有一条：**这个值随主题变吗**。随主题变的走这里，不随的直接用顶层常量。
  */
-object MikomiTheme {
+object AppTheme {
 
     /**
      * M3 之外的语义色（评分金、标签色板、名次色、骨架墨色）。
      *
      * 目录上先查 `MaterialTheme.colorScheme`，那里没有对应的「意思」时才来这里。
-     * 需要在某个子树里换一套（沉浸页、播放器浮层）时，直接覆写 [LocalMikomiColors]：
+     * 需要在某个子树里换一套（沉浸页、播放器浮层）时，直接覆写 [LocalColors]：
      *
      * ```kotlin
-     * val immersive = MikomiTheme.colors.copy(rating = Color(0xFFFFE082))
-     * CompositionLocalProvider(LocalMikomiColors provides immersive) { PlayerHud() }
+     * val immersive = AppTheme.colors.copy(rating = Color(0xFFFFE082))
+     * CompositionLocalProvider(LocalColors provides immersive) { PlayerHud() }
      * ```
      */
-    val colors: MikomiColors
+    val colors: Colors
         @Composable
         @ReadOnlyComposable
-        get() = LocalMikomiColors.current
+        get() = LocalColors.current
 }
 
 /**
@@ -260,7 +260,7 @@ object MikomiTheme {
  */
 internal class ResolvedTheme(
     val colorScheme: ColorScheme,
-    val colors: MikomiColors,
+    val colors: Colors,
 )
 
 /**
@@ -293,7 +293,7 @@ internal fun resolveTheme(darkTheme: Boolean, palette: ThemePalette): ResolvedTh
     val colorScheme = buildColorScheme(darkTheme, palette)
     val resolved = ResolvedTheme(
         colorScheme = colorScheme,
-        colors = resolveMikomiColors(colorScheme, dark = darkTheme),
+        colors = resolveColors(colorScheme, dark = darkTheme),
     )
     ResolvedThemes[slot] = resolved
     return resolved

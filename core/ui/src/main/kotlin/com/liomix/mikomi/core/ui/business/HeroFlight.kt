@@ -24,7 +24,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.liomix.mikomi.core.designsystem.MikomiMotion
+import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.core.model.TransitionStyle
 import com.liomix.mikomi.core.ui.image.rememberCoverRequest
 
@@ -319,7 +319,7 @@ fun HeroFlightOverlay(
             targetValue = 1f,
             animationSpec = tween(
                 durationMillis = FLIGHT_DURATION_MILLIS,
-                easing = MikomiMotion.Curve.Standard,
+                easing = Motion.Curve.Standard,
             ),
         )
         controller.finish(flightId)

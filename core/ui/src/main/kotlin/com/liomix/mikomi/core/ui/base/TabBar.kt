@@ -55,11 +55,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.lerp
-import com.liomix.mikomi.core.designsystem.MikomiMotion
-import com.liomix.mikomi.core.designsystem.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiTextStyles
+import com.liomix.mikomi.core.designsystem.Motion
+import com.liomix.mikomi.core.designsystem.PillShape
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.TextStyles
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -78,11 +78,11 @@ enum class TabOrientation { Horizontal, Vertical }
 data class TabItemStyle(
     val orientation: TabOrientation = TabOrientation.Horizontal,
     val height: Dp? = null,
-    val iconSize: Dp = MikomiSizes.IconMd,
+    val iconSize: Dp = Sizes.IconMd,
     val iconLabelSpacing: Dp = 5.dp,
     val horizontalPadding: Dp = 8.dp,
     val verticalPadding: Dp = 3.dp,
-    val labelStyle: TextStyle = MikomiTextStyles.TabLabel,
+    val labelStyle: TextStyle = TextStyles.TabLabel,
     val supportingStyle: TextStyle? = null,
     /** 未选中时的字重；选中态固定 SemiBold，一次切换只重排一次文字。 */
     val labelWeight: FontWeight = FontWeight.Normal,
@@ -90,11 +90,11 @@ data class TabItemStyle(
     companion object {
         /** 个人资料页那种紧凑图标标签：18dp 图标 + 14.5sp 文字。 */
         fun compact(): TabItemStyle = TabItemStyle(
-            iconSize = MikomiSizes.IconMd,
+            iconSize = Sizes.IconMd,
             iconLabelSpacing = 5.dp,
             horizontalPadding = 8.dp,
             verticalPadding = 3.dp,
-            labelStyle = MikomiTextStyles.TabLabel,
+            labelStyle = TextStyles.TabLabel,
             labelWeight = FontWeight.SemiBold,
         )
 
@@ -102,7 +102,7 @@ data class TabItemStyle(
         @Composable
         fun navigation(): TabItemStyle = TabItemStyle(
             orientation = TabOrientation.Vertical,
-            iconSize = MikomiSizes.IconMd,
+            iconSize = Sizes.IconMd,
             iconLabelSpacing = 2.dp,
             horizontalPadding = 12.dp,
             verticalPadding = 6.dp,
@@ -188,7 +188,7 @@ private data class TabBarVisuals(
 
 private val LocalTabBarVisuals = compositionLocalOf {
     TabBarVisuals(
-        shape = MikomiPillShape,
+        shape = PillShape,
         style = TabItemStyle(),
         colors = TabColors(Color.Transparent, Color.Unspecified, Color.Unspecified, Color.Unspecified),
     )
@@ -208,8 +208,8 @@ private val LocalTabBarVisuals = compositionLocalOf {
  *
  * ```
  * TabBar(selectedIndex = selected, onSelect = { selected = it }) {
- *     Tab(index = 0, text = "历史", icon = MikomiIcons.History)
- *     Tab(index = 1, text = "收藏", icon = MikomiIcons.Bookmark)
+ *     Tab(index = 0, text = "历史", icon = Icons.History)
+ *     Tab(index = 1, text = "收藏", icon = Icons.Bookmark)
  * }
  * ```
  *
@@ -227,9 +227,9 @@ fun TabBar(
     selectedContentColor: Color = MaterialTheme.colorScheme.primary,
     unselectedContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     hoveredContentColor: Color = MaterialTheme.colorScheme.onSurface,
-    shape: Shape = MikomiPillShape,
+    shape: Shape = PillShape,
     elevation: Dp = 0.dp,
-    contentPadding: PaddingValues = PaddingValues(horizontal = MikomiSpacing.Compact, vertical = MikomiSpacing.Xs),
+    contentPadding: PaddingValues = PaddingValues(horizontal = Spacing.Compact, vertical = Spacing.Xs),
     itemSpacing: Dp = 14.dp,
     itemStyle: TabItemStyle = TabItemStyle.compact(),
     content: @Composable RowScope.() -> Unit,
@@ -414,13 +414,13 @@ private fun decelerate(t: Float): Float = sin(t * HalfPi)
  * 切换时长：Flutter `TabController.animationDuration` 的默认值（`kTabScrollDuration`）。
  * 追番页没有传 `animationDuration`，所以走的就是这个 300ms。
  */
-private const val IndicatorSwapMillis = MikomiMotion.Duration.Long
+private const val IndicatorSwapMillis = Motion.Duration.Long
 
 /** 整体进度的缓动：Flutter `TabController.animateTo` 的默认 `Curves.ease`。 */
-private val IndicatorSwapEasing = MikomiMotion.Curve.Standard
+private val IndicatorSwapEasing = Motion.Curve.Standard
 
 /** 指示器从「还没量到边界」到可见的淡入时长；只跑一次，不影响切换动效。 */
-private const val IndicatorFadeMillis = MikomiMotion.Duration.Fast
+private const val IndicatorFadeMillis = Motion.Duration.Fast
 
 /**
  * 单个标签：图标（可选）+ 文字（可选第二行副标题），整块可点。
@@ -553,10 +553,10 @@ private fun TabIcon(
                 Badge { Text(text = if (badgeCount > 99) "99+" else badgeCount.toString()) }
             },
         ) {
-            MikomiIcon(icon = icon, contentDescription = null, tint = tint, size = size)
+            Icon(icon = icon, contentDescription = null, tint = tint, size = size)
         }
     } else {
-        MikomiIcon(icon = icon, contentDescription = null, tint = tint, size = size)
+        Icon(icon = icon, contentDescription = null, tint = tint, size = size)
     }
 }
 
@@ -580,7 +580,7 @@ private fun TabLabel(
         )
     }
     if (supportingText != null) {
-        Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
+        Spacer(modifier = Modifier.height(Spacing.Xxs))
         Text(
             text = supportingText,
             style = style.supportingStyle ?: style.labelStyle,
@@ -593,4 +593,4 @@ private fun TabLabel(
 }
 
 /** 内容色过渡时长：只影响颜色，不参与指示器位移。 */
-private const val ColorAnimMillis = MikomiMotion.Duration.Short
+private const val ColorAnimMillis = Motion.Duration.Short

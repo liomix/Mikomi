@@ -44,12 +44,12 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.lerp
-import com.liomix.mikomi.core.designsystem.MikomiNavBarSpec
-import com.liomix.mikomi.core.designsystem.MikomiRailSpec
-import com.liomix.mikomi.core.designsystem.MikomiMotion
-import com.liomix.mikomi.core.designsystem.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.MikomiTextStyles
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.designsystem.NavBarSpec
+import com.liomix.mikomi.core.designsystem.RailSpec
+import com.liomix.mikomi.core.designsystem.Motion
+import com.liomix.mikomi.core.designsystem.PillShape
+import com.liomix.mikomi.core.designsystem.TextStyles
+import com.liomix.mikomi.core.ui.base.Icon
 import kotlin.math.roundToInt
 
 /**
@@ -92,14 +92,14 @@ fun MikomiNavigationBar(
 
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(MikomiNavBarSpec.CornerRadius),
+        shape = RoundedCornerShape(NavBarSpec.CornerRadius),
         color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
-        Box(modifier = Modifier.padding(MikomiNavBarSpec.InnerPadding)) {
+        Box(modifier = Modifier.padding(NavBarSpec.InnerPadding)) {
             NavBarIndicator(
                 bounds = bounds,
                 selectedIndex = selectedIndex,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = MikomiNavBarSpec.SelectedContainerAlpha),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = NavBarSpec.SelectedContainerAlpha),
             )
             Row(
                 modifier = Modifier
@@ -129,11 +129,11 @@ fun MikomiNavigationBar(
  * 选中胶囊指示器（只吃 `Rect`，与方向无关）、选中色的过渡时长。所以两处形态切换时，
  * 只有「排列方向」和「条目宽度统一」两点不同，不会分裂成两套手感。
  *
- * 条目宽度统一 64dp：横向时宽度跟文案走（见 [MikomiNavBarSpec] 的说明）是为了胶囊
+ * 条目宽度统一 64dp：横向时宽度跟文案走（见 [NavBarSpec] 的说明）是为了胶囊
  * 刚好包住文字；竖过来之后若还让每个条目自己定宽，三条胶囊会左右参差，
  * 看着像没对齐。代价是短标签（「首页」）两侧留白多一些 —— 竖栏本来就该是规整的。
  *
- * @param modifier 由壳给出宽度（[MikomiRailSpec.Width] 占位）与垂直居中。
+ * @param modifier 由壳给出宽度（[RailSpec.Width] 占位）与垂直居中。
  */
 @Composable
 fun MikomiNavigationRail(
@@ -147,15 +147,15 @@ fun MikomiNavigationRail(
 
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(MikomiRailSpec.CornerRadius),
+        shape = RoundedCornerShape(RailSpec.CornerRadius),
         color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
-        Box(modifier = Modifier.padding(MikomiRailSpec.InnerPadding)) {
+        Box(modifier = Modifier.padding(RailSpec.InnerPadding)) {
             NavBarIndicator(
                 bounds = bounds,
                 selectedIndex = selectedIndex,
                 color = MaterialTheme.colorScheme.primary.copy(
-                    alpha = MikomiNavBarSpec.SelectedContainerAlpha,
+                    alpha = NavBarSpec.SelectedContainerAlpha,
                 ),
             )
             Column(modifier = Modifier.selectableGroup()) {
@@ -165,8 +165,8 @@ fun MikomiNavigationRail(
                         index = index,
                         selected = index == selectedIndex,
                         bounds = bounds,
-                        width = MikomiRailSpec.ItemWidth,
-                        horizontalPadding = MikomiRailSpec.ItemHorizontalPadding,
+                        width = RailSpec.ItemWidth,
+                        horizontalPadding = RailSpec.ItemHorizontalPadding,
                         onClick = { onSelect(item.key) },
                     )
                 }
@@ -184,7 +184,7 @@ data class MikomiNavItem(
 )
 
 /** 胶囊滑动时长。Telegram 的实际曲线没测，这里用通用减速曲线。 */
-private const val IndicatorMillis = MikomiMotion.Duration.Short
+private const val IndicatorMillis = Motion.Duration.Short
 
 /**
  * 单个条目：图标在上、文字在下，整块可点。**横竖两种形态共用这一份**。
@@ -205,13 +205,13 @@ private fun NavItem(
     bounds: MutableList<Rect>,
     onClick: () -> Unit,
     width: Dp? = null,
-    horizontalPadding: Dp = MikomiNavBarSpec.ItemHorizontalPadding,
+    horizontalPadding: Dp = NavBarSpec.ItemHorizontalPadding,
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val interactionSource = remember { MutableInteractionSource() }
     val contentColor by animateColorAsState(
         targetValue = if (selected) colorScheme.primary else colorScheme.onSurfaceVariant,
-        animationSpec = tween(durationMillis = MikomiNavBarSpec.ContentColorMillis),
+        animationSpec = tween(durationMillis = NavBarSpec.ContentColorMillis),
         label = "navBarItemColor",
     )
 
@@ -228,8 +228,8 @@ private fun NavItem(
                 }
             }
             .then(if (width != null) Modifier.width(width) else Modifier)
-            .height(MikomiNavBarSpec.ItemHeight)
-            .clip(MikomiPillShape)
+            .height(NavBarSpec.ItemHeight)
+            .clip(PillShape)
             .selectable(
                 selected = selected,
                 interactionSource = interactionSource,
@@ -243,17 +243,17 @@ private fun NavItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        MikomiIcon(
+        Icon(
             icon = if (selected) item.selectedIcon else item.icon,
             contentDescription = null,
             tint = contentColor,
-            size = MikomiNavBarSpec.IconSize,
+            size = NavBarSpec.IconSize,
         )
-        Spacer(modifier = Modifier.height(MikomiNavBarSpec.IconLabelGap))
+        Spacer(modifier = Modifier.height(NavBarSpec.IconLabelGap))
         Text(
             text = item.label,
             color = contentColor,
-            style = MikomiTextStyles.IconLabel,
+            style = TextStyles.IconLabel,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -291,7 +291,7 @@ private fun NavBarIndicator(
         progress.snapTo(0f)
         progress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = IndicatorMillis, easing = MikomiMotion.Curve.Emphasized),
+            animationSpec = tween(durationMillis = IndicatorMillis, easing = Motion.Curve.Emphasized),
         )
     }
 
@@ -311,7 +311,7 @@ private fun NavBarIndicator(
                 val placeable = measurable.measure(Constraints.fixed(width, height))
                 layout(width, height) { placeable.place(0, 0) }
             }
-            .background(color, MikomiPillShape),
+            .background(color, PillShape),
     )
 }
 
@@ -333,14 +333,14 @@ private fun indicatorRect(
     )
 }
 
-/** 栏体高度。数值与理由见 `MikomiNavBarSpec.BodyHeight`。 */
-val MikomiNavBarBodyHeight = MikomiNavBarSpec.BodyHeight
+/** 栏体高度。数值与理由见 `NavBarSpec.BodyHeight`。 */
+val MikomiNavBarBodyHeight = NavBarSpec.BodyHeight
 
 /** 栏体距屏幕左右的外边距。 */
-val MikomiNavBarHorizontalMargin = MikomiNavBarSpec.HorizontalMargin
+val MikomiNavBarHorizontalMargin = NavBarSpec.HorizontalMargin
 
 /** 栏体距屏幕底部（系统导航栏之上）的外边距。 */
-val MikomiNavBarBottomMargin = MikomiNavBarSpec.BottomMargin
+val MikomiNavBarBottomMargin = NavBarSpec.BottomMargin
 
 /** 栏体从屏幕下沿往上占用的高度（栏体 + 底部外边距，**不含**系统导航栏 inset）。 */
 val MikomiNavBarBottomSpace = MikomiNavBarBottomMargin + MikomiNavBarBodyHeight

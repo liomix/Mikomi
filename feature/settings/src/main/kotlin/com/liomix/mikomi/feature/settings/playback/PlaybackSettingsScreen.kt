@@ -12,7 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
 import com.liomix.mikomi.core.ui.base.Tag
 import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
@@ -50,8 +50,8 @@ fun PlaybackSettingsScreen(
                 description = stringResource(R.string.settings_playback_default_speed_desc),
             ) {
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = MikomiSpacing.Room),
-                    horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
+                    contentPadding = PaddingValues(horizontal = Spacing.Room),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.Compact),
                 ) {
                     items(
                         items = PlayerPlaybackSettings.SpeedOptions,
@@ -77,8 +77,8 @@ fun PlaybackSettingsScreen(
                 description = stringResource(R.string.settings_playback_long_press_desc),
             ) {
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = MikomiSpacing.Room),
-                    horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
+                    contentPadding = PaddingValues(horizontal = Spacing.Room),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.Compact),
                 ) {
                     items(
                         items = PlayerPlaybackSettings.LongPressOptions,
@@ -104,8 +104,8 @@ fun PlaybackSettingsScreen(
                 description = stringResource(R.string.settings_playback_seek_sweep_desc),
             ) {
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = MikomiSpacing.Room),
-                    horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
+                    contentPadding = PaddingValues(horizontal = Spacing.Room),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.Compact),
                 ) {
                     items(
                         items = PlayerPlaybackSettings.SeekSweepOptions,
@@ -126,7 +126,7 @@ fun PlaybackSettingsScreen(
             text = stringResource(R.string.settings_playback_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = MikomiSpacing.Sm, vertical = MikomiSpacing.Xs),
+            modifier = Modifier.padding(horizontal = Spacing.Sm, vertical = Spacing.Xs),
         )
     }
 }
@@ -139,23 +139,23 @@ private fun SettingsSection(
     content: @Composable () -> Unit,
 ) {
     SettingsCardSection {
-        Column(modifier = Modifier.padding(top = MikomiSpacing.Room, bottom = MikomiSpacing.Room)) {
+        Column(modifier = Modifier.padding(top = Spacing.Room, bottom = Spacing.Room)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = MikomiSpacing.Room),
+                modifier = Modifier.padding(horizontal = Spacing.Room),
             )
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(
-                    start = MikomiSpacing.Room,
-                    end = MikomiSpacing.Room,
-                    top = MikomiSpacing.Xs,
-                    bottom = MikomiSpacing.Gutter,
+                    start = Spacing.Room,
+                    end = Spacing.Room,
+                    top = Spacing.Xs,
+                    bottom = Spacing.Gutter,
                 ),
             )
             content()

@@ -34,21 +34,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiTheme
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.PillShape
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.ScrollingText
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.business.heroTarget
-import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
-import com.liomix.mikomi.core.ui.image.rememberMikomiImagePainter
-import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
-import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.ui.image.AsyncImage
+import com.liomix.mikomi.core.ui.image.rememberImagePainter
+import com.liomix.mikomi.core.ui.window.LocalWindowSize
+import com.liomix.mikomi.core.ui.window.Insets
 import java.util.Locale
 
 /** 详情页封面圆角（飞行时会与列表卡的 8dp 之间插值）。 */
@@ -131,13 +131,13 @@ internal fun DetailHeader(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(MikomiInsets.Chrome)
+                .windowInsetsPadding(Insets.Chrome)
                 // 状态栏 inset 之后不再留额外上边距：标题紧贴状态栏下沿，
                 // 封面与信息列同在一个 Column 里，会一起上移，间距保持不变。
                 .padding(
-                    start = MikomiSpacing.Room,
-                    end = MikomiSpacing.Room,
-                    bottom = MikomiSpacing.Room,
+                    start = Spacing.Room,
+                    end = Spacing.Room,
+                    bottom = Spacing.Room,
                 ),
         ) {
             // 标题：单行，超宽时无限横向滚动（与 Dart 版 ScrollingText 一致）。
@@ -145,26 +145,26 @@ internal fun DetailHeader(
                 text = anime.title,
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    color = MikomiTheme.colors.media.content,
+                    color = AppTheme.colors.media.content,
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(modifier = Modifier.height(MikomiSpacing.Room))
+            Spacer(modifier = Modifier.height(Spacing.Room))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Room),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.Room),
             ) {
                 // 左侧封面（飞行终点：与列表卡封面同一个 key，点进来时封面飞到这里）。
                 //
                 // 宽屏用固定宽度而不是 `weight(1f)`：内容列收窄后两等分会让封面被
                 // `aspectRatio` 按行高反推成一条竖条，见 DETAIL_COVER_WIDE_WIDTH。
-                val coverWidthModifier = if (LocalMikomiWindowSize.current.isExpandedWidth) {
+                val coverWidthModifier = if (LocalWindowSize.current.isExpandedWidth) {
                     Modifier.width(DETAIL_COVER_WIDE_WIDTH)
                 } else {
                     Modifier.weight(1f)
                 }
-                MikomiAsyncImage(
+                AsyncImage(
                     url = anime.coverUrl,
                     contentDescription = anime.title,
                     contentScale = ContentScale.Crop,
@@ -189,7 +189,7 @@ internal fun DetailHeader(
                                 coords.info = it
                                 reportInfoBottom()
                             },
-                        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Lg),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.Lg),
                     ) {
                         anime.airDate?.let { airDate ->
                             HeaderInfoBlock(
@@ -255,7 +255,7 @@ private fun DetailBackdrop(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MikomiTheme.colors.media.backdrop),
+                .background(AppTheme.colors.media.backdrop),
         )
         Image(
             painter = painter,
@@ -279,7 +279,7 @@ private fun DetailBackdrop(
  */
 @Composable
 private fun rememberBackdropPainter(model: Any?): Painter =
-    rememberMikomiImagePainter(url = model as? String, crossfade = false)
+    rememberImagePainter(url = model as? String, crossfade = false)
 
 /** 右侧信息骨架屏：与信息块同构，详情加载前占位。 */
 @Composable
@@ -288,17 +288,17 @@ private fun HeaderInfoSkeleton(
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.Lg),
     ) {
         repeat(3) {
-            Column(verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xs)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.Xs)) {
                 SkeletonBox(
                     modifier = Modifier.size(width = 56.dp, height = 14.dp),
-                    shape = MikomiPillShape,
+                    shape = PillShape,
                 )
                 SkeletonBox(
                     modifier = Modifier.size(width = 72.dp, height = 20.dp),
-                    shape = RoundedCornerShape(MikomiRadius.Md),
+                    shape = RoundedCornerShape(Radius.Md),
                 )
             }
         }
@@ -317,16 +317,16 @@ private fun HeaderInfoBlock(
                 // bodyMedium 本身就是 14sp：原来写的是「bodySmall 再抬到 14」，
                 // 等于一边用 12sp 的行高一边用 14sp 的字号。这里直接选对槽位。
                 style = MaterialTheme.typography.bodyMedium.copy(
-                    color = MikomiTheme.colors.media.contentSecondary,
+                    color = AppTheme.colors.media.contentSecondary,
                 ),
             )
-            Spacer(modifier = Modifier.height(MikomiSpacing.Xs))
+            Spacer(modifier = Modifier.height(Spacing.Xs))
         }
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold,
-                color = MikomiTheme.colors.media.content,
+                color = AppTheme.colors.media.content,
             ),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -343,23 +343,23 @@ private fun RatingBlock(
         Text(
             text = stringResource(R.string.detail_rating_count, ratingCount),
             style = MaterialTheme.typography.bodyMedium.copy(
-                color = MikomiTheme.colors.media.contentSecondary,
+                color = AppTheme.colors.media.contentSecondary,
             ),
         )
-        Spacer(modifier = Modifier.height(MikomiSpacing.Xs))
+        Spacer(modifier = Modifier.height(Spacing.Xs))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            MikomiIcon(
-                icon = MikomiIcons.Star,
+            Icon(
+                icon = Icons.Star,
                 contentDescription = null,
-                tint = MikomiTheme.colors.rating,
-                size = MikomiSizes.IconMd,
+                tint = AppTheme.colors.rating,
+                size = Sizes.IconMd,
             )
-            Spacer(modifier = Modifier.size(MikomiSpacing.Xs))
+            Spacer(modifier = Modifier.size(Spacing.Xs))
             Text(
                 text = String.format(Locale.ROOT, "%.1f", rating),
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    color = MikomiTheme.colors.media.content,
+                    color = AppTheme.colors.media.content,
                 ),
             )
         }

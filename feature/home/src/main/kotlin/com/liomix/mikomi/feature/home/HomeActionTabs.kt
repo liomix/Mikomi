@@ -19,10 +19,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /** 首页快捷入口动作。 */
@@ -38,17 +38,17 @@ private val ActionIconSize = 28.dp
 private val HOME_ACTIONS = listOf(
     ActionItem(
         HomeQuickAction.SCHEDULE,
-        MikomiIcons.Calendar,
+        Icons.Calendar,
         R.string.home_action_schedule,
     ),
     ActionItem(
         HomeQuickAction.RANK,
-        MikomiIcons.Trophy,
+        Icons.Trophy,
         R.string.home_action_rank,
     ),
     ActionItem(
         HomeQuickAction.CATEGORY,
-        MikomiIcons.Category,
+        Icons.Category,
         R.string.home_action_category,
     ),
 )
@@ -65,11 +65,11 @@ fun HomeActionTabs(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(MikomiRadius.Lg),
+        shape = RoundedCornerShape(Radius.Lg),
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         Row(
-            modifier = Modifier.padding(vertical = MikomiSpacing.Md),
+            modifier = Modifier.padding(vertical = Spacing.Md),
             horizontalArrangement = Arrangement.SpaceAround,
         ) {
             HOME_ACTIONS.forEach { item ->
@@ -92,18 +92,18 @@ private fun ActionButton(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(MikomiRadius.Md))
+            .clip(RoundedCornerShape(Radius.Md))
             .mikomiClickable(onClick = onClick)
-            .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Sm),
+            .padding(horizontal = Spacing.Lg, vertical = Spacing.Sm),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        MikomiIcon(
+        Icon(
             icon = icon,
             contentDescription = label,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             size = ActionIconSize,
         )
-        Spacer(modifier = Modifier.height(MikomiSpacing.Tight))
+        Spacer(modifier = Modifier.height(Spacing.Tight))
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,

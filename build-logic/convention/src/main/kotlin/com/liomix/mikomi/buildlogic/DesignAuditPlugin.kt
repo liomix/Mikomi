@@ -224,7 +224,7 @@ class DesignAuditPlugin : Plugin<Project> {
                     for (file in kotlinSources(project)) {
                         if (file.absolutePath.endsWith("Dimens.kt")) continue
                         val text = file.readText()
-                        for (match in Regex("""\b(Mikomi(?:Spacing|Radius|Sizes|Elevation|Stroke))\.(\w+)""").findAll(text)) {
+                        for (match in Regex("""\b(Spacing|Radius|Sizes|Elevation|Stroke)\.(\w+)""").findAll(text)) {
                             val key = "${match.groupValues[1]}.${match.groupValues[2]}"
                             usage[key] = (usage[key] ?: 0) + 1
                         }
@@ -234,11 +234,11 @@ class DesignAuditPlugin : Plugin<Project> {
                     var tableMismatch = 0
                     println("")
                     println("档位对账与使用分布：")
-                    for (objName in Regex("""object (Mikomi(?:Spacing|Radius|Sizes|Elevation|Stroke)) \{""")
+                    for (objName in Regex("""object (Spacing|Radius|Sizes|Elevation|Stroke) \{""")
                         .findAll(dimensSource).map { it.groupValues[1] }.toList()) {
                         val body = dimensSource.substringAfter("object $objName {").substringBefore("\n}")
                         val declared = Regex("""val (\w+): Dp = """).findAll(body).map { it.groupValues[1] }.toSet()
-                        val tabulated = Regex("""MikomiStep\("(\w+)",""").findAll(body).map { it.groupValues[1] }.toSet()
+                        val tabulated = Regex("""Step\("(\w+)",""").findAll(body).map { it.groupValues[1] }.toSet()
                         val missing = declared - tabulated
                         val extra = tabulated - declared
                         if (missing.isNotEmpty() || extra.isNotEmpty()) {
@@ -252,7 +252,7 @@ class DesignAuditPlugin : Plugin<Project> {
                             if (n == 0) deadTokens++
                             "$name=$n"
                         }
-                        println("  ${objName.replace("Mikomi", "")}: $counts")
+                        println("  $objName: $counts")
                     }
                     if (deadTokens > 0) {
                         println("  未被任何调用点使用的档位：$deadTokens 个（阶梯保留还是该删，需要人判断）")
@@ -301,9 +301,9 @@ class DesignAuditPlugin : Plugin<Project> {
                     var checked = 0
 
                     // ---- 标签：九个色相 × 日夜两套 ----
-                    // 源码形态：`MikomiTagHue.Red to MikomiTagColor(Color(0xFF4A2320), Color(0xFFFFB4AB))`
+                    // 源码形态：`TagHue.Red to TagColor(Color(0xFF4A2320), Color(0xFFFFB4AB))`
                     val tagPairs = Regex(
-                        """MikomiTagHue\.(\w+) to MikomiTagColor\(Color\(0xFF([0-9A-Fa-f]{6})\),\s*Color\(0xFF([0-9A-Fa-f]{6})\)\)""",
+                        """TagHue\.(\w+) to TagColor\(Color\(0xFF([0-9A-Fa-f]{6})\),\s*Color\(0xFF([0-9A-Fa-f]{6})\)\)""",
                     ).findAll(colorsSource).toList()
                     val expectedTagPairs = 9 * 2
                     if (tagPairs.size != expectedTagPairs) {
@@ -330,12 +330,12 @@ class DesignAuditPlugin : Plugin<Project> {
                         .find(themeSource)?.groupValues?.get(1)
                         ?: throw GradleException("Theme.kt 里找不到日间 surface，contrastAudit 需要更新")
 
-                    // 名次数字是 26~42sp 粗体（`MikomiTextStyles.rankNumber`），属于 WCAG 的「大号文字」，
-                    // 门槛 3.0 而不是正文的 4.5。这里不写死数字，直接引 `MikomiContrast.Large` 的源码值，
+                    // 名次数字是 26~42sp 粗体（`TextStyles.rankNumber`），属于 WCAG 的「大号文字」，
+                    // 门槛 3.0 而不是正文的 4.5。这里不写死数字，直接引 `Contrast.Large` 的源码值，
                     // 与 Kotlin 侧保持一致 —— 两边各写一个 4.5/3.0 就是两份真相。
                     val largeTextMin = Regex("""const val Large: Float = ([0-9.]+)f""").find(contrastSource)
                         ?.groupValues?.get(1)?.toFloat()
-                        ?: throw GradleException("Contrast.kt 里找不到 MikomiContrast.Large，contrastAudit 需要更新")
+                        ?: throw GradleException("Contrast.kt 里找不到 Contrast.Large，contrastAudit 需要更新")
 
                     // 行首的 `ink = Color(...)`：日间三个。夜间那三行是 `RankXxxNight = ….copy(ink = …)`，
                     // 不以 `ink` 开头，所以不会被这条正则吞进来。
@@ -389,25 +389,25 @@ class DesignAuditPlugin : Plugin<Project> {
 
                     // ---- 字符只有黑 / 白两种色（主题色除外）----
                     //
-                    // 不带主题色的文字，色相只有纯黑 / 纯白两个；层级靠同色的 alpha（`MikomiTextAlpha`）。
+                    // 不带主题色的文字，色相只有纯黑 / 纯白两个；层级靠同色的 alpha（`TextAlpha`）。
                     // 这一条以前只写在注释里，于是 #4A4A4F 与 #B4B4B9 两个「第三种颜色」各占了一个槽位，
                     // 两种模式还得各挑一次。这里把它变成断言：正文槽位只能是 #000000 / #FFFFFF，
-                    // 次级文字必须是「正文色 × MikomiTextAlpha.Secondary」。
+                    // 次级文字必须是「正文色 × TextAlpha.Secondary」。
                     //
                     // 改写法（给日间正文抽一个常量之类）时同步改这里 —— 与标签色那几条正则同一套约定：
                     // 解析不到就报错，而不是安静地放行。
                     val textColorRules = listOf(
                         "夜间正文必须是纯白" to "private val NightOnSurface = Color(0xFFFFFFFF)",
                         "夜间次级文字必须是白的 alpha" to
-                            "private val NightOnSurfaceVariant = NightOnSurface.copy(alpha = MikomiTextAlpha.Secondary)",
+                            "private val NightOnSurfaceVariant = NightOnSurface.copy(alpha = TextAlpha.Secondary)",
                         "日间正文必须是纯黑" to "onSurface = Color(0xFF000000)",
                         "日间页面正文必须是纯黑" to "onBackground = Color(0xFF000000)",
                         "日间次级文字必须是黑的 alpha" to
-                            "onSurfaceVariant = Color(0xFF000000).copy(alpha = MikomiTextAlpha.Secondary)",
+                            "onSurfaceVariant = Color(0xFF000000).copy(alpha = TextAlpha.Secondary)",
                         "媒体族次级文字必须是白的 alpha" to
-                            "contentSecondary = Color.White.copy(alpha = MikomiTextAlpha.Secondary)",
+                            "contentSecondary = Color.White.copy(alpha = TextAlpha.Secondary)",
                         "媒体族三级文字必须是白的 alpha" to
-                            "contentTertiary = Color.White.copy(alpha = MikomiTextAlpha.Tertiary)",
+                            "contentTertiary = Color.White.copy(alpha = TextAlpha.Tertiary)",
                     )
                     val textViolations = textColorRules.filterNot { (_, expected) ->
                         themeSource.contains(expected) || colorsSource.contains(expected)
@@ -439,8 +439,8 @@ class DesignAuditPlugin : Plugin<Project> {
              *
              * ## 五条判定
              *
-             * 1. **裸 `Icon(` 归零**：唯一入口是 `MikomiIcon`，它内部那一层是唯一例外。
-             * 2. **尺寸只有一条入口**：`MikomiIcon` 的 `modifier` 链里出现 `.size(` 就说明尺寸又长出了
+             * 1. **裸 `Icon(` 归零**：唯一入口是 `Icon`，它内部那一层是唯一例外。
+             * 2. **尺寸只有一条入口**：`Icon` 的 `modifier` 链里出现 `.size(` 就说明尺寸又长出了
              *    第二条路（两条路的优先级还相反，见 §5.6）；`size` 参数写成 `13.dp` 同理。
              *    组件物理尺寸（播放键 32、空状态 56）写 `design-ok` 注明即可，和 tokenAudit 同一套豁免。
              * 3. **语义表每项都有 KDoc 与家族**，家族在白名单内，`autoMirror = true` 只出现在
@@ -458,8 +458,8 @@ class DesignAuditPlugin : Plugin<Project> {
                         gradle.startParameter.taskNames.any { it.contains("verifyDesign") }
 
                     /** 唯一入口所在的文件：它内部的那一次 `Icon(` 是合法的。 */
-                    val wrapperRel = "core/ui/src/main/kotlin/com/liomix/mikomi/core/ui/base/MikomiIcon.kt"
-                    val iconsRel = "$designSystemDir/MikomiIcons.kt"
+                    val wrapperRel = "core/ui/src/main/kotlin/com/liomix/mikomi/core/ui/base/Icon.kt"
+                    val iconsRel = "$designSystemDir/Icons.kt"
                     val iconsFile = File(projectDir, iconsRel)
                     /** 允许出现在注释里的家族。新增来源要同时改这里与 docs §5.6。 */
                     val families = listOf("Rounded", "Outlined", "AutoMirrored.Rounded", "Dart-Mikomi")
@@ -523,17 +523,25 @@ class DesignAuditPlugin : Plugin<Project> {
                         val (text, lineOf) = flatten(lines)
 
                         if (rel != wrapperRel) {
-                            for (m in Regex("""\bIcon\(""").findAll(text)) {
-                                rawIconCalls++
-                                issues += "裸 Icon( $rel:${lineOf[m.range.first]} —— 走 MikomiIcon，见 docs §5.6"
+                            // 「裸 Icon」的判据是 import 来源，不是名字：本项目唯一的图标入口
+                            // 自己就叫 `Icon`，光看调用点无法区分是谁的。只有直接
+                            // import 了 material3.Icon，才算绕过了包装。
+                            val importsMaterialIcon = lines.any {
+                                it.trim() == "import androidx.compose.material3.Icon"
+                            }
+                            if (importsMaterialIcon) {
+                                for (m in Regex("""\bIcon\(""").findAll(text)) {
+                                    rawIconCalls++
+                                    issues += "裸 Icon( $rel:${lineOf[m.range.first]} —— 走 core:ui 的 Icon，见 docs §5.6"
+                                }
                             }
                         }
 
-                        for (m in Regex("""\bMikomiIcon\(""").findAll(text)) {
+                        for (m in Regex("""\bIcon\(""").findAll(text)) {
                             val ln = lineOf[m.range.first]
                             val close = callEnd(text, m.range.last)
                             if (close < 0) {
-                                issues += "MikomiIcon 实参解析失败 $rel:$ln"
+                                issues += "Icon 实参解析失败 $rel:$ln"
                                 continue
                             }
                             sites++
@@ -552,14 +560,14 @@ class DesignAuditPlugin : Plugin<Project> {
                                 } else {
                                     issues += "图标尺寸绕过 size 参数 $rel:$ln —— " +
                                         (if (modifierSized) "`modifier` 里写了 `.size(`" else "`size` 传了字面量") +
-                                        "；改走 `size = MikomiSizes.Icon*`（组件物理尺寸写 design-ok）"
+                                        "；改走 `size = Sizes.Icon*`（组件物理尺寸写 design-ok）"
                                 }
                                 Regex("""\bsize\s*=""").containsMatchIn(args) -> sizedSites++
                                 else -> defaultSites++
                             }
                         }
 
-                        for (m in Regex("""\bMikomiIcons\.(\w+)""").findAll(text)) {
+                        for (m in Regex("""\bIcons\.(\w+)""").findAll(text)) {
                             val name = m.groupValues[1]
                             usage[name] = (usage[name] ?: 0) + 1
                         }
@@ -609,8 +617,8 @@ class DesignAuditPlugin : Plugin<Project> {
 
                     // ---- 唯一入口的默认尺寸必须真的来自 token ----
                     val wrapperSource = File(projectDir, wrapperRel).readText()
-                    if (!Regex("""size: Dp = MikomiSizes\.Icon\w+""").containsMatchIn(wrapperSource)) {
-                        issues += "MikomiIcon 的 size 默认值不再引用 MikomiSizes.Icon* —— 图标尺寸又没人负责了"
+                    if (!Regex("""size: Dp = Sizes\.Icon\w+""").containsMatchIn(wrapperSource)) {
+                        issues += "Icon 的 size 默认值不再引用 Sizes.Icon* —— 图标尺寸又没人负责了"
                     }
 
                     // ---- 报告 ----
@@ -659,7 +667,7 @@ class DesignAuditPlugin : Plugin<Project> {
              * - 写死 112dp 当底部避让 —— 手势导航正好够，换成三键导航就少 24dp。
              *
              * 都是「在全仓唯一的那台测试机上看起来完全正常」的那一类。所以这里把「只能从
-             * `MikomiInsets` / `LocalMikomiWindowSize` 取值」变成命令。
+             * `Insets` / `LocalWindowSize` 取值」变成命令。
              *
              * ## 判据
              *
@@ -727,13 +735,13 @@ class DesignAuditPlugin : Plugin<Project> {
                             if (rawInsetsRe.containsMatchIn(line)) {
                                 rawInsets++
                                 if (!inWindowPkg) {
-                                    issues += "裸 WindowInsets 用法 $rel:$ln —— 走 MikomiInsets，见 docs §6.5"
+                                    issues += "裸 WindowInsets 用法 $rel:$ln —— 走 Insets，见 docs §6.5"
                                 }
                             }
                             if (directSystemBarRe.containsMatchIn(line)) {
                                 directSystemBar++
                                 if (!inWindowPkg) {
-                                    issues += "直接系统栏 padding $rel:$ln —— 走 MikomiInsets.Top/Bottom/Chrome"
+                                    issues += "直接系统栏 padding $rel:$ln —— 走 Insets.Top/Bottom/Chrome"
                                 }
                             }
                             if (imeRe.containsMatchIn(line)) {
@@ -746,7 +754,7 @@ class DesignAuditPlugin : Plugin<Project> {
                                 if (muted) {
                                     imeMuted++
                                 } else {
-                                    issues += "imePadding 没有理由 $rel:$ln —— 页面级容器用 MikomiInsets.BottomOrIme；" +
+                                    issues += "imePadding 没有理由 $rel:$ln —— 页面级容器用 Insets.BottomOrIme；" +
                                         "确实只需要键盘时写 design-ok 说明为什么"
                                 }
                             }
@@ -760,7 +768,7 @@ class DesignAuditPlugin : Plugin<Project> {
                                     k in 1..rawLines.size && rawLines[k - 1].contains("design-ok")
                                 }
                                 if (uiLayer && !inWindowPkg && !muted) {
-                                    issues += "用屏幕宽度判档 $rel:$ln —— 读 LocalMikomiWindowSize（分屏时 screenWidthDp 是整块屏幕）"
+                                    issues += "用屏幕宽度判档 $rel:$ln —— 读 LocalWindowSize（分屏时 screenWidthDp 是整块屏幕）"
                                 }
                             }
                             if (line.contains("enableEdgeToEdge(")) {
@@ -770,7 +778,7 @@ class DesignAuditPlugin : Plugin<Project> {
                         }
 
                         // 只统计、不判违规：页面用几次入口是收敛程度的指标，不是硬性配额。
-                        entryPointUses += Regex("""\bMikomiInsets\s*\.""").findAll(text).count()
+                        entryPointUses += Regex("""\bInsets\s*\.""").findAll(text).count()
                     }
 
                     // ---- W1：唯一入口 ----
@@ -782,9 +790,9 @@ class DesignAuditPlugin : Plugin<Project> {
                     }
 
                     // ---- 入口本体还在 ----
-                    val insetsFile = File(projectDir, windowPkg + "MikomiInsets.kt")
+                    val insetsFile = File(projectDir, windowPkg + "Insets.kt")
                     if (!insetsFile.exists()) {
-                        issues += "缺 ${windowPkg}MikomiInsets.kt —— 安全区的唯一入口不见了"
+                        issues += "缺 ${windowPkg}Insets.kt —— 安全区的唯一入口不见了"
                     } else {
                         val src = insetsFile.readText()
                         val declared = Regex("""val (\w+):\s*WindowInsets""")
@@ -793,7 +801,7 @@ class DesignAuditPlugin : Plugin<Project> {
                             .toSet()
                         for (name in listOf("Top", "Bottom", "BottomOrIme", "Chrome")) {
                             if (name !in declared) {
-                                issues += "MikomiInsets 少了 $name（现有：${declared.joinToString()}）—— 页面会退回裸 WindowInsets"
+                                issues += "Insets 少了 $name（现有：${declared.joinToString()}）—— 页面会退回裸 WindowInsets"
                             }
                         }
                     }
@@ -821,7 +829,7 @@ class DesignAuditPlugin : Plugin<Project> {
                     }
 
                     println("窗口审计：")
-                    println("  安全区入口 MikomiInsets 使用 $entryPointUses 处 · 裸 WindowInsets $rawInsets 处 · 直接系统栏 padding $directSystemBar 处")
+                    println("  安全区入口 Insets 使用 $entryPointUses 处 · 裸 WindowInsets $rawInsets 处 · 直接系统栏 padding $directSystemBar 处")
                     println("  imePadding $imeSites 处（design-ok $imeMuted 处）· 屏幕宽度判档 $widthReads 处")
                     println("  enableEdgeToEdge $edgeToEdgeSites 处（${edgeToEdgeFiles.joinToString().ifEmpty { "无" }}）")
 
@@ -1049,7 +1057,7 @@ class DesignAuditPlugin : Plugin<Project> {
              * 按压动效审计：全站只允许一套按压实现。
              *
              * 规则（规范 §5.10）：按压反馈的唯一入口是 `core:ui` 的 `Modifier.pressScale`，
-             * 参数来自 `MikomiMotion.Press`。页面读 `collectIsPressedAsState` 自己写
+             * 参数来自 `Motion.Press`。页面读 `collectIsPressedAsState` 自己写
              * `animateFloatAsState`，就是在复制第二套手感 —— 曾经有三套（按钮 0.90 + tween、
              * 轮播 0.97 + spring、个人页 0.97 + spring），页面里看不出差异，按一下才发现。
              *

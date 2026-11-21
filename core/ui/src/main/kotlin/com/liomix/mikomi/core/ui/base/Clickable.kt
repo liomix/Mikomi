@@ -9,7 +9,7 @@ import androidx.compose.ui.semantics.Role
 /*
  * 可点元素的分层（规范 §5.10 / §3.8）：
  *
- *   设计系统  MikomiMotion.Press（缩多少 / 多快 / 过冲多少）
+ *   设计系统  Motion.Press（缩多少 / 多快 / 过冲多少）
  *      ↓
  *   原子层    Modifier.mikomiClickable（这个文件）、Modifier.pressScale（Button.kt）
  *      ↓

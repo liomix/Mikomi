@@ -46,18 +46,18 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiMotion
-import com.liomix.mikomi.core.designsystem.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiTheme
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Motion
+import com.liomix.mikomi.core.designsystem.PillShape
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.ScrollingText
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.skeletonBaseColor
-import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
+import com.liomix.mikomi.core.ui.image.AsyncImage
 import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.delay
@@ -167,7 +167,7 @@ private fun BannerItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 按压反馈统一走原子层的 pressScale（缩放与回弹全部来自 MikomiMotion.Press），
+    // 按压反馈统一走原子层的 pressScale（缩放与回弹全部来自 Motion.Press），
     // 页面不再自己 animateFloatAsState —— 否则同一次按压在轮播和按钮上手感不同。
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -209,7 +209,7 @@ private fun BannerItem(
         }
 
         key(anime.id) {
-            MikomiAsyncImage(
+            AsyncImage(
                 url = anime.coverUrl,
                 contentDescription = anime.title,
                 modifier = Modifier.fillMaxSize(),
@@ -232,7 +232,7 @@ private fun BannerItem(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
                             0.35f to Color.Transparent,
-                            1f to MikomiTheme.colors.media.scrim,
+                            1f to AppTheme.colors.media.scrim,
                         ),
                     ),
                 ),
@@ -247,7 +247,7 @@ private fun BannerItem(
                 text = anime.title,
                 // 字距不加：中文方块字加 0.1sp 只会让标题看起来是散的（见 `Font.kt`）。
                 style = MaterialTheme.typography.titleMedium.copy(
-                    color = MikomiTheme.colors.media.content,
+                    color = AppTheme.colors.media.content,
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -271,23 +271,23 @@ private fun RatingPill(
 ) {
     Row(
         modifier = modifier
-            .clip(MikomiPillShape)
-            .background(MikomiTheme.colors.media.surface)
-            .padding(horizontal = MikomiSpacing.Sm, vertical = MikomiSpacing.Xxs),
+            .clip(PillShape)
+            .background(AppTheme.colors.media.surface)
+            .padding(horizontal = Spacing.Sm, vertical = Spacing.Xxs),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Xxs),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.Xxs),
     ) {
-        MikomiIcon(
-            icon = MikomiIcons.Star,
+        Icon(
+            icon = Icons.Star,
             contentDescription = null,
-            tint = MikomiTheme.colors.rating,
-            size = MikomiSizes.IconXs,
+            tint = AppTheme.colors.rating,
+            size = Sizes.IconXs,
         )
         Text(
             text = rating,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
-            color = MikomiTheme.colors.media.content,
+            color = AppTheme.colors.media.content,
         )
     }
 }
@@ -323,11 +323,11 @@ private fun PagerIndicator(
             )
             val color by animateColorAsState(
                 targetValue = if (selected) {
-                    MikomiTheme.colors.media.content
+                    AppTheme.colors.media.content
                 } else {
-                    MikomiTheme.colors.media.contentTertiary
+                    AppTheme.colors.media.contentTertiary
                 },
-                animationSpec = tween(durationMillis = MikomiMotion.Duration.Short),
+                animationSpec = tween(durationMillis = Motion.Duration.Short),
                 label = "indicatorColor",
             )
 

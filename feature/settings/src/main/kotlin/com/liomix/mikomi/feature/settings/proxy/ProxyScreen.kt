@@ -37,13 +37,13 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiMotion
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiStroke
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Motion
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.model.BangumiApiMode
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.component.SettingsCard
@@ -51,13 +51,13 @@ import com.liomix.mikomi.feature.settings.component.SettingsCardHeader
 import com.liomix.mikomi.feature.settings.component.SettingsCardSection
 
 /** 选项卡片的圆角。 */
-private val OptionShape = RoundedCornerShape(MikomiRadius.Xxl)
+private val OptionShape = RoundedCornerShape(Radius.Xxl)
 
 /** 输入框圆角。 */
-private val FieldShape = RoundedCornerShape(MikomiRadius.Xl)
+private val FieldShape = RoundedCornerShape(Radius.Xl)
 
 /** 选项选中/取消时的颜色过渡时长（颜色状态切换统一走 `Short`）。 */
-private const val OptionAnimMillis = MikomiMotion.Duration.Short
+private const val OptionAnimMillis = Motion.Duration.Short
 
 /** 选中态底色透明度（浅染主色，避免像主按钮那样抢眼）。 */
 private const val SelectedContainerAlpha = 0.10f
@@ -96,8 +96,8 @@ fun ProxyScreen(
             SettingsCardSection {
                 SettingsCardHeader(stringResource(R.string.settings_proxy_mode_section))
                 Column(
-                    modifier = Modifier.padding(start = MikomiSpacing.Lg, end = MikomiSpacing.Lg, bottom = MikomiSpacing.Room),
-                    verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Compact),
+                    modifier = Modifier.padding(start = Spacing.Lg, end = Spacing.Lg, bottom = Spacing.Room),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.Compact),
                 ) {
                     ModeOption(
                         title = stringResource(R.string.settings_proxy_mode_direct),
@@ -132,7 +132,7 @@ fun ProxyScreen(
                     text = stringResource(R.string.settings_proxy_about_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = MikomiSpacing.Room, end = MikomiSpacing.Room, bottom = MikomiSpacing.Room),
+                    modifier = Modifier.padding(start = Spacing.Room, end = Spacing.Room, bottom = Spacing.Room),
                 )
             }
         }
@@ -158,7 +158,7 @@ private fun MirrorAddressCard(
                 onValueChange = onMirrorUrlChange,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = MikomiSpacing.Room),
+                    .padding(horizontal = Spacing.Room),
                 enabled = enabled,
                 singleLine = true,
                 shape = FieldShape,
@@ -167,16 +167,16 @@ private fun MirrorAddressCard(
                     Text(stringResource(R.string.settings_proxy_mirror_placeholder))
                 },
                 leadingIcon = {
-                    MikomiIcon(
-                        icon = MikomiIcons.Link,
+                    Icon(
+                        icon = Icons.Link,
                         contentDescription = null,
                     )
                 },
                 trailingIcon = {
                     if (enabled && uiState.mirrorUrl.isNotEmpty()) {
                         IconButton(onClick = { onMirrorUrlChange("") }) {
-                            MikomiIcon(
-                                icon = MikomiIcons.Close,
+                            Icon(
+                                icon = Icons.Close,
                                 contentDescription = stringResource(
                                     R.string.settings_proxy_mirror_clear,
                                 ),
@@ -204,7 +204,7 @@ private fun MirrorAddressCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = MikomiSpacing.Room, end = MikomiSpacing.Room, top = MikomiSpacing.Xs, bottom = MikomiSpacing.Room),
+                    .padding(start = Spacing.Room, end = Spacing.Room, top = Spacing.Xs, bottom = Spacing.Room),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 OutlinedButton(
@@ -214,16 +214,16 @@ private fun MirrorAddressCard(
                     if (testing) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(14.dp),
-                            strokeWidth = MikomiStroke.Thick,
+                            strokeWidth = Stroke.Thick,
                             color = LocalContentColor.current,
                         )
-                        Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
+                        Spacer(modifier = Modifier.width(Spacing.Sm))
                         Text(text = stringResource(R.string.settings_proxy_testing))
                     } else {
                         Text(text = stringResource(R.string.settings_proxy_test))
                     }
                 }
-                Spacer(modifier = Modifier.width(MikomiSpacing.Md))
+                Spacer(modifier = Modifier.width(Spacing.Md))
                 MirrorTestLabel(
                     result = uiState.mirrorTest,
                     modifier = Modifier.weight(1f),
@@ -310,20 +310,20 @@ private fun ModeOption(
             ),
         shape = OptionShape,
         color = containerColor,
-        border = BorderStroke(MikomiStroke.Thin, borderColor),
+        border = BorderStroke(Stroke.Thin, borderColor),
     ) {
         Row(
             modifier = Modifier.padding(
-                start = MikomiSpacing.Tight,
-                end = MikomiSpacing.Gutter,
-                top = MikomiSpacing.Compact,
-                bottom = MikomiSpacing.Compact,
+                start = Spacing.Tight,
+                end = Spacing.Gutter,
+                top = Spacing.Compact,
+                bottom = Spacing.Compact,
             ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // 点击交给整行，圆点只作为状态指示。
             RadioButton(selected = selected, onClick = null)
-            Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
+            Spacer(modifier = Modifier.width(Spacing.Xs))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
@@ -331,7 +331,7 @@ private fun ModeOption(
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                     color = if (selected) colors.primary else colors.onSurface,
                 )
-                Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
+                Spacer(modifier = Modifier.height(Spacing.Xxs))
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,

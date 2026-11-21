@@ -67,21 +67,21 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiWindowSpec
-import com.liomix.mikomi.core.designsystem.MikomiMedia
-import com.liomix.mikomi.core.designsystem.MikomiMotion
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiTextStyles
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.WindowSpec
+import com.liomix.mikomi.core.designsystem.Media
+import com.liomix.mikomi.core.designsystem.Motion
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.TextStyles
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.Tab
 import com.liomix.mikomi.core.ui.base.TabBar
 import com.liomix.mikomi.core.ui.layout.LocalBottomBarSpace
-import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
-import com.liomix.mikomi.core.ui.window.rememberMikomiBottomInset
-import com.liomix.mikomi.core.ui.window.rememberMikomiTopInset
+import com.liomix.mikomi.core.ui.window.LocalWindowSize
+import com.liomix.mikomi.core.ui.window.rememberBottomInset
+import com.liomix.mikomi.core.ui.window.rememberTopInset
 import com.liomix.mikomi.feature.profile.collection.CollectionEvent
 import com.liomix.mikomi.feature.profile.collection.CollectionUiState
 import com.liomix.mikomi.feature.profile.collection.CollectionArea
@@ -125,7 +125,7 @@ fun ProfileScreen(
 ) {
     val palette = rememberProfilePalette()
     val density = LocalDensity.current
-    val statusBar = rememberMikomiTopInset()
+    val statusBar = rememberTopInset()
     val barHeight = statusBar + TopBarHeight
 
     // 头部高度：头像 96 + 名字/简介与留白 85；完全收起时与顶栏留 16dp 呼吸。
@@ -146,7 +146,7 @@ fun ProfileScreen(
     // armed 一变就自动跑展开/收起动画；这个值只在布局/绘制阶段读，不逐帧重组。
     val snapState = animateFloatAsState(
         targetValue = if (armed) 1f else 0f,
-        animationSpec = tween(durationMillis = SnapMillis, easing = MikomiMotion.Curve.Standard),
+        animationSpec = tween(durationMillis = SnapMillis, easing = Motion.Curve.Standard),
         label = "profileSnap",
     )
     val snap: () -> Float = { snapState.value }
@@ -350,7 +350,7 @@ fun ProfileScreen(
     //
     // 收列用外层 Box + contentAlignment，而不是自己算左右偏移：照片层与折叠头
     // 都按 `constraints.maxWidth` 算中心，把约束收窄它们就自动跟着收，几何代码一行不改。
-    val wide = LocalMikomiWindowSize.current.isExpandedWidth
+    val wide = LocalWindowSize.current.isExpandedWidth
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -361,7 +361,7 @@ fun ProfileScreen(
             modifier = Modifier
                 .then(
                     if (wide) {
-                        Modifier.widthIn(max = MikomiWindowSpec.ContentMaxWidth)
+                        Modifier.widthIn(max = WindowSpec.ContentMaxWidth)
                     } else {
                         Modifier
                     },
@@ -375,7 +375,7 @@ fun ProfileScreen(
 
             // 卡片下沿停在悬浮导航栏上沿 14dp：底栏占位 = 系统导航栏 inset + 栏体 + 底部外边距。
             // 栏体那部分是壳下发的（LocalBottomBarSpace），这里不关心底部浮着什么。
-            val navBarInset = rememberMikomiBottomInset()
+            val navBarInset = rememberBottomInset()
             val contentBottomSpace = navBarInset + LocalBottomBarSpace.current + ContentBottomGap
             val barHeightPx = with(density) { barHeight.toPx() }
             val actionCardHeightPx = with(density) { ActionCardHeight.toPx() }
@@ -455,7 +455,7 @@ fun ProfileScreen(
                     onSettingsClick = onSettingsClick,
                 )
 
-                Spacer(modifier = Modifier.height(MikomiSpacing.Room))
+                Spacer(modifier = Modifier.height(Spacing.Room))
 
                 ProfileTabs(
                     palette = palette,
@@ -464,7 +464,7 @@ fun ProfileScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                Spacer(modifier = Modifier.height(MikomiSpacing.Md))
+                Spacer(modifier = Modifier.height(Spacing.Md))
 
                 // 内容卡片的外框与手势只声明一次，两个标签共用：
                 // 换标签时卡片的位置、圆角、折叠接力都不该有任何差别。
@@ -579,7 +579,7 @@ private val PullThreshold = 84.dp
 private val MaxCircleSize = 148.dp
 
 /** 上膛后撑开 / 松手收起的时长（Telegram 是 250ms 的 EASE_OUT_QUINT，对应 `Medium`）。 */
-private const val SnapMillis = MikomiMotion.Duration.Medium
+private const val SnapMillis = Motion.Duration.Medium
 
 /** 松手后头部归位的弹簧：只落到「完全收起」或「完全展开」两端。 */
 private val CollapseSpring = spring<Float>(dampingRatio = 0.9f, stiffness = 520f)
@@ -623,13 +623,13 @@ private fun ProfileTopBar(
             onClick = onNotificationsClick,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = MikomiSpacing.Xs, bottom = MikomiSpacing.Xs),
+                .padding(end = Spacing.Xs, bottom = Spacing.Xs),
         ) {
-            MikomiIcon(
-                icon = MikomiIcons.Email,
+            Icon(
+                icon = Icons.Email,
                 contentDescription = stringResource(R.string.profile_notifications_entry),
-                tint = lerp(palette.title, MikomiMedia.content, tintStep.value.coerceIn(0f, 1f)),
-                size = MikomiSizes.IconMd,
+                tint = lerp(palette.title, Media.content, tintStep.value.coerceIn(0f, 1f)),
+                size = Sizes.IconMd,
             )
         }
     }
@@ -793,15 +793,15 @@ private fun ProfileNameOverlay(
             Text(
                 text = stringResource(R.string.profile_name),
                 color = palette.title,
-                style = MikomiTextStyles.DisplayName,
+                style = TextStyles.DisplayName,
                 maxLines = 1,
                 modifier = Modifier.padding(horizontal = CollapsedTextInset),
             )
-            Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
+            Spacer(modifier = Modifier.height(Spacing.Xxs))
             Text(
                 text = stringResource(R.string.profile_bio),
                 color = palette.secondary,
-                style = MikomiTextStyles.Caption,
+                style = TextStyles.Caption,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
@@ -815,7 +815,7 @@ private fun ProfileNameOverlay(
             horizontalAlignment = Alignment.Start,
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = MikomiSpacing.Lg)
+                .padding(start = Spacing.Lg)
                 .offset {
                     val bottom = photoBottom() - NameBottomInset.toPx()
                     IntOffset(0, -(heightPx - bottom).roundToInt())
@@ -824,15 +824,15 @@ private fun ProfileNameOverlay(
         ) {
             Text(
                 text = stringResource(R.string.profile_name),
-                color = MikomiMedia.content,
-                style = MikomiTextStyles.TopBarTitle,
+                color = Media.content,
+                style = TextStyles.TopBarTitle,
                 maxLines = 1,
             )
-            Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
+            Spacer(modifier = Modifier.height(Spacing.Xxs))
             Text(
                 text = stringResource(R.string.profile_bio),
-                color = MikomiMedia.contentSecondary,
-                style = MikomiTextStyles.Caption,
+                color = Media.contentSecondary,
+                style = TextStyles.Caption,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -863,30 +863,30 @@ private fun ActionCardsRow(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Tight),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.Tight),
         modifier = modifier
             .fillMaxWidth()
             // 撑满态整排消失：只留昵称与简介。
             .graphicsLayer { alpha = (1f - expand()).coerceIn(0f, 1f) }
-            .padding(horizontal = MikomiSpacing.Gutter),
+            .padding(horizontal = Spacing.Gutter),
     ) {
         ActionCard(
             palette = palette,
-            icon = MikomiIcons.Palette,
+            icon = Icons.Palette,
             label = stringResource(R.string.profile_theme_entry),
             onClick = onThemeClick,
             modifier = Modifier.weight(1f),
         )
         ActionCard(
             palette = palette,
-            icon = MikomiIcons.Edit,
+            icon = Icons.Edit,
             label = stringResource(R.string.profile_action_edit_info),
             onClick = onEditInfo,
             modifier = Modifier.weight(1f),
         )
         ActionCard(
             palette = palette,
-            icon = MikomiIcons.Settings,
+            icon = Icons.Settings,
             label = stringResource(R.string.profile_action_settings),
             onClick = onSettingsClick,
             modifier = Modifier.weight(1f),
@@ -909,23 +909,23 @@ private fun ActionCard(
         verticalArrangement = Arrangement.Center,
         modifier = modifier
             .height(ActionCardHeight)
-            // 按压反馈走原子层的 pressScale：与按钮同一套缩放与回弹（MikomiMotion.Press）。
+            // 按压反馈走原子层的 pressScale：与按钮同一套缩放与回弹（Motion.Press）。
             .pressScale(interaction)
-            .clip(RoundedCornerShape(MikomiRadius.Xl))
+            .clip(RoundedCornerShape(Radius.Xl))
             .background(palette.card)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
     ) {
-        MikomiIcon(
+        Icon(
             icon = icon,
             contentDescription = null,
             tint = palette.title,
-            size = MikomiSizes.IconMd,
+            size = Sizes.IconMd,
         )
-        Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
+        Spacer(modifier = Modifier.height(Spacing.Xxs))
         Text(
             text = label,
             color = palette.title,
-            style = MikomiTextStyles.IconLabel,
+            style = TextStyles.IconLabel,
             maxLines = 1,
         )
     }
@@ -957,17 +957,17 @@ private fun ProfileTabs(
             // 四边同一档，取上下的 4dp。组件默认值是「左右 10 / 上下 4」：竖直方向已经贴着胶囊
             // 边缘，水平方向却多留 6dp，两端看着松。这里把左右收到与上下相同的 4dp ——
             // 指示器与容器都是胶囊（半圆端），同值内缩才是同心圆，四边间隙处处相等。
-            contentPadding = PaddingValues(MikomiSpacing.Xs),
+            contentPadding = PaddingValues(Spacing.Xs),
         ) {
             Tab(
                 index = 0,
                 text = stringResource(R.string.profile_tab_history),
-                icon = MikomiIcons.History,
+                icon = Icons.History,
             )
             Tab(
                 index = 1,
                 text = stringResource(R.string.profile_tab_favorite),
-                icon = MikomiIcons.Bookmark,
+                icon = Icons.Bookmark,
             )
         }
     }

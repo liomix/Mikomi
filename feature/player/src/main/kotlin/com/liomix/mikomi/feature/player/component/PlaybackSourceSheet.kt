@@ -55,14 +55,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiMotion
-import com.liomix.mikomi.core.designsystem.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiStroke
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Motion
+import com.liomix.mikomi.core.designsystem.PillShape
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.Stroke
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.Tag
 import com.liomix.mikomi.core.ui.base.TagColors
 import com.liomix.mikomi.core.ui.base.TagStyle
@@ -189,7 +189,7 @@ internal fun PlaybackSourceSheet(
                     .height(contentHeight)
                     // 导航栏留白由 ModalBottomSheet 的 contentWindowInsets 统一让过（含键盘），
                     // 这里再加一次就是两份：面板会整体上抬、底部漏出一条底色。
-                    .padding(bottom = MikomiSpacing.Sm),
+                    .padding(bottom = Spacing.Sm),
             ) {
                 SheetHeader(
                     animeTitle = animeTitle,
@@ -203,7 +203,7 @@ internal fun PlaybackSourceSheet(
                         text = stringResource(R.string.player_source_empty),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = MikomiSpacing.Room, vertical = MikomiSpacing.Xl),
+                        modifier = Modifier.padding(horizontal = Spacing.Room, vertical = Spacing.Xl),
                     )
                     return@Column
                 }
@@ -257,7 +257,7 @@ private fun SheetHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = MikomiSpacing.Room, end = MikomiSpacing.Md),
+            .padding(start = Spacing.Room, end = Spacing.Md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -267,7 +267,7 @@ private fun SheetHeader(
                 fontWeight = FontWeight.SemiBold,
             )
             if (subtitle.isNotBlank()) {
-                Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
+                Spacer(modifier = Modifier.height(Spacing.Xxs))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.labelMedium,
@@ -307,8 +307,8 @@ private fun FamilyTabRow(
         modifier = Modifier
             .fillMaxWidth()
             .selectableGroup(),
-        contentPadding = PaddingValues(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Xxs),
-        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
+        contentPadding = PaddingValues(horizontal = Spacing.Lg, vertical = Spacing.Xxs),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.Sm),
     ) {
         items(items = families, key = { it.name }) { family ->
             FamilyTab(
@@ -340,7 +340,7 @@ private fun FamilyTab(
         } else {
             Color.Transparent
         },
-        animationSpec = tween(durationMillis = MikomiMotion.Duration.Fast),
+        animationSpec = tween(durationMillis = Motion.Duration.Fast),
         label = "familyTabContainer",
     )
     val contentColor by animateColorAsState(
@@ -349,18 +349,18 @@ private fun FamilyTab(
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         },
-        animationSpec = tween(durationMillis = MikomiMotion.Duration.Fast),
+        animationSpec = tween(durationMillis = Motion.Duration.Fast),
         label = "familyTabContent",
     )
 
     Row(
         modifier = Modifier
             .height(36.dp)
-            .clip(MikomiPillShape)
+            .clip(PillShape)
             .background(containerColor)
             // 触控区就是看到的胶囊，不额外外扩。
             .selectable(selected = selected, role = Role.Tab, onClick = onClick)
-            .padding(horizontal = MikomiSpacing.Md),
+            .padding(horizontal = Spacing.Md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         StatusDot(
@@ -368,7 +368,7 @@ private fun FamilyTab(
             dotSize = TabStatusDotSize,
             spinnerSize = TabStatusSpinnerSize,
         )
-        Spacer(modifier = Modifier.width(MikomiSpacing.Tight))
+        Spacer(modifier = Modifier.width(Spacing.Tight))
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
@@ -401,7 +401,7 @@ private fun FamilyTabContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = MikomiSpacing.Md, end = MikomiSpacing.Md, top = MikomiSpacing.Xxs, bottom = MikomiSpacing.Sm),
+            .padding(start = Spacing.Md, end = Spacing.Md, top = Spacing.Xxs, bottom = Spacing.Sm),
     ) {
         entries.forEach { entry ->
             val line = entry.line
@@ -467,11 +467,11 @@ private fun EntryRow(
         modifier = Modifier
             .fillMaxWidth()
             .height(LineRowHeight)
-            .clip(RoundedCornerShape(MikomiRadius.Md))
+            .clip(RoundedCornerShape(Radius.Md))
             .background(containerColor)
             .mikomiClickable(enabled = enabled, onClick = onSelect)
             .alpha(if (enabled || playing) 1f else 0.55f)
-            .padding(start = MikomiSpacing.Md, end = MikomiSpacing.Xs),
+            .padding(start = Spacing.Md, end = Spacing.Xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -479,11 +479,11 @@ private fun EntryRow(
             contentAlignment = Alignment.Center,
         ) {
             when {
-                playing -> MikomiIcon(
-                    icon = MikomiIcons.Check,
+                playing -> Icon(
+                    icon = Icons.Check,
                     contentDescription = stringResource(R.string.player_source_playing),
                     tint = MaterialTheme.colorScheme.primary,
-                    size = MikomiSizes.IconXs,
+                    size = Sizes.IconXs,
                 )
 
                 else -> StatusDot(
@@ -493,7 +493,7 @@ private fun EntryRow(
                 )
             }
         }
-        Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
+        Spacer(modifier = Modifier.width(Spacing.Sm))
         Row(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
@@ -516,7 +516,7 @@ private fun EntryRow(
             if (line == null) {
                 val statusText = entry.source.statusText()
                 if (statusText.isNotEmpty()) {
-                    Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
+                    Spacer(modifier = Modifier.width(Spacing.Sm))
                     Text(
                         text = statusText,
                         style = MaterialTheme.typography.labelMedium,
@@ -529,19 +529,19 @@ private fun EntryRow(
             } else {
                 val quality = line.quality
                 if (quality != null) {
-                    Spacer(modifier = Modifier.width(MikomiSpacing.Tight))
+                    Spacer(modifier = Modifier.width(Spacing.Tight))
                     QualityTag(quality = quality)
                 }
                 val mode = line.playbackMode
                 if (mode != null) {
-                    Spacer(modifier = Modifier.width(MikomiSpacing.Tight))
+                    Spacer(modifier = Modifier.width(Spacing.Tight))
                     CapabilityTag(mode = mode)
                 }
             }
         }
         if (entry.source.isRetryable) {
             RowAction(
-                icon = MikomiIcons.Refresh,
+                icon = Icons.Refresh,
                 contentDescription = stringResource(
                     R.string.player_source_retry_item,
                     line?.let { entry.source.lineLabel(it) } ?: entry.source.name,
@@ -566,7 +566,7 @@ private fun RowAction(
             .mikomiClickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        MikomiIcon(
+        Icon(
             icon = icon,
             contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -600,7 +600,7 @@ private fun QualityTag(quality: String) {
             container = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
             content = MaterialTheme.colorScheme.primary,
         ),
-        shape = RoundedCornerShape(MikomiRadius.Xs),
+        shape = RoundedCornerShape(Radius.Xs),
         textStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
     )
 }
@@ -626,7 +626,7 @@ private fun CapabilityTag(mode: PlaybackMode) {
             container = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.10f),
             content = MaterialTheme.colorScheme.onSurfaceVariant,
         ),
-        shape = RoundedCornerShape(MikomiRadius.Xs),
+        shape = RoundedCornerShape(Radius.Xs),
         textStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
     )
 }
@@ -653,7 +653,7 @@ private fun StatusDot(
         SourceAvailability.CHECKING -> CircularProgressIndicator(
             modifier = Modifier.size(spinnerSize),
             color = MaterialTheme.colorScheme.primary,
-            strokeWidth = MikomiStroke.Medium,
+            strokeWidth = Stroke.Medium,
         )
 
         SourceAvailability.NO_RESULT -> Box(

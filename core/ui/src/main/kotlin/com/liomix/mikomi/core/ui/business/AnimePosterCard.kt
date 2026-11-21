@@ -13,7 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.ui.base.ScrollingText
 import androidx.compose.foundation.clickable
 
@@ -80,7 +80,7 @@ fun AnimePosterCard(
             // 把「骨架 → 灰块 → 封面」接成「骨架 → 扫光 → 封面」。
             shimmerWhileLoading = true,
         )
-        Spacer(modifier = Modifier.height(MikomiSpacing.Tight))
+        Spacer(modifier = Modifier.height(Spacing.Tight))
         ScrollingText(
             text = title,
             style = MaterialTheme.typography.labelMedium,

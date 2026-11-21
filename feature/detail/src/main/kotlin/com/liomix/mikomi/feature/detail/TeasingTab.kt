@@ -31,14 +31,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.common.util.formatRelativeTime
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.PillShape
+import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.TeasingComment
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.SkeletonShimmer
-import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
+import com.liomix.mikomi.core.ui.image.AsyncImage
 
 /** 吐槽头像直径（对齐 Dart 版 40）。 */
 private val TEASING_AVATAR_SIZE = 40.dp
@@ -76,7 +76,7 @@ internal fun TeasingTab(
         TeasingUiState.Loading -> TeasingSkeletonList(modifier = modifier)
 
         TeasingUiState.Error -> TeasingStatusBlock(
-            icon = MikomiIcons.Comment,
+            icon = Icons.Comment,
             message = stringResource(R.string.detail_teasing_load_failed),
             actionLabel = stringResource(R.string.detail_retry),
             onAction = onRetry,
@@ -86,7 +86,7 @@ internal fun TeasingTab(
         is TeasingUiState.Loaded -> {
             if (state.comments.isEmpty()) {
                 TeasingStatusBlock(
-                    icon = MikomiIcons.Comment,
+                    icon = Icons.Comment,
                     message = stringResource(R.string.detail_no_teasing),
                     modifier = modifier,
                 )
@@ -125,10 +125,10 @@ private fun TeasingCommentItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Gutter),
+            .padding(horizontal = Spacing.Lg, vertical = Spacing.Gutter),
     ) {
         TeasingAvatar(url = comment.user.avatarUrl, name = comment.user.displayName)
-        Spacer(modifier = Modifier.width(MikomiSpacing.Md))
+        Spacer(modifier = Modifier.width(Spacing.Md))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -139,14 +139,14 @@ private fun TeasingCommentItem(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
+                Spacer(modifier = Modifier.width(Spacing.Sm))
                 Text(
                     text = formatRelativeTime(comment.createdAt),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Spacer(modifier = Modifier.height(MikomiSpacing.Tight))
+            Spacer(modifier = Modifier.height(Spacing.Tight))
             Text(
                 text = comment.content,
                 style = MaterialTheme.typography.bodyMedium.copy(
@@ -169,16 +169,16 @@ private fun TeasingAvatar(
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         if (url.isNullOrBlank()) {
-            MikomiIcon(
-                icon = MikomiIcons.Person,
+            Icon(
+                icon = Icons.Person,
                 contentDescription = name,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
-                    .padding(MikomiSpacing.Sm)
+                    .padding(Spacing.Sm)
                     .fillMaxSize(),
             )
         } else {
-            MikomiAsyncImage(
+            AsyncImage(
                 url = url,
                 contentDescription = name,
                 contentScale = ContentScale.Crop,
@@ -202,7 +202,7 @@ private fun TeasingFooter(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = MikomiSpacing.Lg),
+                    .padding(vertical = Spacing.Lg),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -239,7 +239,7 @@ private fun TeasingFooter(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = MikomiSpacing.Lg),
+                    .padding(vertical = Spacing.Lg),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -264,24 +264,24 @@ private fun TeasingStatusBlock(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = MikomiSpacing.Lg),
+            .padding(horizontal = Spacing.Lg),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        MikomiIcon(
+        Icon(
             icon = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
             size = EmptyStateIconSize,
         )
-        Spacer(modifier = Modifier.height(MikomiSpacing.Lg))
+        Spacer(modifier = Modifier.height(Spacing.Lg))
         Text(
             text = message,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (actionLabel != null && onAction != null) {
-            Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
+            Spacer(modifier = Modifier.height(Spacing.Sm))
             TextButton(onClick = onAction) {
                 Text(text = actionLabel)
             }
@@ -307,34 +307,34 @@ private fun TeasingSkeletonItem(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Gutter),
+            .padding(horizontal = Spacing.Lg, vertical = Spacing.Gutter),
     ) {
         SkeletonBox(
             modifier = Modifier.size(TEASING_AVATAR_SIZE),
             shape = CircleShape,
         )
-        Spacer(modifier = Modifier.width(MikomiSpacing.Md))
+        Spacer(modifier = Modifier.width(Spacing.Md))
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.Sm),
         ) {
             SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth(0.35f)
                     .height(13.dp),
-                shape = MikomiPillShape,
+                shape = PillShape,
             )
             SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(13.dp),
-                shape = MikomiPillShape,
+                shape = PillShape,
             )
             SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth(0.65f)
                     .height(13.dp),
-                shape = MikomiPillShape,
+                shape = PillShape,
             )
         }
     }

@@ -18,9 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.min
-import com.liomix.mikomi.core.designsystem.MikomiMotion
+import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.core.media.MikomiPlayer
-import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.feature.player.component.CommentSection
 import com.liomix.mikomi.feature.player.component.EpisodeSection
 import com.liomix.mikomi.feature.player.component.PlaybackSourceSheet
@@ -105,7 +105,7 @@ fun PlayerScreen(
                     // 播放器从**状态栏下方**开始。
                     // App 是 edge-to-edge，内容默认铺到屏幕顶端，状态栏的时钟/信号图标
                     // 会压在第一帧画面上；这里让出那一条，全屏时才铺到屏幕边缘。
-                    .windowInsetsPadding(MikomiInsets.Top),
+                    .windowInsetsPadding(Insets.Top),
             ) {
                 // 给播放器让出等高的一块：全屏与非全屏共用同一个播放器实例。
                 Spacer(modifier = Modifier.height(playerHeight))
@@ -127,7 +127,7 @@ fun PlayerScreen(
                 Crossfade(
                     targetState = state.tab,
                     modifier = Modifier.weight(1f),
-                    animationSpec = tween(durationMillis = MikomiMotion.Duration.Short),
+                    animationSpec = tween(durationMillis = Motion.Duration.Short),
                     label = "playerTabContent",
                 ) { tab ->
                     when (tab) {
@@ -185,7 +185,7 @@ fun PlayerScreen(
             // 否则播放器会盖住选集区的第一行，或者反过来浮到状态栏底下。
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .then(if (fullscreen) Modifier else Modifier.windowInsetsPadding(MikomiInsets.Top)),
+                .then(if (fullscreen) Modifier else Modifier.windowInsetsPadding(Insets.Top)),
         )
 
         if (state.sourceSheetVisible) {

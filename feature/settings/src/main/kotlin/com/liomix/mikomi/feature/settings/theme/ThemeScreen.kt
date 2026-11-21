@@ -34,17 +34,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiTheme
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.designsystem.ThemePalette
 import com.liomix.mikomi.core.model.PageTransitionStyle
 import com.liomix.mikomi.core.model.TransitionStyle
-import com.liomix.mikomi.core.ui.base.MikomiToast
-import com.liomix.mikomi.core.ui.base.MikomiToastData
+import com.liomix.mikomi.core.ui.base.Toast
+import com.liomix.mikomi.core.ui.base.ToastData
 import com.liomix.mikomi.core.ui.base.Tag
 import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
-import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.feature.settings.component.BAndWSwitch
 import com.liomix.mikomi.feature.settings.component.SettingsCard
@@ -61,7 +61,7 @@ import com.liomix.mikomi.core.ui.base.mikomiClickable
  * - 「应用图标」卡片：桌面图标样式选择（切换 activity-alias，即时生效）。
  *
  * 日夜切换的圆形揭示动画由 App 根部的 `NightModeTransitionHost` 负责（裁的是整个窗口），
- * 本页只负责把开关放在正确的位置；页面级提示由 [MikomiToast]（core:ui 公共组件）渲染在底部。
+ * 本页只负责把开关放在正确的位置；页面级提示由 [Toast]（core:ui 公共组件）渲染在底部。
  *
  * 配色色卡本身的绘制、选中态与表情动画在 [com.liomix.mikomi.feature.settings.component.ThemeSwatch]。
  */
@@ -72,7 +72,7 @@ fun ThemeScreen(
     appIconId: String,
     transitionStyleId: String,
     pageTransitionId: String,
-    toast: MikomiToastData?,
+    toast: ToastData?,
     onSelectColorScheme: (String) -> Unit,
     onSelectAppIcon: (String) -> Unit,
     onSelectTransitionStyle: (String) -> Unit,
@@ -94,16 +94,16 @@ fun ThemeScreen(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(
-                            start = MikomiSpacing.Room,
-                            end = MikomiSpacing.Room,
-                            top = MikomiSpacing.Room,
+                            start = Spacing.Room,
+                            end = Spacing.Room,
+                            top = Spacing.Room,
                         ),
                     )
-                    Spacer(modifier = Modifier.height(MikomiSpacing.Lg))
+                    Spacer(modifier = Modifier.height(Spacing.Lg))
                     LazyRow(
                         modifier = Modifier.selectableGroup(),
-                        contentPadding = PaddingValues(horizontal = MikomiSpacing.Room),
-                        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
+                        contentPadding = PaddingValues(horizontal = Spacing.Room),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.Md),
                     ) {
                         items(
                             items = ThemePalette.entries,
@@ -117,7 +117,7 @@ fun ThemeScreen(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(MikomiSpacing.Md))
+                    Spacer(modifier = Modifier.height(Spacing.Md))
                 }
 
                 // 黑白（日 / 夜）切换：动画与交互由组件内部完成。
@@ -138,12 +138,12 @@ fun ThemeScreen(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(
-                            start = MikomiSpacing.Room,
-                            end = MikomiSpacing.Room,
-                            top = MikomiSpacing.Room,
+                            start = Spacing.Room,
+                            end = Spacing.Room,
+                            top = Spacing.Room,
                         ),
                     )
-                    Spacer(modifier = Modifier.height(MikomiSpacing.Md))
+                    Spacer(modifier = Modifier.height(Spacing.Md))
                     EffectGroup(title = stringResource(R.string.settings_effect_hero)) {
                         // 用解析后的枚举比较：老版本存过 standard / fade / scale 这类
                         // 已废弃的 id，直接比字符串会导致「一个都不选中」。
@@ -156,7 +156,7 @@ fun ThemeScreen(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(MikomiSpacing.Gutter))
+                    Spacer(modifier = Modifier.height(Spacing.Gutter))
                     EffectGroup(title = stringResource(R.string.settings_effect_page)) {
                         val current = PageTransitionStyle.fromId(pageTransitionId)
                         EffectOptions(PageTransitionStyle.entries, "page") { style ->
@@ -167,7 +167,7 @@ fun ThemeScreen(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(MikomiSpacing.Room))
+                    Spacer(modifier = Modifier.height(Spacing.Room))
                 }
             }
 
@@ -180,15 +180,15 @@ fun ThemeScreen(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(
-                            start = MikomiSpacing.Room,
-                            end = MikomiSpacing.Room,
-                            top = MikomiSpacing.Room,
+                            start = Spacing.Room,
+                            end = Spacing.Room,
+                            top = Spacing.Room,
                         ),
                     )
-                    Spacer(modifier = Modifier.height(MikomiSpacing.Lg))
+                    Spacer(modifier = Modifier.height(Spacing.Lg))
                     LazyRow(
-                        contentPadding = PaddingValues(horizontal = MikomiSpacing.Room),
-                        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Room),
+                        contentPadding = PaddingValues(horizontal = Spacing.Room),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.Room),
                     ) {
                         items(
                             items = AppIconStyle.entries,
@@ -202,18 +202,18 @@ fun ThemeScreen(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(MikomiSpacing.Room))
+                    Spacer(modifier = Modifier.height(Spacing.Room))
                 }
             }
         }
 
         // 页面级提示：叠在内容之上（日夜切换的遮罩在 App 根部，按窗口层级绘制在更上面）。
-        MikomiToast(
+        Toast(
             data = toast,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .windowInsetsPadding(MikomiInsets.Bottom)
-                .padding(start = MikomiSpacing.Xl, end = MikomiSpacing.Xl, bottom = MikomiSpacing.Xl),
+                .windowInsetsPadding(Insets.Bottom)
+                .padding(start = Spacing.Xl, end = Spacing.Xl, bottom = Spacing.Xl),
         )
     }
 }
@@ -253,7 +253,7 @@ private fun AppIconOption(
                 // 圆形预览：图标本体裁成圆，和桌面上圆形图标的样子一致。
                 // 这里不再需要「外圆角减内边距」那套同心圆角换算 —— 圆没有角半径可以相减。
                 .clip(CircleShape)
-                .background(MikomiTheme.colors.previewCanvas)
+                .background(AppTheme.colors.previewCanvas)
                 // 点击与涟漪都限制在图标区域内，名称不参与触控。
                 .mikomiClickable(onClick = onClick),
             contentAlignment = Alignment.Center,
@@ -265,7 +265,7 @@ private fun AppIconOption(
                 modifier = Modifier.fillMaxSize(),
             )
         }
-        Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
+        Spacer(modifier = Modifier.height(Spacing.Sm))
         Text(
             text = stringResource(style.labelRes),
             style = MaterialTheme.typography.labelMedium,
@@ -288,20 +288,20 @@ private fun EffectGroup(
     title: String,
     content: @Composable () -> Unit,
 ) {
-    Column(modifier = Modifier.padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Tight)) {
+    Column(modifier = Modifier.padding(horizontal = Spacing.Lg, vertical = Spacing.Tight)) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(MikomiRadius.Xxl),
+            shape = RoundedCornerShape(Radius.Xxl),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
-            Column(modifier = Modifier.padding(vertical = MikomiSpacing.Gutter)) {
+            Column(modifier = Modifier.padding(vertical = Spacing.Gutter)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = MikomiSpacing.Lg),
+                    modifier = Modifier.padding(horizontal = Spacing.Lg),
                 )
-                Spacer(modifier = Modifier.height(MikomiSpacing.Compact))
+                Spacer(modifier = Modifier.height(Spacing.Compact))
                 content()
             }
         }
@@ -322,8 +322,8 @@ private fun <T> EffectOptions(
 ) {
     LazyRow(
         modifier = Modifier.selectableGroup(),
-        contentPadding = PaddingValues(horizontal = MikomiSpacing.Lg),
-        horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
+        contentPadding = PaddingValues(horizontal = Spacing.Lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.Md),
     ) {
         // 枚举条目数量固定且顺序稳定，索引即身份，不需要外部再传一个 key 提取器。
         itemsIndexed(

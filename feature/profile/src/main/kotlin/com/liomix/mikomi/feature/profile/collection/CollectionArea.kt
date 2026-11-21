@@ -24,17 +24,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiTextAlpha
-import com.liomix.mikomi.core.designsystem.MikomiTextStyles
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.TextAlpha
+import com.liomix.mikomi.core.designsystem.TextStyles
 import com.liomix.mikomi.core.model.Favorite
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.Tag
 import com.liomix.mikomi.core.ui.business.AnimePosterCard
 import com.liomix.mikomi.core.ui.business.PosterCardSkeleton
-import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
+import com.liomix.mikomi.core.ui.window.LocalWindowSize
 import com.liomix.mikomi.feature.profile.R
 
 /**
@@ -52,7 +52,7 @@ private val CollectionGridColumns = GridCells.Adaptive(minSize = CollectionGridM
 private const val CompactColumns = 3
 
 /** 行内 / 行间间距，与首页的 12dp 一致。 */
-private val CollectionGridSpacing = MikomiSpacing.Md
+private val CollectionGridSpacing = Spacing.Md
 
 /** 加载骨架的格数：两行（3 列机型）。 */
 private const val SkeletonCount = 6
@@ -133,19 +133,19 @@ private fun CollectionHeader(total: Int, onOpenCollect: () -> Unit) {
                 indication = null,
                 onClick = onOpenCollect,
             )
-            .padding(horizontal = MikomiSpacing.Md, vertical = MikomiSpacing.Sm),
+            .padding(horizontal = Spacing.Md, vertical = Spacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Tag(text = stringResource(R.string.profile_collection_count, total))
         Spacer(modifier = Modifier.weight(1f))
-        // 胶囊与图标都是 24dp（Tag 的默认高度 = MikomiSizes.IconMd），
+        // 胶囊与图标都是 24dp（Tag 的默认高度 = Sizes.IconMd），
         // 按中线对齐时上、下边距天生相等 —— 这一行不需要任何 offset 或等高容器。
-        MikomiIcon(
-            icon = MikomiIcons.ChevronRight,
+        Icon(
+            icon = Icons.ChevronRight,
             // 整行已经是一个语义节点，图标只是装饰，读屏不再重复念一遍。
             contentDescription = null,
             tint = scheme.onSurfaceVariant,
-            size = MikomiSizes.IconMd,
+            size = Sizes.IconMd,
         )
     }
 }
@@ -211,26 +211,26 @@ internal fun CollectionEmptyState() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = MikomiSpacing.Xl),
+            .padding(horizontal = Spacing.Xl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        MikomiIcon(
-            icon = MikomiIcons.StarBorder,
+        Icon(
+            icon = Icons.StarBorder,
             contentDescription = null,
-            tint = scheme.onSurface.copy(alpha = MikomiTextAlpha.Tertiary),
-            size = MikomiSizes.IconMd,
+            tint = scheme.onSurface.copy(alpha = TextAlpha.Tertiary),
+            size = Sizes.IconMd,
         )
-        Spacer(modifier = Modifier.height(MikomiSpacing.Sm))
+        Spacer(modifier = Modifier.height(Spacing.Sm))
         Text(
             text = stringResource(R.string.profile_collection_empty_title),
-            style = MikomiTextStyles.BodySecondary,
+            style = TextStyles.BodySecondary,
             color = scheme.onSurface,
         )
-        Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
+        Spacer(modifier = Modifier.height(Spacing.Xxs))
         Text(
             text = stringResource(R.string.profile_collection_empty_hint),
-            style = MikomiTextStyles.Caption,
+            style = TextStyles.Caption,
             color = scheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
@@ -245,7 +245,7 @@ internal fun CollectionEmptyState() {
  */
 @Composable
 private fun rememberCollectionColumns(): GridCells {
-    val expanded = LocalMikomiWindowSize.current.isExpandedWidth
+    val expanded = LocalWindowSize.current.isExpandedWidth
     return remember(expanded) {
         if (expanded) CollectionGridColumns else GridCells.Fixed(CompactColumns)
     }
@@ -264,9 +264,9 @@ private fun rememberCollectionColumns(): GridCells {
 @Composable
 private fun rememberCollectionGridPadding(): PaddingValues = remember {
     PaddingValues(
-        start = MikomiSpacing.Md,
-        end = MikomiSpacing.Md,
-        top = MikomiSpacing.Sm,
-        bottom = MikomiSpacing.Md,
+        start = Spacing.Md,
+        end = Spacing.Md,
+        top = Spacing.Sm,
+        bottom = Spacing.Md,
     )
 }

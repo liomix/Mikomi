@@ -14,7 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.ui.R
 
 /** 全屏加载态。 */
@@ -47,7 +47,7 @@ fun ErrorState(
             textAlign = TextAlign.Center,
         )
         if (onRetry != null) {
-            Spacer(modifier = Modifier.height(MikomiSpacing.Lg))
+            Spacer(modifier = Modifier.height(Spacing.Lg))
             Button(onClick = onRetry) {
                 Text(text = stringResource(R.string.core_ui_retry))
             }

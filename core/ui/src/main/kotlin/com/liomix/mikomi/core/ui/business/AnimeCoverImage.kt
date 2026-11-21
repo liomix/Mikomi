@@ -17,16 +17,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
-import com.liomix.mikomi.core.designsystem.MikomiRadius
+import com.liomix.mikomi.core.designsystem.Radius
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.skeletonBaseColor
-import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
+import com.liomix.mikomi.core.ui.image.AsyncImage
 
 /** 加载失败后的最大自动重试次数；超过后停留占位色块，避免无限循环请求。 */
 private const val MAX_RETRY = 3
 
 /** 封面圆角：列表卡用 8dp，详情页封面用 14dp；飞行时两者之间插值。 */
-private val COVER_CORNER_RADIUS = MikomiRadius.Md
+private val COVER_CORNER_RADIUS = Radius.Md
 
 /**
  * 番剧封面图（网络图统一走 Coil）。
@@ -97,7 +97,7 @@ fun AnimeCoverImage(
                 )
             }
             // 请求由 core:ui 统一构建：memoryCacheKey / crossfade 在这里定，UA 由 ImageLoader 统一注入。
-            MikomiAsyncImage(
+            AsyncImage(
                 url = url,
                 contentDescription = contentDescription,
                 modifier = Modifier.matchParentSize(),

@@ -28,7 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.business.AnimePosterCard
 import com.liomix.mikomi.core.ui.base.ErrorState
@@ -37,9 +37,9 @@ import com.liomix.mikomi.core.ui.business.PosterSkeletonRow
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.SkeletonShimmer
 import com.liomix.mikomi.core.ui.layout.LocalBottomBarSpace
-import com.liomix.mikomi.core.ui.window.rememberMikomiBottomInset
-import com.liomix.mikomi.core.ui.window.rememberMikomiInsetsDp
-import com.liomix.mikomi.core.ui.window.rememberMikomiTopInset
+import com.liomix.mikomi.core.ui.window.rememberBottomInset
+import com.liomix.mikomi.core.ui.window.rememberInsetsDp
+import com.liomix.mikomi.core.ui.window.rememberTopInset
 import kotlinx.coroutines.delay
 
 /** 网格最小列宽：手机竖屏约 3 列，宽屏自动增加列数（Dart 版为固定 3 列）。 */
@@ -80,15 +80,15 @@ private const val PendingGraceMillis = 300L
  */
 @Composable
 private fun rememberHomeContentPadding(): PaddingValues {
-    val topInset = rememberMikomiTopInset()
-    val bottomInset = rememberMikomiBottomInset()
+    val topInset = rememberTopInset()
+    val bottomInset = rememberBottomInset()
     val barSpace = LocalBottomBarSpace.current
-    val insets = rememberMikomiInsetsDp()
+    val insets = rememberInsetsDp()
     return remember(topInset, bottomInset, barSpace, insets) {
         PaddingValues(
-            start = insets.start + MikomiSpacing.Lg,
-            end = insets.end + MikomiSpacing.Lg,
-            top = topInset + MikomiSpacing.Xs,
+            start = insets.start + Spacing.Lg,
+            end = insets.end + Spacing.Lg,
+            top = topInset + Spacing.Xs,
             bottom = barSpace + bottomInset + ContentBottomGap,
         )
     }

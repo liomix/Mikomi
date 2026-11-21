@@ -58,21 +58,21 @@ import androidx.core.view.WindowCompat
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiWindowSpec
-import com.liomix.mikomi.core.designsystem.MikomiMotion
-import com.liomix.mikomi.core.designsystem.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiTheme
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.WindowSpec
+import com.liomix.mikomi.core.designsystem.Motion
+import com.liomix.mikomi.core.designsystem.PillShape
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.base.ErrorState
 import com.liomix.mikomi.core.ui.base.PressButton
 import com.liomix.mikomi.core.ui.base.PressButtonStyle
 import com.liomix.mikomi.core.ui.base.PressIconButton
 import com.liomix.mikomi.core.ui.base.SkeletonBox
-import com.liomix.mikomi.core.ui.window.LocalMikomiWindowSize
-import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.ui.window.LocalWindowSize
+import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.feature.detail.component.CreditDetailSheet
 import com.liomix.mikomi.feature.detail.component.collapsingHeader
 import com.liomix.mikomi.feature.detail.component.rememberHeaderCollapse
@@ -247,12 +247,12 @@ private fun DetailLoaded(
         // 为什么整块收而不是只收正文：头部在 1120dp 宽下会把「封面 + 信息」拉成
         // 一条 2000px 的横条，信息列只剩三行小字贴着左边；收列之后封面与信息同宽同排，
         // 读者视线不用横跨半个屏幕。
-        val wide = LocalMikomiWindowSize.current.isExpandedWidth
+        val wide = LocalWindowSize.current.isExpandedWidth
         Box(
             modifier = Modifier
                 .then(
                     if (wide) {
-                        Modifier.widthIn(max = MikomiWindowSpec.ContentMaxWidth)
+                        Modifier.widthIn(max = WindowSpec.ContentMaxWidth)
                     } else {
                         Modifier
                     },
@@ -367,40 +367,40 @@ private fun DetailLoadingSkeleton(
                 .fillMaxWidth()
                 .height(HEADER_HEIGHT)
                 .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                .windowInsetsPadding(MikomiInsets.Chrome)
+                .windowInsetsPadding(Insets.Chrome)
                 // 与真实头部一致：状态栏之下不再留额外上边距。
-                .padding(start = MikomiSpacing.Room, end = MikomiSpacing.Room, bottom = MikomiSpacing.Room),
+                .padding(start = Spacing.Room, end = Spacing.Room, bottom = Spacing.Room),
         ) {
             SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth(0.55f)
                     .height(26.dp),
-                shape = MikomiPillShape,
+                shape = PillShape,
             )
-            Spacer(modifier = Modifier.height(MikomiSpacing.Room))
+            Spacer(modifier = Modifier.height(Spacing.Room))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(MikomiSpacing.Room),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.Room),
             ) {
                 SkeletonBox(
                     modifier = Modifier
                         .weight(1f)
                         .aspectRatio(2f / 3f),
-                    shape = RoundedCornerShape(MikomiRadius.Xl),
+                    shape = RoundedCornerShape(Radius.Xl),
                 )
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Lg),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.Lg),
                 ) {
                     repeat(3) {
-                        Column(verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Xs)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.Xs)) {
                             SkeletonBox(
                                 modifier = Modifier.size(width = 56.dp, height = 14.dp),
-                                shape = MikomiPillShape,
+                                shape = PillShape,
                             )
                             SkeletonBox(
                                 modifier = Modifier.size(width = 84.dp, height = 20.dp),
-                                shape = RoundedCornerShape(MikomiRadius.Md),
+                                shape = RoundedCornerShape(Radius.Md),
                             )
                         }
                     }
@@ -408,15 +408,15 @@ private fun DetailLoadingSkeleton(
             }
         }
         Column(
-            modifier = Modifier.padding(horizontal = MikomiSpacing.Room, vertical = MikomiSpacing.Xl),
-            verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
+            modifier = Modifier.padding(horizontal = Spacing.Room, vertical = Spacing.Xl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.Md),
         ) {
             repeat(4) { index ->
                 SkeletonBox(
                     modifier = Modifier
                         .fillMaxWidth(if (index == 3) 0.6f else 1f)
                         .height(14.dp),
-                    shape = MikomiPillShape,
+                    shape = PillShape,
                 )
             }
         }
@@ -433,10 +433,10 @@ private fun BottomActions(
 ) {
     Column(
         modifier = modifier
-            .windowInsetsPadding(MikomiInsets.Bottom)
-            .padding(end = MikomiSpacing.Room, bottom = MikomiSpacing.Xl),
+            .windowInsetsPadding(Insets.Bottom)
+            .padding(end = Spacing.Room, bottom = Spacing.Xl),
         horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.Md),
     ) {
         FavoriteButton(
             isFavorite = isFavorite,
@@ -446,7 +446,7 @@ private fun BottomActions(
         PressButton(
             text = stringResource(R.string.detail_follow),
             onClick = onFollowClick,
-            leadingIcon = MikomiIcons.Play,
+            leadingIcon = Icons.Play,
             style = PressButtonStyle.Elevated,
         )
     }
@@ -497,7 +497,7 @@ private fun FavoriteButton(
             targetValue = 1f,
             animationSpec = tween(
                 durationMillis = loaded.duration.toInt().coerceAtLeast(1),
-                easing = MikomiMotion.Curve.Linear,
+                easing = Motion.Curve.Linear,
             ),
         )
         bursting = false
@@ -508,7 +508,7 @@ private fun FavoriteButton(
         PressIconButton(
             // 图标全程不撤：动画后段粒子已经散得差不多，撤掉图标会留下半秒空窗，
             // 看着像按钮没响应；叠在一起反而像「星星被点亮」。
-            icon = if (isFavorite) MikomiIcons.Star else MikomiIcons.StarBorder,
+            icon = if (isFavorite) Icons.Star else Icons.StarBorder,
             contentDescription = stringResource(contentDescriptionRes),
             onClick = onClick,
             size = FAVORITE_BUTTON_SIZE,
@@ -521,7 +521,7 @@ private fun FavoriteButton(
             // 星标固定金色：空心的描边和点满的填充是同一个色，只换字形不换颜色，
             // 这样「点没点」只看形状，不会被两套配色搅乱。色值取自设计系统的评分金 ——
             // 收藏星与评分星同色，否则同一屏里两个「金」会显得其中一个发脏。
-            contentColor = MikomiTheme.colors.rating,
+            contentColor = AppTheme.colors.rating,
         )
         // 动画是按钮的兄弟节点：按钮被 clip 成圆形，星级要能飞出这个圆才好看。
         if (bursting && loaded != null) {
@@ -589,7 +589,7 @@ private fun DetailTabBar(
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
                     },
-                    animationSpec = tween(durationMillis = MikomiMotion.Duration.Short),
+                    animationSpec = tween(durationMillis = Motion.Duration.Short),
                     label = "tabTextColor",
                 )
                 Tab(

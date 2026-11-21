@@ -47,15 +47,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiPillShape
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiStroke
-import com.liomix.mikomi.core.designsystem.MikomiTextStyles
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.PillShape
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.Stroke
+import com.liomix.mikomi.core.designsystem.TextStyles
 import com.liomix.mikomi.core.model.Favorite
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.PressButton
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.SkeletonShimmer
@@ -70,13 +70,13 @@ import java.util.Locale
 
 /*
  * 收藏页的固定体格。这里是「一个组件的物理尺寸」，不是页面间距，
- * 所以不往 MikomiSpacing 里塞（见 Dimens.kt 文件头的判别方法）。
+ * 所以不往 Spacing 里塞（见 Dimens.kt 文件头的判别方法）。
  */
 
 /**
  * 时间轴竖线与圆点所在的左栏宽度。
  *
- * 取 28dp 是为了让竖线正好落在页面水槽上（`MikomiSpacing.Gutter` 的一半）：
+ * 取 28dp 是为了让竖线正好落在页面水槽上（`Spacing.Gutter` 的一半）：
  * 线与其他页面的内容左边线共用一条基准，看过去不是「悬在内容里的装饰线」。
  */
 private val TimelineRailWidth = 28.dp
@@ -88,13 +88,13 @@ private val TimelineDotSize = 10.dp
 private val TimelineThumbWidth = 56.dp
 
 /** 缩略图与文字之间的间距。 */
-private val TimelineThumbGap = MikomiSpacing.Md
+private val TimelineThumbGap = Spacing.Md
 
 /** 选中圆点的直径：比封面卡那套（24dp）小一档，列表行里不该压住标题。 */
-private val SelectionBadgeSize = MikomiSizes.IconMd
+private val SelectionBadgeSize = Sizes.IconMd
 
 /** 选中圆点里的勾。 */
-private val SelectionCheckSize = MikomiSizes.IconXs
+private val SelectionCheckSize = Sizes.IconXs
 
 /** 骨架行数（一屏大约能摆下这么多）。 */
 private const val SkeletonRows = 7
@@ -232,7 +232,7 @@ internal fun CollectScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = MikomiSpacing.Gutter, vertical = MikomiSpacing.Md),
+                        .padding(horizontal = Spacing.Gutter, vertical = Spacing.Md),
                 ) {
                     PressButton(
                         text = stringResource(
@@ -350,7 +350,7 @@ private fun TimelineDayHeader(dayStart: Long, first: Boolean) {
                     color = railColor,
                     start = Offset(x, if (first) centerY else 0f),
                     end = Offset(x, size.height),
-                    strokeWidth = MikomiStroke.Thin.toPx(),
+                    strokeWidth = Stroke.Thin.toPx(),
                 )
                 drawCircle(
                     color = dotColor,
@@ -360,14 +360,14 @@ private fun TimelineDayHeader(dayStart: Long, first: Boolean) {
             }
             .padding(
                 start = TimelineRailWidth,
-                top = MikomiSpacing.Room,
-                bottom = MikomiSpacing.Xs,
+                top = Spacing.Room,
+                bottom = Spacing.Xs,
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = label,
-            style = MikomiTextStyles.SectionTitle,
+            style = TextStyles.SectionTitle,
             color = scheme.onSurface,
         )
     }
@@ -413,7 +413,7 @@ private fun TimelineRow(
                     color = railColor,
                     start = Offset(x, 0f),
                     end = Offset(x, if (terminal) size.height / 2f else size.height),
-                    strokeWidth = MikomiStroke.Thin.toPx(),
+                    strokeWidth = Stroke.Thin.toPx(),
                 )
             }
             .combinedClickable(
@@ -435,8 +435,8 @@ private fun TimelineRow(
             )
             .padding(
                 start = TimelineRailWidth,
-                top = MikomiSpacing.Tight,
-                bottom = MikomiSpacing.Tight,
+                top = Spacing.Tight,
+                bottom = Spacing.Tight,
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -463,17 +463,17 @@ private fun TimelineRow(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
+            Spacer(modifier = Modifier.height(Spacing.Xxs))
             Text(
                 text = time,
-                style = MikomiTextStyles.Caption,
+                style = TextStyles.Caption,
                 color = scheme.onSurfaceVariant,
             )
         }
         if (managing) {
             SelectionBadge(
                 selected = selected,
-                modifier = Modifier.padding(start = MikomiSpacing.Md),
+                modifier = Modifier.padding(start = Spacing.Md),
             )
         }
     }
@@ -498,14 +498,14 @@ private fun SelectionBadge(selected: Boolean, modifier: Modifier = Modifier) {
                 } else {
                     Modifier
                         .background(scheme.surface)
-                        .border(MikomiStroke.Thin, scheme.outline, CircleShape)
+                        .border(Stroke.Thin, scheme.outline, CircleShape)
                 },
             ),
         contentAlignment = Alignment.Center,
     ) {
         if (selected) {
-            MikomiIcon(
-                icon = MikomiIcons.Check,
+            Icon(
+                icon = Icons.Check,
                 contentDescription = null,
                 tint = scheme.onPrimary,
                 size = SelectionCheckSize,
@@ -525,34 +525,34 @@ private fun CollectSkeleton() {
                 .fillMaxSize()
                 .padding(
                     start = TimelineRailWidth,
-                    end = MikomiSpacing.Gutter,
-                    top = MikomiSpacing.Sm,
+                    end = Spacing.Gutter,
+                    top = Spacing.Sm,
                 ),
-            verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.Md),
         ) {
             repeat(SkeletonRows) {
                 Row(modifier = Modifier.fillMaxWidth()) {
                     SkeletonBox(
                         modifier = Modifier.width(TimelineThumbWidth),
-                        shape = RoundedCornerShape(MikomiRadius.Md),
+                        shape = RoundedCornerShape(Radius.Md),
                     )
                     Column(
                         modifier = Modifier
                             .weight(1f)
-                            .padding(start = TimelineThumbGap, top = MikomiSpacing.Tight),
-                        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Sm),
+                            .padding(start = TimelineThumbGap, top = Spacing.Tight),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.Sm),
                     ) {
                         SkeletonBox(
                             modifier = Modifier
                                 .fillMaxWidth(0.7f)
                                 .height(SkeletonLineHeight),
-                            shape = RoundedCornerShape(MikomiRadius.Xs),
+                            shape = RoundedCornerShape(Radius.Xs),
                         )
                         SkeletonBox(
                             modifier = Modifier
                                 .fillMaxWidth(0.3f)
                                 .height(SkeletonLineHeight),
-                            shape = RoundedCornerShape(MikomiRadius.Xs),
+                            shape = RoundedCornerShape(Radius.Xs),
                         )
                     }
                 }
@@ -587,14 +587,14 @@ private fun CollectUndoBar(
     ) {
         Row(
             modifier = Modifier
-                .padding(MikomiSpacing.Md)
-                .clip(MikomiPillShape)
+                .padding(Spacing.Md)
+                .clip(PillShape)
                 .background(scheme.inverseSurface)
                 .padding(
-                    start = MikomiSpacing.Lg,
-                    end = MikomiSpacing.Sm,
-                    top = MikomiSpacing.Xs,
-                    bottom = MikomiSpacing.Xs,
+                    start = Spacing.Lg,
+                    end = Spacing.Sm,
+                    top = Spacing.Xs,
+                    bottom = Spacing.Xs,
                 ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -603,14 +603,14 @@ private fun CollectUndoBar(
                     R.string.profile_collection_removed,
                     shown?.items?.size ?: 0,
                 ),
-                style = MikomiTextStyles.Caption,
+                style = TextStyles.Caption,
                 color = scheme.inverseOnSurface,
             )
-            Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
+            Spacer(modifier = Modifier.width(Spacing.Xs))
             TextButton(onClick = onUndo) {
                 Text(
                     text = stringResource(R.string.profile_collection_undo),
-                    style = MikomiTextStyles.Caption,
+                    style = TextStyles.Caption,
                     fontWeight = FontWeight.SemiBold,
                     color = scheme.inverseOnSurface,
                 )
@@ -630,9 +630,9 @@ private fun CollectUndoBar(
 @Composable
 private fun rememberTimelinePadding(): PaddingValues = remember {
     PaddingValues(
-        end = MikomiSpacing.Gutter,
-        top = MikomiSpacing.Xs,
-        bottom = MikomiSpacing.Md,
+        end = Spacing.Gutter,
+        top = Spacing.Xs,
+        bottom = Spacing.Md,
     )
 }
 

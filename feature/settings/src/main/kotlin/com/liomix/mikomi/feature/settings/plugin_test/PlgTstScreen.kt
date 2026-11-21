@@ -69,18 +69,18 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiStroke
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.model.VdoPlgContent
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.Switch
 import com.liomix.mikomi.core.ui.base.Tag
 import com.liomix.mikomi.core.ui.base.TagStyle
 import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
-import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.data.video.VdoFailureReason
 import com.liomix.mikomi.data.video.VdoStreamKind
 import com.liomix.mikomi.data.video.remote.vdoplg.rule.VdoPlgStageResult
@@ -159,8 +159,8 @@ fun PlgTstScreen(
             onBackClick = onBackClick,
             actions = {
                 IconButton(onClick = { addSheetOpen = true }) {
-                    MikomiIcon(
-                        icon = MikomiIcons.Add,
+                    Icon(
+                        icon = Icons.Add,
                         contentDescription = stringResource(R.string.settings_plg_tst_add),
                     )
                 }
@@ -189,7 +189,7 @@ fun PlgTstScreen(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .windowInsetsPadding(MikomiInsets.Bottom),
+                .windowInsetsPadding(Insets.Bottom),
         )
     }
 
@@ -394,12 +394,12 @@ private fun PluginCard(
                 uiState.loading -> Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = MikomiSpacing.Room),
+                        .padding(vertical = Spacing.Room),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(22.dp),
-                        strokeWidth = MikomiStroke.Thick,
+                        strokeWidth = Stroke.Thick,
                     )
                 }
 
@@ -407,7 +407,7 @@ private fun PluginCard(
                     text = stringResource(R.string.settings_plg_tst_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant,
-                    modifier = Modifier.padding(start = MikomiSpacing.Room, end = MikomiSpacing.Room, bottom = MikomiSpacing.Room),
+                    modifier = Modifier.padding(start = Spacing.Room, end = Spacing.Room, bottom = Spacing.Room),
                 )
 
                 else -> rules.forEachIndexed { index, plugin ->
@@ -479,7 +479,7 @@ private fun PluginCard(
                         ) {
                             if (index > 0) {
                                 HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = MikomiSpacing.Room),
+                                    modifier = Modifier.padding(horizontal = Spacing.Room),
                                     color = colors.outlineVariant.copy(alpha = 0.5f),
                                 )
                             }
@@ -540,7 +540,7 @@ private fun PluginRow(
                 role = Role.Switch,
                 onValueChange = { if (!dragging) onToggle() },
             )
-            .padding(start = MikomiSpacing.Room, end = MikomiSpacing.Sm, top = MikomiSpacing.Md, bottom = MikomiSpacing.Md),
+            .padding(start = Spacing.Room, end = Spacing.Sm, top = Spacing.Md, bottom = Spacing.Md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -551,13 +551,13 @@ private fun PluginRow(
                     // 停用的源整体压低存在感，但仍留在原位——它不是「待删除」，只是暂时不上场。
                     color = if (plugin.enabled) colors.onSurface else colors.onSurfaceVariant,
                 )
-                Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
+                Spacer(modifier = Modifier.width(Spacing.Sm))
                 Tag(
                     text = stringResource(R.string.settings_plg_tst_version, plugin.version),
                     style = TagStyle.Meta,
                 )
             }
-            Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
+            Spacer(modifier = Modifier.height(Spacing.Xxs))
             Text(
                 text = pluginMetaLine(plugin),
                 style = MaterialTheme.typography.bodySmall,
@@ -565,7 +565,7 @@ private fun PluginRow(
             )
         }
 
-        Spacer(modifier = Modifier.width(MikomiSpacing.Compact))
+        Spacer(modifier = Modifier.width(Spacing.Compact))
         Switch(
             checked = plugin.enabled,
             onCheckedChange = null,
@@ -574,8 +574,8 @@ private fun PluginRow(
 
         Box {
             IconButton(onClick = { menuOpen = true }) {
-                MikomiIcon(
-                    icon = MikomiIcons.MoreVert,
+                Icon(
+                    icon = Icons.MoreVert,
                     contentDescription = stringResource(R.string.settings_plg_tst_more, plugin.name),
                     tint = colors.onSurfaceVariant,
                 )
@@ -583,29 +583,29 @@ private fun PluginRow(
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 PluginAction(
                     label = stringResource(R.string.settings_plg_tst_edit),
-                    icon = MikomiIcons.Edit,
+                    icon = Icons.Edit,
                     onClick = onEdit,
                     close = { menuOpen = false },
                 )
                 PluginAction(
                     label = stringResource(R.string.settings_plg_tst_test),
-                    icon = MikomiIcons.Science,
+                    icon = Icons.Science,
                     onClick = onTest,
                     close = { menuOpen = false },
                 )
                 PluginAction(
                     label = stringResource(R.string.settings_plg_tst_share),
-                    icon = MikomiIcons.Share,
+                    icon = Icons.Share,
                     onClick = onShare,
                     close = { menuOpen = false },
                 )
                 HorizontalDivider(
-                    modifier = Modifier.padding(vertical = MikomiSpacing.Xs),
+                    modifier = Modifier.padding(vertical = Spacing.Xs),
                     color = colors.outlineVariant.copy(alpha = 0.5f),
                 )
                 PluginAction(
                     label = stringResource(R.string.settings_plg_tst_remove),
-                    icon = MikomiIcons.Delete,
+                    icon = Icons.Delete,
                     tint = colors.error,
                     onClick = onRemove,
                     close = { menuOpen = false },
@@ -628,7 +628,7 @@ private fun PluginAction(
     DropdownMenuItem(
         text = { Text(label) },
         leadingIcon = {
-            MikomiIcon(
+            Icon(
                 icon = icon,
                 contentDescription = null,
                 tint = tint ?: LocalContentColor.current,
@@ -652,7 +652,7 @@ private fun PluginRepoCard(
     SettingsCard {
         SettingsCardSection {
             SettingsCardHeader(stringResource(R.string.settings_plg_tst_repo_section))
-            Column(modifier = Modifier.padding(bottom = MikomiSpacing.Sm)) {
+            Column(modifier = Modifier.padding(bottom = Spacing.Sm)) {
                 RepoRow(
                     title = stringResource(R.string.settings_plg_tst_repo_address),
                     value = repoUrl,
@@ -672,7 +672,7 @@ private fun PluginRepoCard(
 @Composable
 private fun RepoDivider() {
     HorizontalDivider(
-        modifier = Modifier.padding(horizontal = MikomiSpacing.Room),
+        modifier = Modifier.padding(horizontal = Spacing.Room),
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
     )
 }
@@ -694,9 +694,9 @@ private fun RepoRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(MikomiRadius.Xl))
+            .clip(RoundedCornerShape(Radius.Xl))
             .mikomiClickable(onClick = onClick)
-            .padding(horizontal = MikomiSpacing.Room, vertical = MikomiSpacing.Md),
+            .padding(horizontal = Spacing.Room, vertical = Spacing.Md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -713,9 +713,9 @@ private fun RepoRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
-        MikomiIcon(
-            icon = MikomiIcons.ChevronRight,
+        Spacer(modifier = Modifier.width(Spacing.Sm))
+        Icon(
+            icon = Icons.ChevronRight,
             contentDescription = null,
             tint = colors.onSurfaceVariant,
         )
@@ -756,8 +756,8 @@ private fun PluginTestSheet(
                 // 这里原先还写了 imePadding：既重复，又排在 verticalScroll 之后 ——
                 // 排在滚动之后意味着那一段留白跟着内容一起滚走，输入时看不到正在编辑的行。
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = MikomiSpacing.Room)
-                .padding(bottom = MikomiSpacing.Xl),
+                .padding(horizontal = Spacing.Room)
+                .padding(bottom = Spacing.Xl),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -769,11 +769,11 @@ private fun PluginTestSheet(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(modifier = Modifier.width(MikomiSpacing.Md))
+                Spacer(modifier = Modifier.width(Spacing.Md))
                 TestSummaryChip(running = state.running, report = report)
             }
 
-            Spacer(modifier = Modifier.height(MikomiSpacing.Md))
+            Spacer(modifier = Modifier.height(Spacing.Md))
             StageRow(
                 label = stringResource(R.string.settings_plg_tst_test_stage_search),
                 result = report?.search,
@@ -817,7 +817,7 @@ private fun PluginTestSheet(
                 mono = report?.streamInfo?.url,
             )
 
-            Spacer(modifier = Modifier.height(MikomiSpacing.Room))
+            Spacer(modifier = Modifier.height(Spacing.Room))
             OutlinedTextField(
                 value = keyword,
                 onValueChange = { keyword = it },
@@ -826,7 +826,7 @@ private fun PluginTestSheet(
                 enabled = !state.running,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(modifier = Modifier.height(MikomiSpacing.Md))
+            Spacer(modifier = Modifier.height(Spacing.Md))
             Button(
                 onClick = { onRun(keyword) },
                 // 没有关键词就没法走第一步：搜索是后面两步唯一的入口。
@@ -836,10 +836,10 @@ private fun PluginTestSheet(
                 if (state.running) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
-                        strokeWidth = MikomiStroke.Thick,
+                        strokeWidth = Stroke.Thick,
                         color = colors.onPrimary,
                     )
-                    Spacer(modifier = Modifier.width(MikomiSpacing.Compact))
+                    Spacer(modifier = Modifier.width(Spacing.Compact))
                 }
                 Text(stringResource(R.string.settings_plg_tst_test_run))
             }
@@ -877,11 +877,11 @@ private fun TestSummaryChip(running: Boolean, report: VdoPlgTestReport?) {
             colors.error.copy(alpha = 0.12f),
         )
     }
-    Surface(shape = RoundedCornerShape(MikomiRadius.Md), color = background, contentColor = foreground) {
+    Surface(shape = RoundedCornerShape(Radius.Md), color = background, contentColor = foreground) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(horizontal = MikomiSpacing.Sm, vertical = MikomiSpacing.Xxs),
+            modifier = Modifier.padding(horizontal = Spacing.Sm, vertical = Spacing.Xxs),
         )
     }
 }
@@ -910,30 +910,30 @@ private fun StageRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = MikomiSpacing.Tight),
+            .padding(vertical = Spacing.Tight),
         verticalAlignment = Alignment.Top,
     ) {
         when {
             running && result == null -> CircularProgressIndicator(
                 modifier = Modifier
-                    .padding(top = MikomiSpacing.Xxs)
+                    .padding(top = Spacing.Xxs)
                     .size(16.dp),
-                strokeWidth = MikomiStroke.Thick,
+                strokeWidth = Stroke.Thick,
             )
 
-            else -> MikomiIcon(
+            else -> Icon(
                 icon = when (result) {
-                    is VdoPlgStageResult.Passed -> MikomiIcons.CheckCircle
-                    is VdoPlgStageResult.Failed -> MikomiIcons.Error
-                    else -> MikomiIcons.RadioUnchecked
+                    is VdoPlgStageResult.Passed -> Icons.CheckCircle
+                    is VdoPlgStageResult.Failed -> Icons.Error
+                    else -> Icons.RadioUnchecked
                 },
                 contentDescription = null,
                 tint = tint,
-                modifier = Modifier.padding(top = MikomiSpacing.Xxs),
-                size = MikomiSizes.IconMd,
+                modifier = Modifier.padding(top = Spacing.Xxs),
+                size = Sizes.IconMd,
             )
         }
-        Spacer(modifier = Modifier.width(MikomiSpacing.Compact))
+        Spacer(modifier = Modifier.width(Spacing.Compact))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,
@@ -1096,17 +1096,17 @@ private fun MirrorPickerDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(MikomiRadius.Lg))
+                            .clip(RoundedCornerShape(Radius.Lg))
                             .selectable(
                                 selected = selected,
                                 role = Role.RadioButton,
                                 onClick = { onSelect(mirror) },
                             )
-                            .padding(vertical = MikomiSpacing.Compact),
+                            .padding(vertical = Spacing.Compact),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(selected = selected, onClick = null)
-                        Spacer(modifier = Modifier.width(MikomiSpacing.Sm))
+                        Spacer(modifier = Modifier.width(Spacing.Sm))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = stringResource(mirror.labelRes),
@@ -1158,17 +1158,17 @@ private fun AddPluginSheet(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = colors.onSurface,
-                modifier = Modifier.padding(start = MikomiSpacing.Room, end = MikomiSpacing.Room),
+                modifier = Modifier.padding(start = Spacing.Room, end = Spacing.Room),
             )
-            Spacer(modifier = Modifier.height(MikomiSpacing.Md))
+            Spacer(modifier = Modifier.height(Spacing.Md))
 
             AddMethod.entries.forEach { method ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         // 左右各让 8dp：推荐项要铺一层淡底，贴着屏幕边会显得像状态色块。
-                        .padding(horizontal = MikomiSpacing.Sm)
-                        .clip(RoundedCornerShape(MikomiRadius.Xl))
+                        .padding(horizontal = Spacing.Sm)
+                        .clip(RoundedCornerShape(Radius.Xl))
                         .then(
                             if (method == AddMethod.FromCatalog) {
                                 Modifier.background(colors.primary.copy(alpha = 0.10f))
@@ -1177,22 +1177,22 @@ private fun AddPluginSheet(
                             },
                         )
                         .clickable { onSelect(method) }
-                        .padding(horizontal = MikomiSpacing.Md, vertical = MikomiSpacing.Gutter),
+                        .padding(horizontal = Spacing.Md, vertical = Spacing.Gutter),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(MikomiRadius.Lg),
+                        shape = RoundedCornerShape(Radius.Lg),
                         color = colors.surfaceContainerHighest,
                         contentColor = colors.onSurfaceVariant,
                     ) {
-                        MikomiIcon(
+                        Icon(
                             icon = method.icon,
                             contentDescription = null,
-                            modifier = Modifier.padding(MikomiSpacing.Sm),
-                            size = MikomiSizes.IconMd,
+                            modifier = Modifier.padding(Spacing.Sm),
+                            size = Sizes.IconMd,
                         )
                     }
-                    Spacer(modifier = Modifier.width(MikomiSpacing.Md))
+                    Spacer(modifier = Modifier.width(Spacing.Md))
                     Text(
                         text = stringResource(method.titleRes),
                         style = MaterialTheme.typography.titleMedium,
@@ -1201,7 +1201,7 @@ private fun AddPluginSheet(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(MikomiSpacing.Md))
+            Spacer(modifier = Modifier.height(Spacing.Md))
         }
     }
 }
@@ -1213,19 +1213,19 @@ private enum class AddMethod(
 ) {
     FromCatalog(
         titleRes = R.string.settings_plg_tst_add_catalog,
-        icon = MikomiIcons.TravelExplore,
+        icon = Icons.TravelExplore,
     ),
     FromClipboard(
         titleRes = R.string.settings_plg_tst_add_clipboard,
-        icon = MikomiIcons.ContentPaste,
+        icon = Icons.ContentPaste,
     ),
     FromFile(
         titleRes = R.string.settings_plg_tst_add_file,
-        icon = MikomiIcons.FileOpen,
+        icon = Icons.FileOpen,
     ),
     FromTemplate(
         titleRes = R.string.settings_plg_tst_add_create,
-        icon = MikomiIcons.EditNote,
+        icon = Icons.EditNote,
     ),
 }
 

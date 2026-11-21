@@ -51,17 +51,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiIcons
-import com.liomix.mikomi.core.designsystem.MikomiMotion
-import com.liomix.mikomi.core.designsystem.MikomiRadius
-import com.liomix.mikomi.core.designsystem.MikomiSizes
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
-import com.liomix.mikomi.core.designsystem.MikomiStroke
-import com.liomix.mikomi.core.ui.base.MikomiIcon
+import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Motion
+import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.Stroke
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.ScrollingText
 import com.liomix.mikomi.core.ui.base.SkeletonBox
-import com.liomix.mikomi.core.ui.window.MikomiInsets
-import com.liomix.mikomi.core.ui.window.rememberMikomiBottomInset
+import com.liomix.mikomi.core.ui.window.Insets
+import com.liomix.mikomi.core.ui.window.rememberBottomInset
 import com.liomix.mikomi.feature.player.EpisodeItem
 import com.liomix.mikomi.feature.player.EpisodeOrder
 import com.liomix.mikomi.feature.player.R
@@ -205,7 +205,7 @@ internal fun EpisodeSection(
                 episodes
             }
 
-            val bottomInset = rememberMikomiBottomInset()
+            val bottomInset = rememberBottomInset()
             val scope = rememberCoroutineScope()
 
             // 首次进入把当前集滚进视野；网格已经有滚动位置（从评论 Tab 切回来、
@@ -237,7 +237,7 @@ internal fun EpisodeSection(
                     contentPadding = PaddingValues(
                         start = EpisodeGridPadding,
                         end = EpisodeGridPadding,
-                        top = MikomiSpacing.Xxs,
+                        top = Spacing.Xxs,
                         // 只在底部避让：按钮浮在上面，不占列宽。
                         bottom = bottomInset + EpisodeRailClearance,
                     ),
@@ -269,7 +269,7 @@ internal fun EpisodeSection(
                     onToggleExpand = { expanded = !expanded },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(end = MikomiSpacing.Room, bottom = MikomiSpacing.Xl),
+                        .padding(end = Spacing.Room, bottom = Spacing.Xl),
                 )
             }
         }
@@ -308,12 +308,12 @@ private fun EpisodeRail(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.windowInsetsPadding(MikomiInsets.Bottom),
-        verticalArrangement = Arrangement.spacedBy(MikomiSpacing.Md),
+        modifier = modifier.windowInsetsPadding(Insets.Bottom),
+        verticalArrangement = Arrangement.spacedBy(Spacing.Md),
         horizontalAlignment = Alignment.End,
     ) {
         EpisodeRailButton(
-            icon = MikomiIcons.ArrowUp,
+            icon = Icons.ArrowUp,
             contentDescription = stringResource(R.string.player_episodes_back_to_top),
             visible = showBackToTop,
             primary = false,
@@ -321,7 +321,7 @@ private fun EpisodeRail(
         )
         if (expandable) {
             EpisodeRailButton(
-                icon = if (expanded) MikomiIcons.UnfoldLess else MikomiIcons.UnfoldMore,
+                icon = if (expanded) Icons.UnfoldLess else Icons.UnfoldMore,
                 contentDescription = stringResource(
                     if (expanded) R.string.player_episodes_collapse else R.string.player_episodes_expand,
                 ),
@@ -353,7 +353,7 @@ private fun EpisodeRailButton(
 ) {
     val opacity by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(durationMillis = MikomiMotion.Duration.Fast),
+        animationSpec = tween(durationMillis = Motion.Duration.Fast),
         label = "episodeRailButtonOpacity",
     )
     Surface(
@@ -375,10 +375,10 @@ private fun EpisodeRailButton(
             .mikomiClickable(enabled = visible, onClick = onClick),
     ) {
         Box(contentAlignment = Alignment.Center) {
-            MikomiIcon(
+            Icon(
                 icon = icon,
                 contentDescription = contentDescription,
-                size = MikomiSizes.IconMd,
+                size = Sizes.IconMd,
             )
         }
     }
@@ -403,8 +403,8 @@ private fun EpisodeHeader(
             .padding(
                 start = EpisodeGridPadding,
                 end = EpisodeGridPadding,
-                top = MikomiSpacing.Compact,
-                bottom = MikomiSpacing.Sm,
+                top = Spacing.Compact,
+                bottom = Spacing.Sm,
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -446,7 +446,7 @@ private fun EpisodeSkeleton(
     cardHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val bottomInset = rememberMikomiBottomInset()
+    val bottomInset = rememberBottomInset()
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
         modifier = modifier.fillMaxSize(),
@@ -454,7 +454,7 @@ private fun EpisodeSkeleton(
         contentPadding = PaddingValues(
             start = EpisodeGridPadding,
             end = EpisodeGridPadding,
-            top = MikomiSpacing.Xxs,
+            top = Spacing.Xxs,
             bottom = bottomInset + EpisodeRailClearance,
         ),
         horizontalArrangement = Arrangement.spacedBy(EpisodeGridSpacing),
@@ -467,7 +467,7 @@ private fun EpisodeSkeleton(
         ) {
             SkeletonBox(
                 modifier = Modifier.height(cardHeight),
-                shape = RoundedCornerShape(MikomiRadius.Lg),
+                shape = RoundedCornerShape(Radius.Lg),
             )
         }
     }
@@ -505,7 +505,7 @@ private fun EpisodeCountChip(count: Int) {
             .widthIn(min = EpisodeChipMinWidth),
     ) {
         Box(
-            modifier = Modifier.padding(horizontal = MikomiSpacing.Compact),
+            modifier = Modifier.padding(horizontal = Spacing.Compact),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -555,17 +555,17 @@ private fun SortButton(
             .mikomiClickable(onClick = onClick),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = MikomiSpacing.Compact),
+            modifier = Modifier.padding(horizontal = Spacing.Compact),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MikomiIcon(
-                icon = MikomiIcons.ArrowUp,
+            Icon(
+                icon = Icons.ArrowUp,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.rotate(rotation),
-                size = MikomiSizes.IconXs,
+                size = Sizes.IconXs,
             )
-            Spacer(modifier = Modifier.width(MikomiSpacing.Xs))
+            Spacer(modifier = Modifier.width(Spacing.Xs))
             Text(
                 text = stringResource(
                     if (isAscending) R.string.player_order_asc else R.string.player_order_desc,
@@ -602,7 +602,7 @@ private fun EpisodeCard(
             // 日间是「浅灰底 + 白卡」、夜间是「纯黑底 + #181818 卡」，两种模式下都比背景亮一档。
             MaterialTheme.colorScheme.surface
         },
-        animationSpec = tween(durationMillis = MikomiMotion.Duration.Fast),
+        animationSpec = tween(durationMillis = Motion.Duration.Fast),
         label = "episodeCardContainer",
     )
     val titleColor by animateColorAsState(
@@ -611,16 +611,16 @@ private fun EpisodeCard(
         } else {
             MaterialTheme.colorScheme.onSurface
         },
-        animationSpec = tween(durationMillis = MikomiMotion.Duration.Fast),
+        animationSpec = tween(durationMillis = Motion.Duration.Fast),
         label = "episodeCardTitle",
     )
 
-    val cardShape = RoundedCornerShape(MikomiRadius.Lg)
+    val cardShape = RoundedCornerShape(Radius.Lg)
     Surface(
         shape = cardShape,
         color = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        border = if (selected) BorderStroke(MikomiStroke.Medium, MaterialTheme.colorScheme.primary) else null,
+        border = if (selected) BorderStroke(Stroke.Medium, MaterialTheme.colorScheme.primary) else null,
         modifier = modifier
             .height(height)
             .clip(cardShape)
@@ -635,7 +635,7 @@ private fun EpisodeCard(
             ),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = MikomiSpacing.Compact, vertical = MikomiSpacing.Tight),
+            modifier = Modifier.padding(horizontal = Spacing.Compact, vertical = Spacing.Tight),
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
@@ -648,7 +648,7 @@ private fun EpisodeCard(
             )
             val subtitle = episode.subtitle
             if (!subtitle.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(MikomiSpacing.Xxs))
+                Spacer(modifier = Modifier.height(Spacing.Xxs))
                 ScrollingText(
                     text = subtitle,
                     style = MaterialTheme.typography.labelSmall.copy(

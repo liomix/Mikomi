@@ -17,12 +17,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.MikomiSpacing
+import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.ui.business.AnimePosterCard
 import com.liomix.mikomi.core.ui.business.PosterCardSkeleton
 import com.liomix.mikomi.core.ui.business.PosterSkeletonRow
 import com.liomix.mikomi.core.ui.base.SkeletonShimmer
-import com.liomix.mikomi.core.ui.window.MikomiInsets
+import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.feature.search.LoadState
 import com.liomix.mikomi.feature.search.R
 import com.liomix.mikomi.feature.search.SearchCenteredHint
@@ -72,7 +72,7 @@ fun SearchResultScreen(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .windowInsetsPadding(MikomiInsets.BottomOrIme),
+                .windowInsetsPadding(Insets.BottomOrIme),
         ) {
             when (state.state) {
                 LoadState.Idle,
@@ -115,10 +115,10 @@ private fun ResultGrid(
         columns = GridCells.Adaptive(minSize = RESULT_GRID_MIN_SIZE),
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            start = MikomiSpacing.Lg,
-            end = MikomiSpacing.Lg,
-            top = MikomiSpacing.Xs,
-            bottom = MikomiSpacing.Xl,
+            start = Spacing.Lg,
+            end = Spacing.Lg,
+            top = Spacing.Xs,
+            bottom = Spacing.Xl,
         ),
         horizontalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),
         verticalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),
@@ -178,10 +178,10 @@ private fun ResultSkeleton() {
             columns = GridCells.Adaptive(minSize = RESULT_GRID_MIN_SIZE),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                start = MikomiSpacing.Lg,
-                end = MikomiSpacing.Lg,
-                top = MikomiSpacing.Xs,
-                bottom = MikomiSpacing.Xl,
+                start = Spacing.Lg,
+                end = Spacing.Lg,
+                top = Spacing.Xs,
+                bottom = Spacing.Xl,
             ),
             horizontalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),
             verticalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),

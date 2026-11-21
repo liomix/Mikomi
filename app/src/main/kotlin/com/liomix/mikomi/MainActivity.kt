@@ -19,7 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.liomix.mikomi.core.designsystem.MikomiTheme
+import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.ui.business.NightModeTransitionHost
 import com.liomix.mikomi.core.model.UserPreferences
 import com.liomix.mikomi.core.navigation.EntryProviderInstaller
@@ -97,7 +97,7 @@ class MainActivity : ComponentActivity() {
             }
             val scope = rememberCoroutineScope()
 
-            MikomiTheme(
+            AppTheme(
                 darkTheme = darkTheme,
                 colorSchemeId = preferences.colorScheme,
             ) {

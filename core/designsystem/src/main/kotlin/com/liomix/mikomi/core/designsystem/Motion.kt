@@ -75,7 +75,7 @@ object MikomiMotion {
         /**
          * 全部时长档位。
          *
-         * 与尺寸的 `steps` 同一个用途：`TokenGallery` 从它渲染，于是「加了档位忘记登记」
+         * 与尺寸的 `steps` 同一个用途：审计从它读档位，于是「加了档位忘记登记」
          * 不再可能发生。类型不是 `Dp` 而是毫秒，所以单独定义（[MikomiTime]）。
          */
         val steps: List<MikomiTime> = listOf(

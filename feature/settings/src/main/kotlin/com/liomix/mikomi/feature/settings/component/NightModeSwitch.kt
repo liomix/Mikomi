@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.liomix.mikomi.core.designsystem.LocalNightModeToggleController
+import com.liomix.mikomi.core.ui.business.LocalNightModeToggleController
 import com.liomix.mikomi.core.designsystem.MikomiMotion
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.core.ui.base.mikomiClickable

@@ -220,7 +220,7 @@ data class MikomiRanks(
  * 新增颜色的判断顺序：
  * 1. `MaterialTheme.colorScheme` 里有对应槽位 → 不要往这里加；
  * 2. 属于某个已有的族（又一个标签色相、又一个名次） → 加进那个族，别在顶层开口子；
- * 3. 确实是新的单值语义（像「搜索高亮」） → 才加顶层字段，并在 `TokenGallery` 登记。
+ * 3. 确实是新的单值语义（像「搜索高亮」） → 才加顶层字段，并在字段 KDoc 里写清
  */
 @Immutable
 data class MikomiColors(
@@ -233,8 +233,8 @@ data class MikomiColors(
      * 将来若要在浅色卡片上显示评分，别用它，用 `onSurface` 配这个金色图标，
      * 或者先补一档 `ratingInk`（做法同 [MikomiRankColor.ink]）。
      *
-     * 这条约束现在**有机器在查**：`TokenGallery` 的对比度页会把「金压白」算出来并标红，
-     * 所以它不是靠自觉。
+     * 这条约束现在**有机器在查**：`./gradlew contrastAudit` 会把「金压白」算出来，
+     * 低于门槛直接让构建失败，所以它不是靠自觉。
      */
     val rating: Color,
     /** 九个色相的标签色板。 */

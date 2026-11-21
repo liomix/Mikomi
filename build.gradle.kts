@@ -265,7 +265,7 @@ tasks.register("contrastAudit") {
 
     doLast {
         val colorsSource = File(projectDir, "$designSystemDir/Colors.kt").readText()
-        val themeSource = File(projectDir, "$designSystemDir/Theme.kt").readText()
+        val themeSource = File(projectDir, "$designSystemDir/theme/Theme.kt").readText()
 
         val failures = mutableListOf<String>()
         var checked = 0

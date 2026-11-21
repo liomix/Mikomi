@@ -12,6 +12,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import com.liomix.mikomi.core.designsystem.ThemePalette
 
 /*
  * ---- 基准方案 ----

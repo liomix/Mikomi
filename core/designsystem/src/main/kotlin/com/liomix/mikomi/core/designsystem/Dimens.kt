@@ -28,11 +28,11 @@ import androidx.compose.ui.unit.dp
  *
  * ## 为什么要这个类
  *
- * `TokenGallery` 曾经手抄一份档位清单（`"Sm" to MikomiSpacing.Sm` 一条条写）。
+ * 以前有过一份手抄的档位清单（`"Sm" to MikomiSpacing.Sm` 一条条写，在已删除的预览页里）。
  * 手抄的清单会漏 —— 加 `Compact` 那次就漏过，`None` 与 `Xxxl` 也一直没在目录里出现过。
  * 漏掉的档位不是「显示问题」：目录看不见的刻度，等于没人会去用它。
  *
- * 现在每个尺寸 object 自带一份 [MikomiStep] 表，目录从表渲染、审计也读这张表，
+ * 现在每个尺寸 object 自带一份 [MikomiStep] 表，审计读这张表，
  * 于是「新增档位」只需要改一处，且漏登记会被 `./gradlew tokenAudit` 数出来。
  *
  * 名字是手写的字符串（Kotlin 的反射拿不到 `val` 名，也不该为目录引入反射），
@@ -152,7 +152,7 @@ object MikomiSpacing {
     /**
      * 全部档位，按从小到大排列。
      *
-     * 目录（`TokenGallery`）与审计（`./gradlew tokenAudit`）都读这张表 ——
+     * 审计（`./gradlew tokenAudit`）读这张表 ——
      * **它必须与本 object 里的 `val` 一一对应**，漏一条或写错名会被审计数出来。
      */
     val steps: List<MikomiStep> = listOf(

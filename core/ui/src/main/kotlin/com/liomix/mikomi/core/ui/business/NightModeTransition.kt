@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.designsystem
+package com.liomix.mikomi.core.ui.business
 
 import android.R
 import android.app.Activity

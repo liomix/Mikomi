@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
@@ -14,6 +15,14 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Mikomi">
+
+        <!--
+            允许 profile 采集（API 29+）。不可调试的变体（benchmark / release）靠它
+            才能被 Baseline Profile 生成器采到；debug 变体本来就 debuggable，不受影响。
+        -->
+        <profileable
+            android:shell="true"
+            tools:targetApi="29" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -9,6 +9,27 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    buildTypes {
+        /**
+         * 性能测量专用变体（规范 §12.1 / §12.5：结论只在 release 上取）。
+         *
+         * 三个要点，缺一个数字就不可信：
+         * - **继承 release**：R8、资源压缩、同一套 proguard 规则。不继承就等于在测另一个 App；
+         * - **`isDebuggable = false`**：可调试构建会关掉 ART 的 AOT 优化，并把大量调用留在
+         *   解释执行路径上 —— 这正是「debug 的 p95 是 release 的 4 倍」的来源；
+         * - **debug 签名**：release 用的是正式签名，本地没有 keystore 就装不上去；
+         *   换成 debug 签名不影响运行时行为，只影响"谁能装"。
+         *
+         * `matchingFallbacks` 让 `:benchmark` 里同名变体在找不到同构依赖时回退到 release 的实现。
+         */
+        create("benchmark") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = false
+            matchingFallbacks += listOf("release")
+        }
+    }
+
     packaging {
         jniLibs {
             // libzhuque.so 会 dlopen 同目录的 libaddressing_ffi.so；使用传统解压安装
@@ -45,12 +66,11 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    // Baseline Profile 的安装端：API 24~30 上由它在后台把 profile 编译进 ART；
+    // 同时提供 macrobenchmark 需要的 DROP_SHADER_CACHE 广播接收（ProfileInstallReceiver）。
+    implementation(libs.androidx.profileinstaller)
 
     testImplementation(libs.junit)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

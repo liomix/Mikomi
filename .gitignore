@@ -41,3 +41,11 @@ tools
 
 # ---- 只在本机开发,文档不入库 ----
 docs
+
+# ---- 性能产物（生成物，不入库；重新生成见 README / 附录 D）----
+# baseline profile 是「采出来的」不是「写出来的」：它跟着某一版代码与某台设备走，
+# 入库后别人 pull 到的是一份对他们无效、却看起来有效的文件。
+**/baseline-prof.txt
+**/baseline-prof/*.txt
+*.perfetto-trace
+*.perfetto-trace.gz

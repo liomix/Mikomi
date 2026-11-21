@@ -3,14 +3,12 @@ package com.liomix.mikomi.feature.home
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,6 +62,7 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.liomix.mikomi.core.ui.base.pressScale
 
 /**
  * 首页轮播图：现代化视觉 + 丝滑翻页。
@@ -168,22 +167,9 @@ private fun BannerItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 按压微缩放 + 弹性回弹：按钮式触感反馈
+    // 按压反馈统一走原子层的 pressScale（缩放与回弹全部来自 MikomiMotion.Press），
+    // 页面不再自己 animateFloatAsState —— 否则同一次按压在轮播和按钮上手感不同。
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium,
-        ),
-        label = "bannerPressScale",
-    )
-    val corner by animateDpAsState(
-        targetValue = if (isPressed) BANNER_CORNER_PRESSED else BANNER_CORNER,
-        animationSpec = tween(durationMillis = MikomiMotion.Duration.Short, easing = MikomiMotion.Curve.Standard),
-        label = "bannerPressCorner",
-    )
 
     // 与全站封面统一走 core:ui 的请求构建（memoryCacheKey 固定为 url）：
     // 各写一份 ImageRequest 时缓存 key 计算路径不同，可能串图（搜索完退回来轮播显示搜索海报）。
@@ -201,11 +187,8 @@ private fun BannerItem(
     Box(
         modifier = modifier
             .height(BANNER_HEIGHT)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(RoundedCornerShape(corner))
+            .pressScale(interactionSource)
+            .clip(RoundedCornerShape(BANNER_CORNER))
             // 与骨架同色的底：图片画不出来时（url 为空 / 请求失败）仍是同一种材质，
             // 而不是透出页面底色的空洞。图片落地后整块被盖住。
             .background(skeletonBaseColor())
@@ -371,7 +354,6 @@ private fun formatRating(rating: Double?): String? =
 // 否则 banners 到货的那一刻整个头图区会「跳」一下。所以不再是 file-private。
 internal val BANNER_HEIGHT = 180.dp
 internal val BANNER_CORNER = 20.dp
-private val BANNER_CORNER_PRESSED = 16.dp
 private val BANNER_CONTENT_PADDING = 16.dp
 private val BANNER_TITLE_TO_RATING_GAP = 6.dp
 private val BANNER_PAGE_SPACING = 12.dp

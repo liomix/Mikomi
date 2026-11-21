@@ -4,7 +4,6 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -53,7 +52,7 @@ import com.liomix.mikomi.core.ui.base.SideBarPop
 import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
 import com.liomix.mikomi.core.ui.window.MikomiInsets
 import com.liomix.mikomi.feature.profile.R
-import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /** 昵称字数上限。 */
 private const val NameLimit = 24
@@ -218,7 +217,7 @@ private fun AvatarSection(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(CircleShape)
-                .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onPickAvatarClick),
+                .mikomiClickable(onClick = onPickAvatarClick),
         ) {
             Image(
                 painter = painterResource(R.drawable.mikomi_avatar),
@@ -294,7 +293,7 @@ private fun ValueRow(
             .fillMaxWidth()
             // 先 clickable 再 padding：点击区因此包住这一整行（含左右 20dp 留白），
             // 一直贴到卡片边缘与圆角，而不是只到文字为止。
-            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
+            .mikomiClickable(onClick = onClick)
             .padding(horizontal = MikomiSpacing.Room, vertical = MikomiSpacing.Lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {

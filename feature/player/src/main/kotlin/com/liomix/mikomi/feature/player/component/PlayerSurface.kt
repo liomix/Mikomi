@@ -56,7 +56,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -88,7 +87,7 @@ import com.liomix.mikomi.feature.player.R
 import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
-import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /*
  * 控制条的尺寸规格（进度条热区、按钮、间距、最小宽度）都在 `MikomiPlayerSpec` 里。
@@ -1076,7 +1075,7 @@ private fun ControlSlot(
             .clip(shape)
             .background(containerColor)
             .alpha(if (enabled) 1f else DISABLED_ALPHA)
-            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, enabled = enabled, role = Role.Button, onClick = onClick),
+            .mikomiClickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
         content = content,
     )

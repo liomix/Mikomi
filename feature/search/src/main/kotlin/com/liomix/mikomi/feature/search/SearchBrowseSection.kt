@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -67,7 +66,7 @@ import com.liomix.mikomi.core.ui.base.TabBar
 import com.liomix.mikomi.core.ui.base.TabItemStyle
 import com.liomix.mikomi.core.ui.business.AnimeCoverImage
 import java.util.Locale
-import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /** 历史未展开时最多显示的 tag 数。 */
 private const val HISTORY_COLLAPSED_COUNT = 8
@@ -321,8 +320,10 @@ private fun ExpandTab(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = CHIP_MIN_HEIGHT),
+        modifier = modifier
+            .heightIn(min = CHIP_MIN_HEIGHT)
+            .clip(CircleShape)
+            .mikomiClickable(onClick = onClick),
         shape = CircleShape,
         color = Color.Transparent,
         border = BorderStroke(MikomiStroke.Thin, MaterialTheme.colorScheme.outlineVariant),
@@ -420,7 +421,7 @@ private fun HotRow(
             .fillMaxWidth()
             .padding(horizontal = MikomiSpacing.Tight)
             .clip(RoundedCornerShape(MikomiRadius.Xl))
-            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
+            .mikomiClickable(onClick = onClick)
             .padding(horizontal = MikomiSpacing.Sm, vertical = MikomiSpacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -981,13 +981,64 @@ tasks.register("stateAudit") {
 }
 
 /** 一次跑完全部审计，并让 tokenAudit 进入 strict（CI / 提交前用）。 */
+/**
+ * 按压动效审计：全站只允许一套按压实现。
+ *
+ * 规则（规范 §5.10）：按压反馈的唯一入口是 `core:ui` 的 `Modifier.pressScale`，
+ * 参数来自 `MikomiMotion.Press`。页面读 `collectIsPressedAsState` 自己写
+ * `animateFloatAsState`，就是在复制第二套手感 —— 曾经有三套（按钮 0.90 + tween、
+ * 轮播 0.97 + spring、个人页 0.97 + spring），页面里看不出差异，按一下才发现。
+ *
+ * 为什么拦「读按压态」而不是拦「字面量」：`0.97f`、`dampingRatio = 0.55f` 这类数值
+ * 在别处也可能是合理的（弹簧收放、进度回弹），拦数值会误伤；而「页面自己读按压态」
+ * 没有第二种正当用途 —— 只有一个例外，见下面 allowed。
+ */
+tasks.register("motionAudit") {
+    group = "verification"
+    description = "校验按压反馈只有一处实现（core:ui 的 Modifier.pressScale）"
+
+    doLast {
+        /** 原子层自己的实现：Button.kt 是唯一入口；Switch 是开关，按压态是它的拨片语义。 */
+        val allowed = setOf(
+            "core/ui/src/main/kotlin/com/liomix/mikomi/core/ui/base/Button.kt",
+            "core/ui/src/main/kotlin/com/liomix/mikomi/core/ui/base/Switch.kt",
+        )
+
+        val hits = mutableListOf<String>()
+        project.fileTree(projectDir) {
+            include("**/src/**/*.kt")
+            exclude("**/build/**")
+        }.forEach { file ->
+            val rel = file.relativeTo(projectDir).invariantSeparatorsPath
+            if (rel in allowed) return@forEach
+            file.readLines().forEachIndexed { index, line ->
+                val code = line.trimStart()
+                if (code.startsWith("import ")) return@forEachIndexed
+                if (code.startsWith("*") || code.startsWith("//") || code.startsWith("/*")) {
+                    return@forEachIndexed
+                }
+                if ("collectIsPressedAsState" in code) hits += "$rel:${index + 1}"
+            }
+        }
+
+        if (hits.isNotEmpty()) {
+            throw GradleException(
+                "按压动效审计未通过：${hits.size} 处自行读取按压态。请改用 `Modifier.pressScale`（见 core/ui/base/Button.kt）。\n" +
+                    hits.joinToString("\n") { "  $it" },
+            )
+        }
+        println("按压动效审计：0 处自行实现（唯一入口 Modifier.pressScale）")
+    }
+}
+
 tasks.register("verifyDesign") {
     group = "verification"
-    description = "tokenAudit（strict）+ contrastAudit + iconAudit + windowAudit + stateAudit，任一不达标即失败"
+    description = "tokenAudit（strict）+ contrastAudit + iconAudit + windowAudit + stateAudit + motionAudit，任一不达标即失败"
 
     dependsOn("contrastAudit")
     dependsOn(tasks.named("tokenAudit"))
     dependsOn(tasks.named("iconAudit"))
     dependsOn(tasks.named("windowAudit"))
     dependsOn(tasks.named("stateAudit"))
+    dependsOn(tasks.named("motionAudit"))
 }

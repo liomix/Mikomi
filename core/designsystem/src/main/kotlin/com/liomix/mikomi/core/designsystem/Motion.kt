@@ -153,46 +153,40 @@ object MikomiMotion {
     /**
      * 按压规格：所有可点元素共用的一套手感。
      *
-     * 数值全部照抄 Telegram 的 `ButtonBounce`（`ui/Components/ButtonBounce.java`）：
-     * 默认构造 → 按下 60ms、松手 350ms、过冲 5.0；各调用点的 `getScale(0.1f)`
-     * （Telegram 里出现最多的一档）说明按下缩到 0.9。
+     * 基准是 Telegram Android 13.1.1 的 **「添加图文」按钮**（`ChatActivityEnterView.java:2925`，
+     * `richButton`，`R.string.ArticleEditor`）：
      *
-     * 「按压感」这种东西推不出来，只能对着一个公认手感好的实现抄 —— 所以这里不自己取整。
+     * ```java
+     * ScaleStateListAnimator.apply(richButton);   // 不带参数 = 默认档 .1f / 1.5f
+     * ```
+     *
+     * `ScaleStateListAnimator.apply(view)` 默认档的实际参数：
+     * 按下 `setDuration(80)` 且**没有设插值器**（`ObjectAnimator` 默认 = AccelerateDecelerate，
+     * 我们的 [Curve.Press] = `CubicBezierEasing(.25,.1,.25,1)` 就是同一条）；
+     * 松手 `setDuration(350)` + `OvershootInterpolator(1.5)`；幅度 `1 - .1 = 0.9`。
+     *
+     * 所以 10% 不是「最深档」，而是 TG 里这类图标的**标准档**（全仓 159 处都用它）。
+     * 曾按 `.02f` 那批文字按钮的档位改成 2%，那是另一类控件 —— 缩得太少，反而没有按压感。
      */
     object Press {
-        /** 按下时缩到的比例：缩掉 10%。 */
+        /** 按下时缩到的比例：`1 - .1f`，与 `ScaleStateListAnimator.apply(view)` 的默认档一致。 */
         const val Scale = 0.90f
 
-        /** 压下去的时长。60ms 只有三四帧，手指刚压到底就已经缩完了。 */
-        const val InMillis = 60
+        /** 压下去的时长，对应 `pressedAnimator.setDuration(80)`。 */
+        const val InMillis = 80
 
-        /** 松手回弹的时长。350ms 里只有前 200ms 在动，后面是过冲后的收尾。 */
+        /** 松手回位的时长，对应 `defaultAnimator.setDuration(350)`。 */
         const val ReleaseMillis = 350
 
         /**
-         * 回弹过冲量，对应 Android 的 `OvershootInterpolator(5f)`。
+         * 回弹过冲量，对应 `OvershootInterpolator(1.5f)`。
          *
-         * 5 听起来夸张，但它作用在「0.9 → 1.0」这段 10% 的差上，实际最高只到 1.051 ——
-         * 正好是「看得到弹一下、又不会觉得按钮长大了」。这就是 Telegram 按钮那股韧劲的来源。
+         * 过冲会被插值放大：`tension = 1.5` 时曲线峰值 1.08，换算到 10% 的幅度上是缩放 1.008 ——
+         * 「回到 100% 时轻轻越过一点」，不是 TG `ButtonBounce` 的 5.0（那个峰值 1.051，很弹）。
          */
-        const val OvershootAmount = 5f
+        const val OvershootAmount = 1.5f
     }
 
-    /**
-     * 按压反馈的透明度。
-     *
-     * Telegram 的 ripple 不是「主色 12%」，而是**中性墨色 9.8%**：它把颜色按位与成
-     * `(color & 0x00ffffff) | 0x19000000`（见 `Theme.getRoundRectSelectorDrawable`），
-     * `0x19` = 25，即 25/255 ≈ 9.8%。
-     *
-     * 这个差别很实际：用主色做的水波会在选中态（底色已经是主色容器）上叠出第三层颜色，
-     * 一屏里点几下就像换了个主题；中性墨永远只是「把这块压暗一点点」，压在什么底色上都对。
-     * 本项目的 ripple 见 `Indication.kt`。
-     */
-    object Pressed {
-        /** 按压覆盖层的透明度：TG 的 `0x19`。 */
-        const val OverlayAlpha = 25f / 255f
-    }
 
     // 禁用态的淡化系数不在这里 —— 搬去了 `MikomiAlpha`（Colors.kt）。
     // 它们一次都不动，是颜色规则，不是动效。

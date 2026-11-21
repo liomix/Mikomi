@@ -1,7 +1,6 @@
 package com.liomix.mikomi.feature.animap
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,7 +47,8 @@ import com.liomix.mikomi.core.designsystem.MikomiIcons
 import com.liomix.mikomi.core.designsystem.MikomiSizes
 import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.core.ui.business.AnimeCoverImage
-import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
+import com.liomix.mikomi.core.ui.base.mikomiClickable
+import androidx.compose.foundation.clickable
 
 /** 搜索条的固定高度（收起态的胶囊与展开态的输入框同一高度，切换时不跳动）。 */
 private val SearchBarHeight = 40.dp
@@ -66,7 +66,7 @@ private fun CollapsedBar(onClick: () -> Unit) {
             .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
             .clip(CircleShape)
             .background(SearchSurface)
-            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
+            .mikomiClickable(onClick = onClick)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -149,7 +149,7 @@ private fun ExpandedBar(
             ),
             tint = SearchIconColor,
             modifier = Modifier
-                .clickable {
+                .mikomiClickable {
                     if (hasQuery) {
                         onQueryChange("")
                     } else {
@@ -184,7 +184,7 @@ private fun SuggestionRow(hit: AniMapHit, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
+            .mikomiClickable(onClick = onClick)
             // 竖向留白 8 -> 4：一行里已经有三行字，再留 8 会让「最近更新」那种长列表
             // 一屏只装下五六条，翻起来很费劲。
             .padding(horizontal = 12.dp, vertical = 4.dp),

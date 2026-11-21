@@ -1,6 +1,5 @@
 package com.liomix.mikomi.feature.search
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -35,7 +34,7 @@ import com.liomix.mikomi.core.designsystem.MikomiSpacing
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.core.ui.base.SkeletonBox
-import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /** 联想骨架屏条数。 */
 private const val SUGGESTION_SKELETON_COUNT = 5
@@ -112,7 +111,7 @@ private fun SuggestionItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
+            .mikomiClickable(onClick = onClick)
             .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Gutter),
         verticalAlignment = Alignment.CenterVertically,
     ) {

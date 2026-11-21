@@ -3,7 +3,6 @@ package com.liomix.mikomi.feature.player.component
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -42,7 +41,7 @@ import com.liomix.mikomi.core.ui.base.TabBar
 import com.liomix.mikomi.core.ui.base.TabItemStyle
 import com.liomix.mikomi.feature.player.PlayerTab
 import com.liomix.mikomi.feature.player.R
-import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /**
  * 导航条高度。
@@ -173,7 +172,7 @@ private fun CircleAction(
             .size(ActionSize)
             .clip(CircleShape)
             .background(background)
-            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
+            .mikomiClickable(onClick = onClick)
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
@@ -198,7 +197,6 @@ private fun SourceChip(
 ) {
     val sourceDescription = stringResource(R.string.player_source)
     Surface(
-        onClick = onClick,
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         contentColor = MaterialTheme.colorScheme.onSurface,
@@ -206,7 +204,9 @@ private fun SourceChip(
         modifier = Modifier
             .height(32.dp)
             .widthIn(max = 92.dp)
-            .semantics { contentDescription = "$sourceDescription $label" },
+            .semantics { contentDescription = "$sourceDescription $label" }
+            .clip(CircleShape)
+            .mikomiClickable(onClick = onClick),
     ) {
         Row(
             modifier = Modifier.padding(start = MikomiSpacing.Xs, end = MikomiSpacing.Compact),

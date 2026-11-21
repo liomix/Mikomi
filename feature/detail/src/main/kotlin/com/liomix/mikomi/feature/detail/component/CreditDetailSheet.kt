@@ -53,6 +53,7 @@ import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
 import com.liomix.mikomi.feature.detail.CreditCommentsUiState
 import com.liomix.mikomi.feature.detail.CreditDetailUiState
 import com.liomix.mikomi.feature.detail.R
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /** 头像尺寸（对齐 Dart 版 120x180 竖版）。 */
 private val DETAIL_IMAGE_WIDTH = 120.dp
@@ -293,9 +294,10 @@ private fun CommentItem(
         if (hasReplies) {
             Spacer(modifier = Modifier.height(MikomiSpacing.Md))
             Surface(
-                onClick = { expanded = !expanded },
                 color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.padding(start = ReplyIndent),
+                modifier = Modifier
+                    .padding(start = ReplyIndent)
+                    .mikomiClickable(onClick = { expanded = !expanded }),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     HorizontalDivider(

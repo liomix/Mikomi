@@ -2,8 +2,6 @@ package com.liomix.mikomi.core.ui.base
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.IndicationNodeFactory
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -20,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.ripple
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -33,13 +30,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.MikomiAlpha
-import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
 import com.liomix.mikomi.core.designsystem.MikomiElevation
 import com.liomix.mikomi.core.designsystem.MikomiMotion
 import com.liomix.mikomi.core.designsystem.MikomiPillShape
@@ -90,29 +85,6 @@ fun Modifier.pressScale(
         scaleX = scale.value
         scaleY = scale.value
     }
-}
-
-/**
- * 按钮自己的按压层。
- *
- * ## 为什么在按钮里，而不是在主题里
- *
- * 这套 ripple 曾经由 `MikomiTheme` 通过 `LocalIndication` 全局下发，理由是「调用点不用关心」。
- * 但全局注入管得太宽：封面飞行、播放器手势区、Tab 胶囊这些**不该有水波**的地方，
- * 都得逐个写 `indication = null` 去关 —— 而「逐个关掉」这类事总会漏一个。
- * 按压反馈是按钮的属性，就由按钮自己带：需要它的地方才出现，不需要的地方不存在。
- *
- * ## 为什么不用 M3 默认 ripple
- *
- * 默认 ripple 取 `LocalContentColor`（Surface 里通常是 primary 或 onSurface），透明度 12%。
- * 取主色那条在选中态上会叠出**第三层同色**，连点几下色相就偏了；夜间主色被提亮过，偏移更明显。
- * 这里照 Telegram 的做法固定成中性墨色（`(color & 0x00ffffff) | 0x19`，见
- * `Theme.getRoundRectSelectorDrawable`）：压在蓝底、黑底、白底上都只是「这一块暗了一下」。
- */
-@Composable
-private fun rememberPressIndication(): IndicationNodeFactory {
-    val ink = MaterialTheme.colorScheme.onBackground
-    return remember(ink) { ripple(color = ink.copy(alpha = MikomiMotion.Pressed.OverlayAlpha)) }
 }
 
 /** 按钮的配色走向。 */
@@ -217,19 +189,15 @@ fun PressButton(
         else -> scheme.onPrimaryContainer
     }
 
-    val indication = LocalMikomiIndication.current ?: rememberPressIndication()
-
     Surface(
         modifier = modifier
             .pressScale(interactionSource, enabled)
             // clip 必须在 clickable 之前：水波按形状裁掉，圆角外不留方角。
             .clip(style.shape)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = indication,
-                enabled = enabled,
-                role = Role.Button,
+            .mikomiClickable(
                 onClick = onClick,
+                enabled = enabled,
+                interactionSource = interactionSource,
             ),
         shape = style.shape,
         color = containerColor,
@@ -298,18 +266,14 @@ fun PressIconButton(
     val interactionSource = remember { MutableInteractionSource() }
     val scheme = MaterialTheme.colorScheme
 
-    val indication = LocalMikomiIndication.current ?: rememberPressIndication()
-
     Surface(
         modifier = modifier
             .pressScale(interactionSource, enabled)
             .clip(CircleShape)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = indication,
-                enabled = enabled,
-                role = Role.Button,
+            .mikomiClickable(
                 onClick = onClick,
+                enabled = enabled,
+                interactionSource = interactionSource,
             ),
         shape = CircleShape,
         color = if (enabled) {

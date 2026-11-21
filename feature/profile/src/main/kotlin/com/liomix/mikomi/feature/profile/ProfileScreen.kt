@@ -12,7 +12,6 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -92,6 +91,7 @@ import com.liomix.mikomi.feature.profile.component.rememberProfileTabContentStat
 import kotlin.math.roundToInt
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import com.liomix.mikomi.core.ui.base.pressScale
 
 /**
  * 个人资料页（对齐 Telegram 13 的「我的」页）。
@@ -904,21 +904,13 @@ private fun ActionCard(
     modifier: Modifier = Modifier,
 ) {
     val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.97f else 1f,
-        animationSpec = spring(dampingRatio = 0.55f, stiffness = 900f),
-        label = "actionCardScale",
-    )
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = modifier
             .height(ActionCardHeight)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
+            // 按压反馈走原子层的 pressScale：与按钮同一套缩放与回弹（MikomiMotion.Press）。
+            .pressScale(interaction)
             .clip(RoundedCornerShape(MikomiRadius.Xl))
             .background(palette.card)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),

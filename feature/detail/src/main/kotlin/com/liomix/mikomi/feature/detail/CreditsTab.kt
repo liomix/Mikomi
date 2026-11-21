@@ -42,6 +42,7 @@ import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.core.ui.base.ScrollingText
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /** 主创卡片固定宽度（名字无限滚动 + 关系 badge 需要更宽空间）。 */
 private val CREDIT_CARD_WIDTH = 180.dp
@@ -184,12 +185,14 @@ private fun CharacterCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val cardShape = RoundedCornerShape(MikomiRadius.Lg)
     Surface(
-        onClick = onClick,
         modifier = modifier
             .width(CREDIT_CARD_WIDTH)
-            .height(CREDIT_CARD_HEIGHT),
-        shape = RoundedCornerShape(MikomiRadius.Lg),
+            .height(CREDIT_CARD_HEIGHT)
+            .clip(cardShape)
+            .mikomiClickable(onClick = onClick),
+        shape = cardShape,
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         Row(
@@ -236,12 +239,14 @@ private fun StaffCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val cardShape = RoundedCornerShape(MikomiRadius.Lg)
     Surface(
-        onClick = onClick,
         modifier = modifier
             .width(CREDIT_CARD_WIDTH)
-            .height(CREDIT_CARD_HEIGHT),
-        shape = RoundedCornerShape(MikomiRadius.Lg),
+            .height(CREDIT_CARD_HEIGHT)
+            .clip(cardShape)
+            .mikomiClickable(onClick = onClick),
+        shape = cardShape,
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         Row(

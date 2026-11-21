@@ -49,6 +49,7 @@ import com.liomix.mikomi.feature.home.R
 import java.util.Calendar
 import java.util.Locale
 import kotlinx.coroutines.launch
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /** 一周七天（周一 ~ 周日）对应的标签索引。 */
 private val WEEKDAYS = listOf(
@@ -280,11 +281,14 @@ private fun ScheduleAnimeRow(
     // 放送信息优先用 base 源的现成文案；没有文案时按三态精度展示。
     val scheduleLabel = entry.updateText.ifBlank { airTimeLabel(entry.airTime) }
 
+    val cardShape = RoundedCornerShape(MikomiRadius.Lg)
     Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(MikomiRadius.Lg),
+        shape = cardShape,
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(cardShape)
+            .mikomiClickable(onClick = onClick),
     ) {
         Row(
             modifier = Modifier.padding(start = MikomiSpacing.Sm, top = MikomiSpacing.Sm, end = MikomiSpacing.Md, bottom = MikomiSpacing.Sm),

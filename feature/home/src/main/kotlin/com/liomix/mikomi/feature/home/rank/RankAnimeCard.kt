@@ -38,6 +38,8 @@ import com.liomix.mikomi.core.designsystem.MikomiTheme
 import com.liomix.mikomi.core.ui.base.ScrollingText
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.image.MikomiAsyncImage
+import androidx.compose.ui.draw.clip
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /**
  * 排名卡片：封面铺底 + 名次 + 标题。
@@ -75,9 +77,9 @@ internal fun RankAnimeCard(
         return
     }
 
+    val cardShape = RoundedCornerShape(RankCardCorner)
     Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(RankCardCorner),
+        shape = cardShape,
         // 卡片本身不铺底色：有封面时是整张封面，无封面时留空交给页面骨架屏。
         color = Color.Transparent,
         contentColor = MikomiTheme.colors.media.content,
@@ -89,7 +91,9 @@ internal fun RankAnimeCard(
         shadowElevation = if (isTopRank) TopRankShadow else 0.dp,
         modifier = modifier
             .fillMaxWidth()
-            .height(RankCardHeight),
+            .height(RankCardHeight)
+            .clip(cardShape)
+            .mikomiClickable(onClick = onClick),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // 横条满铺：竖图裁成宽幅时锚定上部（人物头部多在上 1/3），不做模糊。

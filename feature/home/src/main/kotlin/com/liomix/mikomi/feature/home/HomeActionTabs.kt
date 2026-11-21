@@ -1,7 +1,6 @@
 package com.liomix.mikomi.feature.home
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,7 +23,7 @@ import com.liomix.mikomi.core.designsystem.MikomiIcons
 import com.liomix.mikomi.core.designsystem.MikomiRadius
 import com.liomix.mikomi.core.designsystem.MikomiSpacing
 import com.liomix.mikomi.core.ui.base.MikomiIcon
-import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /** 首页快捷入口动作。 */
 enum class HomeQuickAction {
@@ -94,7 +93,7 @@ private fun ActionButton(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(MikomiRadius.Md))
-            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
+            .mikomiClickable(onClick = onClick)
             .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Sm),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

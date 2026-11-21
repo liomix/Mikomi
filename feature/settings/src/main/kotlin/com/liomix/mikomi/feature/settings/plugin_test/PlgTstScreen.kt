@@ -3,7 +3,6 @@ package com.liomix.mikomi.feature.settings.plugin_test
 import androidx.annotation.StringRes
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -91,7 +90,8 @@ import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardHeader
 import com.liomix.mikomi.feature.settings.component.SettingsCardSection
 import kotlinx.coroutines.launch
-import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
+import com.liomix.mikomi.core.ui.base.mikomiClickable
+import androidx.compose.foundation.clickable
 
 /**
  * 插件源设置页。
@@ -695,7 +695,7 @@ private fun RepoRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(MikomiRadius.Xl))
-            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
+            .mikomiClickable(onClick = onClick)
             .padding(horizontal = MikomiSpacing.Room, vertical = MikomiSpacing.Md),
         verticalAlignment = Alignment.CenterVertically,
     ) {

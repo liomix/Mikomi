@@ -4,7 +4,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -40,7 +39,7 @@ import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.base.MikomiIcon
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.Tag
-import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /** 简介最多展示行数。 */
 private const val MAX_SYNOPSIS_LINES = 4
@@ -153,7 +152,7 @@ private fun ExpandToggle(
         ),
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick),
+        modifier = Modifier.mikomiClickable(onClick = onClick),
     )
 }
 
@@ -171,7 +170,7 @@ private fun ExpandChip(
     ) {
         Row(
             modifier = Modifier
-                .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick)
+                .mikomiClickable(onClick = onClick)
                 .padding(horizontal = MikomiSpacing.Lg, vertical = MikomiSpacing.Sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {

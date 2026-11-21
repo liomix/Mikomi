@@ -3,7 +3,6 @@ package com.liomix.mikomi.feature.settings.component
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,7 +32,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.liomix.mikomi.core.designsystem.LocalNightModeToggleController
 import com.liomix.mikomi.core.designsystem.MikomiMotion
 import com.liomix.mikomi.feature.settings.R
-import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /**
  * 日 / 夜切换行（复刻 Telegram 聊天设置页的「Night Mode」一行）。
@@ -83,7 +82,7 @@ fun BAndWSwitch(
         modifier = modifier
             .fillMaxWidth()
             .height(ToggleRowHeight)
-            .clickable(interactionSource = null, indication = LocalMikomiIndication.current, enabled = controller != null) { controller?.toggle?.invoke() }
+            .mikomiClickable(enabled = controller != null) { controller?.toggle?.invoke() }
             .padding(start = ToggleRowStartPadding, end = ToggleRowEndPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {

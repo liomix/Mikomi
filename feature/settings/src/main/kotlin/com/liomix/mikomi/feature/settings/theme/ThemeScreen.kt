@@ -4,7 +4,6 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,7 +51,7 @@ import com.liomix.mikomi.feature.settings.component.SettingsCard
 import com.liomix.mikomi.feature.settings.component.SettingsCardSection
 import com.liomix.mikomi.feature.settings.component.ThemeSwatch
 import com.liomix.mikomi.feature.settings.theme.appicon.AppIconStyle
-import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /**
  * 主题设置页。
@@ -256,7 +255,7 @@ private fun AppIconOption(
                 .clip(CircleShape)
                 .background(MikomiTheme.colors.previewCanvas)
                 // 点击与涟漪都限制在图标区域内，名称不参与触控。
-                .clickable(interactionSource = null, indication = LocalMikomiIndication.current, onClick = onClick),
+                .mikomiClickable(onClick = onClick),
             contentAlignment = Alignment.Center,
         ) {
             Image(

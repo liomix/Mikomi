@@ -1,6 +1,5 @@
 package com.liomix.mikomi.feature.home
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,7 +24,7 @@ import com.liomix.mikomi.core.designsystem.MikomiIcons
 import com.liomix.mikomi.core.designsystem.MikomiSizes
 import com.liomix.mikomi.core.designsystem.MikomiSpacing
 import com.liomix.mikomi.core.ui.base.MikomiIcon
-import com.liomix.mikomi.core.designsystem.LocalMikomiIndication
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /**
  * 顶栏高度：与巡礼页搜索条完全一致（`AniMapSearchBar` 的 `SearchBarHeight = 40.dp`）。
@@ -67,7 +66,7 @@ fun HomeTopBar(
             modifier = Modifier
                 .size(HomeTopBarHeight)
                 .clip(CircleShape)
-                .clickable(interactionSource = null, indication = LocalMikomiIndication.current, role = Role.Button, onClick = onProfileClick),
+                .mikomiClickable(onClick = onProfileClick),
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -92,7 +91,7 @@ fun HomeTopBar(
                 .weight(1f)
                 .heightIn(min = HomeTopBarHeight)
                 .clip(CircleShape)
-                .clickable(interactionSource = null, indication = LocalMikomiIndication.current, role = Role.Button, onClick = onSearchClick),
+                .mikomiClickable(onClick = onSearchClick),
         ) {
             Row(
                 modifier = Modifier

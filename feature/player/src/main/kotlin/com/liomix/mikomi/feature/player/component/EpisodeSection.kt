@@ -66,6 +66,9 @@ import com.liomix.mikomi.feature.player.EpisodeItem
 import com.liomix.mikomi.feature.player.EpisodeOrder
 import com.liomix.mikomi.feature.player.R
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.draw.clip
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /**
  * 卡片最小宽度：360dp 竖屏下正好 3 列（与参考图一致），
@@ -354,8 +357,6 @@ private fun EpisodeRailButton(
         label = "episodeRailButtonOpacity",
     )
     Surface(
-        onClick = onClick,
-        enabled = visible,
         shape = CircleShape,
         color = if (primary) {
             MaterialTheme.colorScheme.primaryContainer
@@ -369,7 +370,9 @@ private fun EpisodeRailButton(
         },
         modifier = Modifier
             .size(EpisodeRailButtonSize)
-            .alpha(opacity),
+            .alpha(opacity)
+            .clip(CircleShape)
+            .mikomiClickable(enabled = visible, onClick = onClick),
     ) {
         Box(contentAlignment = Alignment.Center) {
             MikomiIcon(
@@ -542,13 +545,14 @@ private fun SortButton(
     val isAscending = order == EpisodeOrder.ASCENDING
 
     Surface(
-        onClick = onClick,
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         contentColor = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier
             .height(EpisodeChipHeight)
-            .widthIn(min = EpisodeChipMinWidth),
+            .widthIn(min = EpisodeChipMinWidth)
+            .clip(CircleShape)
+            .mikomiClickable(onClick = onClick),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = MikomiSpacing.Compact),
@@ -611,14 +615,24 @@ private fun EpisodeCard(
         label = "episodeCardTitle",
     )
 
+    val cardShape = RoundedCornerShape(MikomiRadius.Lg)
     Surface(
-        selected = selected,
-        onClick = onClick,
-        shape = RoundedCornerShape(MikomiRadius.Lg),
+        shape = cardShape,
         color = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurface,
         border = if (selected) BorderStroke(MikomiStroke.Medium, MaterialTheme.colorScheme.primary) else null,
-        modifier = modifier.height(height),
+        modifier = modifier
+            .height(height)
+            .clip(cardShape)
+            // 原来走 Surface(selected = …)：语义是「可选中的卡片」，换 clickable 会丢掉
+            // selected 状态，所以这里用 selectable 而不是 clickable。
+            .selectable(
+                selected = selected,
+                interactionSource = null,
+                indication = null,
+                role = null,
+                onClick = onClick,
+            ),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = MikomiSpacing.Compact, vertical = MikomiSpacing.Tight),

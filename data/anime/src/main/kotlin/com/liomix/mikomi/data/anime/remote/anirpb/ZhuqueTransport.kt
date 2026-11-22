@@ -1,8 +1,6 @@
 package com.liomix.mikomi.data.anime.remote.anirpb
 
 import android.content.Context
-import android.content.pm.PackageManager
-import android.content.pm.Signature
 import android.net.ConnectivityManager
 import android.net.LocalSocket
 import android.net.LocalSocketAddress
@@ -16,7 +14,6 @@ import android.util.Base64
 import android.util.Log
 import com.yy.myuko.component.ktor.addressing.ZhuqueSessionNativeLib
 import java.io.DataInputStream
-import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Locale
 import java.util.TimeZone
@@ -304,17 +301,10 @@ internal class ZhuqueTransport(context: Context) {
     // DeviceContext
     // ---------------------------------------------------------------------
 
-    @Suppress("DEPRECATION")
     private fun buildDeviceContext(): String {
-        val packageInfo = appContext.packageManager.getPackageInfo(appContext.packageName, 0)
-        val versionName = packageInfo.versionName ?: "Unknown"
-        val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            packageInfo.longVersionCode
-        } else {
-            packageInfo.versionCode.toLong()
-        }
+        val versionName = RpbClientIdentity.VERSION_NAME
+        val versionCode = RpbClientIdentity.VERSION_CODE
 
-        val certDer = signatures().firstOrNull()?.toByteArray() ?: ByteArray(0)
         val metrics = appContext.resources.displayMetrics
         val deviceId = Settings.Secure.getString(
             appContext.contentResolver,
@@ -329,8 +319,8 @@ internal class ZhuqueTransport(context: Context) {
             .put("osv", Build.VERSION.RELEASE ?: "Unknown")
             .put("av", versionName)
             .put("avc", versionCode)
-            .put("pkg", appContext.packageName)
-            .put("asig", if (certDer.isEmpty()) "" else hex(sha256(certDer)))
+            .put("pkg", RpbClientIdentity.PACKAGE_NAME)
+            .put("asig", RpbClientIdentity.CERT_SHA256)
             .put("hv", "0")
             .put("pt", "android")
             .put("dt", if (appContext.resources.configuration.smallestScreenWidthDp >= 600) 2 else 1)
@@ -341,20 +331,8 @@ internal class ZhuqueTransport(context: Context) {
             .put("net", networkType())
             .put("ts", 0L)
             .put("bi", biEncode(versionName, versionCode))
-            .put("acert", if (certDer.isEmpty()) "" else Base64.encodeToString(certDer, Base64.NO_WRAP))
+            .put("acert", RpbClientIdentity.CERT_BASE64)
             .toString()
-    }
-
-    @Suppress("DEPRECATION")
-    private fun signatures(): Array<Signature> {
-        val pm = appContext.packageManager
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            pm.getPackageInfo(appContext.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-                .signingInfo?.apkContentsSigners ?: emptyArray()
-        } else {
-            pm.getPackageInfo(appContext.packageName, PackageManager.GET_SIGNATURES)
-                .signatures ?: emptyArray()
-        }
     }
 
     private fun networkType(): String = runCatching {
@@ -383,8 +361,6 @@ internal class ZhuqueTransport(context: Context) {
         appContext.filesDir.absolutePath + "/.zqsock-" + Process.myPid()
 
     private fun randomBytes(size: Int): ByteArray = ByteArray(size).also { random.nextBytes(it) }
-
-    private fun sha256(data: ByteArray): ByteArray = MessageDigest.getInstance("SHA-256").digest(data)
 
     private fun hex(bytes: ByteArray): String = buildString(bytes.size * 2) {
         for (byte in bytes) {

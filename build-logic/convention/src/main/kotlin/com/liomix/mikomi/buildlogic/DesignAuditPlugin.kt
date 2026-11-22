@@ -123,11 +123,17 @@ class DesignAuditPlugin : Plugin<Project> {
                         File.separator + "build-logic" + File.separator,
                     )
                     // 标签 / 是否布局位置 / 正则
-                    val labels = listOf("间距（布局位置）", "控件体格（规则允许）", "字号", "色值", "圆角")
-                    val isLayout = listOf(true, false, true, true, true)
+                    val labels = listOf(
+                        "间距（布局位置）", "具名间距参数", "控件体格（规则允许）", "字号", "色值", "圆角",
+                    )
+                    val isLayout = listOf(true, true, false, true, true, true)
                     val patterns = listOf(
                         // 布局位置的四个入口：padding / contentPadding(PaddingValues) / spacedBy / Spacer。
                         Regex("""(padding\([^)]*|PaddingValues\([^)]*|spacedBy\(|Spacer\([^)]*)\b\d+(\.\d+)?\.dp"""),
+                        // 具名参数形式的间距：`horizontalPadding = 8.dp`、`itemSpacing = 14.dp`。
+                        // 前一条只认「调用形式」，组件规格以参数默认值写下的那些整类看不见 ——
+                        // core:ui 的 TabItemStyle / PressButtonStyle 恰好全是这种形状。
+                        Regex("""\b\w*([Pp]adding|[Ss]pacing|[Gg]ap)\w*\s*=\s*\d+(\.\d+)?\.dp"""),
                         Regex("""(size\(|\.height\(|\.width\()\d+(\.\d+)?\.dp"""),
                         Regex("""\b\d+(\.\d+)?\.sp\b"""),
                         Regex("""Color\(0x[0-9A-Fa-f]{8}\)"""),
@@ -1128,6 +1134,78 @@ class DesignAuditPlugin : Plugin<Project> {
                 }
             }
 
+            /**
+             * 组件签名审计：**「长什么样」被摊在签名上**就算不合格。
+             *
+             * 判据只有一条：public composable 的样式原语参数（Shape / PaddingValues /
+             * TextStyle / Dp / Color / Elevation）达到 3 个。它们描述的不是「做什么」而是
+             * 「长什么样」，天然同源 —— 摊在签名上意味着三件事：
+             *
+             * - 调用方改一套配色要写 4 行，且看不出这 4 个必须成套
+             *   （`TabBar` 收 `TabColors` 之前就是这样）；
+             * - 加第 5 个样式点时签名再长一格，而没有任何地方提醒「该收成一个对象了」；
+             * - 预设无处安放，于是长成 enum + 若干扩展属性 + 6 个覆盖参数那种写法
+             *   （`TagStyle` 改成 data class 之前就是这样）。
+             *
+             * 正确形状是 `@Immutable data class XxxStyle` + companion 预设 + `copy` 微调，
+             * 见 `PressButtonStyle` / `TabItemStyle` / `TagStyle`。
+             *
+             * 只报告不阻断：样式原语的**数量**是信号不是罪名。最终要人判断这个组件到底是
+             * 「一个可配置的控件」，还是「五个控件挤在一个签名里」。
+             */
+            tasks.register("styleShapeAudit") {
+                group = "verification"
+                description = "报告样式原语参数 ≥3 的公开组件（提示应收成 Style 对象）"
+
+                doLast {
+                    val styleTypes = setOf("Shape", "PaddingValues", "TextStyle", "Dp", "Color", "Elevation")
+                    val funHead = Regex("""^(?:@\w+\s+)*(private |internal )?fun\s+(\w+)\s*\(""", RegexOption.MULTILINE)
+                    val rows = mutableListOf<String>()
+                    var scanned = 0
+
+                    for (file in kotlinSources(project)) {
+                        val rel = file.relativeTo(projectDir).invariantSeparatorsPath
+                        if (!rel.startsWith("core/")) continue
+                        scanned++
+                        val lines = file.readLines()
+                        val text = lines.joinToString("\n")
+                        for (m in funHead.findAll(text)) {
+                            if (m.groupValues[1].isNotEmpty()) continue
+                            val name = m.groupValues[2]
+                            val startLine = text.take(m.range.first).count { it == '\n' }
+                            // 从签名首行开始配对括号，取到整段参数表（默认值里有成对括号，不影响总数）
+                            val sb = StringBuilder()
+                            var depth = 0
+                            var i = startLine
+                            while (i < lines.size) {
+                                val line = lines[i]
+                                sb.append(line).append('\n')
+                                depth += line.count { it == '(' } - line.count { it == ')' }
+                                if (depth <= 0) break
+                                i++
+                            }
+                            val found = Regex("""\b\w+\s*:\s*(\w+)\b""")
+                                .findAll(sb.toString())
+                                .map { it.groupValues[1] }
+                                .filter { it in styleTypes }
+                                .toList()
+                            if (found.size >= 3) {
+                                rows += "$name  ${found.size} 个样式参数（${found.joinToString(", ")}）  $rel"
+                            }
+                        }
+                    }
+
+                    println("组件签名审计：扫描 $scanned 个库文件")
+                    println("")
+                    println("样式原语 ≥3 的公开组件：${rows.size} 个")
+                    rows.forEach { println("    $it") }
+                    println("")
+                    println("这些参数描述的是「长什么样」而不是「做什么」，应收成 @Immutable data class + companion 预设")
+                    println("（参考 PressButtonStyle / TabItemStyle / TagStyle）：调用方从传 N 个参数，变成传 1 个 style、微调用 copy。")
+                    println("只报告不阻断：数量是信号，最终判断这个组件是一个控件，还是五个控件挤在一个签名里。")
+                }
+            }
+
             tasks.register("verifyDesign") {
                 group = "verification"
                 description = "tokenAudit（strict）+ contrastAudit + iconAudit + windowAudit + stateAudit + pressStateAudit + 主题契约测试，任一不达标即失败"
@@ -1138,6 +1216,7 @@ class DesignAuditPlugin : Plugin<Project> {
                 dependsOn(tasks.named("windowAudit"))
                 dependsOn(tasks.named("stateAudit"))
                 dependsOn(tasks.named("pressStateAudit"))
+                dependsOn(tasks.named("styleShapeAudit"))
                 // 主题契约：5 套配色 × 日夜共 10 套方案，解析后逐一验算对比度。
                 // 这是 Gradle 侧 contrastAudit 验不到的层（那边只读源码里的色值，这边验解析结果）。
                 dependsOn(":core:designsystem:testDebugUnitTest")

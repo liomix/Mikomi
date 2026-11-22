@@ -241,6 +241,7 @@ private fun BannerItem(
                     color = AppTheme.colors.media.content,
                 ),
                 modifier = Modifier.fillMaxWidth(),
+                enabled = true,
             )
 
             val rating = formatRating(anime.rating)

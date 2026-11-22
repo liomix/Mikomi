@@ -81,8 +81,8 @@ private val EpisodeMinWidth = 96.dp
  * 与 `crossAxisSpacing/mainAxisSpacing: 12`。间距从 10 提到 12 不是为了好看——
  * 卡片的**高度**由列宽除以宽高比算出来，间距会挤进列宽，差 2dp 高度就差 1dp。
  */
-private val EpisodeGridPadding = 16.dp
-private val EpisodeGridSpacing = 12.dp
+private val EpisodeGridPadding = Spacing.Lg
+private val EpisodeGridSpacing = Spacing.Md
 
 /**
  * 卡片宽高比，照 Dart-Mikomi 的 `childAspectRatio: 2.2`。

@@ -115,7 +115,7 @@ internal fun SearchBrowseSection(
                     icon = Icons.History,
                     title = stringResource(R.string.search_history),
                     // 紧贴搜索框，减少顶部空白。
-                    topPadding = 2.dp,
+                    topPadding = Spacing.Xxs,
                     action = {
                         IconButton(onClick = onClearHistory) {
                             Icon(
@@ -226,7 +226,7 @@ private fun HotTabs(
             .fillMaxWidth()
             .padding(horizontal = Spacing.Lg, vertical = Spacing.Xs),
         itemStyle = TabItemStyle.text(),
-        itemSpacing = 0.dp,
+        itemSpacing = Spacing.None,
     ) {
         SearchHotTab.entries.forEachIndexed { index, tab ->
             Tab(
@@ -444,7 +444,6 @@ private fun HotRow(
                 text = item.title,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                 modifier = Modifier.fillMaxWidth(),
-                enabled = false,
             )
             if (item.updateText.isNotBlank()) {
                 Spacer(modifier = Modifier.height(Spacing.Xxs))

@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.base
+package com.liomix.mikomi.feature.animap
 
 import androidx.annotation.RawRes
 import androidx.compose.foundation.layout.size

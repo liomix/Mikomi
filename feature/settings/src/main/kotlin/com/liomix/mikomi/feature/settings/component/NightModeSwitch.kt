@@ -30,6 +30,7 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.liomix.mikomi.core.ui.business.LocalNightModeToggleController
+import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.core.ui.base.mikomiClickable
@@ -118,16 +119,16 @@ fun BAndWSwitch(
 private val IconSize = 28.dp
 
 /** 图标左边距（Telegram `imageLeft = 21`）。 */
-private val ToggleRowStartPadding = 21.dp
+private val ToggleRowStartPadding = 21.dp // design-ok: 非梯队精确值，与开关轨道中线对齐
 
 /** 行尾留白。 */
-private val ToggleRowEndPadding = 20.dp
+private val ToggleRowEndPadding = Spacing.Room
 
 /** 行高（Telegram `TextCell.heightDp = 50`）。 */
 private val ToggleRowHeight = 50.dp
 
 /** 图标与文字的间距：21 + 28 + 9 = 58，对齐 Telegram 的 `offsetFromImage`。 */
-private val IconToTextGap = 9.dp
+private val IconToTextGap = 9.dp // design-ok: 非梯队精确值，图标与文字视觉间距
 
 /**
  * 合成加载完成前的兜底形变时长。

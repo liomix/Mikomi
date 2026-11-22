@@ -99,10 +99,10 @@ internal fun PlayerNavigationBar(
             onSelect = { index -> onTabSelected(PlayerTab.entries[index]) },
             containerColor = Color.Transparent,
             contentPadding = PaddingValues(Spacing.None),
-            itemSpacing = 2.dp,
+            itemSpacing = Spacing.Xxs,
             itemStyle = TabItemStyle(
                 height = 32.dp,
-                horizontalPadding = 10.dp,
+                horizontalPadding = Spacing.Compact,
                 labelStyle = MaterialTheme.typography.labelLarge,
             ),
         ) {

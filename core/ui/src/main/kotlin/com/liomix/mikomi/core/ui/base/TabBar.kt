@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.lerp
+import com.liomix.mikomi.core.designsystem.Elevation
 import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.Sizes
@@ -73,6 +74,11 @@ enum class TabOrientation { Horizontal, Vertical }
  *
  * 由 [TabBar] 统一下发，单项也可通过 [Tab] 的 `style` 覆盖。
  * 高度、内边距与字号一起决定**指示器（同时就是触控区）**的大小——调这里等于同时调了两者。
+ *
+ * 四个预设里仍有四个字面量不进间距梯队（5dp 图标与文字间距、3dp 纵向内边距、18dp 纯文字标签
+ * 横内边距、56dp 两行标签高度）：它们是**标签的物理规格**，与字号绑在一起算出来的，
+ * 换成 4dp/6dp 会一起改掉文字与图标的重心。其余能对上的（8→Sm、12→Md、6→Tight、
+ * 2→Xxs、14→Gutter、48→ButtonHeight）都已走 token。
  */
 @Immutable
 data class TabItemStyle(
@@ -80,7 +86,7 @@ data class TabItemStyle(
     val height: Dp? = null,
     val iconSize: Dp = Sizes.IconMd,
     val iconLabelSpacing: Dp = 5.dp,
-    val horizontalPadding: Dp = 8.dp,
+    val horizontalPadding: Dp = Spacing.Sm,
     val verticalPadding: Dp = 3.dp,
     val labelStyle: TextStyle = TextStyles.TabLabel,
     val supportingStyle: TextStyle? = null,
@@ -91,9 +97,9 @@ data class TabItemStyle(
         /** 个人资料页那种紧凑图标标签：18dp 图标 + 14.5sp 文字。 */
         fun compact(): TabItemStyle = TabItemStyle(
             iconSize = Sizes.IconMd,
-            iconLabelSpacing = 5.dp,
-            horizontalPadding = 8.dp,
-            verticalPadding = 3.dp,
+            iconLabelSpacing = 5.dp, // design-ok: 非梯队，标签物理规格（图标与文字的重心间距）
+            horizontalPadding = Spacing.Sm,
+            verticalPadding = 3.dp, // design-ok: 非梯队，标签物理规格（24dp 图标与胶囊高度对齐）
             labelStyle = TextStyles.TabLabel,
             labelWeight = FontWeight.SemiBold,
         )
@@ -103,9 +109,9 @@ data class TabItemStyle(
         fun navigation(): TabItemStyle = TabItemStyle(
             orientation = TabOrientation.Vertical,
             iconSize = Sizes.IconMd,
-            iconLabelSpacing = 2.dp,
-            horizontalPadding = 12.dp,
-            verticalPadding = 6.dp,
+            iconLabelSpacing = Spacing.Xxs,
+            horizontalPadding = Spacing.Md,
+            verticalPadding = Spacing.Tight,
             labelStyle = MaterialTheme.typography.labelMedium,
             labelWeight = FontWeight.Medium,
         )
@@ -113,9 +119,9 @@ data class TabItemStyle(
         /** 单行文字标签（48dp 高、18dp 横内边距）：排行榜、热播榜这类纯文字切换。 */
         @Composable
         fun text(): TabItemStyle = TabItemStyle(
-            height = 48.dp,
-            horizontalPadding = 18.dp,
-            verticalPadding = 0.dp,
+            height = Sizes.ButtonHeight,
+            horizontalPadding = 18.dp, // design-ok: 非梯队，纯文字标签的横内边距
+            verticalPadding = Spacing.None,
             labelStyle = MaterialTheme.typography.bodyLarge,
             labelWeight = FontWeight.Normal,
         )
@@ -125,9 +131,9 @@ data class TabItemStyle(
         fun twoLine(): TabItemStyle = TabItemStyle(
             orientation = TabOrientation.Vertical,
             height = 56.dp,
-            iconLabelSpacing = 2.dp,
-            horizontalPadding = 6.dp,
-            verticalPadding = 0.dp,
+            iconLabelSpacing = Spacing.Xxs,
+            horizontalPadding = Spacing.Tight,
+            verticalPadding = Spacing.None,
             labelStyle = MaterialTheme.typography.titleMedium,
             supportingStyle = MaterialTheme.typography.labelSmall,
             labelWeight = FontWeight.Normal,
@@ -142,7 +148,21 @@ data class TabColors(
     val selectedContent: Color,
     val unselectedContent: Color,
     val hoveredContent: Color,
-)
+) {
+    companion object {
+        /** 默认配色：主色淡底指示器 + 主色选中文字 + 次级未选中文字 + 主色悬停文字。 */
+        val Default: TabColors
+            @Composable get() = TabColors(
+                indicator = MaterialTheme.colorScheme.primary.copy(alpha = TabIndicatorAlpha),
+                selectedContent = MaterialTheme.colorScheme.primary,
+                unselectedContent = MaterialTheme.colorScheme.onSurfaceVariant,
+                hoveredContent = MaterialTheme.colorScheme.onSurface,
+            )
+    }
+}
+
+/** 指示器底色的透明度：主色淡到能看见轮廓、又不压住文字。 */
+private const val TabIndicatorAlpha = 0.14f
 
 /**
  * 一组标签的共享状态。
@@ -215,6 +235,9 @@ private val LocalTabBarVisuals = compositionLocalOf {
  *
  * @param selectedIndex 当前选中项下标；组件不自己存选中态。
  * @param onSelect 点击某项时回调下标。
+ * @param containerColor 栏底色；需要和内容同色（例如叠在卡片上）时传透明或卡片色。
+ * @param colors 一组配色（指示器 / 选中 / 未选中 / 悬停）。**四个颜色是一组，所以做成一个参数**：
+ *   个人页那种用自己的调色板的地方，一眼能看出这四项必须同源。
  * @param content 标签项，通常为若干 [Tab]；用 `Modifier.weight(1f)` 可等分宽度。
  */
 @Composable
@@ -223,36 +246,24 @@ fun TabBar(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
-    indicatorColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-    selectedContentColor: Color = MaterialTheme.colorScheme.primary,
-    unselectedContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    hoveredContentColor: Color = MaterialTheme.colorScheme.onSurface,
+    colors: TabColors = TabColors.Default,
     shape: Shape = PillShape,
-    elevation: Dp = 0.dp,
+    elevation: Dp = Elevation.Flat,
     contentPadding: PaddingValues = PaddingValues(horizontal = Spacing.Compact, vertical = Spacing.Xs),
-    itemSpacing: Dp = 14.dp,
+    itemSpacing: Dp = Spacing.Gutter,
     itemStyle: TabItemStyle = TabItemStyle.compact(),
     content: @Composable RowScope.() -> Unit,
 ) {
     val state = remember { TabBarState() }
     state.selectedIndex = selectedIndex
     state.onSelect = onSelect
-    val visuals = TabBarVisuals(
-        shape = shape,
-        style = itemStyle,
-        colors = TabColors(
-            indicator = indicatorColor,
-            selectedContent = selectedContentColor,
-            unselectedContent = unselectedContentColor,
-            hoveredContent = hoveredContentColor,
-        ),
-    )
+    val visuals = TabBarVisuals(shape = shape, style = itemStyle, colors = colors)
 
     Surface(
         modifier = modifier,
         shape = shape,
         color = containerColor,
-        contentColor = selectedContentColor,
+        contentColor = colors.selectedContent,
         shadowElevation = elevation,
     ) {
         Box(modifier = Modifier.padding(contentPadding)) {

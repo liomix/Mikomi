@@ -143,6 +143,7 @@ internal fun DetailHeader(
             // 标题：单行，超宽时无限横向滚动（与 Dart 版 ScrollingText 一致）。
             ScrollingText(
                 text = anime.title,
+                enabled = true,
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = AppTheme.colors.media.content,

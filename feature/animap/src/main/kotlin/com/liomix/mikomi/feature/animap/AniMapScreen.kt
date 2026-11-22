@@ -41,7 +41,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.liomix.mikomi.core.navigation.ImmersionBridge
-import com.liomix.mikomi.core.ui.base.LottieLoading
 import com.liomix.mikomi.core.ui.window.Insets
 
 /** 巡礼地图（anitabi）页面地址。 */

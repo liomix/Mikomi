@@ -213,7 +213,6 @@ private fun CharacterCard(
                             fontWeight = FontWeight.Medium,
                         ),
                         modifier = Modifier.weight(1f, fill = false),
-                        enabled = false,
                     )
                     Spacer(modifier = Modifier.width(Spacing.Xs))
                     RelationBadge(text = character.relation)
@@ -225,7 +224,6 @@ private fun CharacterCard(
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         ),
-                        enabled = false,
                     )
                 }
             }
@@ -267,7 +265,6 @@ private fun StaffCard(
                             fontWeight = FontWeight.Medium,
                         ),
                         modifier = Modifier.weight(1f, fill = false),
-                        enabled = false,
                     )
                     if (member.positionText.isNotEmpty()) {
                         Spacer(modifier = Modifier.width(Spacing.Xs))
@@ -283,7 +280,6 @@ private fun StaffCard(
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         ),
-                        enabled = false,
                     )
                 }
             }

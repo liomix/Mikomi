@@ -554,7 +554,7 @@ private fun PluginRow(
                 Spacer(modifier = Modifier.width(Spacing.Sm))
                 Tag(
                     text = stringResource(R.string.settings_plg_tst_version, plugin.version),
-                    style = TagStyle.Meta,
+                    style = TagStyle.meta(),
                 )
             }
             Spacer(modifier = Modifier.height(Spacing.Xxs))

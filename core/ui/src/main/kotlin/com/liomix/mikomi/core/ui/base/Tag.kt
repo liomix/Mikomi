@@ -39,12 +39,6 @@ private val MetaShape: Shape = RoundedCornerShape(Radius.Sm)
 /** 选中态 / 未选中态切换时的颜色过渡时长。 */
 private const val ColorAnimMillis = Motion.Duration.Short
 
-/** 选中底色透明度：浅色染主色，避免实心块视觉重量过重（看起来像主按钮）。 */
-
-/** 选中描边透明度。 */
-
-/** 未选中描边透明度：只勾出边界，不抢文字。 */
-
 /** 可选中标签的高度，同时就是它的触控高度（见文件末尾的破例说明）。 */
 private val SelectableHeight = Sizes.ChipHeight
 
@@ -63,21 +57,67 @@ data class TagColors(
 )
 
 /**
- * 标签的三套默认规格。
+ * 标签的配色走向：决定颜色是否随 [Tag] 的 `selected` 变化。
  *
- * 它只提供**默认值**：颜色、形状、内边距、字号、最小高度都能被调用方单独覆盖
- * （「这枚标签长什么样」由页面决定，组件不预设死）。不传 [Tag] 的 `style` 时，
- * 按是否可点自动选：可点 → [Selectable]，只读 → [Content]。
+ * 只有两档，因为「陈列标签」与「元信息徽标」的配色本来就完全一样
+ * （浅容器底 + 次级文字色），分成两个 tone 只会多一个空分支。
  */
-enum class TagStyle {
-    /** 可选中的选项：胶囊 + 40dp 触控高度，选中时主色淡底 + 主色描边 + 半粗文字。 */
+enum class TagTone {
+    /** 可选中：颜色在「透明底 + 中性描边」与「主色淡底 + 主色描边」之间切换。 */
     Selectable,
 
-    /** 陈列型只读标签：填色胶囊（24dp，与图标默认档同高），不带描边。题材、计数这类内容。 */
-    Content,
+    /** 只读：固定的浅容器底 + 次级文字色，不描边、不随状态变。 */
+    Neutral,
+}
 
-    /** 元信息徽标：填色小圆角，字号小三档。版本号、状态这类次要信息。 */
-    Meta,
+/**
+ * 标签规格：形状、内边距、最小高度、字号、配色走向。
+ *
+ * 三套预设见 companion。与 [PressButtonStyle]、[TabItemStyle] 同一套写法 ——
+ * 调用方要微调一项时用 `copy`，而不用再往 [Tag] 的签名上挂第 14 个参数。
+ */
+@Immutable
+data class TagStyle(
+    val shape: Shape,
+    val contentPadding: PaddingValues,
+    val minHeight: Dp,
+    val textStyle: TextStyle,
+    val tone: TagTone,
+) {
+    companion object {
+        /** 可选中的选项：胶囊 + 40dp 触控高度，选中时主色淡底 + 主色描边 + 半粗文字。 */
+        @Composable
+        fun selectable(): TagStyle = TagStyle(
+            shape = PillShape,
+            contentPadding = PaddingValues(horizontal = TagSpec.SelectableHorizontalPadding),
+            minHeight = SelectableHeight,
+            textStyle = MaterialTheme.typography.labelLarge,
+            tone = TagTone.Selectable,
+        )
+
+        /** 陈列型只读标签：填色胶囊（24dp，与图标默认档同高），不带描边。题材、计数这类内容。 */
+        @Composable
+        fun content(): TagStyle = TagStyle(
+            shape = PillShape,
+            contentPadding = PaddingValues(horizontal = TagSpec.ChipHorizontalPadding),
+            minHeight = TagSpec.ChipHeight,
+            textStyle = MaterialTheme.typography.labelMedium,
+            tone = TagTone.Neutral,
+        )
+
+        /** 元信息徽标：填色小圆角，字号小三档。版本号、状态这类次要信息。 */
+        @Composable
+        fun meta(): TagStyle = TagStyle(
+            shape = MetaShape,
+            contentPadding = PaddingValues(
+                horizontal = TagSpec.MetaHorizontalPadding,
+                vertical = TagSpec.MetaVerticalPadding,
+            ),
+            minHeight = 0.dp,
+            textStyle = MaterialTheme.typography.labelSmall,
+            tone = TagTone.Neutral,
+        )
+    }
 }
 
 /**
@@ -95,14 +135,11 @@ enum class TagStyle {
  * // 默认：只读陈列标签（描边胶囊）
  * Tag("奇幻")
  *
- * // 版本号徽标：换规格 + 单独调色/圆角/字号
+ * // 版本号徽标：换预设，再用 copy 微调一项
  * Tag(
  *     text = "v1.2.3",
- *     style = TagStyle.Meta,
+ *     style = TagStyle.meta().copy(shape = RoundedCornerShape(Radius.Xs)),
  *     colors = TagColors(container = …, content = …),
- *     shape = RoundedCornerShape(Radius.Xs),
- *     textStyle = MaterialTheme.typography.labelSmall,
- *     contentPadding = PaddingValues(horizontal = 4.dp, vertical = 1.dp),
  * )
  * ```
  *
@@ -116,12 +153,9 @@ enum class TagStyle {
  * @param text 文案（由调用方 `stringResource` 解析后传入，组件层不依赖业务资源）。
  * @param selected 是否处于选中态；选中时文字半粗（`Selectable` 还会换配色）。
  * @param onClick 点击回调（语义按单选按钮上报）；传 null 即只读展示，不挂手势。
- * @param style 默认规格，只在调用方没有覆盖对应参数时生效。
- * @param colors 配色；默认按 [style] 与 [selected] 从主题推导。
- * @param shape 形状，默认胶囊（`Meta` 是 6dp 圆角）。
- * @param contentPadding 文字四周留白。
- * @param textStyle 文字样式（字号、行高、字重）。
- * @param minHeight 最小高度；可选中规格默认 40dp，只读规格默认 24dp（与图标默认档同高）。
+ * @param style 规格预设（[TagStyle.selectable] / [TagStyle.content] / [TagStyle.meta]）；
+ *   要微调某一项用 `copy`，不要再往这个签名上挂参数。
+ * @param colors 配色；默认按 [TagStyle.tone] 与 [selected] 从主题推导。
  * @param maxLines 最多几行；默认不限（标签一般是短词，长文案由调用方决定是省略还是换行）。
  * @param overflow 超出 [maxLines] 时怎么收尾。
  */
@@ -131,12 +165,8 @@ fun Tag(
     modifier: Modifier = Modifier,
     selected: Boolean = false,
     onClick: (() -> Unit)? = null,
-    style: TagStyle = if (onClick != null) TagStyle.Selectable else TagStyle.Content,
-    colors: TagColors = style.defaultColors(selected = selected),
-    shape: Shape = style.defaultShape,
-    contentPadding: PaddingValues = style.defaultContentPadding,
-    textStyle: TextStyle = style.defaultTextStyle(),
-    minHeight: Dp = style.defaultMinHeight,
+    style: TagStyle = if (onClick != null) TagStyle.selectable() else TagStyle.content(),
+    colors: TagColors = style.tone.colorsFor(selected = selected),
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Ellipsis,
 ) {
@@ -162,13 +192,13 @@ fun Tag(
     val click = onClick
     Surface(
         modifier = modifier
-            .heightIn(min = minHeight)
+            .heightIn(min = style.minHeight)
             .then(
                 if (click == null) {
                     Modifier
                 } else {
                     Modifier
-                        .clip(shape)
+                        .clip(style.shape)
                         .selectable(
                             selected = selected,
                             role = Role.RadioButton,
@@ -176,7 +206,7 @@ fun Tag(
                         )
                 },
             ),
-        shape = shape,
+        shape = style.shape,
         color = containerColor,
         contentColor = contentColor,
         border = borderColor?.let { BorderStroke(Stroke.Thin, animatedBorderColor) },
@@ -187,14 +217,14 @@ fun Tag(
         // 标签会跟着把最大高度也吃满：收藏区的「共 3 部」曾被拉成 948px 高，
         // 同一列里的网格因此被挤到 0 高度，整块区域看起来是空的。
         Box(
-            modifier = Modifier.padding(contentPadding),
+            modifier = Modifier.padding(style.contentPadding),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = text,
-                style = textStyle,
+                style = style.textStyle,
                 // 选中才提字重；其余情况沿调用方传进来的 textStyle（有些徽标要 Medium）。
-                fontWeight = if (selected) FontWeight.SemiBold else textStyle.fontWeight,
+                fontWeight = if (selected) FontWeight.SemiBold else style.textStyle.fontWeight,
                 maxLines = maxLines,
                 overflow = overflow,
             )
@@ -202,62 +232,17 @@ fun Tag(
     }
 }
 
-/** 三套规格的形状。 */
-private val TagStyle.defaultShape: Shape
-    get() = when (this) {
-        TagStyle.Selectable, TagStyle.Content -> PillShape
-        TagStyle.Meta -> MetaShape
-    }
-
-/*
- * 两套实测内边距不在本文件里，而是住在 designsystem 的 `TagSpec`。
- *
- * 它们回答的是「这枚标签自己有多胖」，不是「布局要留多少呼吸」，
- * 所以属于组件规格而不是间距 token（判别方法见 `SwitchSpec` 的文件头）。
- * 挪出去的理由只有一个：规格写在组件内部就只有写的人知道，
- * 放在规格层才会出现在设计系统的目录与审计里。
- */
-
-/** 三套规格的内边距。可选中的那套左右留白更大，因为它是控件而不是文字块。 */
-private val TagStyle.defaultContentPadding: PaddingValues
-    get() = when (this) {
-        TagStyle.Selectable -> PaddingValues(horizontal = TagSpec.SelectableHorizontalPadding)
-        // 只读标签：10dp 横内边距、纵向靠 24dp 的固定高度撑开（与图标默认档同高）。
-        TagStyle.Content -> PaddingValues(horizontal = TagSpec.ChipHorizontalPadding)
-        TagStyle.Meta -> PaddingValues(
-            horizontal = TagSpec.MetaHorizontalPadding,
-            vertical = TagSpec.MetaVerticalPadding,
-        )
-    }
-
-/** 三套规格的最小高度：可选中 40dp（触控高度破例），只读标签 = 24dp（与图标同高）。 */
-private val TagStyle.defaultMinHeight: Dp
-    get() = when (this) {
-        TagStyle.Selectable -> SelectableHeight
-        TagStyle.Content -> TagSpec.ChipHeight
-        TagStyle.Meta -> 0.dp
-    }
-
-/** 三套规格的字号：徽标要压住存在感，所以比文字本体还小一档。 */
-@Composable
-private fun TagStyle.defaultTextStyle(): TextStyle = when (this) {
-    TagStyle.Selectable -> MaterialTheme.typography.labelLarge
-    TagStyle.Content -> MaterialTheme.typography.labelMedium
-    TagStyle.Meta -> MaterialTheme.typography.labelSmall
-}
-
 /**
  * 三套规格的默认配色。
  *
- * - [TagStyle.Selectable]：未选中透明 + 中性描边；选中主色淡底 + 主色描边 + 主色文字；
- * - [TagStyle.Content]：页面底色 + 中性描边，只勾边界；
- * - [TagStyle.Meta]：浅一档的容器色，不描边——它靠底色和主体区分，不再加线。
+ * - [TagTone.Selectable]：未选中透明底 + 中性描边；选中主色淡底 + 主色描边 + 主色文字；
+ * - [TagTone.Neutral]：浅一档的容器底 + 次级文字色，不描边 —— 陈列标签与元信息徽标共用这一档。
  */
 @Composable
-private fun TagStyle.defaultColors(selected: Boolean): TagColors {
+private fun TagTone.colorsFor(selected: Boolean): TagColors {
     val colors = MaterialTheme.colorScheme
     return when (this) {
-        TagStyle.Selectable -> if (selected) {
+        TagTone.Selectable -> if (selected) {
             TagColors(
                 container = colors.primary.copy(alpha = TagSpec.ContainerAlphaSelected),
                 content = colors.primary,
@@ -271,13 +256,7 @@ private fun TagStyle.defaultColors(selected: Boolean): TagColors {
             )
         }
 
-        TagStyle.Content -> TagColors(
-            // 只读标签的默认态 = 播放页「共 N 集」那颗胶囊：浅一档的容器底、次级文字色、不描边。
-            container = colors.surfaceContainerHigh,
-            content = colors.onSurfaceVariant,
-        )
-
-        TagStyle.Meta -> TagColors(
+        TagTone.Neutral -> TagColors(
             container = colors.surfaceContainerHigh,
             content = colors.onSurfaceVariant,
         )

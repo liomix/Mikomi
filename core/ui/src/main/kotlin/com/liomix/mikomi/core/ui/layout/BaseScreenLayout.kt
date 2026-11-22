@@ -1,7 +1,6 @@
 package com.liomix.mikomi.core.ui.layout
 
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -19,7 +18,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -94,7 +92,12 @@ private object TopBarDefaults {
 }
 
 /**
- * 二级页面的统一骨架：**主题底色 + 顶栏 + 内容区**。
+ * 二级页面的统一骨架：**顶栏 + 内容区**。
+ *
+ * **底色不在这里铺。** `MikomiNavHost` 的根容器已经统一上了 `colorScheme.background`，
+ * 页面（含这个骨架）再铺一遍就等于有两个所有者 —— 改一处主题色要记得改两处，漏一处
+ * 就在某个页面露出不同的底。所以这个骨架只保证「顶栏 + 内容」的几何关系。
+ * 单独在 `@Preview` 里渲染它时，需要自己套一层背景。
  *
  * 顶栏是骨架自带的，不是调用方传进来的槽位——页面的标题、返回、右侧动作都以参数给出，
  * 位置、高度、字号、状态栏占位由骨架统一保证。这样任何页面都不需要（也没办法）自己
@@ -138,8 +141,7 @@ fun BaseScreenLayout(
 
     Column(
         modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .fillMaxSize(),
     ) {
         BaseScreenTopBar(
             title = title,

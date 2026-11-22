@@ -73,6 +73,7 @@ import com.liomix.mikomi.core.designsystem.Radius
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.TextStyles
+import com.liomix.mikomi.core.ui.base.TabColors
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.Tab
@@ -553,10 +554,10 @@ private val CollapsedAvatarSize = 34.dp
 private val CollapsedInset = 16.dp
 
 /** 收起到底时，动作卡与顶栏之间保留的间距。 */
-private val CollapsedBottomGap = 16.dp
+private val CollapsedBottomGap = Spacing.Lg
 
 /** 内容卡片下沿与悬浮导航栏上沿之间的间距。 */
-private val ContentBottomGap = 14.dp
+private val ContentBottomGap = Spacing.Gutter
 
 /** 动作卡高度，同时决定照片下沿的位置（照片底边 = 卡片下沿）。 */
 /** 收拢态姓名/简介的左右让位：照片两侧要留出圆形头像的收口，文字不能压到弧上。 */
@@ -945,10 +946,13 @@ private fun ProfileTabs(
             selectedIndex = selected,
             onSelect = onSelect,
             containerColor = palette.card,
-            indicatorColor = palette.accentContainer,
-            selectedContentColor = palette.accent,
-            unselectedContentColor = palette.tertiary,
-            hoveredContentColor = palette.accent,
+            // 四个颜色是一组：指示器、选中、未选中、悬停必须同源，所以一次性传。
+            colors = TabColors(
+                indicator = palette.accentContainer,
+                selectedContent = palette.accent,
+                unselectedContent = palette.tertiary,
+                hoveredContent = palette.accent,
+            ),
             // 四边同一档，取上下的 4dp。组件默认值是「左右 10 / 上下 4」：竖直方向已经贴着胶囊
             // 边缘，水平方向却多留 6dp，两端看着松。这里把左右收到与上下相同的 4dp ——
             // 指示器与容器都是胶囊（半圆端），同值内缩才是同心圆，四边间隙处处相等。

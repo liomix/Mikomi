@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.model.RankEntry
 import com.liomix.mikomi.core.designsystem.ShadowColor
@@ -119,7 +120,6 @@ internal fun RankAnimeCard(
                 // 网格内多卡同时跑 marquee 会拖慢滚动，走静态省略。
                 ScrollingText(
                     text = anime.title,
-                    enabled = false,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = AppTheme.colors.media.content,
@@ -247,7 +247,7 @@ internal val RankCardHeight = 112.dp
 internal val RankCardCorner = 14.dp
 
 /** 卡片间距。 */
-internal val RankCardSpacing = 8.dp
+internal val RankCardSpacing = Spacing.Sm
 
 /**
  * 竖图裁成横条时的锚点。
@@ -261,11 +261,11 @@ private val CoverCropAlignment = BiasAlignment(horizontalBias = 0f, verticalBias
 private val RankNumberWidth = 54.dp
 
 /** 名次与标题之间的间距。 */
-private val NumberToTitleGap = 10.dp
+private val NumberToTitleGap = Spacing.Compact
 
 /** 行左右内边距。 */
-private val RowStartPadding = 12.dp
-private val RowEndPadding = 18.dp
+private val RowStartPadding = Spacing.Md
+private val RowEndPadding = 18.dp // design-ok: 非梯队精确值，排名行右侧与封面视觉等距
 
 /** 前三名的高亮阴影。 */
 private val TopRankShadow = 4.dp

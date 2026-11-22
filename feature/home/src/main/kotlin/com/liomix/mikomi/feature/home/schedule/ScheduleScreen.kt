@@ -201,7 +201,7 @@ private fun DayTabBar(
         // 整行铺满的七等分卡片，胶囊容器在宽屏上会显得过于圆，改用大圆角矩形。
         shape = RoundedCornerShape(TAB_ROW_CORNER_RADIUS),
         itemStyle = TabItemStyle.twoLine(),
-        itemSpacing = 0.dp,
+        itemSpacing = Spacing.None,
     ) {
         dates.indices.forEach { index ->
             val isToday = index == todayIndex
@@ -310,7 +310,6 @@ private fun ScheduleAnimeRow(
                     text = anime.title,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = false,
                 )
                 if (episodeLabel.isNotBlank() || scheduleLabel.isNotBlank()) {
                     Row(

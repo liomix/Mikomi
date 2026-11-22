@@ -595,13 +595,14 @@ private fun PlayerSource.statusText(): String = when (availability) {
 private fun QualityTag(quality: String) {
     Tag(
         text = quality,
-        style = TagStyle.Meta,
+        style = TagStyle.meta().copy(
+            shape = RoundedCornerShape(Radius.Xs),
+            textStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+        ),
         colors = TagColors(
             container = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
             content = MaterialTheme.colorScheme.primary,
         ),
-        shape = RoundedCornerShape(Radius.Xs),
-        textStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
     )
 }
 
@@ -621,13 +622,14 @@ private fun CapabilityTag(mode: PlaybackMode) {
                 PlaybackMode.WEB -> R.string.player_line_capability_web
             },
         ),
-        style = TagStyle.Meta,
+        style = TagStyle.meta().copy(
+            shape = RoundedCornerShape(Radius.Xs),
+            textStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+        ),
         colors = TagColors(
             container = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.10f),
             content = MaterialTheme.colorScheme.onSurfaceVariant,
         ),
-        shape = RoundedCornerShape(Radius.Xs),
-        textStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
     )
 }
 

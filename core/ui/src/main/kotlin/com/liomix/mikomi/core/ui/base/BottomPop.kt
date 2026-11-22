@@ -27,6 +27,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -143,15 +144,14 @@ fun BottomPop(
     }
 
     // 给长生命周期的手势检测器一个稳定入口：pointerInput 的 key 不能是每次重组都会变的局部函数，
-    // 否则正在进行的拖拽会被打断。
-    val dismissAction = remember { mutableStateOf({}) }
-    dismissAction.value = ::dismiss
+    // 否则正在进行的拖拽会被打断。rememberUpdatedState 只换里面的引用，外壳身份始终不变。
+    val dismissAction by rememberUpdatedState(::dismiss)
 
     if (!mounted) return
 
     Popup(
         alignment = Alignment.TopStart,
-        onDismissRequest = { dismissAction.value() },
+        onDismissRequest = { dismissAction() },
         properties = PopupProperties(
             focusable = true,
             dismissOnBackPress = true,
@@ -184,7 +184,7 @@ fun BottomPop(
             // 绘制与点击关闭都由 SheetScrim 负责 —— 与侧栏共用同一份，深度不会跑偏。
             SheetScrim(
                 progress = { visible / maxAnchorPx },
-                onDismiss = { dismissAction.value() },
+                onDismiss = { dismissAction() },
             )
 
             Surface(
@@ -217,7 +217,7 @@ fun BottomPop(
                                     velocityThreshold = velocityThresholdPx,
                                     dismissPx = dismissPx,
                                 )
-                                if (target == null) dismissAction.value() else animateVisibleTo(target)
+                                if (target == null) dismissAction() else animateVisibleTo(target)
                             },
                             onDragCancel = {
                                 velocityTracker.resetTracking()

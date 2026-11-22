@@ -2,7 +2,6 @@ package com.liomix.mikomi.feature.player
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -93,8 +92,7 @@ fun PlayerScreen(
 
     BoxWithConstraints(
         modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .fillMaxSize(),
     ) {
         val playerHeight = min(maxWidth * 9f / 16f, maxHeight * PLAYER_MAX_HEIGHT_RATIO)
 

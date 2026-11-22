@@ -63,7 +63,7 @@ fun PosterCardSkeleton(
 @Composable
 fun PosterSkeletonRow(
     modifier: Modifier = Modifier,
-    spacing: Dp = 12.dp,
+    spacing: Dp = Spacing.Md,
     minColumnWidth: Dp = 100.dp,
 ) {
     val density = LocalDensity.current

@@ -137,7 +137,7 @@ private fun RankTabs(
             .fillMaxWidth()
             .padding(horizontal = Spacing.Lg, vertical = Spacing.Md),
         itemStyle = TabItemStyle.text(),
-        itemSpacing = 0.dp,
+        itemSpacing = Spacing.None,
     ) {
         RankType.entries.forEachIndexed { index, type ->
             Tab(

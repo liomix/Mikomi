@@ -160,6 +160,9 @@ fun DetailScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
+        // 显式写容器色：Scaffold 的默认值虽然也是 background，但这一层是详情页唯一
+        // 「自己铺的底」（宿主另有一层同色）。写出来是为了让「谁负责这个页面的底色」
+        // 在代码里可见，而不是靠读者去查 M3 的默认参数。
         // 头部封面直接顶到屏幕最上方（状态栏之下由 header 自行留白），insets 在页面内自行处理。
         contentWindowInsets = WindowInsets(0),
     ) { innerPadding ->
@@ -359,8 +362,7 @@ private fun DetailLoadingSkeleton(
 ) {
     Column(
         modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .fillMaxSize(),
     ) {
         Column(
             modifier = Modifier

@@ -48,7 +48,7 @@ private val HomeGridMinWidth = 100.dp
 private val HomeGridColumns = GridCells.Adaptive(minSize = HomeGridMinWidth)
 
 /** 网格行内 / 行间间距；分页骨架行必须用同一个值，否则列宽对不齐。 */
-private val HomeGridSpacing = 12.dp
+private val HomeGridSpacing = Spacing.Md
 
 /** `pendingSize` 的哨兵值：当前没有等待中的翻页。 */
 private const val NoPendingLoad = -1
@@ -100,7 +100,7 @@ private fun rememberHomeContentPadding(): PaddingValues {
  * 它是一条设计节奏，不是几何量：底栏多高、导航栏多高都由别人给，
  * 只有「贴多近算太近」是页面的判断。24dp 与页面顶边那条呼吸同值。
  */
-private val ContentBottomGap = 24.dp
+private val ContentBottomGap = Spacing.Xl
 
 private const val LOAD_MORE_THRESHOLD = 3
 

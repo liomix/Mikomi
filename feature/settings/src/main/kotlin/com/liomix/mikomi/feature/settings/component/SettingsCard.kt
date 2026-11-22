@@ -23,7 +23,7 @@ private val CardCorner = 24.dp
 private val CardBorderWidth = 1.dp
 
 /** 子卡片左右内边距（与标题、内容左缘对齐）。 */
-private val SectionHorizontalPadding = 20.dp
+private val SectionHorizontalPadding = Spacing.Room
 
 /**
  * 设置页的大卡片。

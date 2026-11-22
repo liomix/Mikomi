@@ -25,7 +25,7 @@ import java.io.File
  *   ./gradlew iconAudit      图标唯一入口 / 尺寸来源 / 语义表一致性
  *   ./gradlew windowAudit    安全区唯一入口 / edge-to-edge 单点 / 断点来源 / 清单约束
  *   ./gradlew stateAudit     一屏一状态 / 订阅次数 / 一次性事件
- *   ./gradlew motionAudit    按压反馈唯一实现
+ *   ./gradlew pressStateAudit   按压态读取（按钮缩放 / 开关拨片位移）
  *   ./gradlew verifyDesign   = 上面六条 + 主题契约测试（任何违规都 fail）
  */
 
@@ -1054,7 +1054,16 @@ class DesignAuditPlugin : Plugin<Project> {
 
             /** 一次跑完全部审计，并让 tokenAudit 进入 strict（CI / 提交前用）。 */
             /**
-             * 按压动效审计：除按钮与开关外，全站零自行读取按压态。
+             * 按压态读取审计：除按钮与开关外，全站零自行读取按压态。
+             *
+             * **这条审计的对象是「读按压态」这个动作，不是某一种动效。** 两处放行做的是
+             * 两件完全不同的事：
+             *
+             * - `Button.kt`：**缩放** —— `pressScale`，按下到 0.90、松手回弹，是按钮的手感；
+             * - `Switch.kt`：**位移** —— 按住时拨片滑到轨道正中、盖满整条轨道，是开关自己的
+             *   拨片语义，与缩放无关（整个文件没有 `scale`）。
+             *
+             * 两者不是「同一套按压的两个实例」，只是同一个 API 的两种正当用途。
              *
              * 规则（规范 §5.10；2026-11-22 定稿）：
              *
@@ -1062,22 +1071,27 @@ class DesignAuditPlugin : Plugin<Project> {
              *   不是公共原子。别的模块或页面要按下缩放，就在**自己模块的组件里**写一份，
              *   不许 import 按钮的实现 —— 否则按钮的手感会变成事实上的全站 API，
              *   各处按自己的场景改参数，最后按钮自己反而不敢动。
-             * - 当前除按钮与开关外**不做按压缩放**（横幅、动作卡等只保留点击语义），
+             * - 当前除按钮与开关外**不做任何按压态动效**（横幅、动作卡等只保留点击语义），
              *   所以这条审计的执行方式是「零自行实现」：任何 `collectIsPressedAsState`
-             *   都视为新增了一套手感。
-             * - 将来真要在某模块实现，把该文件加进 [allowed] 并写清「为什么与按钮不同档」，
-             *   不要为了过闸门去调用按钮的函数。
+             *   都视为新增了一套。
+             * - 将来真要在某模块实现，把该文件加进 [allowed] 并写清「做什么动效、为什么
+             *   与按钮的缩放不同」，不要为了过闸门去调用按钮的函数。
              *
              * 为什么拦「读按压态」而不是拦「字面量」：`0.97f`、`dampingRatio = 0.55f` 这类数值
              * 在别处也可能是合理的（弹簧收放、进度回弹），拦数值会误伤；而「读按压态」
              * 只服务于按压反馈这一件事。
              */
-            tasks.register("motionAudit") {
+            tasks.register("pressStateAudit") {
                 group = "verification"
-                description = "校验按压实现：除按钮与开关外，全站零自行读取按压态"
+                description = "校验按压态读取：按钮（缩放）与开关（拨片位移）是仅有的两处正当用途"
 
                 doLast {
-                    /** 原子层自己的实现：Button.kt 是唯一入口；Switch 是开关，按压态是它的拨片语义。 */
+                    /**
+                     * 两处放行，做的是两件不同的事，不要当成「同一套按压的两个实例」：
+                     * - Button.kt：缩放（pressScale，按钮独有）；
+                     * - Switch.kt：拨片位移（按住滑到轨道正中、盖满整条轨道，开关独有）。
+                     * 将来加第三个之前先问：它是在做缩放，还是又一种新动效？后者在旁边写清。
+                     */
                     val allowed = setOf(
                         "core/ui/src/main/kotlin/com/liomix/mikomi/core/ui/base/Button.kt",
                         "core/ui/src/main/kotlin/com/liomix/mikomi/core/ui/base/Switch.kt",
@@ -1104,26 +1118,26 @@ class DesignAuditPlugin : Plugin<Project> {
 
                     if (hits.isNotEmpty()) {
                         throw GradleException(
-                            "按压动效审计未通过：${hits.size} 处自行读取按压态。\n" +
+                            "按压态读取审计未通过：${hits.size} 处自行读取按压态。\n" +
                                 "`Modifier.pressScale` 是按钮的实现细节，不是公共原子：确需按下缩放，\n" +
                                 "在本模块的组件里自己实现并说明理由，不要 import 按钮的函数。\n" +
                                 hits.joinToString("\n") { "  $it" },
                         )
                     }
-                    println("按压动效审计：0 处自行实现（按钮独用，其余元素不做按压缩放）")
+                    println("按压态读取审计：0 处自行实现（按钮缩放 / 开关拨片位移，两者不是同一类动效）")
                 }
             }
 
             tasks.register("verifyDesign") {
                 group = "verification"
-                description = "tokenAudit（strict）+ contrastAudit + iconAudit + windowAudit + stateAudit + motionAudit + 主题契约测试，任一不达标即失败"
+                description = "tokenAudit（strict）+ contrastAudit + iconAudit + windowAudit + stateAudit + pressStateAudit + 主题契约测试，任一不达标即失败"
 
                 dependsOn("contrastAudit")
                 dependsOn(tasks.named("tokenAudit"))
                 dependsOn(tasks.named("iconAudit"))
                 dependsOn(tasks.named("windowAudit"))
                 dependsOn(tasks.named("stateAudit"))
-                dependsOn(tasks.named("motionAudit"))
+                dependsOn(tasks.named("pressStateAudit"))
                 // 主题契约：5 套配色 × 日夜共 10 套方案，解析后逐一验算对比度。
                 // 这是 Gradle 侧 contrastAudit 验不到的层（那边只读源码里的色值，这边验解析结果）。
                 dependsOn(":core:designsystem:testDebugUnitTest")

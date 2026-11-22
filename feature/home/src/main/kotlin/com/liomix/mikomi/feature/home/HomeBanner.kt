@@ -53,6 +53,7 @@ import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.ScrollingText
 import com.liomix.mikomi.core.ui.base.SkeletonBox
@@ -62,7 +63,6 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import com.liomix.mikomi.core.ui.base.pressScale
 
 /**
  * 首页轮播图：现代化视觉 + 丝滑翻页。
@@ -167,10 +167,6 @@ private fun BannerItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 按压反馈统一走原子层的 pressScale（缩放与回弹全部来自 Motion.Press），
-    // 页面不再自己 animateFloatAsState —— 否则同一次按压在轮播和按钮上手感不同。
-    val interactionSource = remember { MutableInteractionSource() }
-
     // 与全站封面统一走 core:ui 的请求构建（memoryCacheKey 固定为 url）：
     // 各写一份 ImageRequest 时缓存 key 计算路径不同，可能串图（搜索完退回来轮播显示搜索海报）。
     // 轮播一屏只有一张，淡入代价可以接受。
@@ -187,16 +183,11 @@ private fun BannerItem(
     Box(
         modifier = modifier
             .height(BANNER_HEIGHT)
-            .pressScale(interactionSource)
             .clip(RoundedCornerShape(BANNER_CORNER))
             // 与骨架同色的底：图片画不出来时（url 为空 / 请求失败）仍是同一种材质，
             // 而不是透出页面底色的空洞。图片落地后整块被盖住。
             .background(skeletonBaseColor())
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-            ),
+            .mikomiClickable(onClick = onClick),
     ) {
         // 加载中：180dp 的大块占位。首屏这里原本是骨架（HomeBannerSkeleton），
         // 换成一块死灰会显得整个头图区「塌下去」，所以这里沿用同一种材质。

@@ -210,7 +210,7 @@ fun AppTheme(
         // Text、Icon 因此会一直是黑色（夜间不可读）。这里统一兜底为 onBackground，
         // Surface 内部仍会用自己的 contentColor 覆盖。
         //
-        // 按压反馈只有一处：`core:ui` 的 `Modifier.pressScale`。**不提供按压层**
+        // 按压反馈只有一处，且是按钮独用：`core:ui` 的 `Modifier.pressScale`。**不提供按压层**
         // （`LocalIndication` 保持 Compose 默认，全站的 `clickable` 都传 `indication = null`），
         // 所以这里不注入任何 indication。
         CompositionLocalProvider(

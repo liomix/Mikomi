@@ -1054,20 +1054,27 @@ class DesignAuditPlugin : Plugin<Project> {
 
             /** 一次跑完全部审计，并让 tokenAudit 进入 strict（CI / 提交前用）。 */
             /**
-             * 按压动效审计：全站只允许一套按压实现。
+             * 按压动效审计：除按钮与开关外，全站零自行读取按压态。
              *
-             * 规则（规范 §5.10）：按压反馈的唯一入口是 `core:ui` 的 `Modifier.pressScale`，
-             * 参数来自 `Motion.Press`。页面读 `collectIsPressedAsState` 自己写
-             * `animateFloatAsState`，就是在复制第二套手感 —— 曾经有三套（按钮 0.90 + tween、
-             * 轮播 0.97 + spring、个人页 0.97 + spring），页面里看不出差异，按一下才发现。
+             * 规则（规范 §5.10；2026-11-22 定稿）：
+             *
+             * - `Modifier.pressScale` 是 `PressButton` / `PressIconButton` 的**实现细节**，
+             *   不是公共原子。别的模块或页面要按下缩放，就在**自己模块的组件里**写一份，
+             *   不许 import 按钮的实现 —— 否则按钮的手感会变成事实上的全站 API，
+             *   各处按自己的场景改参数，最后按钮自己反而不敢动。
+             * - 当前除按钮与开关外**不做按压缩放**（横幅、动作卡等只保留点击语义），
+             *   所以这条审计的执行方式是「零自行实现」：任何 `collectIsPressedAsState`
+             *   都视为新增了一套手感。
+             * - 将来真要在某模块实现，把该文件加进 [allowed] 并写清「为什么与按钮不同档」，
+             *   不要为了过闸门去调用按钮的函数。
              *
              * 为什么拦「读按压态」而不是拦「字面量」：`0.97f`、`dampingRatio = 0.55f` 这类数值
-             * 在别处也可能是合理的（弹簧收放、进度回弹），拦数值会误伤；而「页面自己读按压态」
-             * 没有第二种正当用途 —— 只有一个例外，见下面 allowed。
+             * 在别处也可能是合理的（弹簧收放、进度回弹），拦数值会误伤；而「读按压态」
+             * 只服务于按压反馈这一件事。
              */
             tasks.register("motionAudit") {
                 group = "verification"
-                description = "校验按压反馈只有一处实现（core:ui 的 Modifier.pressScale）"
+                description = "校验按压实现：除按钮与开关外，全站零自行读取按压态"
 
                 doLast {
                     /** 原子层自己的实现：Button.kt 是唯一入口；Switch 是开关，按压态是它的拨片语义。 */
@@ -1097,11 +1104,13 @@ class DesignAuditPlugin : Plugin<Project> {
 
                     if (hits.isNotEmpty()) {
                         throw GradleException(
-                            "按压动效审计未通过：${hits.size} 处自行读取按压态。请改用 `Modifier.pressScale`（见 core/ui/base/Button.kt）。\n" +
+                            "按压动效审计未通过：${hits.size} 处自行读取按压态。\n" +
+                                "`Modifier.pressScale` 是按钮的实现细节，不是公共原子：确需按下缩放，\n" +
+                                "在本模块的组件里自己实现并说明理由，不要 import 按钮的函数。\n" +
                                 hits.joinToString("\n") { "  $it" },
                         )
                     }
-                    println("按压动效审计：0 处自行实现（唯一入口 Modifier.pressScale）")
+                    println("按压动效审计：0 处自行实现（按钮独用，其余元素不做按压缩放）")
                 }
             }
 

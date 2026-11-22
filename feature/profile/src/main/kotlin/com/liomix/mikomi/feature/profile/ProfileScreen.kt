@@ -6,12 +6,10 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -75,6 +73,7 @@ import com.liomix.mikomi.core.designsystem.Radius
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.TextStyles
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.Tab
 import com.liomix.mikomi.core.ui.base.TabBar
@@ -91,7 +90,6 @@ import com.liomix.mikomi.feature.profile.component.rememberProfileTabContentStat
 import kotlin.math.roundToInt
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import com.liomix.mikomi.core.ui.base.pressScale
 
 /**
  * 个人资料页（对齐 Telegram 13 的「我的」页）。
@@ -903,17 +901,14 @@ private fun ActionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val interaction = remember { MutableInteractionSource() }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = modifier
             .height(ActionCardHeight)
-            // 按压反馈走原子层的 pressScale：与按钮同一套缩放与回弹（Motion.Press）。
-            .pressScale(interaction)
             .clip(RoundedCornerShape(Radius.Xl))
             .background(palette.card)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+            .mikomiClickable(onClick = onClick),
     ) {
         Icon(
             icon = icon,

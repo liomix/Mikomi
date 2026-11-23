@@ -1,31 +1,36 @@
 package com.liomix.mikomi.feature.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.Anime
@@ -55,9 +60,7 @@ private val HomeGridSpacing = Spacing.Md
  * AsyncImage 在骨架的 Box 上重跑一次首帧。其余段（顶栏、快捷入口、分页骨架行）不随
  * 数据变化，key 稳定即可，避免整段被重建。
  */
-private const val KEY_TOP_BAR = "topBar"
-private const val KEY_BANNER = "banner"
-private const val KEY_BANNER_SKELETON = "bannerSkeleton"
+private const val KEY_HEADER = "header"
 private const val KEY_ACTIONS = "actions"
 private const val KEY_PAGING_SKELETON_PREFIX = "paging_"
 
@@ -94,19 +97,44 @@ private val ContentBottomGap = Spacing.Xl
  *
  * 用 remember 固定实例：`PaddingValues` 是接口类型（Compose 视为不稳定），
  * 每次重组都新建会让 `LazyVerticalGrid` 无法跳过、白跑一次重排。
+ *
+ * 三个分量（[HomeChrome.start] / [HomeChrome.end] / [HomeChrome.top]）同时是**沉浸式头图
+ * 的出血量**：头图要铺到状态栏后面、铺到屏幕两侧，就必须先知道内容列离边缘有多远。
+ * 以前它只作为 `PaddingValues` 存在，于是「头图铺满」这件事只能靠再写一遍 16dp + inset ——
+ * 两份数一旦不同步，头图就会与网格错开几个像素。
  */
+@Immutable
+private data class HomeChrome(
+    /** 网格内容的边距。 */
+    val padding: PaddingValues,
+    /** 内容列与屏幕左右边缘的距离 —— 沉浸式头图按它反向出血。 */
+    val start: Dp,
+    val end: Dp,
+    /** 内容列与屏幕顶部的距离（状态栏 + 呼吸）—— 头图同样按它向上出血。 */
+    val top: Dp,
+)
+
 @Composable
-private fun rememberHomeContentPadding(): PaddingValues {
+private fun rememberHomeChrome(): HomeChrome {
     val topInset = rememberTopInset()
     val bottomInset = rememberBottomInset()
     val barSpace = LocalBottomBarSpace.current
     val insets = rememberInsetsDp()
     return remember(topInset, bottomInset, barSpace, insets) {
-        PaddingValues(
-            start = insets.start + Spacing.Lg,
-            end = insets.end + Spacing.Lg,
-            top = topInset + Spacing.Xs,
-            bottom = barSpace + bottomInset + ContentBottomGap,
+        val start = insets.start + Spacing.Lg
+        val end = insets.end + Spacing.Lg
+        // 顶栏与头图共用这一个值：头图上出血多少，网格首项就下移多少，两边永远对得上。
+        val top = topInset + Spacing.Xs
+        HomeChrome(
+            padding = PaddingValues(
+                start = start,
+                end = end,
+                top = top,
+                bottom = barSpace + bottomInset + ContentBottomGap,
+            ),
+            start = start,
+            end = end,
+            top = top,
         )
     }
 }
@@ -249,13 +277,13 @@ private fun HomeFeed(
     // derivedStateOf 只在 true/false 翻转时通知，滚动过程本身不会引起重组。
     val bannerVisible by remember {
         derivedStateOf {
-            gridState.layoutInfo.visibleItemsInfo.any {
-                it.key == KEY_BANNER || it.key == KEY_BANNER_SKELETON
-            }
+            // 头图整块滚出视口就停自动翻页；它现在是「顶栏 + 轮播」合成的一项。
+            gridState.layoutInfo.visibleItemsInfo.any { it.key == KEY_HEADER }
         }
     }
 
     val showsSkeleton = anime.isEmpty()
+    val chrome = rememberHomeChrome()
 
     HomePullToRefresh(
         isRefreshing = isRefreshing,
@@ -271,32 +299,23 @@ private fun HomeFeed(
                     state = gridState,
                     columns = GridCells.Fixed(columns),
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = rememberHomeContentPadding(),
+                    contentPadding = chrome.padding,
                     horizontalArrangement = Arrangement.spacedBy(HomeGridSpacing),
                     verticalArrangement = Arrangement.spacedBy(HomeGridSpacing),
                 ) {
-                    item(key = KEY_TOP_BAR, span = { GridItemSpan(maxLineSpan) }) {
-                        HomeTopBar(
+                    // 顶栏与轮播合成一项：轮播是这一页的**背景**，顶栏压在它上面。
+                    // 拆成两项时，图片只能从内容列顶端开始画 —— 那就不叫沉浸了。
+                    item(key = KEY_HEADER, span = { GridItemSpan(maxLineSpan) }) {
+                        HomeImmersiveHeader(
+                            banners = banners,
+                            chrome = chrome,
+                            autoPlay = bannerVisible,
+                            onAnimeClick = onAnimeClick,
                             onSearchClick = onSearchClick,
                             onProfileClick = onProfileClick,
                             searchHint = searchHint,
                             profileContentDescription = profileContentDescription,
                         )
-                    }
-
-                    item(
-                        key = if (banners.isEmpty()) KEY_BANNER_SKELETON else KEY_BANNER,
-                        span = { GridItemSpan(maxLineSpan) },
-                    ) {
-                        if (banners.isEmpty()) {
-                            HomeBannerSkeleton()
-                        } else {
-                            HomeBanner(
-                                banners = banners,
-                                onBannerClick = onAnimeClick,
-                                autoPlay = bannerVisible,
-                            )
-                        }
                     }
 
                     item(key = KEY_ACTIONS, span = { GridItemSpan(maxLineSpan) }) {
@@ -352,7 +371,89 @@ private fun HomeFeed(
 }
 
 /**
- * 轮播图骨架屏：与 [HomeBanner] 同高同圆角（共用 `BANNER_HEIGHT` / `BANNER_CORNER`），
+ * 沉浸式头图：轮播当背景，顶栏压在图上。
+ *
+ * 三件事让它「沉浸」，其余一概不动：
+ *
+ * 1. **向上出血**：高度 = 轮播高 + 顶部内边距，并按内容列的边距反向偏移，所以图片从屏幕
+ *    最顶端（状态栏后面）开始画，而不是从内容列顶端。
+ * 2. **向两侧出血**：宽度 = 内容列宽 + 左右边距，图片铺到屏幕边缘；横屏刘海机读到的是
+ *    安全区之后的边缘。
+ * 3. **顶栏浮在图上**：搜索框与头像保持原来的尺寸、间距、安全区位置，只是从「图片上方
+ *    单独一行」变成「压在图片上」。
+ *
+ * 用布局偏移而不是负 padding：`LazyGrid` 的一格只能拿到内容列宽，`padding` 不会让它变宽；
+ * [bleedToEdge] 直接把测量约束放宽再往左上放置，格子本身仍然只占「轮播高」这一行 ——
+ * 于是下面的快捷入口与网格位置、滚动距离全部不变。
+ */
+@Composable
+private fun HomeImmersiveHeader(
+    banners: List<Anime>,
+    chrome: HomeChrome,
+    autoPlay: Boolean,
+    onAnimeClick: (String) -> Unit,
+    onSearchClick: () -> Unit,
+    onProfileClick: () -> Unit,
+    searchHint: String,
+    profileContentDescription: String,
+) {
+    val headerHeight = BANNER_HEIGHT + chrome.top
+    Box(
+        modifier = Modifier
+            .bleedToEdge(start = chrome.start, end = chrome.end, top = chrome.top)
+            .fillMaxWidth()
+            .height(headerHeight),
+    ) {
+        if (banners.isEmpty()) {
+            HomeBannerSkeleton()
+        } else {
+            HomeBanner(
+                banners = banners,
+                onBannerClick = onAnimeClick,
+                autoPlay = autoPlay,
+                height = headerHeight,
+            )
+        }
+
+        // 顶栏保持原样：同样的高度、同样的安全区、同样的左右边距，只是画在图片之上。
+        HomeTopBar(
+            onSearchClick = onSearchClick,
+            onProfileClick = onProfileClick,
+            searchHint = searchHint,
+            profileContentDescription = profileContentDescription,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(start = chrome.start, end = chrome.end, top = chrome.top),
+        )
+    }
+}
+
+/**
+ * 让一格网格内容向外出血：测量时把约束放宽 [start] + [end]，绘制时向左上偏移。
+ *
+ * 只用于「背景铺满」的头部：`LazyGrid` 的一格拿到的宽度是内容列宽，靠 `padding` 补不回来
+ * （padding 只减少可用空间）。这里放宽约束后，子项能画到内容列之外，而它**占位**仍然只有
+ * 原来的宽高，所以下方的项不会跟着移动。
+ *
+ * @param top 向上出血多少；子项高度必须已包含这段，才会正好铺到屏幕顶端。
+ */
+private fun Modifier.bleedToEdge(start: Dp, end: Dp, top: Dp): Modifier = layout { measurable, constraints ->
+    val startPx = start.roundToPx()
+    val endPx = end.roundToPx()
+    val topPx = top.roundToPx()
+    val widened = constraints.copy(
+        minWidth = maxOf(constraints.minWidth + startPx + endPx, 0),
+        maxWidth = constraints.maxWidth + startPx + endPx,
+    )
+    val placeable = measurable.measure(widened)
+    // 占位仍是「内容列宽 × （子项高 − 上出血）」，绘制却从内容列左上方开始。
+    layout(placeable.width - startPx - endPx, placeable.height - topPx) {
+        placeable.place(-startPx, -topPx)
+    }
+}
+
+/**
+ * 轮播图骨架屏：与 [HomeBanner] 同高（共用 `BANNER_HEIGHT`），
  * 在 `banners` 为空时占位显示。尺寸写死在两处过：曾经这里用 12dp 圆角而真实卡片是 20dp，
  * 数据到货的瞬间四个角会明显弹一下。
  */
@@ -360,10 +461,9 @@ private fun HomeFeed(
 private fun HomeBannerSkeleton(
     modifier: Modifier = Modifier,
 ) {
+    // 头图没有圆角、贴边铺满：骨架必须同形，否则数据到达的瞬间四角会「补圆」。
     SkeletonBox(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(BANNER_HEIGHT),
-        shape = RoundedCornerShape(BANNER_CORNER),
+        modifier = modifier.fillMaxSize(),
+        shape = RectangleShape,
     )
 }

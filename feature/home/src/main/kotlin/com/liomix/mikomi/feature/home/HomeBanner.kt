@@ -1,74 +1,53 @@
 package com.liomix.mikomi.feature.home
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
-import com.liomix.mikomi.core.designsystem.Icons
-import com.liomix.mikomi.core.designsystem.Motion
-import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.AppTheme
+import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.ui.base.mikomiClickable
-import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.ScrollingText
-import com.liomix.mikomi.core.ui.base.Tag
-import com.liomix.mikomi.core.ui.base.TagStyle
 import com.liomix.mikomi.core.ui.base.SkeletonBox
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 import com.liomix.mikomi.core.ui.base.skeletonBaseColor
 import com.liomix.mikomi.core.ui.image.AsyncImage
-import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
- * 首页轮播图：现代化视觉 + 丝滑翻页。
+ * 首页轮播图：全宽贴边的整张封面，标题直接压在图上。
  *
- * 视觉层：20.dp 圆角卡片、按压微缩放、底部磨砂渐变遮罩、评分胶囊、可点击指示器；
- * 交互层：[HorizontalPager] 使用 spring 物理 fling 行为，自动播放在用户手势后重置计时，
- * 避免"刚想滑就被切走"的割裂感。
+ * 视觉层：一张图，一次标题，没有别的 —— 没有渐变遮罩、没有评分胶囊、没有指示器。
+ * 指示器被移除是刻意的：头图只有 2~5 张，翻页本身可见，再钉一排圆点只是在画面底部
+ * 多一行与内容无关的小方块。
  *
- * 数据源接入后 banner 数量与内容随之替换。
+ * 交互层：[HorizontalPager] 硬切翻页（`snap`），自动播放在用户手势后重置计时，
+ * 避免「刚想滑就被切走」的割裂感。
  */
 @Composable
 fun HomeBanner(
@@ -76,6 +55,7 @@ fun HomeBanner(
     onBannerClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     autoPlay: Boolean = true,
+    height: Dp = BANNER_HEIGHT,
 ) {
     if (banners.isEmpty()) return
 
@@ -90,7 +70,7 @@ fun HomeBanner(
     )
 
     // 自动播放：每次 settledPage 变化（含手势结束）都会重启计时，
-    // 用户操作后 4s 内不会再被自动翻页打断。
+    // 用户操作后 [AUTO_SCROLL_INTERVAL_MS] 内不会再被自动翻页打断。
     // [autoPlay] 为 false（轮播滚出屏幕）时直接不启动：翻页会切图 → 新图请求与解码，
     // 在用户滚动列表时属于纯抢占。
     LaunchedEffect(banners.size, pagerState.settledPage, autoPlay) {
@@ -101,59 +81,35 @@ fun HomeBanner(
         }
     }
 
-    Box(modifier = modifier) {
-        val coroutineScope = rememberCoroutineScope()
-        HorizontalPager(
+    HorizontalPager(
+        state = pagerState,
+        modifier = modifier,
+        pageSpacing = Spacing.Md,
+        // 硬切：snap 阶段瞬时落位，无动画无过冲
+        flingBehavior = PagerDefaults.flingBehavior(
             state = pagerState,
-            pageSpacing = Spacing.Md,
-            // 硬切：snap 阶段瞬时落位，无动画无过冲
-            flingBehavior = PagerDefaults.flingBehavior(
-                state = pagerState,
-                snapAnimationSpec = snap(),
-            ),
-        ) { page ->
-            val realPage = Math.floorMod(page, banners.size)
-            BannerItem(
-                anime = banners[realPage],
-                onClick = { onBannerClick(banners[realPage].id) },
-                // 相邻页轻微缩放+透明度渐变，模拟 3D 轮播层次感
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer {
-                        val pageOffset = (
-                            (pagerState.settledPage - page) + pagerState
-                                .currentPageOffsetFraction
-                            ).coerceIn(-1f, 1f)
-                        val scale = lerp(
-                            start = 0.92f,
-                            stop = 1f,
-                            fraction = 1f - abs(pageOffset).coerceIn(0f, 1f),
-                        )
-                        scaleX = scale
-                        scaleY = scale
-                        alpha = lerp(
-                            start = 0.7f,
-                            stop = 1f,
-                            fraction = 1f - abs(pageOffset).coerceIn(0f, 1f),
-                        )
-                    },
-            )
-        }
-
-        PagerIndicator(
-            pageCount = banners.size,
-            currentPage = Math.floorMod(pagerState.settledPage, banners.size),
-            onIndicatorClick = { index ->
-                // 点击指示器硬切到"当前循环窗口内"对应的真实页
-                coroutineScope.launch {
-                    val current = Math.floorMod(pagerState.settledPage, banners.size)
-                    val offset = index - current
-                    pagerState.scrollToPage(pagerState.settledPage + offset)
-                }
-            },
+            snapAnimationSpec = snap(),
+        ),
+    ) { page ->
+        val realPage = Math.floorMod(page, banners.size)
+        BannerItem(
+            anime = banners[realPage],
+            height = height,
+            onClick = { onBannerClick(banners[realPage].id) },
+            // 相邻页轻微缩放 + 透明度渐变，交代「这是一叠可以滑的图」。
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = Spacing.Md),
+                .fillMaxWidth()
+                .graphicsLayer {
+                    val pageOffset = (
+                        (pagerState.settledPage - page) + pagerState
+                            .currentPageOffsetFraction
+                        ).coerceIn(-1f, 1f)
+                    val fraction = 1f - abs(pageOffset).coerceIn(0f, 1f)
+                    val scale = lerp(start = 0.92f, stop = 1f, fraction = fraction)
+                    scaleX = scale
+                    scaleY = scale
+                    alpha = lerp(start = 0.7f, stop = 1f, fraction = fraction)
+                },
         )
     }
 }
@@ -161,6 +117,7 @@ fun HomeBanner(
 @Composable
 private fun BannerItem(
     anime: Anime,
+    height: Dp,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -179,16 +136,14 @@ private fun BannerItem(
 
     Box(
         modifier = modifier
-            .height(BANNER_HEIGHT)
-            .clip(RoundedCornerShape(BANNER_CORNER))
+            .height(height)
             // 与骨架同色的底：图片画不出来时（url 为空 / 请求失败）仍是同一种材质，
             // 而不是透出页面底色的空洞。图片落地后整块被盖住。
             .background(skeletonBaseColor())
             .mikomiClickable(onClick = onClick),
     ) {
-        // 加载中：180dp 的大块占位。首屏这里原本是骨架（HomeBannerSkeleton），
-        // 换成一块死灰会显得整个头图区「塌下去」，所以这里沿用同一种材质。
-        // 外层已按圆角裁剪，块本身用直角，省一层遮罩。
+        // 加载中：整块骨架同款扫光。首屏这里原本是 HomeBannerSkeleton，
+        // 换成一块死灰会显得整个头图区「塌下去」，所以沿用同一种材质。
         if (!settled) {
             SkeletonBox(
                 modifier = Modifier.fillMaxSize(),
@@ -210,20 +165,6 @@ private fun BannerItem(
             onError = { settled = true },
         )
 
-        // 底部磨砂渐变遮罩：0.35 起比 0.5 更柔和，配合 20dp 圆角更现代
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0.35f to Color.Transparent,
-                            1f to AppTheme.colors.media.scrim,
-                        ),
-                    ),
-                ),
-        )
-
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -238,81 +179,18 @@ private fun BannerItem(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = true,
             )
-
-            val rating = formatRating(anime.rating)
-            if (rating != null) {
-                Spacer(modifier = Modifier.height(Spacing.Tight))
-                // 样式在设计系统里（TagStyle.onMedia）：半透明白底 + 图上文字色 + 星标。
-                Tag(
-                    text = rating,
-                    style = TagStyle.onMedia(),
-                    leadingIcon = Icons.Star,
-                    iconTint = AppTheme.colors.rating,
-                )
-            }
         }
     }
 }
+
+// 与 HomeScreen 的轮播骨架屏共用：骨架与真实头图必须同高，否则 banners 到货的那一刻
+// 整个头图区会「跳」一下。所以不再是 file-private。
+internal val BANNER_HEIGHT = 180.dp
 
 /**
- * 指示器：选中态由 [animateDpAsState] + [animateColorAsState] 平滑过渡，
- * 未选中圆点可点击跳转。
+ * 自动翻页间隔。
+ *
+ * 4s 太赶：一张封面还没看清楚就切走了，而且每次自动翻页都要重新请求 + 解码下一张。
+ * 6s 是「读得完标题、又不至于让人以为卡住」的档位。
  */
-@Composable
-private fun PagerIndicator(
-    pageCount: Int,
-    currentPage: Int,
-    onIndicatorClick: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.Tight),
-    ) {
-        repeat(pageCount) { index ->
-            val selected = index == currentPage
-            val width by animateDpAsState(
-                targetValue = if (selected) {
-                    BANNER_INDICATOR_SELECTED_WIDTH
-                } else {
-                    BANNER_INDICATOR_DOT_SIZE
-                },
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium,
-                ),
-                label = "indicatorWidth",
-            )
-            val color by animateColorAsState(
-                targetValue = if (selected) {
-                    AppTheme.colors.media.content
-                } else {
-                    AppTheme.colors.media.contentTertiary
-                },
-                animationSpec = tween(durationMillis = Motion.Duration.Short),
-                label = "indicatorColor",
-            )
-
-            Box(
-                modifier = Modifier
-                    .width(width)
-                    .height(BANNER_INDICATOR_DOT_SIZE)
-                    .clip(CircleShape)
-                    .background(color)
-                    .mikomiClickable(onClick = { onIndicatorClick(index) }),
-            )
-        }
-    }
-}
-
-private fun formatRating(rating: Double?): String? =
-    rating?.let { String.format(Locale.ROOT, "%.1f", it) }
-
-// 与 HomeScreen 的轮播骨架屏共用：骨架和真实卡片必须同高同圆角，
-// 否则 banners 到货的那一刻整个头图区会「跳」一下。所以不再是 file-private。
-internal val BANNER_HEIGHT = 180.dp
-internal val BANNER_CORNER = 20.dp
-private val BANNER_INDICATOR_DOT_SIZE = 6.dp
-private val BANNER_INDICATOR_SELECTED_WIDTH = 22.dp
-
-private const val AUTO_SCROLL_INTERVAL_MS = 4_000L
+private const val AUTO_SCROLL_INTERVAL_MS = 6_000L

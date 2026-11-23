@@ -130,7 +130,7 @@ data class MediaColors(
     val surface: Color,
     /** 强调容器（28% 白）：按下态、已开启的开关。 */
     val surfaceProminent: Color,
-    /** 最实的一档半透明容器（44% 白）：压在亮画面上的独立控件 —— 搜索框、头像。 */
+    /** 最实的一档半透明容器（62% 白）：压在亮画面上的独立控件 —— 搜索框、头像。 */
     val surfaceStrong: Color,
     /** 底部渐变遮罩的深端（72% 黑）：让白色控件在亮画面上也站得住。 */
     val scrim: Color,
@@ -381,7 +381,7 @@ val Media: MediaColors = MediaColors(
     outline = Color.White.copy(alpha = 0.14f),
     surface = Color.White.copy(alpha = 0.14f),
     surfaceProminent = Color.White.copy(alpha = 0.28f),
-    surfaceStrong = Color.White.copy(alpha = 0.44f),
+    surfaceStrong = Color.White.copy(alpha = 0.62f),
     scrim = Color.Black.copy(alpha = 0.72f),
     scrimSoft = Color.Black.copy(alpha = 0.62f),
     void = Color.Black,

@@ -39,7 +39,7 @@ import com.liomix.mikomi.core.ui.base.mikomiClickable
  * 看起来正常），进了有界盒子之后就直接填满 180dp，搜索框被拉成一条竖长的胶囊。
  * 三处（整栏、头像、搜索框）因此全部钉死在这个常量上。
  */
-private val HomeTopBarHeight = 40.dp
+internal val HomeTopBarHeight = 40.dp
 
 /**
  * 首页顶部栏：左侧头像、右侧搜索框。

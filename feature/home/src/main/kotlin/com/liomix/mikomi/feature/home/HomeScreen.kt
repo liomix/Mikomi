@@ -1,5 +1,6 @@
 package com.liomix.mikomi.feature.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -21,6 +23,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -30,7 +33,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Spacing
@@ -70,6 +75,26 @@ private const val CONTENT_TYPE_SKELETON = "skeleton"
 
 /** 首屏骨架铺几行：多于一屏可见量，任何屏幕高度都填得满，且正好是整数行。 */
 private const val SKELETON_ROWS = 4
+
+/** 顶栏在快捷栏靠上来之前多远开始补底色：留一段提前量，滚到底时已经补满。 */
+private val TopBarScrimLead = 40.dp
+
+/**
+ * 顶栏底色在按钮下方多伸出的一段。
+ *
+ * 底色底边与头像底边完全重合时，看起来像按钮自带的边框；多出这一小段，它才是一块
+ * 「顶栏的底」。与头图之间的间距不参与计算，所以滚动触发点不受影响。
+ */
+private val TopBarScrimTail = Spacing.Sm
+
+
+/**
+ * 快捷栏折叠的行程。
+ *
+ * 取快捷栏的展开高度（栏内上下留白 4 + 4、按钮 58）。这里不做精确依赖：它只决定
+ * 「高度压缩得多快」，即使差几 dp，终点也永远是被 `coerceIn` 收在 0 和 1 上的。
+ */
+private val ActionTabsFoldDistance = 66.dp
 
 /** 距列表末尾还有几项时预取下一页。 */
 private const val LOAD_MORE_THRESHOLD = 3
@@ -129,7 +154,10 @@ private fun rememberHomeChrome(): HomeChrome {
             padding = PaddingValues(
                 start = start,
                 end = end,
-                top = top,
+                // 顶栏已经移出网格、固定在最上层，头图要顶到状态栏后面，
+                // 所以网格从 y = 0 开始 —— 上边距只能是 0。`top` 仍然保留给
+                // 头图高度与顶栏容器用（它们的坐标系从屏幕顶端算）。
+                top = Spacing.None,
                 bottom = barSpace + bottomInset + ContentBottomGap,
             ),
             start = start,
@@ -287,11 +315,15 @@ private fun HomeFeed(
     val showsSkeleton = anime.isEmpty()
     val chrome = rememberHomeChrome()
 
+    val scrollChrome = rememberHomeScrollChrome(gridState, chrome)
+
     HomePullToRefresh(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
         modifier = modifier.fillMaxSize(),
     ) {
+        // 顶栏不在网格里：它固定贴着状态栏，网格从它底下滚过。
+        // 所以网格从 y = 0 起（头图顶到状态栏后面），顶栏作为 overlay 画在最上层。
         val grid: @Composable () -> Unit = {
             // 先量宽、再算列数：`GridCells.Adaptive` 的列数要到测量阶段才知道，
             // 而「最后一行差几格」是组合期就要回答的问题（见 columnsFor）。
@@ -305,25 +337,23 @@ private fun HomeFeed(
                     horizontalArrangement = Arrangement.spacedBy(HomeGridSpacing),
                     verticalArrangement = Arrangement.spacedBy(HomeGridSpacing),
                 ) {
-                    // 顶栏 + 轮播 + 快捷栏合成一项，三者之间不留网格间距。
-                    //
-                    // 头图的底边已经渐隐成页面底色，再隔一条 `HomeGridSpacing` 的空白，
-                    // 就等于「渐变收边」和「空行」双重分隔 —— 视觉上是两张皮。
-                    // 合成一项后，渐隐的那 15% 就是它们之间唯一的分隔，
-                    // 快捷栏像是从头图里长出来的。
+                    // 头图与快捷栏合成一项，中间不留网格间距：
+                    // 头图的底边已经淡出成页面底色，再隔一条空行就是双重分隔。
                     item(key = KEY_HEADER, span = { GridItemSpan(maxLineSpan) }) {
                         Column(modifier = Modifier.fillMaxWidth()) {
-                            HomeImmersiveHeader(
+                            HomeHero(
                                 banners = banners,
                                 chrome = chrome,
                                 autoPlay = bannerVisible,
                                 onAnimeClick = onAnimeClick,
-                                onSearchClick = onSearchClick,
-                                onProfileClick = onProfileClick,
-                                searchHint = searchHint,
-                                profileContentDescription = profileContentDescription,
                             )
-                            HomeActionTabs(onActionClick = onActionClick)
+                            val fold = scrollChrome.actionTabsFold.value
+                            HomeActionTabs(
+                                onActionClick = onActionClick,
+                                // 压缩的**画面与占位都在组件内部**（它自己上报缩小后的高度），
+                                // 这里只把滚动进度交给它。
+                                collapse = fold,
+                            )
                         }
                     }
 
@@ -352,8 +382,6 @@ private fun HomeFeed(
 
                         if (isLoadingMore) {
                             // 补满**当前行**：差几格补几格；正好铺满时再起一整行。
-                            // 以前这里是 full-span 的骨架行，于是「7 张卡 + 一整行骨架」之间
-                            // 永远留着两三格空白 —— 看起来就是页面破了个洞。
                             val gap = PosterGrid.cellsToFillRow(columns, anime.size)
                             val padding = if (gap == 0) columns else gap
                             items(
@@ -369,45 +397,52 @@ private fun HomeFeed(
             }
         }
 
-        // 扫光容器会开一条按帧唤醒的时间线：只在骨架真的显示时挂上，
-        // 内容到位后它随分支一起离开组合，不留一条空转的无限动画。
-        if (showsSkeleton) SkeletonShimmer(grid) else grid()
+        Box(modifier = Modifier.fillMaxSize()) {
+            // 扫光容器会开一条按帧唤醒的时间线：只在骨架真的显示时挂上，
+            // 内容到位后它随分支一起离开组合，不留一条空转的无限动画。
+            if (showsSkeleton) SkeletonShimmer(grid) else grid()
+
+            HomeTopBarOverlay(
+                solid = scrollChrome.topBarSolid,
+                chrome = chrome,
+                onSearchClick = onSearchClick,
+                onProfileClick = onProfileClick,
+                searchHint = searchHint,
+                profileContentDescription = profileContentDescription,
+            )
+        }
     }
 }
 
 /**
- * 沉浸式头图：轮播当背景，顶栏压在图上。
+ * 沉浸式头图：整张封面铺到屏幕顶端与两侧。
  *
- * 三件事让它「沉浸」，其余一概不动：
+ * 两件事让它「沉浸」，其余一概不动：
  *
- * 1. **向上出血**：高度 = 轮播高 + 顶部内边距，并按内容列的边距反向偏移，所以图片从屏幕
- *    最顶端（状态栏后面）开始画，而不是从内容列顶端。
+ * 1. **顶到状态栏后面**：高度 = 轮播高 + 顶部安全区，网格上边距是 0，所以图片从
+ *    y = 0 开始画；顶栏是另一层 overlay，浮在它上面。
  * 2. **向两侧出血**：宽度 = 内容列宽 + 左右边距，图片铺到屏幕边缘；横屏刘海机读到的是
  *    安全区之后的边缘。
- * 3. **顶栏浮在图上**：搜索框与头像保持原来的尺寸、间距、安全区位置，只是从「图片上方
- *    单独一行」变成「压在图片上」。
  *
  * 用布局偏移而不是负 padding：`LazyGrid` 的一格只能拿到内容列宽，`padding` 不会让它变宽；
- * [bleedToEdge] 直接把测量约束放宽再往左上放置，格子本身仍然只占「轮播高」这一行 ——
+ * [bleedToEdge] 直接把测量约束放宽再往左放置，格子本身仍然只占「轮播高」这一行 ——
  * 于是下面的快捷入口与网格位置、滚动距离全部不变。
+ *
+ * 顶栏**不在这里**：它已经不随页面滚动了，见 [HomeTopBarOverlay]。
  */
 @Composable
-private fun HomeImmersiveHeader(
+private fun HomeHero(
     banners: List<Anime>,
     chrome: HomeChrome,
     autoPlay: Boolean,
     onAnimeClick: (String) -> Unit,
-    onSearchClick: () -> Unit,
-    onProfileClick: () -> Unit,
-    searchHint: String,
-    profileContentDescription: String,
 ) {
-    val headerHeight = BANNER_HEIGHT + chrome.top
+    val height = BANNER_HEIGHT + chrome.top
     Box(
         modifier = Modifier
-            .bleedToEdge(start = chrome.start, end = chrome.end, top = chrome.top)
+            .bleedToEdge(start = chrome.start, end = chrome.end, top = Spacing.None)
             .fillMaxWidth()
-            .height(headerHeight),
+            .height(height),
     ) {
         if (banners.isEmpty()) {
             HomeBannerSkeleton()
@@ -416,25 +451,124 @@ private fun HomeImmersiveHeader(
                 banners = banners,
                 onBannerClick = onAnimeClick,
                 autoPlay = autoPlay,
-                height = headerHeight,
+                height = height,
             )
         }
+    }
+}
 
-        // 顶栏保持原样：同样的高度、同样的安全区、同样的左右边距，只是画在图片之上。
+/**
+ * 吸顶顶栏：固定贴着状态栏，底色随滚动从全透明变成页面底色。
+ *
+ * 它**不在网格里**，所以网格从它底下滚过 —— 这正是「头像和搜索框不跟着页面移动」。
+ * 底色不能一直是透明的：头图滚过去之后，半透明的按钮背后会是封面、卡片、什么都有，
+ * 白字随时可能撞上亮画面。所以快捷栏快顶到它时，底色补成页面底色，把后面的内容盖住。
+ *
+ * @param solid 底色不透明度；0 = 纯浮层（只有两个玻璃按钮），1 = 不透明页面底色。
+ */
+@Composable
+private fun HomeTopBarOverlay(
+    solid: State<Float>,
+    chrome: HomeChrome,
+    onSearchClick: () -> Unit,
+    onProfileClick: () -> Unit,
+    searchHint: String,
+    profileContentDescription: String,
+) {
+    val alpha = solid.value
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            // 底色比按钮多出 [TopBarScrimTail]：底边正好压在头像底线上时，
+            // 那一条会读成「按钮自带的下边框」，而不是「顶栏容器」。
+            .height(chrome.top + HomeTopBarHeight + TopBarScrimTail)
+            .background(MaterialTheme.colorScheme.background.copy(alpha = alpha)),
+    ) {
         HomeTopBar(
             onSearchClick = onSearchClick,
             onProfileClick = onProfileClick,
             searchHint = searchHint,
             profileContentDescription = profileContentDescription,
+            // 用 padding 定位而不是 BottomCenter：按钮位置不能随底色下沿变，
+            // 否则加个尾巴就把头像往下推了。
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(start = chrome.start, end = chrome.end, top = chrome.top),
+                .padding(
+                    start = chrome.start,
+                    end = chrome.end,
+                    top = chrome.top,
+                ),
         )
     }
 }
 
 /**
- * 让一格网格内容向外出血：测量时把约束放宽 [start] + [end]，绘制时向左上偏移。
+ * 两条由滚动位置推导的曲线。分开成两个 [State]，各喂给一个消费者：
+ * 顶栏只关心底色，快捷栏只关心折叠 —— 合成一个对象的话，两者每次滚动都会一起重组。
+ */
+@Immutable
+private data class HomeScrollChrome(
+    val topBarSolid: State<Float>,
+    val actionTabsFold: State<Float>,
+)
+
+@Composable
+private fun rememberHomeScrollChrome(
+    gridState: LazyGridState,
+    chrome: HomeChrome,
+): HomeScrollChrome {
+    val density = LocalDensity.current
+    val topBarBottom = chrome.top + HomeTopBarHeight
+    val heroHeight = BANNER_HEIGHT + chrome.top
+
+    val topBarSolid = remember(gridState, density, topBarBottom, heroHeight) {
+        derivedStateOf {
+            val actionsTop = actionTabsTop(gridState, density, heroHeight)
+            val bottom = with(density) { topBarBottom.toPx() }
+            val lead = with(density) { TopBarScrimLead.toPx() }
+            ((bottom + lead - actionsTop) / lead).coerceIn(0f, 1f)
+        }
+    }
+    val actionTabsFold = remember(gridState, density, topBarBottom, heroHeight) {
+        derivedStateOf {
+            val actionsTop = actionTabsTop(gridState, density, heroHeight)
+            // 折叠区间 = [底色下沿, 底色下沿 + 一个栏高]：
+            //   · 起点在下方一个栏高处 → 距离背景还有一栏时就开始压；
+            //   · 终点正好落在底色下沿 → 压到 0 的那一刻顶边刚好贴着背景。
+            // 于是整个压缩过程都发生在背景**之上**，栏顶一帧都不会滑进去被盖住。
+            val distance = with(density) { ActionTabsFoldDistance.toPx() }
+            val start = with(density) {
+                (topBarBottom + TopBarScrimTail).toPx()
+            } + distance
+            ((start - actionsTop) / distance).coerceIn(0f, 1f)
+        }
+    }
+    return remember(topBarSolid, actionTabsFold) {
+        HomeScrollChrome(topBarSolid, actionTabsFold)
+    }
+}
+
+/**
+ * 快捷栏顶边此刻在视口中的 y（px）。
+ *
+ * 头图与快捷栏是网格的第 0 项，所以「滚过了多少」就等于快捷栏顶边被推上去多少 ——
+ * 不需要去找这一项的布局信息，也就不会出现「读布局 → 改高度 → 布局又变」的循环。
+ * 第 0 项已经滚出视口时返回一个足够小的值，两条曲线自然都停在终点。
+ */
+private fun actionTabsTop(
+    gridState: LazyGridState,
+    density: Density,
+    heroHeight: Dp,
+): Float {
+    val scroll = if (gridState.firstVisibleItemIndex == 0) {
+        gridState.firstVisibleItemScrollOffset
+    } else {
+        Int.MAX_VALUE / 4
+    }
+    return with(density) { heroHeight.toPx() } - scroll
+}
+
+/**
+ * 让一格网格内容向外出血：测量时把约束放宽 [start] + [end]，绘制时向左偏移。
  *
  * 只用于「背景铺满」的头部：`LazyGrid` 的一格拿到的宽度是内容列宽，靠 `padding` 补不回来
  * （padding 只减少可用空间）。这里放宽约束后，子项能画到内容列之外，而它**占位**仍然只有

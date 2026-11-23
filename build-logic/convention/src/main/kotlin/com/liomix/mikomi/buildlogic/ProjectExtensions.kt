@@ -21,6 +21,15 @@ internal fun Project.configureAndroidLibrary(extension: LibraryExtension) {
             sourceCompatibility = JavaVersion.VERSION_17
             targetCompatibility = JavaVersion.VERSION_17
         }
+        testOptions {
+            unitTests {
+                // 单元测试跑在 JVM 上，android.jar 里的方法默认抛「not mocked」。
+                // 本项目最常踩的一处是 `android.util.Log`：ViewModel 在 catch 里记一行日志，
+                // 结果那行日志自己把 catch 炸掉 —— 测试报的失败与代码行为无关，只是桩缺失。
+                // 让未实现的 android 方法返回默认值，「JVM 测试验行为」这条原则才成立。
+                isReturnDefaultValues = true
+            }
+        }
         lint { configureMikomiLint(lintConfigFile) }
     }
 }

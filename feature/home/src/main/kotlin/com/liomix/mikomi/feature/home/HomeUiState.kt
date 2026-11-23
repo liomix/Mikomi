@@ -6,7 +6,7 @@ import com.liomix.mikomi.core.model.Anime
  * 首页的**唯一**状态。
  *
  * 形状是「外层 data class + 内层 sealed」而不是纯 sealed：下拉刷新指示器跨态存在
- * （骨架屏上也要能拉、错误页上也能拉），塞进 `Success` 分支就丢了。外层那一层专放
+ * （骨架屏上也要能拉、错误页上也能重试），塞进 `Success` 分支就丢了。外层那一层专放
  * **跨态**字段，内层 sealed 只表达「内容现在是什么」。
  *
  * 这样 `HomeRoute` 只订阅一次，`HomeScreen` 只收一个状态参数 —— 两个独立流时，
@@ -18,7 +18,12 @@ data class HomeUiState(
     val content: HomeContent = HomeContent.Loading,
 )
 
-/** 内容态：骨架 / 数据 / 错误。 */
+/**
+ * 内容态：骨架 / 数据 / 错误。
+ *
+ * 没有「空态」：一个数据都没有时停在 [Loading]，界面就是骨架屏本身 —— 空的番剧列表
+ * 不构成可展示的信息，切一块空占位只会让人以为坏了。这与排行榜、时间表同一口径。
+ */
 sealed interface HomeContent {
     data object Loading : HomeContent
 
@@ -29,5 +34,6 @@ sealed interface HomeContent {
         val hasMore: Boolean = true,
     ) : HomeContent
 
-    data class Error(val message: String) : HomeContent
+    /** 只有「没有任何本地数据、且最近一次刷新失败」才会到这里；文案由页面统一给。 */
+    data object Error : HomeContent
 }

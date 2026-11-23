@@ -7,8 +7,6 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +27,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -108,7 +105,7 @@ fun HomeBanner(
         val coroutineScope = rememberCoroutineScope()
         HorizontalPager(
             state = pagerState,
-            pageSpacing = BANNER_PAGE_SPACING,
+            pageSpacing = Spacing.Md,
             // 硬切：snap 阶段瞬时落位，无动画无过冲
             flingBehavior = PagerDefaults.flingBehavior(
                 state = pagerState,
@@ -156,7 +153,7 @@ fun HomeBanner(
             },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = BANNER_INDICATOR_BOTTOM_PADDING),
+                .padding(bottom = Spacing.Md),
         )
     }
 }
@@ -199,21 +196,19 @@ private fun BannerItem(
             )
         }
 
-        key(anime.id) {
-            AsyncImage(
-                url = anime.coverUrl,
-                contentDescription = anime.title,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                crossfade = true,
-                // 有扫光占位时不能再叠纯色，否则灰块会盖住扫光。
-                placeholder = null,
-                error = placeholderPainter,
-                onSuccess = { settled = true },
-                // 失败（含 url 为空）就停在静态占位色上，别让扫光一直跑。
-                onError = { settled = true },
-            )
-        }
+        AsyncImage(
+            url = anime.coverUrl,
+            contentDescription = anime.title,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+            crossfade = true,
+            // 有扫光占位时不能再叠纯色，否则灰块会盖住扫光。
+            placeholder = null,
+            error = placeholderPainter,
+            onSuccess = { settled = true },
+            // 失败（含 url 为空）就停在静态占位色上，别让扫光一直跑。
+            onError = { settled = true },
+        )
 
         // 底部磨砂渐变遮罩：0.35 起比 0.5 更柔和，配合 20dp 圆角更现代
         Box(
@@ -232,7 +227,7 @@ private fun BannerItem(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(BANNER_CONTENT_PADDING),
+                .padding(Spacing.Lg),
         ) {
             ScrollingText(
                 text = anime.title,
@@ -246,7 +241,7 @@ private fun BannerItem(
 
             val rating = formatRating(anime.rating)
             if (rating != null) {
-                Spacer(modifier = Modifier.height(BANNER_TITLE_TO_RATING_GAP))
+                Spacer(modifier = Modifier.height(Spacing.Tight))
                 RatingPill(rating = rating)
             }
         }
@@ -297,7 +292,7 @@ private fun PagerIndicator(
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(BANNER_INDICATOR_SPACING),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.Tight),
     ) {
         repeat(pageCount) { index ->
             val selected = index == currentPage
@@ -329,11 +324,7 @@ private fun PagerIndicator(
                     .height(BANNER_INDICATOR_DOT_SIZE)
                     .clip(CircleShape)
                     .background(color)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { onIndicatorClick(index) },
-                    ),
+                    .mikomiClickable(onClick = { onIndicatorClick(index) }),
             )
         }
     }
@@ -346,11 +337,6 @@ private fun formatRating(rating: Double?): String? =
 // 否则 banners 到货的那一刻整个头图区会「跳」一下。所以不再是 file-private。
 internal val BANNER_HEIGHT = 180.dp
 internal val BANNER_CORNER = 20.dp
-private val BANNER_CONTENT_PADDING = 16.dp
-private val BANNER_TITLE_TO_RATING_GAP = 6.dp
-private val BANNER_PAGE_SPACING = 12.dp
-private val BANNER_INDICATOR_BOTTOM_PADDING = 12.dp
-private val BANNER_INDICATOR_SPACING = 6.dp
 private val BANNER_INDICATOR_DOT_SIZE = 6.dp
 private val BANNER_INDICATOR_SELECTED_WIDTH = 22.dp
 

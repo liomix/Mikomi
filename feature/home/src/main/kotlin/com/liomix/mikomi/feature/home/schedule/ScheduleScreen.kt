@@ -77,8 +77,6 @@ private const val DAYS_IN_WEEK = 7
 /** 日历标签栏容器圆角：比容器内边距（4dp）多 18dp，与两行标签圆角同心。 */
 private val TAB_ROW_CORNER_RADIUS = 22.dp
 
-/** 加载状态：骨架 / 数据 / 空 / 错误见 [ScheduleUiState]（随 ViewModel 定义）。 */
-
 /**
  * 时间表：二级页面（周一~周日七天番剧列表），数据来自多源合并后的本周时间表。
  *

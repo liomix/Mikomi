@@ -21,26 +21,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.ui.business.AnimePosterCard
 import com.liomix.mikomi.core.ui.base.ErrorState
-import com.liomix.mikomi.core.ui.business.PosterCardSkeleton
-import com.liomix.mikomi.core.ui.business.PosterSkeletonRow
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.SkeletonShimmer
+import com.liomix.mikomi.core.ui.business.AnimePosterCard
+import com.liomix.mikomi.core.ui.business.PosterCardSkeleton
+import com.liomix.mikomi.core.ui.business.PosterSkeletonRow
 import com.liomix.mikomi.core.ui.layout.LocalBottomBarSpace
 import com.liomix.mikomi.core.ui.window.rememberBottomInset
 import com.liomix.mikomi.core.ui.window.rememberInsetsDp
 import com.liomix.mikomi.core.ui.window.rememberTopInset
-import kotlinx.coroutines.delay
 
 /** 网格最小列宽：手机竖屏约 3 列，宽屏自动增加列数（Dart 版为固定 3 列）。 */
 private val HomeGridMinWidth = 100.dp
@@ -50,22 +47,43 @@ private val HomeGridColumns = GridCells.Adaptive(minSize = HomeGridMinWidth)
 /** 网格行内 / 行间间距；分页骨架行必须用同一个值，否则列宽对不齐。 */
 private val HomeGridSpacing = Spacing.Md
 
-/** `pendingSize` 的哨兵值：当前没有等待中的翻页。 */
-private const val NoPendingLoad = -1
+/**
+ * 网格里各段的稳定 key。
+ *
+ * 骨架与真实内容共用同一套：轮播从骨架换成真实图时 key 会变（`banner` /
+ * `bannerSkeleton`），这是刻意的 —— 两者高度相同但内容形态不同，复用同一节点会让
+ * AsyncImage 在骨架的 Box 上重跑一次首帧。其余段（顶栏、快捷入口、分页骨架行）不随
+ * 数据变化，key 稳定即可，避免整段被重建。
+ */
+private const val KEY_TOP_BAR = "topBar"
+private const val KEY_BANNER = "banner"
+private const val KEY_BANNER_SKELETON = "bannerSkeleton"
+private const val KEY_ACTIONS = "actions"
+private const val KEY_LOADING_MORE = "loadingMore"
+
+/** 卡片与骨架各是一种复用类型：两者视觉不同，混用同一个池没有收益。 */
+private const val CONTENT_TYPE_ANIME = "anime"
+private const val CONTENT_TYPE_SKELETON = "skeleton"
+
+/** 骨架屏的卡片数量：多于一屏可见量，任何屏幕高度都填得满。 */
+private const val SKELETON_CARD_COUNT = 12
+
+/** 距列表末尾还有几项时预取下一页。 */
+private const val LOAD_MORE_THRESHOLD = 3
 
 /**
- * 请求结束、数据却没到时，骨架行最多再多留的时间。
+ * 列表最后一行与悬浮底栏之间的呼吸。
  *
- * 正常情况 Room 的失效通知只需要一两帧（~30ms），这个宽限期只用来盖住那段空档；
- * 空页 / 请求失败时则保证骨架行一定会被撤掉，不会因为「条数永远不变」而永久挂着。
+ * 它是一条设计节奏，不是几何量：底栏多高、导航栏多高都由别人给，
+ * 只有「贴多近算太近」是页面的判断。24dp 与页面顶边那条呼吸同值。
  */
-private const val PendingGraceMillis = 300L
+private val ContentBottomGap = Spacing.Xl
 
 /**
  * 网格内容边距。
  *
- * 垂直节奏统一由网格的 [Arrangement.spacedBy] 提供（12dp），
- * 各区域组件不再自带区域间垂直 padding；此处补的是**安全区**与页面呼吸。
+ * 垂直节奏统一由网格的 [Arrangement.spacedBy] 提供，各区域组件不再自带区域间垂直
+ * padding；此处补的是**安全区**与页面呼吸。
  *
  * 底部那一段必须是算出来的，不能写死：`112.dp` 曾经在手势导航的手机上正好等于
  * 「栏体 56 + 外边距 8 + 手势条 24 + 呼吸 24」，但换成三键导航（导航栏 48dp）时
@@ -75,8 +93,7 @@ private const val PendingGraceMillis = 300L
  * 左右也读安全区：横屏刘海机的挖孔在两侧，第一列封面会被切掉一条边。
  *
  * 用 remember 固定实例：`PaddingValues` 是接口类型（Compose 视为不稳定），
- * 每次重组都新建会让 `LazyVerticalGrid` 无法跳过、白跑一次重排；
- * 下拉刷新、加载更多这些每页都会翻的状态更是每次都要赔一遍。
+ * 每次重组都新建会让 `LazyVerticalGrid` 无法跳过、白跑一次重排。
  */
 @Composable
 private fun rememberHomeContentPadding(): PaddingValues {
@@ -93,16 +110,6 @@ private fun rememberHomeContentPadding(): PaddingValues {
         )
     }
 }
-
-/**
- * 列表最后一行与悬浮底栏之间的呼吸。
- *
- * 它是一条设计节奏，不是几何量：底栏多高、导航栏多高都由别人给，
- * 只有「贴多近算太近」是页面的判断。24dp 与页面顶边那条呼吸同值。
- */
-private val ContentBottomGap = Spacing.Xl
-
-private const val LOAD_MORE_THRESHOLD = 3
 
 /**
  * 主页下拉刷新容器。
@@ -137,6 +144,14 @@ private fun HomePullToRefresh(
     )
 }
 
+/**
+ * 首页：一个网格承载「顶栏 / 轮播 / 快捷入口 / 海报」四段。
+ *
+ * **骨架屏不是另一种布局，它就是同一个网格在空数据下的样子**：轮播为空 → 轮播骨架，
+ * 海报为空 → 12 张卡片骨架。所以这里只有一个 [HomeFeed]，[HomeContent.Loading] 与
+ * [HomeContent.Success] 的区别只是喂给它的数据。两份网格各写一遍的下场是骨架与真实
+ * 内容永远对不齐 —— 列宽、间距、占位高度都要手工同步，而它们本来就是同一份东西。
+ */
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
@@ -149,27 +164,28 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
 ) {
     when (val content = uiState.content) {
-        // 骨架屏也支持下拉刷新：首次加载慢/失败时用户可主动触发重试。
-        HomeContent.Loading -> HomePullToRefresh(
+        HomeContent.Loading -> HomeFeed(
+            banners = emptyList(),
+            anime = emptyList(),
             isRefreshing = uiState.isRefreshing,
+            isLoadingMore = false,
+            hasMore = true,
+            onAnimeClick = onAnimeClick,
+            onSearchClick = onSearchClick,
+            onProfileClick = onProfileClick,
+            onActionClick = onActionClick,
             onRefresh = onRefresh,
-            modifier = modifier.fillMaxSize(),
-        ) {
-            HomeSkeleton(
-                onSearchClick = onSearchClick,
-                onProfileClick = onProfileClick,
-                onActionClick = onActionClick,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
+            onLoadMore = onLoadMore,
+            modifier = modifier,
+        )
 
-        is HomeContent.Error -> ErrorState(
-            message = content.message.ifEmpty { stringResource(R.string.home_load_failed) },
+        HomeContent.Error -> ErrorState(
+            message = stringResource(R.string.home_load_failed),
             onRetry = onRefresh,
             modifier = modifier,
         )
 
-        is HomeContent.Success -> HomeLoaded(
+        is HomeContent.Success -> HomeFeed(
             banners = content.banners,
             anime = content.anime,
             isRefreshing = uiState.isRefreshing,
@@ -186,54 +202,16 @@ fun HomeScreen(
     }
 }
 
-@Composable
-private fun HomeSkeleton(
-    onSearchClick: () -> Unit,
-    onProfileClick: () -> Unit,
-    onActionClick: (HomeQuickAction) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val searchHint = stringResource(R.string.home_search_hint)
-    val profileContentDescription = stringResource(R.string.home_profile)
-
-    // 整屏骨架共用一条扫光时间线：十几块 SkeletonBox 各自按帧驱动的话，
-    // 同一帧里会有十几条协程同时写入、失效、重绘。见 SkeletonShimmer 注释。
-    SkeletonShimmer {
-        LazyVerticalGrid(
-            columns = HomeGridColumns,
-            modifier = modifier.fillMaxSize(),
-            contentPadding = rememberHomeContentPadding(),
-            horizontalArrangement = Arrangement.spacedBy(HomeGridSpacing),
-            verticalArrangement = Arrangement.spacedBy(HomeGridSpacing),
-        ) {
-            item(key = "topBar", span = { GridItemSpan(maxLineSpan) }) {
-                HomeTopBar(
-                    onSearchClick = onSearchClick,
-                    onProfileClick = onProfileClick,
-                    searchHint = searchHint,
-                    profileContentDescription = profileContentDescription,
-                )
-            }
-            item(key = "bannerSkeleton", span = { GridItemSpan(maxLineSpan) }) {
-                HomeBannerSkeleton()
-            }
-            item(key = "actions", span = { GridItemSpan(maxLineSpan) }) {
-                HomeActionTabs(onActionClick = onActionClick)
-            }
-            items(
-                count = 12,
-                key = { "skeleton_$it" },
-                contentType = { "skeleton" },
-            ) {
-                PosterCardSkeleton()
-            }
-        }
-    }
-}
-
+/**
+ * 首页网格本体：内容态与骨架态共用。
+ *
+ * 「是否显示骨架」不再是一个独立页面，而是两个局部判断：轮播为空、海报为空。
+ * 于是数据从无到有时，页面上只有对应的那一格换掉，网格本身不会被替换 —— 顶栏、
+ * 快捷入口不闪，滚动位置（如果用户已经能滚）也不会丢。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeLoaded(
+private fun HomeFeed(
     banners: List<Anime>,
     anime: List<Anime>,
     isRefreshing: Boolean,
@@ -262,131 +240,104 @@ private fun HomeLoaded(
             lastVisible >= info.totalItemsCount - LOAD_MORE_THRESHOLD
         }
     }
-    // 上一次发起翻页时列表的条数；[NoPendingLoad] 表示当前没有在等数据落库。
-    //
-    // 为什么需要它：`isLoadingMore` 由 `_paging` 翻转，新卡片由 Room Flow 送达，
-    // 是**两条独立的流**。请求返回后 `isLoadingMore` 先变 false，Room 的失效通知可能
-    // 晚一两帧才把新列表送到 UI —— 中间那一两帧就是「骨架行已撤、新卡还没到」的空档。
-    // 所以在 UI 层记住发起时的条数，条数真的变了才算数据到位。
-    var pendingSize by remember { mutableIntStateOf(NoPendingLoad) }
-
     LaunchedEffect(shouldLoadMore, isLoadingMore, hasMore) {
-        if (shouldLoadMore && hasMore && !isLoadingMore) {
-            pendingSize = anime.size
-            onLoadMore()
-        }
+        if (shouldLoadMore && hasMore && !isLoadingMore) onLoadMore()
     }
 
-    // 条数变了 = 新一页已经到了（刷新换一批数据同样算），立刻收掉骨架行。
-    LaunchedEffect(anime.size) {
-        if (pendingSize != NoPendingLoad && anime.size != pendingSize) {
-            pendingSize = NoPendingLoad
-        }
-    }
-
-    // 兜底：请求已结束而条数始终没变（空页 / 请求失败），最多再等一瞬就撤。
-    // 没有这层，上面那条「等条数变化」在永远不变的情况下会让骨架行永久留在底部。
-    LaunchedEffect(isLoadingMore, pendingSize) {
-        if (isLoadingMore || pendingSize == NoPendingLoad) return@LaunchedEffect
-        delay(PendingGraceMillis)
-        if (pendingSize != NoPendingLoad && anime.size == pendingSize) {
-            pendingSize = NoPendingLoad
-        }
-    }
-
-    // 请求在途，或请求已结束但数据还没到，都算「正在补内容」。
-    val pagingPending = pendingSize != NoPendingLoad && anime.size == pendingSize
-
-    // 轮播图滚出屏幕后停止自动翻页。
-    // 自动翻页会切换封面图 → 触发新的图片请求与解码；用户正在滚列表时，
-    // 这等于让一个不可见的组件在后台抢解码线程和带宽，是滚动掉帧的常见来源。
+    // 轮播图滚出屏幕后停止自动翻页：翻页会切图 → 新的图片请求与解码，
+    // 用户正在滚列表时等于让一个不可见的组件在后台抢解码线程和带宽。
     // derivedStateOf 只在 true/false 翻转时通知，滚动过程本身不会引起重组。
     val bannerVisible by remember {
         derivedStateOf {
             gridState.layoutInfo.visibleItemsInfo.any {
-                it.key == "banner" || it.key == "bannerSkeleton"
+                it.key == KEY_BANNER || it.key == KEY_BANNER_SKELETON
             }
         }
     }
 
-    // 下拉刷新：刷新轮播图与内容区（同一数据源，refreshHome 重拉第一页并回写本地）。
+    val showsSkeleton = anime.isEmpty()
+
     HomePullToRefresh(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
         modifier = modifier.fillMaxSize(),
     ) {
-        LazyVerticalGrid(
-            state = gridState,
-            columns = HomeGridColumns,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = rememberHomeContentPadding(),
-            horizontalArrangement = Arrangement.spacedBy(HomeGridSpacing),
-            verticalArrangement = Arrangement.spacedBy(HomeGridSpacing),
-        ) {
-        item(key = "topBar", span = { GridItemSpan(maxLineSpan) }) {
-            HomeTopBar(
-                onSearchClick = onSearchClick,
-                onProfileClick = onProfileClick,
-                searchHint = searchHint,
-                profileContentDescription = profileContentDescription,
-            )
-        }
-
-        // 轮播图未就绪时用同尺寸骨架占位；key 随状态切换，避免骨架与真实轮播复用同一节点。
-        val bannerItemKey = if (banners.isEmpty()) "bannerSkeleton" else "banner"
-        item(key = bannerItemKey, span = { GridItemSpan(maxLineSpan) }) {
-            if (banners.isEmpty()) {
-                HomeBannerSkeleton()
-            } else {
-                HomeBanner(
-                    banners = banners,
-                    onBannerClick = onAnimeClick,
-                    autoPlay = bannerVisible,
-                )
-            }
-        }
-
-        item(key = "actions", span = { GridItemSpan(maxLineSpan) }) {
-            HomeActionTabs(onActionClick = onActionClick)
-        }
-
-        if (anime.isEmpty()) {
-            // 首页无数据时用骨架屏代替空状态文案：轮播图/内容区保持占位，
-            // 由下拉刷新或后续数据到达后自然替换。
-            items(
-                count = 12,
-                key = { "skeleton_$it" },
-                contentType = { "skeleton" },
+        val grid: @Composable () -> Unit = {
+            LazyVerticalGrid(
+                state = gridState,
+                columns = HomeGridColumns,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = rememberHomeContentPadding(),
+                horizontalArrangement = Arrangement.spacedBy(HomeGridSpacing),
+                verticalArrangement = Arrangement.spacedBy(HomeGridSpacing),
             ) {
-                PosterCardSkeleton()
-            }
-        } else {
-            items(
-                items = anime,
-                key = { it.id },
-                contentType = { "anime" },
-            ) { item ->
-                AnimePosterCard(
-                    id = item.id,
-                    title = item.title,
-                    coverUrl = item.coverUrl,
-                    onCardClick = onAnimeClick,
-                )
-            }
-
-            if (isLoadingMore || pagingPending) {
-                // 分页加载：补一行海报骨架，而不是到底一个转圈。
-                // 骨架行与网格同列数、同宽、同间距，数据到位后原地被真实卡片替换，
-                // 加载期间的版面高度也不会跳。
-                item(key = "loadingMore", span = { GridItemSpan(maxLineSpan) }) {
-                    PosterSkeletonRow(
-                        spacing = HomeGridSpacing,
-                        minColumnWidth = HomeGridMinWidth,
+                item(key = KEY_TOP_BAR, span = { GridItemSpan(maxLineSpan) }) {
+                    HomeTopBar(
+                        onSearchClick = onSearchClick,
+                        onProfileClick = onProfileClick,
+                        searchHint = searchHint,
+                        profileContentDescription = profileContentDescription,
                     )
+                }
+
+                item(
+                    key = if (banners.isEmpty()) KEY_BANNER_SKELETON else KEY_BANNER,
+                    span = { GridItemSpan(maxLineSpan) },
+                ) {
+                    if (banners.isEmpty()) {
+                        HomeBannerSkeleton()
+                    } else {
+                        HomeBanner(
+                            banners = banners,
+                            onBannerClick = onAnimeClick,
+                            autoPlay = bannerVisible,
+                        )
+                    }
+                }
+
+                item(key = KEY_ACTIONS, span = { GridItemSpan(maxLineSpan) }) {
+                    HomeActionTabs(onActionClick = onActionClick)
+                }
+
+                if (showsSkeleton) {
+                    items(
+                        count = SKELETON_CARD_COUNT,
+                        key = { index -> "skeleton_$index" },
+                        contentType = { CONTENT_TYPE_SKELETON },
+                    ) {
+                        PosterCardSkeleton()
+                    }
+                } else {
+                    items(
+                        items = anime,
+                        key = { it.id },
+                        contentType = { CONTENT_TYPE_ANIME },
+                    ) { item ->
+                        AnimePosterCard(
+                            id = item.id,
+                            title = item.title,
+                            coverUrl = item.coverUrl,
+                            onCardClick = onAnimeClick,
+                        )
+                    }
+
+                    if (isLoadingMore) {
+                        // 分页加载补一行海报骨架，而不是到底一个转圈：骨架行与网格同列数、
+                        // 同宽、同间距，数据到位后原地被真实卡片替换，加载期间版面高度也不跳。
+                        item(key = KEY_LOADING_MORE, span = { GridItemSpan(maxLineSpan) }) {
+                            PosterSkeletonRow(
+                                spacing = HomeGridSpacing,
+                                minColumnWidth = HomeGridMinWidth,
+                            )
+                        }
+                    }
                 }
             }
         }
-        }
+
+        // 扫光容器会开一条按帧唤醒的时间线：只在骨架真的显示时挂上，
+        // 内容到位后它随分支一起离开组合，不留一条空转的无限动画。
+        if (showsSkeleton) SkeletonShimmer(grid) else grid()
     }
 }
 

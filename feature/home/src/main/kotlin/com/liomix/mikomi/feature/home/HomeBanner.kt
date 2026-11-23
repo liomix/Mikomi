@@ -21,8 +21,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.ColorPainter
@@ -139,56 +142,38 @@ private fun BannerItem(
     Box(
         modifier = modifier
             .height(height)
-            // 与骨架同色的底：图片画不出来时（url 为空 / 请求失败）仍是同一种材质，
-            // 而不是透出页面底色的空洞。图片落地后整块被盖住。
-            .background(skeletonBaseColor())
             .mikomiClickable(onClick = onClick),
     ) {
-        // 加载中：整块骨架同款扫光。首屏这里原本是 HomeBannerSkeleton，
-        // 换成一块死灰会显得整个头图区「塌下去」，所以沿用同一种材质。
-        if (!settled) {
-            SkeletonBox(
-                modifier = Modifier.fillMaxSize(),
-                shape = RectangleShape,
-            )
-        }
-
-        AsyncImage(
-            url = anime.coverUrl,
-            contentDescription = anime.title,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-            crossfade = true,
-            // 有扫光占位时不能再叠纯色，否则灰块会盖住扫光。
-            placeholder = null,
-            error = placeholderPainter,
-            onSuccess = { settled = true },
-            // 失败（含 url 为空）就停在静态占位色上，别让扫光一直跑。
-            onError = { settled = true },
-        )
-
-        // 底部渐隐到**页面底色**（不是黑色 scrim）：头图贴着网格，硬切的底边会让它
-        // 看起来像一块贴上去的矩形。渐隐之后它在视线里是「这张图慢慢没了」，
-        // 而不是「这里有一条边界」。
-        //
-        // 用 `background` 而不是 `scrim`：scrim 是给白字垫黑、让字压得住，会吃掉画面；
-        // 这里要的是让图**消失**，所以终点必须就是页面自己的底色，日/夜各自闭环。
+        // 图片（含骨架/兜底色）单独一层：底边按 alpha **擦掉**，露出页面自己的底色。
+        // 不能再在外面铺一层不透明底色 —— 那样被擦出来的就是那层灰，不是背景。
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            // 过渡从中段就开始，并且分三段收尾：两个色标之间的线性渐变
-                            // 在深色封面上会读成一条斜线，多段之后才是「慢慢化开」。
-                            0.30f to Color.Transparent,
-                            0.62f to MaterialTheme.colorScheme.background.copy(alpha = 0.35f),
-                            0.86f to MaterialTheme.colorScheme.background.copy(alpha = 0.82f),
-                            1f to MaterialTheme.colorScheme.background,
-                        ),
-                    ),
-                ),
-        )
+                .fadeOutBottom(BannerFadeHeight),
+        ) {
+            // 加载中：整块骨架同款扫光。首屏这里原本是 HomeBannerSkeleton，
+            // 换成一块死灰会显得整个头图区「塌下去」，所以沿用同一种材质。
+            if (!settled) {
+                SkeletonBox(
+                    modifier = Modifier.fillMaxSize(),
+                    shape = RectangleShape,
+                )
+            }
+
+            AsyncImage(
+                url = anime.coverUrl,
+                contentDescription = anime.title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                crossfade = true,
+                // 有扫光占位时不能再叠纯色，否则灰块会盖住扫光。
+                placeholder = null,
+                error = placeholderPainter,
+                onSuccess = { settled = true },
+                // 失败（含 url 为空）就停在静态占位色上，别让扫光一直跑。
+                onError = { settled = true },
+            )
+        }
 
         Column(
             modifier = Modifier
@@ -210,6 +195,61 @@ private fun BannerItem(
 }
 
 /**
+ * 底边淡出：把已绘制内容的底部**擦成透明**，露出下面的页面底色。
+ *
+ * ## 为什么不是盖一层渐变
+ *
+ * 叠一层「透明 → 背景色」的渐变，数学上等于「图片 + 越来越多的白」：中间段是
+ * 半透明的白压在画面上，读起来就是一层**白雾** —— 图的细节被冲淡，颜色发灰，
+ * 而且它永远盖不干净，因为底色是被「混合」上去而不是取代。
+ *
+ * 这里换成 `BlendMode.DstIn`：用一张「白色 alpha 1 → 0」的渐变去**乘**已有像素的
+ * alpha。alpha 为 0 的地方像素真的消失，底下的页面底色原样透出来，没有任何叠加色。
+ *
+ * 三个必要条件：
+ *
+ * 1. `CompositingStrategy.Offscreen` —— `DstIn` 只作用于同一层的合成结果；不离屏的话
+ *    它会把整页已画的内容一起擦掉；
+ * 2. 渐变要覆盖 0..1（不给 0f 时 Compose 会把首段 clamp，等价，但写出来更明确）；
+ * 3. 擦除的终点必须是 1f。否则底部会留一条 alpha 未归零的边，看起来是「图没擦干净」。
+ *
+ * @param fadeHeight 收边高度。固定高度而不是百分比 —— 头图变高时收边不该跟着变宽。
+ */
+private fun Modifier.fadeOutBottom(fadeHeight: Dp): Modifier = this
+    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        // 按「高度」而不是「百分比」算起点：百分比会随头图高度一起变，
+        // 而收边该有多宽是一个固定的视觉量，与图多高无关。
+        val start = if (size.height > 0f) {
+            ((size.height - fadeHeight.toPx()) / size.height).coerceIn(0f, 1f)
+        } else {
+            1f
+        }
+        // 把 [0, 1] 的「收边内进度」映射到整张图上的位置。
+        val span = 1f - start
+        fun at(t: Float): Float = start + span * t
+
+        drawRect(
+            brush = Brush.verticalGradient(
+                // 只有 [start, 1] 这一段在擦除，上面全是 alpha 1（原样保留）。
+                // 曲线是缓入（ease-in）：起点一阶导数为 0，alpha 是「刚开始几乎不动、
+                // 越往下掉得越快」。直线渐变在起点处斜率突变，人眼会在那里读出一条线
+                // （Mach band），这也是为什么短直线怎么看都有边、而长直线又冲淡画面。
+                // 这组点是从三次缓入采样的，12dp 的柔和度约等于 32dp 的直线。
+                0f to Color.White,
+                at(0.10f) to Color.White.copy(alpha = 0.72f),
+                at(0.25f) to Color.White.copy(alpha = 0.48f),
+                at(0.42f) to Color.White.copy(alpha = 0.28f),
+                at(0.62f) to Color.White.copy(alpha = 0.13f),
+                at(0.82f) to Color.White.copy(alpha = 0.04f),
+                1f to Color.White.copy(alpha = 0f),
+            ),
+            blendMode = BlendMode.DstIn,
+        )
+    }
+
+/**
  * 头图高度。
  *
  * 240dp ≈ 常见手机屏宽的 2/3：够撑起「这是一张背景画」的存在感，又不至于把下面的
@@ -219,6 +259,14 @@ private fun BannerItem(
  * 整个头图区会「跳」一下。所以不再是 file-private。
  */
 internal val BANNER_HEIGHT = 240.dp
+
+/**
+ * 头图底边收边高度。
+ *
+ * 12dp 是「配缓入曲线」的数值：曲线让起点斜率归零，所以 12dp 就够柔和，
+ * 约等于 32dp 直线的观感。再长会冲淡画面，再短（5dp）则因为斜率过大而露出起始线。
+ */
+private val BannerFadeHeight = 12.dp
 
 /**
  * 自动翻页间隔。

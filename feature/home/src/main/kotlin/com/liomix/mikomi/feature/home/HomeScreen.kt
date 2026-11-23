@@ -2,6 +2,7 @@ package com.liomix.mikomi.feature.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -61,7 +62,6 @@ private val HomeGridSpacing = Spacing.Md
  * 数据变化，key 稳定即可，避免整段被重建。
  */
 private const val KEY_HEADER = "header"
-private const val KEY_ACTIONS = "actions"
 private const val KEY_PAGING_SKELETON_PREFIX = "paging_"
 
 /** 卡片与骨架各是一种复用类型：两者视觉不同，混用同一个池没有收益。 */
@@ -277,7 +277,9 @@ private fun HomeFeed(
     // derivedStateOf 只在 true/false 翻转时通知，滚动过程本身不会引起重组。
     val bannerVisible by remember {
         derivedStateOf {
-            // 头图整块滚出视口就停自动翻页；它现在是「顶栏 + 轮播」合成的一项。
+            // 头图整块滚出视口就停自动翻页。合成项里含快捷栏，于是判定比头图本身
+            // 多出那一栏的高度 —— 多出来的这段里头图已经滚掉大半，代价只是可能空翻
+            // 一次，不值得为此再加一套位置计算。
             gridState.layoutInfo.visibleItemsInfo.any { it.key == KEY_HEADER }
         }
     }
@@ -303,23 +305,26 @@ private fun HomeFeed(
                     horizontalArrangement = Arrangement.spacedBy(HomeGridSpacing),
                     verticalArrangement = Arrangement.spacedBy(HomeGridSpacing),
                 ) {
-                    // 顶栏与轮播合成一项：轮播是这一页的**背景**，顶栏压在它上面。
-                    // 拆成两项时，图片只能从内容列顶端开始画 —— 那就不叫沉浸了。
+                    // 顶栏 + 轮播 + 快捷栏合成一项，三者之间不留网格间距。
+                    //
+                    // 头图的底边已经渐隐成页面底色，再隔一条 `HomeGridSpacing` 的空白，
+                    // 就等于「渐变收边」和「空行」双重分隔 —— 视觉上是两张皮。
+                    // 合成一项后，渐隐的那 15% 就是它们之间唯一的分隔，
+                    // 快捷栏像是从头图里长出来的。
                     item(key = KEY_HEADER, span = { GridItemSpan(maxLineSpan) }) {
-                        HomeImmersiveHeader(
-                            banners = banners,
-                            chrome = chrome,
-                            autoPlay = bannerVisible,
-                            onAnimeClick = onAnimeClick,
-                            onSearchClick = onSearchClick,
-                            onProfileClick = onProfileClick,
-                            searchHint = searchHint,
-                            profileContentDescription = profileContentDescription,
-                        )
-                    }
-
-                    item(key = KEY_ACTIONS, span = { GridItemSpan(maxLineSpan) }) {
-                        HomeActionTabs(onActionClick = onActionClick)
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            HomeImmersiveHeader(
+                                banners = banners,
+                                chrome = chrome,
+                                autoPlay = bannerVisible,
+                                onAnimeClick = onAnimeClick,
+                                onSearchClick = onSearchClick,
+                                onProfileClick = onProfileClick,
+                                searchHint = searchHint,
+                                profileContentDescription = profileContentDescription,
+                            )
+                            HomeActionTabs(onActionClick = onActionClick)
+                        }
                     }
 
                     if (showsSkeleton) {

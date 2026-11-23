@@ -1,8 +1,11 @@
 package com.liomix.mikomi.core.ui.base
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 
@@ -34,6 +37,10 @@ import androidx.compose.ui.semantics.Role
  * 与直接写 `Modifier.clickable` 的区别：按压层固定为 `null`（全站无水波）、
  * 角色默认 [Role.Button]、`interactionSource` 默认由 Compose 自建。
  *
+ * 长按也走这里（[onLongClick]）：手势多一种不代表要多一个入口 —— 曾经卡片为了长按
+ * 改用手写 `combinedClickable`，结果那一支忘了写 `indication = null`，水波在网格里
+ * 悄悄回来了。手势的差异收在一个参数里，语义（无水波、role、禁用）就只有一份。
+ *
  * **缩放是按钮独有的，不是公共原子。** `pressScale` 只在 `PressButton` /
  * `PressIconButton` 内部使用，不对外充当通用能力：别的组件或页面确实需要按下缩放时，
  * 在**自己模块的组件里**写一份，不要 import 按钮的实现。
@@ -54,19 +61,33 @@ import androidx.compose.ui.semantics.Role
  * @param enabled 置灰并吞掉点击。
  * @param role 无障碍角色。默认 [Role.Button]；选择类控件（单选/复选）传对应的角色。
  * @param interactionSource 外部已有按压态来源时传入（例如同一手势要驱动缩放）。
+ * @param onLongClick 长按回调；为 null（默认）时只处理点击。
  * @param onClick 点击回调。**放在最后**，调用点就能写尾随 lambda：
  *   `.mikomiClickable(enabled = x) { … }`，与 `Modifier.clickable` 的写法一致。
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Modifier.mikomiClickable(
     enabled: Boolean = true,
     role: Role? = Role.Button,
     interactionSource: MutableInteractionSource? = null,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
-): Modifier = clickable(
-    interactionSource = interactionSource,
-    indication = null,
-    enabled = enabled,
-    role = role,
-    onClick = onClick,
-)
+): Modifier = if (onLongClick == null) {
+    clickable(
+        interactionSource = interactionSource,
+        indication = null,
+        enabled = enabled,
+        role = role,
+        onClick = onClick,
+    )
+} else {
+    combinedClickable(
+        interactionSource = interactionSource ?: remember { MutableInteractionSource() },
+        indication = null,
+        enabled = enabled,
+        role = role,
+        onLongClick = onLongClick,
+        onClick = onClick,
+    )
+}

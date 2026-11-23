@@ -4,14 +4,15 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.model.ScheduleEntry
-import com.liomix.mikomi.core.model.ScheduleProvenance
 import com.liomix.mikomi.data.anime.ScheduleRepository
+import com.liomix.mikomi.feature.home.RefreshState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,30 +20,37 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/**
+ * 时间表 ViewModel：一周七天 × 多源合并后的本周放送表。
+ *
+ * 离线优先，与首页、排行榜同样的口径：本地有数据就展示，刷新失败只置失败位。
+ * 刷新状态共用 [RefreshState]；本页没有可见的刷新入口（错误态里才有重试），
+ * 所以 `userVisible` 恒为 false。
+ */
 @HiltViewModel
 class ScheduleViewModel @Inject constructor(
     private val scheduleRepository: ScheduleRepository,
 ) : ViewModel() {
 
-    private val isRefreshing = MutableStateFlow(true)
-    private val refreshFailed = MutableStateFlow(false)
+    /** 进页面就有一趟刷新在途，所以初值即「在途」——首帧直接是骨架屏。 */
+    private val refreshState = MutableStateFlow(RefreshState(inFlight = true))
+
+    /** 在途刷新任务：同一时刻只允许一趟，错误态连点重试不叠加请求。 */
+    private var refreshJob: Job? = null
 
     val uiState: StateFlow<ScheduleUiState> = combine(
         scheduleRepository.observeSchedule(),
-        scheduleRepository.observeProvenance(),
-        isRefreshing,
-        refreshFailed,
-    ) { entries, provenance, refreshing, failed ->
+        refreshState,
+    ) { entries, refresh ->
         when {
             // 本地已有数据时优先展示（离线优先），刷新失败不再覆盖为错误态。
             entries.isNotEmpty() -> ScheduleUiState.Success(
                 days = groupByWeekday(entries),
                 dates = currentWeekDates(),
-                provenance = provenance,
             )
 
-            refreshing -> ScheduleUiState.Loading
-            failed -> ScheduleUiState.Error
+            refresh.inFlight -> ScheduleUiState.Loading
+            refresh.failed -> ScheduleUiState.Error
             else -> ScheduleUiState.Empty
         }
     }.stateIn(
@@ -56,18 +64,19 @@ class ScheduleViewModel @Inject constructor(
     }
 
     fun refresh() {
-        viewModelScope.launch {
-            isRefreshing.value = true
+        if (refreshJob?.isActive == true) return
+        refreshJob = viewModelScope.launch {
+            // 新的一次尝试：清掉上一次的失败结论。
+            refreshState.value = RefreshState(inFlight = true)
             try {
                 scheduleRepository.refreshSchedule()
-                refreshFailed.value = false
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Refresh schedule failed", e)
-                refreshFailed.value = true
+                refreshState.value = refreshState.value.copy(failed = true)
             } finally {
-                isRefreshing.value = false
+                refreshState.value = refreshState.value.copy(inFlight = false)
             }
         }
     }
@@ -135,7 +144,6 @@ sealed interface ScheduleUiState {
         val days: List<List<ScheduleEntry>>,
         /** 与 [days] 一一对应的本周日期（`yyyy-MM-dd`，索引 0 = 周一）。 */
         val dates: List<String>,
-        val provenance: ScheduleProvenance,
     ) : ScheduleUiState
 
     data object Empty : ScheduleUiState

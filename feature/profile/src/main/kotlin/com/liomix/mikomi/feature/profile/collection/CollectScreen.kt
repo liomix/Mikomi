@@ -447,7 +447,6 @@ private fun TimelineRow(
             // 整理时行会被圈选，别让封面飞起来 —— 起点是个正在被涂色的格子，像误触。
             heroKey = if (managing) null else animeId,
             crossfade = false,
-            shimmerWhileLoading = true,
             modifier = Modifier.width(TimelineThumbWidth),
         )
         Column(

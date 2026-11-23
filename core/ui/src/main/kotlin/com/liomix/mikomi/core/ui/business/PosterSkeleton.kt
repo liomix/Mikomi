@@ -1,33 +1,45 @@
 package com.liomix.mikomi.core.ui.business
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.Radius
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.ui.base.SkeletonBox
-import com.liomix.mikomi.core.ui.base.SkeletonShimmer
+
+/** 标题条占宽的多少。真实标题是整行文本（可能省略），留一点右侧呼吸更像一行的样子。 */
+private const val TitleWidthFraction = 0.7f
 
 /**
- * 海报卡骨架：与 [AnimePosterCard] 同构（2:3 封面块 + 单行标题条）。
+ * 海报卡骨架：与 [AnimePosterCard] **几何同构**（2:3 封面块 + 单行标题条）。
  *
- * 首屏骨架与分页骨架共用它，保证「加载中」的样子在哪一段都一致。
+ * 首屏骨架与翻页骨架共用它，保证「加载中」的样子在哪一段都一致。
+ *
+ * 「同构」不是写得像，而是**引用同一组值**：封面圆角取 [Radius.Md]（与 `AnimeCoverImage`
+ * 同一个 token）、骨架到标题的间距取 [Spacing.Tight]（与卡片同一个 token）、标题条高度
+ * 取自真实标题的字阶 `labelMedium.lineHeight`。任何一处另写一个数，数据到货那一刻网格的
+ * 行高就会变一次 —— 用户读到的是一次轻微上窜，排查时却很难联想到骨架。
+ *
+ * 它只负责**一格**：排几格、补在哪一行由调用方按列数决定（见 [PosterGrid]）。
+ * 以前这里还有一个「一整行骨架」的组件，靠 `BoxWithConstraints` 自己反推列数 ——
+ * 它和真实卡片的最后一行之间必然漏出几个空格子，那一排空洞就是「页面破了」的来源。
  */
 @Composable
 fun PosterCardSkeleton(
     modifier: Modifier = Modifier,
 ) {
+    // 字阶 → dp：`lineHeight` 是 TextUnit，要按当前密度换算。字阶一调，骨架自动跟上。
+    val titleHeight = with(LocalDensity.current) {
+        MaterialTheme.typography.labelMedium.lineHeight.toDp()
+    }
     Column(modifier = modifier) {
         SkeletonBox(
             modifier = Modifier
@@ -35,51 +47,13 @@ fun PosterCardSkeleton(
                 .aspectRatio(2f / 3f),
             shape = RoundedCornerShape(Radius.Md),
         )
-        Spacer(modifier = Modifier.height(Spacing.Sm))
+        Spacer(modifier = Modifier.height(Spacing.Tight))
         SkeletonBox(
             modifier = Modifier
-                .fillMaxWidth(0.7f)
-                .height(12.dp),
-            shape = RoundedCornerShape(Radius.Xs),
+                .fillMaxWidth(TitleWidthFraction)
+                .height(titleHeight),
+            // 文字行没有直角，也不该是一枚小标签：pill 读起来就是「这里会有一行字」。
+            shape = PillShape,
         )
-    }
-}
-
-/**
- * 分页加载中的骨架行：一行与网格**同宽、同列数、同间距**的海报占位。
- *
- * 放在网格的 full-span 项里即可（宽度天然等于网格内容宽），用于替换「到底了一个转圈」：
- * 用户看到的是内容仍在长出来，而不是一个孤立的进度环。
- *
- * 列数不复用业务里的 `GridCells` 常量，而是用与 `GridCells.Adaptive` 完全相同的公式
- * 从自身宽度反推：`n = (W + spacing) / (minWidth + spacing)`。这样即便以后改了网格的
- * 最小列宽或页面边距，骨架行也不会错位（错的列数会多出一个折行的空格子，很显眼）。
- *
- * 整行共用一个 [SkeletonShimmer] 时间线；这一项本身只在接近视口时才被组合，
- * 所以加载结束、行消失时动画也随之停止。
- *
- * @param minColumnWidth 必须与网格 `GridCells.Adaptive(minSize = ...)` 的值一致
- */
-@Composable
-fun PosterSkeletonRow(
-    modifier: Modifier = Modifier,
-    spacing: Dp = Spacing.Md,
-    minColumnWidth: Dp = 100.dp,
-) {
-    val density = LocalDensity.current
-    val spacingPx = with(density) { spacing.toPx() }.coerceAtLeast(0f)
-    val minColumnPx = with(density) { minColumnWidth.toPx() }.coerceAtLeast(1f)
-
-    SkeletonShimmer {
-        BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-            val columns = ((constraints.maxWidth + spacingPx) / (minColumnPx + spacingPx))
-                .toInt()
-                .coerceAtLeast(1)
-            Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
-                repeat(columns) {
-                    PosterCardSkeleton(modifier = Modifier.weight(1f))
-                }
-            }
-        }
     }
 }

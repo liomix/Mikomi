@@ -23,7 +23,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke as DrawStroke
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -38,7 +37,7 @@ import com.liomix.mikomi.core.designsystem.TextStyles
 import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.ui.base.ScrollingText
 import com.liomix.mikomi.core.ui.base.SkeletonBox
-import com.liomix.mikomi.core.ui.image.AsyncImage
+import com.liomix.mikomi.core.ui.business.AnimeCoverImage
 import androidx.compose.ui.draw.clip
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 
@@ -187,8 +186,9 @@ private fun RankNumber(
 /**
  * 封面底图：整块铺满并按 [CoverCropAlignment] 裁切，不做任何模糊。
  *
- * 只画图、不画占位：图片未就绪时这一层为空，露出页面背景；
- * 卡片级的加载态由列表的骨架屏（`RankCardSkeletonList`）负责。
+ * 走统一的 [AnimeCoverImage]（`aspectRatio = null`：横条尺寸由这张卡自己给），
+ * 于是加载中也是**骨架同款扫光**。此前这里直接调 [AsyncImage]，占位是静止的骨架色 ——
+ * 榜单数据到手、封面还在下载的那一两秒，整屏卡片看起来就是空的。
  * 入参是必填的 url —— 空封面的条目在 [RankAnimeCard] 入口就被拦成骨架了。
  */
 @Composable
@@ -196,17 +196,17 @@ private fun CoverBackdrop(
     url: String,
     modifier: Modifier = Modifier,
 ) {
-    AsyncImage(
+    AnimeCoverImage(
         url = url,
         contentDescription = null,
-        contentScale = ContentScale.Crop,
-        alignment = CoverCropAlignment,
-        crossfade = true,
         modifier = modifier,
+        // 榜单卡是静止的横条，淡入不会被滚动放大成每帧开销。
+        crossfade = true,
+        aspectRatio = null,
+        cropAlignment = CoverCropAlignment,
     )
 }
 
-/** 前三名对应的金 / 银 / 铜高亮色，其余统一冷灰。 */
 /**
  * 名次填色：前三名取设计系统的金属色（金 / 银 / 铜），第 4 名起用亮灰。
  *

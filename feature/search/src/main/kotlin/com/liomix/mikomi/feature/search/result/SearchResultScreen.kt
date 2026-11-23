@@ -2,6 +2,7 @@ package com.liomix.mikomi.feature.search.result
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.ui.business.AnimePosterCard
 import com.liomix.mikomi.core.ui.business.PosterCardSkeleton
-import com.liomix.mikomi.core.ui.business.PosterSkeletonRow
+import com.liomix.mikomi.core.ui.business.PosterGrid
 import com.liomix.mikomi.core.ui.base.SkeletonShimmer
 import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.feature.search.LoadState
@@ -108,44 +109,67 @@ private fun ResultGrid(
     onAnimeClick: (String) -> Unit,
     onLoadMore: () -> Unit,
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = RESULT_GRID_MIN_SIZE),
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            start = Spacing.Lg,
-            end = Spacing.Lg,
-            top = Spacing.Xs,
-            bottom = Spacing.Xl,
-        ),
-        horizontalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),
-        verticalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),
-    ) {
-        items(
-            items = state.items,
-            key = { anime -> "result_${anime.id}" },
-            contentType = { "result_item" },
-        ) { anime ->
-            AnimePosterCard(
-                id = anime.id,
-                title = anime.title,
-                coverUrl = anime.coverUrl,
-                onCardClick = onAnimeClick,
-            )
-        }
-        item(
-            key = "result_footer",
-            span = { GridItemSpan(maxLineSpan) },
+    // 列数自己算而不是交给 `GridCells.Adaptive`：自适应列数在测量期才知道，
+    // 组合里算不出「最后一行差几格」，翻页骨架就只能另起一整行，中间留一排空洞。
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val columns = PosterGrid.columnsFor(maxWidth, RESULT_GRID_MIN_SIZE, RESULT_GRID_SPACING)
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columns),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = Spacing.Lg,
+                end = Spacing.Lg,
+                top = Spacing.Xs,
+                bottom = Spacing.Xl,
+            ),
+            horizontalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),
+            verticalArrangement = Arrangement.spacedBy(RESULT_GRID_SPACING),
         ) {
-            ResultFooter(
-                hasMore = state.hasMore,
-                loadMoreKey = state.items.size,
-                onLoadMore = onLoadMore,
-            )
+            items(
+                items = state.items,
+                key = { anime -> "result_${anime.id}" },
+                contentType = { "result_item" },
+            ) { anime ->
+                AnimePosterCard(
+                    id = anime.id,
+                    title = anime.title,
+                    coverUrl = anime.coverUrl,
+                    onCardClick = onAnimeClick,
+                )
+            }
+
+            if (state.hasMore) {
+                // 补满当前行；正好铺满时再起一整行，让「还在翻页」这件事本身可见。
+                val gap = PosterGrid.cellsToFillRow(columns, state.items.size)
+                items(
+                    count = if (gap == 0) columns else gap,
+                    key = { "result_paging_$it" },
+                    contentType = { "result_skeleton" },
+                ) {
+                    PosterCardSkeleton()
+                }
+            }
+
+            item(
+                key = "result_footer",
+                span = { GridItemSpan(maxLineSpan) },
+            ) {
+                ResultFooter(
+                    hasMore = state.hasMore,
+                    loadMoreKey = state.items.size,
+                    onLoadMore = onLoadMore,
+                )
+            }
         }
     }
 }
 
-/** 网格底部：滚到底自动翻页（没有更多时不再显示任何提示）。 */
+/**
+ * 网格底部：滚到底自动翻页（没有更多时不再显示任何提示）。
+ *
+ * 这里只剩**触发**：骨架不归它画。翻页占位由 [ResultGrid] 按列数补在当前行，
+ * 两处各画一次会出现「补满的行 + 又一整行骨架」。
+ */
 @Composable
 private fun ResultFooter(
     hasMore: Boolean,
@@ -158,12 +182,6 @@ private fun ResultFooter(
     LaunchedEffect(loadMoreKey) {
         onLoadMore()
     }
-    // 翻页等待期间显示一行海报骨架（与网格同列数、同宽、同间距），
-    // 数据到位后原地被真实卡片替换，不再是一个孤立的转圈。
-    PosterSkeletonRow(
-        spacing = RESULT_GRID_SPACING,
-        minColumnWidth = RESULT_GRID_MIN_SIZE,
-    )
 }
 
 /** 骨架屏网格：与首页推荐区同构（海报块 + 标题条）。 */

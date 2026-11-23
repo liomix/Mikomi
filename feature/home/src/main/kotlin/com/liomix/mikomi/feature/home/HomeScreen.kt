@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -33,7 +34,7 @@ import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.SkeletonShimmer
 import com.liomix.mikomi.core.ui.business.AnimePosterCard
 import com.liomix.mikomi.core.ui.business.PosterCardSkeleton
-import com.liomix.mikomi.core.ui.business.PosterSkeletonRow
+import com.liomix.mikomi.core.ui.business.PosterGrid
 import com.liomix.mikomi.core.ui.layout.LocalBottomBarSpace
 import com.liomix.mikomi.core.ui.window.rememberBottomInset
 import com.liomix.mikomi.core.ui.window.rememberInsetsDp
@@ -42,7 +43,6 @@ import com.liomix.mikomi.core.ui.window.rememberTopInset
 /** 网格最小列宽：手机竖屏约 3 列，宽屏自动增加列数（Dart 版为固定 3 列）。 */
 private val HomeGridMinWidth = 100.dp
 
-private val HomeGridColumns = GridCells.Adaptive(minSize = HomeGridMinWidth)
 
 /** 网格行内 / 行间间距；分页骨架行必须用同一个值，否则列宽对不齐。 */
 private val HomeGridSpacing = Spacing.Md
@@ -59,14 +59,14 @@ private const val KEY_TOP_BAR = "topBar"
 private const val KEY_BANNER = "banner"
 private const val KEY_BANNER_SKELETON = "bannerSkeleton"
 private const val KEY_ACTIONS = "actions"
-private const val KEY_LOADING_MORE = "loadingMore"
+private const val KEY_PAGING_SKELETON_PREFIX = "paging_"
 
 /** 卡片与骨架各是一种复用类型：两者视觉不同，混用同一个池没有收益。 */
 private const val CONTENT_TYPE_ANIME = "anime"
 private const val CONTENT_TYPE_SKELETON = "skeleton"
 
-/** 骨架屏的卡片数量：多于一屏可见量，任何屏幕高度都填得满。 */
-private const val SKELETON_CARD_COUNT = 12
+/** 首屏骨架铺几行：多于一屏可见量，任何屏幕高度都填得满，且正好是整数行。 */
+private const val SKELETON_ROWS = 4
 
 /** 距列表末尾还有几项时预取下一页。 */
 private const val LOAD_MORE_THRESHOLD = 3
@@ -263,72 +263,82 @@ private fun HomeFeed(
         modifier = modifier.fillMaxSize(),
     ) {
         val grid: @Composable () -> Unit = {
-            LazyVerticalGrid(
-                state = gridState,
-                columns = HomeGridColumns,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = rememberHomeContentPadding(),
-                horizontalArrangement = Arrangement.spacedBy(HomeGridSpacing),
-                verticalArrangement = Arrangement.spacedBy(HomeGridSpacing),
-            ) {
-                item(key = KEY_TOP_BAR, span = { GridItemSpan(maxLineSpan) }) {
-                    HomeTopBar(
-                        onSearchClick = onSearchClick,
-                        onProfileClick = onProfileClick,
-                        searchHint = searchHint,
-                        profileContentDescription = profileContentDescription,
-                    )
-                }
-
-                item(
-                    key = if (banners.isEmpty()) KEY_BANNER_SKELETON else KEY_BANNER,
-                    span = { GridItemSpan(maxLineSpan) },
+            // 先量宽、再算列数：`GridCells.Adaptive` 的列数要到测量阶段才知道，
+            // 而「最后一行差几格」是组合期就要回答的问题（见 columnsFor）。
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val columns = PosterGrid.columnsFor(maxWidth, HomeGridMinWidth, HomeGridSpacing)
+                LazyVerticalGrid(
+                    state = gridState,
+                    columns = GridCells.Fixed(columns),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = rememberHomeContentPadding(),
+                    horizontalArrangement = Arrangement.spacedBy(HomeGridSpacing),
+                    verticalArrangement = Arrangement.spacedBy(HomeGridSpacing),
                 ) {
-                    if (banners.isEmpty()) {
-                        HomeBannerSkeleton()
-                    } else {
-                        HomeBanner(
-                            banners = banners,
-                            onBannerClick = onAnimeClick,
-                            autoPlay = bannerVisible,
+                    item(key = KEY_TOP_BAR, span = { GridItemSpan(maxLineSpan) }) {
+                        HomeTopBar(
+                            onSearchClick = onSearchClick,
+                            onProfileClick = onProfileClick,
+                            searchHint = searchHint,
+                            profileContentDescription = profileContentDescription,
                         )
                     }
-                }
 
-                item(key = KEY_ACTIONS, span = { GridItemSpan(maxLineSpan) }) {
-                    HomeActionTabs(onActionClick = onActionClick)
-                }
-
-                if (showsSkeleton) {
-                    items(
-                        count = SKELETON_CARD_COUNT,
-                        key = { index -> "skeleton_$index" },
-                        contentType = { CONTENT_TYPE_SKELETON },
+                    item(
+                        key = if (banners.isEmpty()) KEY_BANNER_SKELETON else KEY_BANNER,
+                        span = { GridItemSpan(maxLineSpan) },
                     ) {
-                        PosterCardSkeleton()
-                    }
-                } else {
-                    items(
-                        items = anime,
-                        key = { it.id },
-                        contentType = { CONTENT_TYPE_ANIME },
-                    ) { item ->
-                        AnimePosterCard(
-                            id = item.id,
-                            title = item.title,
-                            coverUrl = item.coverUrl,
-                            onCardClick = onAnimeClick,
-                        )
+                        if (banners.isEmpty()) {
+                            HomeBannerSkeleton()
+                        } else {
+                            HomeBanner(
+                                banners = banners,
+                                onBannerClick = onAnimeClick,
+                                autoPlay = bannerVisible,
+                            )
+                        }
                     }
 
-                    if (isLoadingMore) {
-                        // 分页加载补一行海报骨架，而不是到底一个转圈：骨架行与网格同列数、
-                        // 同宽、同间距，数据到位后原地被真实卡片替换，加载期间版面高度也不跳。
-                        item(key = KEY_LOADING_MORE, span = { GridItemSpan(maxLineSpan) }) {
-                            PosterSkeletonRow(
-                                spacing = HomeGridSpacing,
-                                minColumnWidth = HomeGridMinWidth,
+                    item(key = KEY_ACTIONS, span = { GridItemSpan(maxLineSpan) }) {
+                        HomeActionTabs(onActionClick = onActionClick)
+                    }
+
+                    if (showsSkeleton) {
+                        // 正好铺满整数行：半行会在底部留一排空洞。
+                        items(
+                            count = columns * SKELETON_ROWS,
+                            key = { index -> "skeleton_$index" },
+                            contentType = { CONTENT_TYPE_SKELETON },
+                        ) {
+                            PosterCardSkeleton()
+                        }
+                    } else {
+                        items(
+                            items = anime,
+                            key = { it.id },
+                            contentType = { CONTENT_TYPE_ANIME },
+                        ) { item ->
+                            AnimePosterCard(
+                                id = item.id,
+                                title = item.title,
+                                coverUrl = item.coverUrl,
+                                onCardClick = onAnimeClick,
                             )
+                        }
+
+                        if (isLoadingMore) {
+                            // 补满**当前行**：差几格补几格；正好铺满时再起一整行。
+                            // 以前这里是 full-span 的骨架行，于是「7 张卡 + 一整行骨架」之间
+                            // 永远留着两三格空白 —— 看起来就是页面破了个洞。
+                            val gap = PosterGrid.cellsToFillRow(columns, anime.size)
+                            val padding = if (gap == 0) columns else gap
+                            items(
+                                count = padding,
+                                key = { index -> KEY_PAGING_SKELETON_PREFIX + index },
+                                contentType = { CONTENT_TYPE_SKELETON },
+                            ) {
+                                PosterCardSkeleton()
+                            }
                         }
                     }
                 }

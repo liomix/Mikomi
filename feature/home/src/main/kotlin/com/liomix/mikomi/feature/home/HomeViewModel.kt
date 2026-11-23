@@ -44,7 +44,7 @@ class HomeViewModel @Inject constructor(
     private val banners = homeRepository.observeBanners()
     private val recommended = homeRepository.observeRecommended()
 
-    private val refresh = MutableStateFlow(RefreshState())
+    private val refreshState = MutableStateFlow(RefreshState())
     private val paging = MutableStateFlow(PagingState())
 
     /** 在途刷新任务：同一时刻只允许一趟，连点不叠加请求。 */
@@ -62,7 +62,7 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = combine(
         banners,
         recommended,
-        refresh,
+        refreshState,
         paging,
     ) { banners, recommended, refresh, paging ->
         HomeUiState(
@@ -97,12 +97,12 @@ class HomeViewModel @Inject constructor(
     private fun startRefresh(userInitiated: Boolean) {
         // 已有刷新在途：复用那一趟，只把指示器点亮，结束时由 finally 统一熄灭。
         if (refreshJob?.isActive == true) {
-            if (userInitiated) refresh.value = refresh.value.copy(userVisible = true)
+            if (userInitiated) refreshState.value = refreshState.value.copy(userVisible = true)
             return
         }
         refreshJob = viewModelScope.launch {
             // 每次发起都重置 failed：这是一次新的尝试，页面不该带着上一次的结论进加载。
-            refresh.value = RefreshState(inFlight = true, userVisible = userInitiated)
+            refreshState.value = RefreshState(inFlight = true, userVisible = userInitiated)
             try {
                 val result = homeRepository.refreshHome()
                 offset = result.loadedCount
@@ -111,9 +111,9 @@ class HomeViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Refresh home failed", e)
-                refresh.value = refresh.value.copy(failed = true)
+                refreshState.value = refreshState.value.copy(failed = true)
             } finally {
-                refresh.value = refresh.value.copy(inFlight = false, userVisible = false)
+                refreshState.value = refreshState.value.copy(inFlight = false, userVisible = false)
             }
         }
     }
@@ -131,7 +131,7 @@ class HomeViewModel @Inject constructor(
     fun loadMore() {
         val state = paging.value
         // 刷新在途时不动分页：并发写入会与刷新的事务清理竞态。
-        if (state.isLoadingMore || !state.hasMore || refresh.value.inFlight) return
+        if (state.isLoadingMore || !state.hasMore || refreshState.value.inFlight) return
         // 以 UI 正在显示的那一份为准；还没有内容时没得翻页，按 0 处理。
         val shown = (uiState.value.content as? HomeContent.Success)?.anime?.size ?: 0
         viewModelScope.launch {
@@ -160,20 +160,6 @@ class HomeViewModel @Inject constructor(
         /** 等本地落库的宽限：正常一两帧（~30ms）就到，这个时长只用来兜住空页与失败。 */
         const val PAGING_GRACE_MILLIS = 300L
     }
-}
-
-/**
- * 一次刷新的三个事实。
- *
- * 「在途」与「用户看得见」必须分开：自动首载也在途，但它不该点亮下拉指示器 ——
- * 首屏已经由骨架屏表达加载，再转一个圈等于同一件事说两遍。
- */
-private data class RefreshState(
-    val inFlight: Boolean = false,
-    val userVisible: Boolean = false,
-    val failed: Boolean = false,
-) {
-    val showsIndicator: Boolean get() = inFlight && userVisible
 }
 
 /** 分页游标：是否正在补内容、还有没有下一页。 */

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -73,6 +74,9 @@ private const val DATE_MONTH_DAY_START = 5
 
 /** 一周的天数：日历标签栏与骨架屏共用。 */
 private const val DAYS_IN_WEEK = 7
+
+/** 骨架列表的行数：多于一屏可见量，小屏滚动时也不露底。 */
+private const val SKELETON_ROW_COUNT = 6
 
 /** 日历标签栏容器圆角：比容器内边距（4dp）多 18dp，与两行标签圆角同心。 */
 private val TAB_ROW_CORNER_RADIUS = 22.dp
@@ -279,31 +283,17 @@ private fun ScheduleAnimeRow(
     // 放送信息优先用 base 源的现成文案；没有文案时按三态精度展示。
     val scheduleLabel = entry.updateText.ifBlank { airTimeLabel(entry.airTime) }
 
-    val cardShape = RoundedCornerShape(Radius.Lg)
-    Surface(
-        shape = cardShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(cardShape)
-            .mikomiClickable(onClick = onClick),
-    ) {
-        Row(
-            modifier = Modifier.padding(start = Spacing.Sm, top = Spacing.Sm, end = Spacing.Md, bottom = Spacing.Sm),
-            // 信息区顶部与封面顶部对齐（不再整体垂直居中）。
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.Compact),
-        ) {
-            AnimeCoverImage(
-                url = anime.coverUrl,
-                contentDescription = anime.title,
-                modifier = Modifier.size(width = 80.dp, height = 120.dp),
-            )
+    ScheduleRowCard(modifier = modifier, onClick = onClick) {
+        AnimeCoverImage(
+            url = anime.coverUrl,
+            contentDescription = anime.title,
+            modifier = Modifier.size(width = 80.dp, height = 120.dp),
+        )
 
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Spacing.Tight),
-            ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(Spacing.Tight),
+        ) {
                 ScrollingText(
                     text = anime.title,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
@@ -343,15 +333,53 @@ private fun ScheduleAnimeRow(
                 )
             }
 
-            // AniRpb 更新表没有评分字段；不要显示一个无意义的「—」圆点。
-            // 评分圆点仍按封面垂直居中，避免顶到标题行。
-            anime.rating?.let { rating ->
-                RatingDot(
-                    rating = rating,
-                    modifier = Modifier.align(Alignment.CenterVertically),
-                )
-            }
+        // AniRpb 更新表没有评分字段；不要显示一个无意义的「—」圆点。
+        // 评分圆点仍按封面垂直居中，避免顶到标题行。
+        anime.rating?.let { rating ->
+            RatingDot(
+                rating = rating,
+                modifier = Modifier.align(Alignment.CenterVertically),
+            )
         }
+    }
+}
+
+/**
+ * 列表行的外壳：底色卡 + 内边距 + 横向排布。
+ *
+ * 真实行与骨架行共用它，所以「骨架 → 内容」换掉的只有里面的块，卡片材质、圆角、
+ * 内边距、行高都不变。骨架曾经自己搭了一个 `Row`，于是数据到达时整行从「透明背景」
+ * 变成「有底色卡片」，一屏六行同时跳一次。
+ *
+ * @param onClick 为 null 时不可点（骨架行）。
+ */
+@Composable
+private fun ScheduleRowCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val cardShape = RoundedCornerShape(Radius.Lg)
+    Surface(
+        shape = cardShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(cardShape)
+            .then(if (onClick == null) Modifier else Modifier.mikomiClickable(onClick = onClick)),
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                start = Spacing.Sm,
+                top = Spacing.Sm,
+                end = Spacing.Md,
+                bottom = Spacing.Sm,
+            ),
+            // 信息区顶部与封面顶部对齐（不再整体垂直居中）。
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.Compact),
+            content = content,
+        )
     }
 }
 
@@ -443,18 +471,17 @@ private fun ScheduleSkeleton(
             }
         }
 
+        // 列表部分的留白与真实列表一致（左/右 Md、上 Sm、行间 Compact），
+        // 这样数据到达时骨架行是「同一个位置换了内容」，不是「列表整体挪一下」。
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = Spacing.Md, vertical = Spacing.Compact),
+                .padding(start = Spacing.Md, top = Spacing.Sm, end = Spacing.Md),
             verticalArrangement = Arrangement.spacedBy(Spacing.Compact),
         ) {
-            repeat(6) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.Compact),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+            repeat(SKELETON_ROW_COUNT) {
+                // 与真实行同一个外壳：底色、圆角、内边距都由 ScheduleRowCard 决定。
+                ScheduleRowCard {
                     SkeletonBox(
                         modifier = Modifier.size(width = 80.dp, height = 120.dp),
                         shape = RoundedCornerShape(Radius.Md),

@@ -2,6 +2,7 @@ package com.liomix.mikomi.feature.home.rank
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,19 +14,23 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.model.RankEntry
 import com.liomix.mikomi.core.ui.base.ErrorState
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.Tab
@@ -94,16 +99,23 @@ fun RankScreen(
 
 /**
  * 顶栏刷新动作：刷新中用一个同尺寸的进度环替代图标，避免按钮宽度跳动；
- * 同时禁用按钮，防止连点叠加多次请求。
+ * 同时禁用点击，防止连点叠加多次请求。
+ *
+ * 不用 M3 的 `IconButton`：它自带水波，而全站已决定没有任何按压层
+ * （`mikomiClickable` 固定 `indication = null`）。自己给一个 48dp 触控区
+ * （无障碍最小目标），视觉仍是 20dp 的环 / 24dp 的图标。
  */
 @Composable
 private fun RefreshAction(
     isRefreshing: Boolean,
     onClick: () -> Unit,
 ) {
-    IconButton(
-        onClick = onClick,
-        enabled = !isRefreshing,
+    Box(
+        modifier = Modifier
+            .size(Sizes.TouchTarget)
+            .clip(CircleShape)
+            .mikomiClickable(enabled = !isRefreshing, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
         if (isRefreshing) {
             CircularProgressIndicator(
@@ -206,7 +218,7 @@ private fun RankList(
             end = Spacing.Md,
             top = Spacing.Sm,
             // 导航栏留白由 BaseScreenLayout 统一消费，这里只补悬浮栏的避让余量。
-            bottom = FloatingBarClearance,
+            bottom = ListBottomGap,
         ),
         verticalArrangement = Arrangement.spacedBy(RankCardSpacing),
     ) {
@@ -241,7 +253,7 @@ private fun RankCardSkeletonList(
             start = Spacing.Md,
             end = Spacing.Md,
             top = Spacing.Sm,
-            bottom = FloatingBarClearance,
+            bottom = ListBottomGap,
         ),
         verticalArrangement = Arrangement.spacedBy(RankCardSpacing),
     ) {
@@ -269,11 +281,13 @@ private val RefreshIndicatorSize = 20.dp
 private val RefreshIndicatorStroke = Stroke.Thick
 
 /**
- * 列表底部为悬浮排序栏留出的避让余量。
+ * 列表底部收尾余量。
  *
- * 与首页同因：导航栏留白由 `BaseScreenLayout` 消费，这里只补悬浮栏压住列表的那一段。
+ * 导航栏留白由 `BaseScreenLayout` 消费，这里只补列表自己与页面底边之间的呼吸 ——
+ * 与时间表同档（[Spacing.Xl]）。曾经写的是 96dp「给悬浮排序栏让位」，而排序栏
+ * 早已没有，留下的是一段谁也解释不清的空白。
  */
-private val FloatingBarClearance = 96.dp
+private val ListBottomGap = Spacing.Xl
 
 /** 骨架列表的卡片数量（多于一屏，保证任何屏幕高度都填满）。 */
 private const val SkeletonCardCount = 8

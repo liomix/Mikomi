@@ -1,21 +1,17 @@
 package com.liomix.mikomi.core.ui.business
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.ui.base.ScrollingText
-import androidx.compose.foundation.clickable
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /**
  * 番剧海报卡：2:3 封面 + 单行滚动标题。
@@ -31,11 +27,13 @@ import androidx.compose.foundation.clickable
  * 一屏十来个卡片的函数体重跑一遍。收窄成 `String / String / String?` + `(String) -> Unit`
  * 后参数全部稳定，网格滚动期间的重组基本只剩真正变化的那几格。
  *
- * @param onCardLongClick 长按入口（个人页的收藏快捷展示用它进收藏页）。
- * 为 null 时走普通 `clickable`，保留默认按压反馈；非 null 时改用 `combinedClickable`
- * 并**关掉按压层**：长按要看到的是「内容在响应」，不是一整块矩形被点亮。
+ * 点击与长按都走 `Modifier.mikomiClickable`：**全站无水波**，网格卡片更不该有 ——
+ * 一屏十张图同时被点亮成灰色矩形，比没有反馈更像卡住了。曾经这一支为了长按手写
+ * `combinedClickable`，漏了 `indication = null`，水波就在网格里回来了；现在长按是
+ * 同一个入口的参数，语义只有一份。
+ *
+ * @param onCardLongClick 长按入口（个人页的收藏快捷展示用它进收藏页）。为 null 时只处理点击。
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AnimePosterCard(
     id: String,
@@ -47,38 +45,28 @@ fun AnimePosterCard(
 ) {
     val heroController = LocalHeroFlightController.current
     val haptics = LocalHapticFeedback.current
-    val interaction = remember { MutableInteractionSource() }
 
-    val gestures = if (onCardLongClick == null) {
-        Modifier.clickable {
+    Column(
+        modifier = modifier.mikomiClickable(
+            onLongClick = onCardLongClick?.let { callback ->
+                {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    callback(id)
+                }
+            },
+        ) {
             heroController?.begin(id)
             onCardClick(id)
-        }
-    } else {
-        Modifier.combinedClickable(
-            interactionSource = interaction,
-            indication = null,
-            onClick = {
-                heroController?.begin(id)
-                onCardClick(id)
-            },
-            onLongClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                onCardLongClick(id)
-            },
-        )
-    }
-
-    Column(modifier = modifier.then(gestures)) {
+        },
+    ) {
         AnimeCoverImage(
             url = coverUrl,
             contentDescription = title,
             heroKey = id,
             // 网格滚动时关掉淡入：一屏多图同时过渡会叠出大量 alpha 混合。
-            crossfade = false,
-            // 骨架行变成真实卡片的瞬间，封面仍在解码：这里继续用同款扫光占位，
+            // 骨架行变成真实卡片的瞬间，封面仍在解码：组件默认就用同款扫光占位，
             // 把「骨架 → 灰块 → 封面」接成「骨架 → 扫光 → 封面」。
-            shimmerWhileLoading = true,
+            crossfade = false,
         )
         Spacer(modifier = Modifier.height(Spacing.Tight))
         ScrollingText(

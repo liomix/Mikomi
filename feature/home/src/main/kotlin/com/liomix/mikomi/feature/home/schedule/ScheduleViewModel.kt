@@ -24,8 +24,8 @@ import kotlinx.coroutines.launch
  * 时间表 ViewModel：一周七天 × 多源合并后的本周放送表。
  *
  * 离线优先，与首页、排行榜同样的口径：本地有数据就展示，刷新失败只置失败位。
- * 刷新状态共用 [RefreshState]；本页没有可见的刷新入口（错误态里才有重试），
- * 所以 `userVisible` 恒为 false。
+ * 刷新状态共用 [RefreshState]；顶栏的刷新按钮读 `isRefreshing`，只有一个入口
+ * （用户点了才刷新），所以 `userVisible` 恒为 false。
  */
 @HiltViewModel
 class ScheduleViewModel @Inject constructor(
@@ -42,21 +42,23 @@ class ScheduleViewModel @Inject constructor(
         scheduleRepository.observeSchedule(),
         refreshState,
     ) { entries, refresh ->
-        when {
+        val content = when {
             // 本地已有数据时优先展示（离线优先），刷新失败不再覆盖为错误态。
-            entries.isNotEmpty() -> ScheduleUiState.Success(
+            entries.isNotEmpty() -> ScheduleContent.Success(
                 days = groupByWeekday(entries),
                 dates = currentWeekDates(),
             )
 
-            refresh.inFlight -> ScheduleUiState.Loading
-            refresh.failed -> ScheduleUiState.Error
-            else -> ScheduleUiState.Empty
+            refresh.inFlight -> ScheduleContent.Loading
+            refresh.failed -> ScheduleContent.Error
+            else -> ScheduleContent.Empty
         }
+        // 「在途」是跨态字段：出错重试、顶栏刷新、首载都靠它点按钮上的进度环。
+        ScheduleUiState(isRefreshing = refresh.inFlight, content = content)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = ScheduleUiState.Loading,
+        initialValue = ScheduleUiState(),
     )
 
     init {
@@ -136,17 +138,28 @@ class ScheduleViewModel @Inject constructor(
     }
 }
 
-/** 时间表页面的展示状态。 */
-sealed interface ScheduleUiState {
-    data object Loading : ScheduleUiState
+/**
+ * 时间表页面的展示状态。
+ *
+ * 外层的 [isRefreshing] 是**跨态**的：骨架屏、内容、空态、错误态都可以同时在刷新，
+ * 所以它不能塞进内容态里 —— 塞进去之后「错误页刷新中」就无处安放。
+ */
+data class ScheduleUiState(
+    val isRefreshing: Boolean = false,
+    val content: ScheduleContent = ScheduleContent.Loading,
+)
+
+/** 内容态：同一时刻只会是其中一种。 */
+sealed interface ScheduleContent {
+    data object Loading : ScheduleContent
 
     data class Success(
         val days: List<List<ScheduleEntry>>,
         /** 与 [days] 一一对应的本周日期（`yyyy-MM-dd`，索引 0 = 周一）。 */
         val dates: List<String>,
-    ) : ScheduleUiState
+    ) : ScheduleContent
 
-    data object Empty : ScheduleUiState
+    data object Empty : ScheduleContent
 
-    data object Error : ScheduleUiState
+    data object Error : ScheduleContent
 }

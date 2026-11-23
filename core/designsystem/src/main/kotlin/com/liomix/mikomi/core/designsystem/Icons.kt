@@ -23,6 +23,9 @@ object Icons {
      */
     private const val CHEVRON_FILL_SCALE = 1.35f
 
+    /** 返回箭头的缩放：与同栏圆形图标并排时不至于「大一号」。 */
+    private const val BACK_IOS_SCALE = 0.85f
+
     /** ArrowBack（AutoMirrored.Rounded）。 */
     val Back: ImageVector by lazy {
         ImageVector.Builder(
@@ -63,18 +66,28 @@ object Icons {
             viewportHeight = 24f,
             autoMirror = true,
         )
-            .path(fill = SolidColor(Color.Companion.Black)) {
-                moveTo(16.62f, 2.99f)
-                curveToRelative(-0.49f, -0.49f, -1.28f, -0.49f, -1.77f, 0f)
-                lineTo(6.54f, 11.3f)
-                curveToRelative(-0.39f, 0.39f, -0.39f, 1.02f, 0f, 1.41f)
-                lineToRelative(8.31f, 8.31f)
-                curveToRelative(0.49f, 0.49f, 1.28f, 0.49f, 1.77f, 0f)
-                reflectiveCurveToRelative(0.49f, -1.28f, 0f, -1.77f)
-                lineTo(9.38f, 12f)
-                lineToRelative(7.25f, -7.25f)
-                curveToRelative(0.48f, -0.48f, 0.48f, -1.28f, -0.01f, -1.76f)
-                close()
+            // 折角收一档：这颗箭头的内容是 10×18，和同栏的 24dp 圆形图标（直径 22）并排
+            // 时明显大一号。缩到 0.85（约 8.5×15.3），与 `Back` 缩放后的量级对齐。
+            // 只缩放、不改 path，它仍然是 material 原文。
+            .group(
+                scaleX = BACK_IOS_SCALE,
+                scaleY = BACK_IOS_SCALE,
+                pivotX = 12f,
+                pivotY = 12f,
+            ) {
+                path(fill = SolidColor(Color.Companion.Black)) {
+                    moveTo(16.62f, 2.99f)
+                    curveToRelative(-0.49f, -0.49f, -1.28f, -0.49f, -1.77f, 0f)
+                    lineTo(6.54f, 11.3f)
+                    curveToRelative(-0.39f, 0.39f, -0.39f, 1.02f, 0f, 1.41f)
+                    lineToRelative(8.31f, 8.31f)
+                    curveToRelative(0.49f, 0.49f, 1.28f, 0.49f, 1.77f, 0f)
+                    reflectiveCurveToRelative(0.49f, -1.28f, 0f, -1.77f)
+                    lineTo(9.38f, 12f)
+                    lineToRelative(7.25f, -7.25f)
+                    curveToRelative(0.48f, -0.48f, 0.48f, -1.28f, -0.01f, -1.76f)
+                    close()
+                }
             }
             .build()
     }
@@ -924,6 +937,30 @@ object Icons {
                 close()
             }
             .build()
+    }
+
+    /** Schedule（Outlined）。 */
+    val Clock: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Clock",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            // 表盘：外圈 + 镂空（两段子路径靠非零环绕自动挖空）。
+            addPath(
+                pathData = addPathNodes(
+                    "M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z",
+                ),
+                fill = SolidColor(Color.Companion.Black),
+            )
+            // 指针：12 点方向的短针 + 指向 4 点的长针。
+            addPath(
+                pathData = addPathNodes("M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"),
+                fill = SolidColor(Color.Companion.Black),
+            )
+        }.build()
     }
 
     /** CalendarMonth（Outlined）。 */

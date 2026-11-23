@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.AirTime
@@ -50,7 +51,9 @@ import com.liomix.mikomi.feature.home.R
 import java.util.Calendar
 import java.util.Locale
 import kotlinx.coroutines.launch
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.mikomiClickable
+import com.liomix.mikomi.core.ui.business.RefreshButton
 
 /** 一周七天（周一 ~ 周日）对应的标签索引。 */
 private val WEEKDAYS = listOf(
@@ -88,21 +91,29 @@ private val TAB_ROW_CORNER_RADIUS = 22.dp
  * - 七天用 [TabBar] 日历标签栏选中（星期 + 月-日，今天显示「今」），
  *   [HorizontalPager] 左右滑动切换，二者联动，默认定位到今天；
  * - 放送时间按三态精度展示：精确时刻 / 约 HH:mm（低优先级源推断）/ 时间待定 / 待公布；
- * - 加载 / 数据 / 空态 / 错误由 [ScheduleUiState] 驱动，错误态可通过
- *   [onRetryClick] 重新拉取。
+ * - 加载 / 数据 / 空态 / 错误由 [ScheduleContent] 驱动，错误态可通过
+ *   [onRefresh] 重新拉取；
+ * - 顶栏右侧常驻刷新按钮，刷新中换成进度环（组件见 [RefreshButton]）。
  */
 @Composable
 fun ScheduleScreen(
     uiState: ScheduleUiState,
     onBackClick: () -> Unit,
     onAnimeTitleClick: (String) -> Unit,
-    onRetryClick: () -> Unit,
+    onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     BaseScreenLayout(
         title = stringResource(R.string.home_action_schedule),
         modifier = modifier,
         onBackClick = onBackClick,
+        actions = {
+            RefreshButton(
+                isRefreshing = uiState.isRefreshing,
+                contentDescription = stringResource(R.string.schedule_refresh),
+                onClick = onRefresh,
+            )
+        },
         // 内容自带滚动（标签栏固定 + Pager 内的 LazyColumn），骨架不再套一层垂直滚动。
         scrollable = false,
         contentPadding = PaddingValues(Spacing.None),
@@ -110,25 +121,25 @@ fun ScheduleScreen(
     ) {
         // 各状态都撑满剩余高度：weight 而不是 fillMaxSize，
         // 否则子项会按整列高度测量，把标签栏顶出可视区。
-        when (uiState) {
-            ScheduleUiState.Loading -> ScheduleSkeleton(
+        when (val content = uiState.content) {
+            ScheduleContent.Loading -> ScheduleSkeleton(
                 modifier = Modifier.weight(1f),
             )
 
-            ScheduleUiState.Empty -> EmptyState(
+            ScheduleContent.Empty -> EmptyState(
                 message = stringResource(R.string.schedule_empty),
                 modifier = Modifier.weight(1f),
             )
 
-            ScheduleUiState.Error -> ErrorState(
+            ScheduleContent.Error -> ErrorState(
                 message = stringResource(R.string.schedule_error),
-                onRetry = onRetryClick,
+                onRetry = onRefresh,
                 modifier = Modifier.weight(1f),
             )
 
-            is ScheduleUiState.Success -> ScheduleContent(
-                days = uiState.days,
-                dates = uiState.dates,
+            is ScheduleContent.Success -> ScheduleContentBody(
+                days = content.days,
+                dates = content.dates,
                 onAnimeTitleClick = onAnimeTitleClick,
                 modifier = Modifier.weight(1f),
             )
@@ -137,7 +148,7 @@ fun ScheduleScreen(
 }
 
 @Composable
-private fun ScheduleContent(
+private fun ScheduleContentBody(
     days: List<List<ScheduleEntry>>,
     dates: List<String>,
     onAnimeTitleClick: (String) -> Unit,
@@ -312,15 +323,30 @@ private fun ScheduleAnimeRow(
                             )
                         }
                         if (scheduleLabel.isNotBlank()) {
-                            Text(
-                                text = scheduleLabel,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (entry.airTime.hasExactTime) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                            )
+                            // 时钟 + 时间是一个整体：颜色由「是否精确时刻」决定，
+                            // 图标跟着文字走，不然会在主色文字旁留一颗灰图标。
+                            val timeColor = if (entry.airTime.hasExactTime) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.Xxs),
+                            ) {
+                                Icon(
+                                    icon = Icons.Clock,
+                                    contentDescription = null,
+                                    tint = timeColor,
+                                    // 夹在 12sp 行里的小图标：16dp，与文字基线视觉等重。
+                                    size = Sizes.IconXs,
+                                )
+                                Text(
+                                    text = scheduleLabel,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = timeColor,
+                                )
+                            }
                         }
                     }
                 }

@@ -14,24 +14,17 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.Icons
-import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
-import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.model.RankEntry
 import com.liomix.mikomi.core.ui.base.ErrorState
-import com.liomix.mikomi.core.ui.base.mikomiClickable
-import com.liomix.mikomi.core.ui.base.Icon
+import com.liomix.mikomi.core.ui.business.RefreshButton
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.Tab
 import com.liomix.mikomi.core.ui.base.TabBar
@@ -73,7 +66,13 @@ fun RankScreen(
         title = stringResource(R.string.home_action_rank),
         modifier = modifier,
         onBackClick = onBackClick,
-        actions = { RefreshAction(isRefreshing = uiState.refreshing, onClick = onRefreshClick) },
+        actions = {
+            RefreshButton(
+                isRefreshing = uiState.refreshing,
+                contentDescription = stringResource(R.string.rank_refresh),
+                onClick = onRefreshClick,
+            )
+        },
         // 内容自带滚动（标签栏固定 + Pager 内的 LazyColumn），骨架不再套一层垂直滚动。
         scrollable = false,
         contentPadding = PaddingValues(Spacing.None),
@@ -94,40 +93,6 @@ fun RankScreen(
             // weight 而不是 fillMaxSize：标签栏先占位，剩余高度才给列表。
             modifier = Modifier.weight(1f),
         )
-    }
-}
-
-/**
- * 顶栏刷新动作：刷新中用一个同尺寸的进度环替代图标，避免按钮宽度跳动；
- * 同时禁用点击，防止连点叠加多次请求。
- *
- * 不用 M3 的 `IconButton`：它自带水波，而全站已决定没有任何按压层
- * （`mikomiClickable` 固定 `indication = null`）。自己给一个 48dp 触控区
- * （无障碍最小目标），视觉仍是 20dp 的环 / 24dp 的图标。
- */
-@Composable
-private fun RefreshAction(
-    isRefreshing: Boolean,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .size(Sizes.TouchTarget)
-            .clip(CircleShape)
-            .mikomiClickable(enabled = !isRefreshing, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (isRefreshing) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(RefreshIndicatorSize),
-                strokeWidth = RefreshIndicatorStroke,
-            )
-        } else {
-            Icon(
-                icon = Icons.Refresh,
-                contentDescription = stringResource(R.string.rank_refresh),
-            )
-        }
     }
 }
 
@@ -273,12 +238,6 @@ private enum class RankType(@param:StringRes val labelRes: Int) {
     JAPANESE(R.string.rank_tab_japanese),
     CHINESE(R.string.rank_tab_chinese),
 }
-
-/** 顶栏刷新进度环的直径。 */
-private val RefreshIndicatorSize = 20.dp
-
-/** 顶栏刷新进度环的线宽。 */
-private val RefreshIndicatorStroke = Stroke.Thick
 
 /**
  * 列表底部收尾余量。

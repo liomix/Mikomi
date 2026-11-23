@@ -57,6 +57,7 @@ import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.ui.base.Icon
+import com.liomix.mikomi.core.ui.business.RefreshButton
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
 import com.liomix.mikomi.core.ui.window.Insets
@@ -137,12 +138,12 @@ fun PlgTstStoreScreen(
             onBackClick = onBackClick,
             actions = {
                 SortAction(current = uiState.sort, onSelect = onSortChange)
-                IconButton(onClick = onRefresh, enabled = !uiState.loading) {
-                    Icon(
-                        icon = Icons.Refresh,
-                        contentDescription = stringResource(R.string.settings_store_refresh),
-                    )
-                }
+                RefreshButton(
+                    // 与「排序」一致压在顶栏右侧；刷新中换成进度环并禁用连点。
+                    isRefreshing = uiState.loading,
+                    contentDescription = stringResource(R.string.settings_store_refresh),
+                    onClick = onRefresh,
+                )
             },
             scrollable = false,
             contentPadding = PaddingValues(Spacing.None),

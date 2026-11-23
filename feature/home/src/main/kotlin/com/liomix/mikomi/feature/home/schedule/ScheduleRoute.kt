@@ -18,7 +18,7 @@ fun ScheduleRoute(
         uiState = uiState,
         onBackClick = onBackClick,
         onAnimeTitleClick = onAnimeTitleClick,
-        onRetryClick = viewModel::refresh,
+        onRefresh = viewModel::refresh,
         modifier = modifier,
     )
 }

@@ -94,10 +94,13 @@ private val TopBarScrimTail = Spacing.Sm
 /**
  * 快捷栏折叠的行程。
  *
- * 取快捷栏的展开高度（栏内上下留白 4 + 4、按钮 58）。这里不做精确依赖：它只决定
- * 「高度压缩得多快」，即使差几 dp，终点也永远是被 `coerceIn` 收在 0 和 1 上的。
+ * 约等于一个栏高（栏内留白 8 + 按钮 58）：折叠完成时，快捷栏刚好把自己滚进顶栏
+ * 背景里，所以这段行程和它的实际高度天然对得上。
+ *
+ * 行程决定「多快」，不影响「压到哪」—— 终点始终是栏顶贴住顶栏底色下沿，
+ * 由 `coerceIn` 收在 0 和 1 上。
  */
-private val ActionTabsFoldDistance = 66.dp
+private val ActionTabsFoldDistance = 60.dp
 
 /** 距列表末尾还有几项时预取下一页。 */
 private const val LOAD_MORE_THRESHOLD = 3

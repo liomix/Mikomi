@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -33,6 +34,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Density
@@ -178,10 +181,10 @@ private fun rememberHomeChrome(): HomeChrome {
 private fun HomePullToRefresh(
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
+    state: PullToRefreshState,
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val state = rememberPullToRefreshState()
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
@@ -314,12 +317,16 @@ private fun HomeFeed(
 
     val showsSkeleton = anime.isEmpty()
     val chrome = rememberHomeChrome()
-
     val scrollChrome = rememberHomeScrollChrome(gridState, chrome)
+
+    // 下拉进度要同时喂给两处：指示器（容器自己用）和轮播图的拉伸。
+    // 所以 state 在这里创建，不由容器内部各建一个。
+    val pullState = rememberPullToRefreshState()
 
     HomePullToRefresh(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
+        state = pullState,
         modifier = modifier.fillMaxSize(),
     ) {
         // 顶栏不在网格里：它固定贴着状态栏，网格从它底下滚过。
@@ -345,6 +352,7 @@ private fun HomeFeed(
                                 banners = banners,
                                 chrome = chrome,
                                 autoPlay = bannerVisible,
+                                pullFraction = pullState.distanceFraction,
                                 onAnimeClick = onAnimeClick,
                             )
                             val fold = scrollChrome.actionTabsFold.value
@@ -435,6 +443,7 @@ private fun HomeHero(
     banners: List<Anime>,
     chrome: HomeChrome,
     autoPlay: Boolean,
+    pullFraction: Float,
     onAnimeClick: (String) -> Unit,
 ) {
     val height = BANNER_HEIGHT + chrome.top
@@ -442,7 +451,16 @@ private fun HomeHero(
         modifier = Modifier
             .bleedToEdge(start = chrome.start, end = chrome.end, top = Spacing.None)
             .fillMaxWidth()
-            .height(height),
+            .height(height)
+            // 下拉时把封面往上拉长一点：`scaleY` 只改绘制，不推挤下面的内容，
+            // 所以是「橡皮筋」而不是「整页跟着位移」。锚点在顶部 —— 底边被拉走，
+            // 顶边纹丝不动，手感才是「从上面拽住一块布」。
+            // 系数 0.06：拉到刷新阈值（`distanceFraction = 1`）时只长 6%，
+            // 是「拽了一下」而不是「图被撑开」。上限 1.5 只防极端，正常拉不到。
+            .graphicsLayer {
+                scaleY = 1f + pullFraction.coerceIn(0f, 1.5f) * 0.06f
+                transformOrigin = TransformOrigin(0.5f, 0f)
+            },
     ) {
         if (banners.isEmpty()) {
             HomeBannerSkeleton()
@@ -489,6 +507,8 @@ private fun HomeTopBarOverlay(
             onProfileClick = onProfileClick,
             searchHint = searchHint,
             profileContentDescription = profileContentDescription,
+            // 底色补满时，按钮本身也要换成页面配色 —— 否则白底白字。
+            solid = alpha,
             // 用 padding 定位而不是 BottomCenter：按钮位置不能随底色下沿变，
             // 否则加个尾巴就把头像往下推了。
             modifier = Modifier

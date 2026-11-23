@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.AppTheme
@@ -47,17 +48,19 @@ internal val HomeTopBarHeight = 40.dp
  * 自适应：整栏随页面滚动，顶部安全区由 HomeScreen 的 contentPadding 承担；
  * 区域间垂直间距由主页网格的 spacedBy 统一提供，本组件不再自带垂直 padding。
  *
- * ## 材质：压在图上，所以用 media 一档
+ * ## 材质：两套配色，按 [solid] 过渡
  *
- * 这一栏现在浮在沉浸式头图之上，不再是「页面上的一行控件」。因此底色不能取
- * `surfaceVariant` —— 那是页面底色的一档，压到封面上会变成一块实心补丁，遮掉画面。
- * 改取 `AppTheme.colors.media`：
+ * 这一栏有两种处境，配色不能只有一套：
  *
- * - 底 `surfaceStrong`（44% 白）：三档里最实的一档。14% 压在亮封面上读不出「有一个
- *   控件」，28% 仍会在雪景、天空这类画面上发虚 —— 搜索框是操作入口，宁可实一点也不该
- *   让人看不清边界；
- * - 边 `outline`（14% 白 + [Stroke.Thin]）：比底色淡一圈，玻璃感靠它交代边界；
- * - 内容 `content`（纯白）/ `contentSecondary`：图上专用的文字色，本身不透明。
+ * - **浮在头图上**（`solid = 0`）：白字 + 半透明白底，取 `AppTheme.colors.media`。
+ *   底用 `surfaceStrong`（62% 白）—— 14% 压在亮封面上读不出「有一个控件」，
+ *   28% 在雪景、天空上仍会发虚；边是 `outline`（14% 白 + [Stroke.Thin]），
+ *   玻璃感靠这一圈交代。
+ * - **压在页面底色上**（`solid = 1`）：上滑之后顶栏底色就是页面底色，白字白底什么都
+ *   看不见。此时换页面配色 —— 底 `surfaceContainerHigh`、字与图标 `onSurfaceVariant`、
+ *   边 `outlineVariant`，靠「容器比底色深一档」划出边界。
+ *
+ * 中间过程按 [solid] 线性插值：两套配色是同一条线的两端，不是到某一帧硬切。
  *
  * 两处控件都用「无点击版的 [Surface] + [mikomiClickable]」而不是 `Surface(onClick)`：
  * Material3 的可点击 Surface 会强制 `minimumInteractiveComponentSize`（最小 48dp），
@@ -72,10 +75,17 @@ fun HomeTopBar(
     searchHint: String,
     profileContentDescription: String,
     modifier: Modifier = Modifier,
+    solid: Float = 0f,
 ) {
     val media = AppTheme.colors.media
+    val colors = MaterialTheme.colorScheme
+    // 三组颜色都按 [solid] 插值：底色从「半透明白」走到「页面容器色」，
+    // 文字从「纯白」走到「页面上次级文字」。中间不会出现某一帧看不清。
+    val container = lerp(media.surfaceStrong, colors.surfaceContainerHigh, solid)
+    val content = lerp(media.content, colors.onSurfaceVariant, solid)
+    val hint = lerp(media.contentSecondary, colors.onSurfaceVariant, solid)
     // 一栏两个控件共用同一份材质：同底、同边、同厚度，看起来才是一个东西。
-    val glass = BorderStroke(Stroke.Thin, media.outline)
+    val glass = BorderStroke(Stroke.Thin, lerp(media.outline, colors.outlineVariant, solid))
 
     Row(
         modifier = modifier
@@ -85,7 +95,7 @@ fun HomeTopBar(
     ) {
         Surface(
             shape = CircleShape,
-            color = media.surfaceStrong,
+            color = container,
             border = glass,
             modifier = Modifier
                 .size(HomeTopBarHeight)
@@ -99,7 +109,7 @@ fun HomeTopBar(
                 Icon(
                     icon = Icons.Person,
                     contentDescription = profileContentDescription,
-                    tint = media.content,
+                    tint = content,
                     // 24 -> 20：圆底由 48 收到 40，图标按同比例缩，否则头像会显得顶满。
                     size = Sizes.IconMd,
                 )
@@ -110,7 +120,7 @@ fun HomeTopBar(
 
         Surface(
             shape = CircleShape,
-            color = media.surfaceStrong,
+            color = container,
             border = glass,
             modifier = Modifier
                 .weight(1f)
@@ -129,14 +139,14 @@ fun HomeTopBar(
                 Icon(
                     icon = Icons.Search,
                     contentDescription = null,
-                    tint = media.content,
+                    tint = content,
                     size = Sizes.IconMd,
                 )
                 Spacer(modifier = Modifier.width(Spacing.Sm))
                 Text(
                     text = searchHint,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = media.contentSecondary,
+                    color = hint,
                     // 有界宽度才能省略：否则长提示词会把图标顶出去。
                     modifier = Modifier.weight(1f),
                     maxLines = 1,

@@ -16,5 +16,4 @@ dependencies {
     implementation(libs.androidx.compose.animation)
     api(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.coil.compose)
-    implementation(libs.coil.network.okhttp)
 }

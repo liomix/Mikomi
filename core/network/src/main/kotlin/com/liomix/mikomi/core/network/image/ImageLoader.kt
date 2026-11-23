@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.image
+package com.liomix.mikomi.core.network.image
 
 import android.content.Context
 import coil3.ImageLoader as CoilImageLoader
@@ -85,7 +85,7 @@ object ImageLoader {
      * 之所以由这里而不是 `Application` 直接调 `SingletonImageLoader`：
      * 让 app 模块不必依赖 coil —— 换图片库时只改 core:ui 一个文件。
      */
-    fun install(context: Context) {
+    fun install() {
         SingletonImageLoader.setSafe(object : SingletonImageLoader.Factory {
             override fun newImageLoader(context: Context): CoilImageLoader = new(context)
         })

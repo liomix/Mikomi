@@ -111,8 +111,18 @@ internal val PageTransitionStyle.motionMillis: Int
         PageTransitionStyle.None -> 0
     }
 
-/** 本次转场是「进入」还是「返回 / 替换」。 */
-internal enum class PageMotionDirection { Enter, Back }
+/**
+ * 本次转场是「进入」「返回」，还是「首帧」。
+ *
+ * [Initial] 不是第三种动效，而是「这一次组合根本没有转场」：冷启动、进程恢复、
+ * Activity 重建时，返回栈是被**画出来**的，不是被**导航出来**的。若把首帧也当成
+ * 进入，用户打开 App 的第一眼就会看到首页从右侧 48dp 推上来 —— 一次他从未触发的转场。
+ *
+ * 它与 [PageTransitionStyle.None] 的区别只在**原因**：`None` 是用户选了「不要动效」，
+ * `Initial` 是产品规则「没有导航就没有入场」。执行路径是同一条（装饰器直接放行），
+ * 所以不存在第二套渲染逻辑。
+ */
+internal enum class PageMotionDirection { Enter, Back, Initial }
 
 /**
  * 当前这次转场的方向，由 `MikomiNavHost` 按返回栈长度给出。
@@ -244,6 +254,11 @@ private fun PageMotionSurface(style: PageTransitionStyle, content: @Composable (
  * 返回时目标页必须**直接可见**（Telegram 的返回只动被关闭的那一页），而目标页在返回
  * 的那一刻恰好也是「首次组合」，所以方向必须冻结：不冻结就会反过来播一次入场。
  *
+ * 判据只有一条：**只有 [PageMotionDirection.Enter] 才播入场**。返回（目标页本来就在、
+ * 只是变回前台）与首帧（栈是被画出来的，见 [PageMotionDirection.Initial]）都不该有动效。
+ * 不写成「Back 时不播」的排除法，是因为每多一种「不该动」的原因就要多一个排除分支，
+ * 迟早漏掉一种；按「什么才播」来判，新原因天然落在不播那一侧。
+ *
  * 档位同理，而且要求更硬一点：装饰器实例必须**不随档位重建**。装饰器一换实例，
  * `NavDisplay` 会把整条装饰链连同每个页面的组合状态一起重来，等于把当前页重新挂载——
  * 用户只是点了下选项，屏幕上的页面却整块闪烁、滚动位置也跟着抖。所以档位走
@@ -260,7 +275,7 @@ internal fun pageMotionDecorator(): NavEntryDecorator<NavKey> =
         val requestedStyle = LocalPageTransitionStyle.current
         val direction = remember { requestedDirection }
         val style = remember { requestedStyle }
-        if (direction == PageMotionDirection.Back || style == PageTransitionStyle.None) {
+        if (direction != PageMotionDirection.Enter || style == PageTransitionStyle.None) {
             entry.Content()
         } else {
             PageMotionSurface(style) { entry.Content() }

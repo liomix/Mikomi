@@ -157,7 +157,7 @@ fun rememberImagePainter(
  * @param enabled 传 `false` 可关闭（例如用户开了省流、或列表还在骨架态）。
  */
 @Composable
-fun rememberCoverPrefetch(
+fun CoverPrefetch(
     urls: List<String?>,
     enabled: Boolean = true,
 ) {

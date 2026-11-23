@@ -20,8 +20,8 @@ import com.liomix.mikomi.core.ui.R
 @Composable
 fun ErrorState(
     message: String,
-    onRetry: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    onRetry: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier.fillMaxSize(),

@@ -32,7 +32,7 @@ import com.liomix.mikomi.core.ui.base.Tab
 import com.liomix.mikomi.core.ui.base.TabBar
 import com.liomix.mikomi.core.ui.base.TabItemStyle
 import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
-import com.liomix.mikomi.core.ui.image.rememberCoverPrefetch
+import com.liomix.mikomi.core.ui.image.CoverPrefetch
 import com.liomix.mikomi.feature.home.R
 import kotlinx.coroutines.launch
 
@@ -197,7 +197,7 @@ private fun RankList(
 
     // 榜单是一次性拿到全量（前 50）的，滚到第 30 名时再下载封面已经迟了。
     // 数据到手就把整榜的封面排进预取队列，滚动时命中磁盘缓存，图直接出现。
-    rememberCoverPrefetch(entries.map { it.anime.coverUrl })
+    CoverPrefetch(entries.map { it.anime.coverUrl })
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),

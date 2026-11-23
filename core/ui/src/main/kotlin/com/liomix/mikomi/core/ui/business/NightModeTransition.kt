@@ -1,12 +1,12 @@
 package com.liomix.mikomi.core.ui.business
 
-import android.R
 import android.app.Activity
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.Bitmap
+import androidx.core.graphics.createBitmap
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -180,7 +180,7 @@ private suspend fun captureWindow(activity: Activity): Bitmap? {
     if (width <= 0 || height <= 0) return null
 
     val bitmap = try {
-        Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        createBitmap(width, height)
     } catch (e: OutOfMemoryError) {
         Log.w(REVEAL_LOG_TAG, "Snapshot allocation failed: ${width}x$height", e)
         return null
@@ -308,7 +308,7 @@ internal fun prepareWindowReveal(
     toDark: Boolean,
 ): WindowRevealSession? {
     val decor = activity.window.peekDecorView() as? ViewGroup ?: return null
-    val content = activity.findViewById<ViewGroup>(R.id.content) ?: return null
+    val content = activity.findViewById<ViewGroup>(android.R.id.content) ?: return null
     if (content.width <= 0 || content.height <= 0) {
         snapshot.recycle()
         return null

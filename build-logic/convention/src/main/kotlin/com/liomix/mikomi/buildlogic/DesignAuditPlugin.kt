@@ -1172,20 +1172,25 @@ class DesignAuditPlugin : Plugin<Project> {
                         for (m in funHead.findAll(text)) {
                             if (m.groupValues[1].isNotEmpty()) continue
                             val name = m.groupValues[2]
-                            val startLine = text.take(m.range.first).count { it == '\n' }
-                            // 从签名首行开始配对括号，取到整段参数表（默认值里有成对括号，不影响总数）
-                            val sb = StringBuilder()
+                            // 从签名首字符开始**逐字符**配对括号。按行 count 不行：
+                            // `fun Foo(content: @Composable () -> Unit) {` 一行内括号成对抵消，
+                            // 行级 depth 恒为 0，会把后面整文件的参数都吞进来（SkeletonShimmer 就中过招）。
+                            val signature = StringBuilder()
                             var depth = 0
-                            var i = startLine
-                            while (i < lines.size) {
-                                val line = lines[i]
-                                sb.append(line).append('\n')
-                                depth += line.count { it == '(' } - line.count { it == ')' }
-                                if (depth <= 0) break
-                                i++
+                            var seenOpen = false
+                            var done = false
+                            var idx = m.range.first
+                            while (idx < text.length && !done) {
+                                val ch = text[idx]
+                                signature.append(ch)
+                                when (ch) {
+                                    '(' -> { depth++; seenOpen = true }
+                                    ')' -> { depth--; if (seenOpen && depth == 0) done = true }
+                                }
+                                idx++
                             }
                             val found = Regex("""\b\w+\s*:\s*(\w+)\b""")
-                                .findAll(sb.toString())
+                                .findAll(signature.toString())
                                 .map { it.groupValues[1] }
                                 .filter { it in styleTypes }
                                 .toList()

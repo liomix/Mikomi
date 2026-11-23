@@ -78,15 +78,6 @@ private object TopBarDefaults {
     /** 顶栏内容高度，不含状态栏。 */
     val Height = Sizes.TopBarHeight
 
-    /**
-     * 返回箭头的视觉尺寸。
-     *
-     * 24dp 与 Telegram 的顶栏图标同档。曾经取 20dp（因为「24 在一行里偏笨重」），
-     * 但那只在图标**没有触控背景**时才成立：24dp 图形配 54dp 栏高，左右各有 15dp 留白，
-     * 才是 Material 与 TG 都在用的比例；20dp 会显得整个顶栏「空得发慌」，热区也偏小。
-     */
-    val IconSize = Sizes.IconMd
-
     /** 右侧多个动作之间的间距。 */
     val ActionSpacing = Spacing.Xs
 }

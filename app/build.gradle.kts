@@ -44,6 +44,8 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:ui"))
     implementation(project(":core:navigation"))
+    // 进程级初始化要装图片加载器（Application.onCreate），它现在归网络层。
+    implementation(project(":core:network"))
     implementation(project(":feature:home"))
     implementation(project(":feature:animap"))
     implementation(project(":feature:community"))

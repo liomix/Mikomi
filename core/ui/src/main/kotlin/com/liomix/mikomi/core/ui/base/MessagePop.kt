@@ -44,7 +44,7 @@ import com.liomix.mikomi.core.designsystem.Spacing
  */
 data class ToastData(
     val message: String,
-    @DrawableRes val iconRes: Int? = null,
+    @param:DrawableRes val iconRes: Int? = null,
 )
 
 /**

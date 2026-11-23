@@ -258,14 +258,28 @@ fun MikomiNavHost(
         }
     }
 
-    // 转场方向：栈变长 = 进入（新页要从右 48dp 处淡入），变短 = 返回（目标页直接可见）。
-    // 上一次的栈深存在普通数组里而不是 State：它只在组合期间被读，写入放 SideEffect，
-    // 避免「组合里改状态 → 再排一次组合」。
+    // 转场方向分三种：首帧 / 进入 / 返回。
+    //
+    // - **首帧**（冷启动、进程恢复、Activity 重建）：返回栈是被**画出来**的，不是被
+    //   **导航出来**的。实测症状是「打开 App，首页从右边推 48dp 再淡实」——一次用户
+    //   从未触发的转场。首帧一律按 `Initial`，页面直接可见。
+    // - **栈变长** = 进入（新页从右 48dp 处淡入）；**变短** = 返回（目标页直接可见）。
+    //
+    // 两个「上一次的值」都存普通数组而不是 State：它们只在组合期间被读，写入放 SideEffect，
+    // 避免「组合里改状态 → 再排一次组合」。首帧标记在第一次 SideEffect 就翻面，
+    // 因此之后任何一次导航引起的重组都会读到 true，那次导航照常播入场。
     val stackDepth = navigator.stack.size
     val lastStackDepth = remember { intArrayOf(stackDepth) }
-    val motionDirection =
-        if (stackDepth >= lastStackDepth[0]) PageMotionDirection.Enter else PageMotionDirection.Back
-    SideEffect { lastStackDepth[0] = stackDepth }
+    val firstFrameDone = remember { booleanArrayOf(false) }
+    val motionDirection = when {
+        !firstFrameDone[0] -> PageMotionDirection.Initial
+        stackDepth >= lastStackDepth[0] -> PageMotionDirection.Enter
+        else -> PageMotionDirection.Back
+    }
+    SideEffect {
+        firstFrameDone[0] = true
+        lastStackDepth[0] = stackDepth
+    }
 
     // 根容器统一铺主题背景：各页面不再需要各自设置底色，
     // 夜间模式下除巡礼页（WebView 地图不透明，直接盖住）外全部为纯黑。

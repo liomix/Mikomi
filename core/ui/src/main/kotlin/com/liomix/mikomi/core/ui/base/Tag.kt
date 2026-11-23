@@ -3,12 +3,14 @@ package com.liomix.mikomi.core.ui.base
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,17 +22,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.TagSpec
 import com.liomix.mikomi.core.designsystem.Radius
 import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.Stroke
 
 /** 元信息徽标的小圆角：它是「贴住文字的一块底」，不是胶囊。 */
@@ -68,6 +73,16 @@ enum class TagTone {
 
     /** 只读：固定的浅容器底 + 次级文字色，不描边、不随状态变。 */
     Neutral,
+
+    /**
+     * 压在画面上的只读标签：半透明浅底 + 图上文字色。
+     *
+     * 与 [Neutral] 的区别不是深浅，而是**透明度**：底色取
+     * [com.liomix.mikomi.core.designsystem.MediaColors.surface]（14% 白），
+     * 图片从底下透出来，标签才不像贴上去的一块膏药。
+     * 代价是它**只能落在图上** —— 普通浅色页面上几乎是看不见的。
+     */
+    OnMedia,
 }
 
 /**
@@ -103,6 +118,26 @@ data class TagStyle(
             minHeight = TagSpec.ChipHeight,
             textStyle = MaterialTheme.typography.labelMedium,
             tone = TagTone.Neutral,
+        )
+
+        /**
+         * 压在封面 / 视频画面上的一枚胶囊：半透明底 + 图上文字色 + 前置图标的位置。
+         *
+         * 轮播图的评分就是这一档：底色是 [com.liomix.mikomi.core.designsystem.MediaColors.surface]
+         * 的白 14%，压在封面上既压得住又不会切走一块画面。它不属于「页面上的标签」——
+         * 浅色页面上这层底几乎不可见，所以只在图像之上使用。
+         */
+        @Composable
+        fun onMedia(): TagStyle = TagStyle(
+            shape = PillShape,
+            contentPadding = PaddingValues(
+                horizontal = Spacing.Sm,
+                vertical = Spacing.Xxs,
+            ),
+            minHeight = 0.dp,
+            // 图上文字要再重半档：同样的 12sp 压在密密麻麻的封面上会显得发虚。
+            textStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+            tone = TagTone.OnMedia,
         )
 
         /** 元信息徽标：填色小圆角，字号小三档。版本号、状态这类次要信息。 */
@@ -156,6 +191,9 @@ data class TagStyle(
  * @param style 规格预设（[TagStyle.selectable] / [TagStyle.content] / [TagStyle.meta]）；
  *   要微调某一项用 `copy`，不要再往这个签名上挂参数。
  * @param colors 配色；默认按 [TagStyle.tone] 与 [selected] 从主题推导。
+ * @param leadingIcon 前置图标（评分星标这类）；图标不是样式的一部分而是内容，
+ *   所以走签名而不是 [TagStyle]。
+ * @param iconTint 图标色；null 表示跟随当前内容色。
  * @param maxLines 最多几行；默认不限（标签一般是短词，长文案由调用方决定是省略还是换行）。
  * @param overflow 超出 [maxLines] 时怎么收尾。
  */
@@ -167,6 +205,8 @@ fun Tag(
     onClick: (() -> Unit)? = null,
     style: TagStyle = if (onClick != null) TagStyle.selectable() else TagStyle.content(),
     colors: TagColors = style.tone.colorsFor(selected = selected),
+    leadingIcon: ImageVector? = null,
+    iconTint: Color? = null,
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Ellipsis,
 ) {
@@ -216,10 +256,20 @@ fun Tag(
         // 当父级把高度限制住时（例如嵌在 `Row` 里、`Row` 又撑满了一张卡片的高度），
         // 标签会跟着把最大高度也吃满：收藏区的「共 3 部」曾被拉成 948px 高，
         // 同一列里的网格因此被挤到 0 高度，整块区域看起来是空的。
-        Box(
+        Row(
             modifier = Modifier.padding(style.contentPadding),
-            contentAlignment = Alignment.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.Xxs),
         ) {
+            if (leadingIcon != null) {
+                // 与文字同排的小图标走 [Sizes.IconXs]：夹在字行里的图标只有这一档。
+                Icon(
+                    icon = leadingIcon,
+                    contentDescription = null,
+                    tint = iconTint ?: LocalContentColor.current,
+                    size = Sizes.IconXs,
+                )
+            }
             Text(
                 text = text,
                 style = style.textStyle,
@@ -259,6 +309,12 @@ private fun TagTone.colorsFor(selected: Boolean): TagColors {
         TagTone.Neutral -> TagColors(
             container = colors.surfaceContainerHigh,
             content = colors.onSurfaceVariant,
+        )
+
+        // 容器与文字都来自 media 一档：底是半透明白，字是压图专用的纯白。
+        TagTone.OnMedia -> TagColors(
+            container = AppTheme.colors.media.surface,
+            content = AppTheme.colors.media.content,
         )
     }
 }

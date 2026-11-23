@@ -45,14 +45,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.Motion
-import com.liomix.mikomi.core.designsystem.PillShape
-import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.ScrollingText
+import com.liomix.mikomi.core.ui.base.Tag
+import com.liomix.mikomi.core.ui.base.TagStyle
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.skeletonBaseColor
 import com.liomix.mikomi.core.ui.image.AsyncImage
@@ -242,40 +242,15 @@ private fun BannerItem(
             val rating = formatRating(anime.rating)
             if (rating != null) {
                 Spacer(modifier = Modifier.height(Spacing.Tight))
-                RatingPill(rating = rating)
+                // 样式在设计系统里（TagStyle.onMedia）：半透明白底 + 图上文字色 + 星标。
+                Tag(
+                    text = rating,
+                    style = TagStyle.onMedia(),
+                    leadingIcon = Icons.Star,
+                    iconTint = AppTheme.colors.rating,
+                )
             }
         }
-    }
-}
-
-/**
- * 评分胶囊：半透明磨砂底 + 星标 + 数值，比裸露的星标+文字更精致。
- */
-@Composable
-private fun RatingPill(
-    rating: String,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .clip(PillShape)
-            .background(AppTheme.colors.media.surface)
-            .padding(horizontal = Spacing.Sm, vertical = Spacing.Xxs),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.Xxs),
-    ) {
-        Icon(
-            icon = Icons.Star,
-            contentDescription = null,
-            tint = AppTheme.colors.rating,
-            size = Sizes.IconXs,
-        )
-        Text(
-            text = rating,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = AppTheme.colors.media.content,
-        )
     }
 }
 

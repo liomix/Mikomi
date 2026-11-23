@@ -53,8 +53,9 @@ private val HomeTopBarHeight = 40.dp
  * `surfaceVariant` —— 那是页面底色的一档，压到封面上会变成一块实心补丁，遮掉画面。
  * 改取 `AppTheme.colors.media`：
  *
- * - 底 `surfaceProminent`（28% 白）：比常态的 `surface`（14%）更实一档。14% 压在
- *   亮封面上几乎读不出「有一个控件」，图标也跟着发虚；
+ * - 底 `surfaceStrong`（44% 白）：三档里最实的一档。14% 压在亮封面上读不出「有一个
+ *   控件」，28% 仍会在雪景、天空这类画面上发虚 —— 搜索框是操作入口，宁可实一点也不该
+ *   让人看不清边界；
  * - 边 `outline`（14% 白 + [Stroke.Thin]）：比底色淡一圈，玻璃感靠它交代边界；
  * - 内容 `content`（纯白）/ `contentSecondary`：图上专用的文字色，本身不透明。
  *
@@ -84,7 +85,7 @@ fun HomeTopBar(
     ) {
         Surface(
             shape = CircleShape,
-            color = media.surfaceProminent,
+            color = media.surfaceStrong,
             border = glass,
             modifier = Modifier
                 .size(HomeTopBarHeight)
@@ -109,7 +110,7 @@ fun HomeTopBar(
 
         Surface(
             shape = CircleShape,
-            color = media.surfaceProminent,
+            color = media.surfaceStrong,
             border = glass,
             modifier = Modifier
                 .weight(1f)

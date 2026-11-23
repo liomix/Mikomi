@@ -21,6 +21,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.ColorPainter
@@ -28,7 +30,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
-import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.ui.base.ScrollingText
@@ -42,7 +43,8 @@ import kotlinx.coroutines.delay
 /**
  * 首页轮播图：全宽贴边的整张封面，标题直接压在图上。
  *
- * 视觉层：一张图，一次标题，没有别的 —— 没有渐变遮罩、没有评分胶囊、没有指示器。
+ * 视觉层：一张图、一次标题、底边渐隐到页面底色 —— 没有压暗画面的黑色遮罩、没有评分
+ * 胶囊、没有指示器。
  * 指示器被移除是刻意的：头图只有 2~5 张，翻页本身可见，再钉一排圆点只是在画面底部
  * 多一行与内容无关的小方块。
  *
@@ -165,6 +167,29 @@ private fun BannerItem(
             onError = { settled = true },
         )
 
+        // 底部渐隐到**页面底色**（不是黑色 scrim）：头图贴着网格，硬切的底边会让它
+        // 看起来像一块贴上去的矩形。渐隐之后它在视线里是「这张图慢慢没了」，
+        // 而不是「这里有一条边界」。
+        //
+        // 用 `background` 而不是 `scrim`：scrim 是给白字垫黑、让字压得住，会吃掉画面；
+        // 这里要的是让图**消失**，所以终点必须就是页面自己的底色，日/夜各自闭环。
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            // 过渡从中段就开始，并且分三段收尾：两个色标之间的线性渐变
+                            // 在深色封面上会读成一条斜线，多段之后才是「慢慢化开」。
+                            0.30f to Color.Transparent,
+                            0.62f to MaterialTheme.colorScheme.background.copy(alpha = 0.35f),
+                            0.86f to MaterialTheme.colorScheme.background.copy(alpha = 0.82f),
+                            1f to MaterialTheme.colorScheme.background,
+                        ),
+                    ),
+                ),
+        )
+
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -173,8 +198,9 @@ private fun BannerItem(
             ScrollingText(
                 text = anime.title,
                 // 字距不加：中文方块字加 0.1sp 只会让标题看起来是散的（见 `Font.kt`）。
+                // 颜色跟页面底色走而不是固定白：底部已经渐隐成背景色，白字在日间会消失。
                 style = MaterialTheme.typography.titleMedium.copy(
-                    color = AppTheme.colors.media.content,
+                    color = MaterialTheme.colorScheme.onBackground,
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 enabled = true,
@@ -183,14 +209,21 @@ private fun BannerItem(
     }
 }
 
-// 与 HomeScreen 的轮播骨架屏共用：骨架与真实头图必须同高，否则 banners 到货的那一刻
-// 整个头图区会「跳」一下。所以不再是 file-private。
-internal val BANNER_HEIGHT = 180.dp
+/**
+ * 头图高度。
+ *
+ * 240dp ≈ 常见手机屏宽的 2/3：够撑起「这是一张背景画」的存在感，又不至于把下面的
+ * 网格挤到一屏之外。180dp 时它更像一条横幅，标题压上去显得局促。
+ *
+ * 与 HomeScreen 的轮播骨架屏共用：骨架与真实头图必须同高，否则 banners 到货的那一刻
+ * 整个头图区会「跳」一下。所以不再是 file-private。
+ */
+internal val BANNER_HEIGHT = 240.dp
 
 /**
  * 自动翻页间隔。
  *
- * 4s 太赶：一张封面还没看清楚就切走了，而且每次自动翻页都要重新请求 + 解码下一张。
- * 6s 是「读得完标题、又不至于让人以为卡住」的档位。
+ * 15s：头图是「背景画」而不是要人盯着的幻灯片 —— 多数时间用户是在下面的网格里挑番，
+ * 翻得太勤会一直把视线往回拽，还会反复触发下一张的请求与解码。
  */
-private const val AUTO_SCROLL_INTERVAL_MS = 6_000L
+private const val AUTO_SCROLL_INTERVAL_MS = 15_000L

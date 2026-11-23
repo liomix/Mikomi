@@ -57,6 +57,10 @@ private val HOME_ACTIONS = listOf(
  * 首页快捷入口：时间表 / 排行榜 / 分类，三列均分。
  *
  * 每个入口触控目标 ≥48dp；目的地由 [onActionClick] 交给上层路由处理（当前为占位）。
+ *
+ * 高度只由三处内边距决定：图标 28dp 与文字、间距都不动，收的是栏与按钮自己的留白
+ * （12 + 8 → 4 + 4）。整栏从 90dp 降到 66dp —— 头图加高的那部分正是从这里让出来的，
+ * 省下的高度换画面，而不是换内容。
  */
 @Composable
 fun HomeActionTabs(
@@ -69,7 +73,7 @@ fun HomeActionTabs(
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         Row(
-            modifier = Modifier.padding(vertical = Spacing.Md),
+            modifier = Modifier.padding(vertical = Spacing.Xs),
             horizontalArrangement = Arrangement.SpaceAround,
         ) {
             HOME_ACTIONS.forEach { item ->
@@ -94,7 +98,7 @@ private fun ActionButton(
         modifier = modifier
             .clip(RoundedCornerShape(Radius.Md))
             .mikomiClickable(onClick = onClick)
-            .padding(horizontal = Spacing.Lg, vertical = Spacing.Sm),
+            .padding(horizontal = Spacing.Lg, vertical = Spacing.Xs),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(

@@ -1,33 +1,24 @@
 package com.liomix.mikomi.feature.home
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.AppTheme
-import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.Stroke
-import com.liomix.mikomi.core.ui.base.Icon
-import com.liomix.mikomi.core.ui.base.mikomiClickable
+import com.liomix.mikomi.core.ui.base.Avatar
+import com.liomix.mikomi.core.ui.base.SearchBox
 
 /**
  * 顶栏高度：与巡礼页搜索条完全一致（`AniMapSearchBar` 的 `SearchBarHeight = 40.dp`）。
@@ -62,11 +53,9 @@ internal val HomeTopBarHeight = 40.dp
  *
  * 中间过程按 [solid] 线性插值：两套配色是同一条线的两端，不是到某一帧硬切。
  *
- * 两处控件都用「无点击版的 [Surface] + [mikomiClickable]」而不是 `Surface(onClick)`：
- * Material3 的可点击 Surface 会强制 `minimumInteractiveComponentSize`（最小 48dp），
- * 把高度顶回 48，改 `.size()` 也没用。这里要的是与巡礼页一致的 40dp 触控区，
- * 所以点击放到修饰符上（`clip` 在前，按压区仍按圆形裁剪），语义由
- * [mikomiClickable] 的 `role = Button` 补回。
+ * 具体控件在 `core:ui` 的 [SearchBox] / [Avatar] 里，这里只负责三件事：
+ * 算颜色（按 [solid] 插值）、给尺寸（40dp）、排版（头像 + 12dp + 搜索框）。
+ * 换句话说，首页不该拥有一份「自己的搜索框」—— 它只是一处在用通用组件。
  */
 @Composable
 fun HomeTopBar(
@@ -93,66 +82,27 @@ fun HomeTopBar(
             .height(HomeTopBarHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Surface(
-            shape = CircleShape,
-            color = container,
+        Avatar(
+            contentDescription = profileContentDescription,
+            onClick = onProfileClick,
+            containerColor = container,
+            contentColor = content,
             border = glass,
-            modifier = Modifier
-                .size(HomeTopBarHeight)
-                .clip(CircleShape)
-                .mikomiClickable(onClick = onProfileClick),
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    icon = Icons.Person,
-                    contentDescription = profileContentDescription,
-                    tint = content,
-                    // 24 -> 20：圆底由 48 收到 40，图标按同比例缩，否则头像会显得顶满。
-                    size = Sizes.IconMd,
-                )
-            }
-        }
+            modifier = Modifier.size(HomeTopBarHeight),
+        )
 
         Spacer(modifier = Modifier.width(Spacing.Md))
 
-        Surface(
-            shape = CircleShape,
-            color = container,
+        SearchBox(
+            hint = searchHint,
+            onClick = onSearchClick,
+            containerColor = container,
+            contentColor = content,
+            hintColor = hint,
             border = glass,
             modifier = Modifier
                 .weight(1f)
-                .height(HomeTopBarHeight)
-                .clip(CircleShape)
-                .mikomiClickable(onClick = onSearchClick),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    // 14 / 8 对齐巡礼页搜索条：同样的内缩、同样的图标尺寸，
-                    // 两处搜索框并排看是同一个东西。
-                    .padding(horizontal = Spacing.Gutter),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    icon = Icons.Search,
-                    contentDescription = null,
-                    tint = content,
-                    size = Sizes.IconMd,
-                )
-                Spacer(modifier = Modifier.width(Spacing.Sm))
-                Text(
-                    text = searchHint,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = hint,
-                    // 有界宽度才能省略：否则长提示词会把图标顶出去。
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
+                .height(HomeTopBarHeight),
+        )
     }
 }

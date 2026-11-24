@@ -378,20 +378,20 @@ val Media: MediaColors = MediaColors(
     // 压在封面上的副标题和卡片里的副标题，是同一条规则的两个落点。
     contentSecondary = Color.White.copy(alpha = TextAlpha.Secondary),
     contentTertiary = Color.White.copy(alpha = TextAlpha.Tertiary),
-    outline = Color.White.copy(alpha = 0.14f),
-    surface = Color.White.copy(alpha = 0.14f),
-    surfaceProminent = Color.White.copy(alpha = 0.28f),
-    surfaceStrong = Color.White.copy(alpha = 0.62f),
-    scrim = Color.Black.copy(alpha = 0.72f),
-    scrimSoft = Color.Black.copy(alpha = 0.62f),
+    outline = Color.White.copy(alpha = MediaAlpha.Hairline),
+    surface = Color.White.copy(alpha = MediaAlpha.Surface),
+    surfaceProminent = Color.White.copy(alpha = MediaAlpha.SurfaceProminent),
+    surfaceStrong = Color.White.copy(alpha = MediaAlpha.SurfaceStrong),
+    scrim = Color.Black.copy(alpha = MediaAlpha.Scrim),
+    scrimSoft = Color.Black.copy(alpha = MediaAlpha.ScrimSoft),
     void = Color.Black,
     backdrop = Color(0xFF26262A),
     backdropTop = Color(0xFF14161B),
     backdropBottom = Color(0xFF05060A),
-    overlayContainer = Color.White.copy(alpha = 0.85f),
-    overlayContent = Color.Black.copy(alpha = 0.88f),
-    track = Color.White.copy(alpha = 0.26f),
-    trackBuffered = Color.White.copy(alpha = 0.42f),
+    overlayContainer = Color.White.copy(alpha = MediaAlpha.OverlayContainer),
+    overlayContent = Color.Black.copy(alpha = MediaAlpha.OverlayContent),
+    track = Color.White.copy(alpha = MediaAlpha.Track),
+    trackBuffered = Color.White.copy(alpha = MediaAlpha.TrackBuffered),
 )
 
 /** 应用图标预览底色：与真实启动图标的白底一致，所以不能跟主题走。 */
@@ -457,6 +457,48 @@ object TextAlpha {
 
     /** 三级文字：占位、单位、非活跃刻度。 */
     const val Tertiary: Float = 0.45f
+}
+
+/**
+ * 压在图像上的**透明度梯度**。
+ *
+ * 这些数原本散在 [Media] 的构造里（一串 `copy(alpha = …)`），谁想调「浮层有多实」
+ * 都得先读一遍颜色。收敛成一张表之后，三档浮层是递进的、轨道两档是同族的，
+ * 改一处不会让某一档单独漂出去。
+ *
+ * 全部是「白/黑的浓淡」，与主题色无关 —— 这是 [Media] 这一族的性质：它描述的是
+ * 「白压在封面上」这件事，日夜都一样。透明度是这条规则的另一半，所以放在一起。
+ */
+object MediaAlpha {
+    /** 描边 / 最轻的一层：能看出「有一个面」，但几乎不吃画面。 */
+    const val Hairline: Float = 0.14f
+
+    /** 常态浮层。与 [Hairline] 同值：边与底同强度，玻璃感只靠边界交代。 */
+    const val Surface: Float = 0.14f
+
+    /** 强调浮层：按下态、已开启的开关。 */
+    const val SurfaceProminent: Float = 0.28f
+
+    /** 压亮画面的独立控件（搜索框、头像）：最实的一档。 */
+    const val SurfaceStrong: Float = 0.62f
+
+    /** 压暗画面用的遮罩。 */
+    const val Scrim: Float = 0.72f
+
+    /** 轻一档的遮罩：盖住画面但仍要看得出底下是什么。 */
+    const val ScrimSoft: Float = 0.62f
+
+    /** 浅色浮层底板（音量 HUD 这类）。 */
+    const val OverlayContainer: Float = 0.85f
+
+    /** 浅色底板上的内容：近黑，不用纯黑是为了不显得脏。 */
+    const val OverlayContent: Float = 0.88f
+
+    /** 进度条轨道。 */
+    const val Track: Float = 0.26f
+
+    /** 进度条已缓冲段。 */
+    const val TrackBuffered: Float = 0.42f
 }
 
 /**

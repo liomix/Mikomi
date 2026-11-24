@@ -27,10 +27,17 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** 模糊半径：顶栏那段内容被抹成色块，但仍看得出有东西经过。 */
-private val BlurRadius = 20.dp
+private val BlurRadius = 12.dp
 
-/** 模糊之上那层底色的不透明度：再高就完全看不出模糊，再低文字压不住。 */
-private const val BlurScrimAlpha = 0.70f
+/**
+ * 模糊层的可见度。
+ *
+ * 关键顺序：**先铺一层不透明的 barColor 挡住下面的原内容**，再把模糊结果以这个
+ * 不透明度浮上去。之前的写法是「模糊层 + 半透明 scrim」，顶栏是透的 ——
+ * 原内容（清晰的）从 55% 的缝里透出来，和模糊副本叠在一起，看起来就像「根本没糊」。
+ * 那正是「半径怎么调都看不出区别」的原因。
+ */
+private const val BlurLayerAlpha = 0.62f
 
 /**
  * 低版本（无模糊）时那层底色的最低不透明度。
@@ -102,6 +109,8 @@ fun BlurredTopBar(
         // `CLAMP` 而不是 `DECAL`：顶栏贴着屏幕边缘，DECAL 会让最外圈发暗。
         SideEffect {
             blurLayer.renderEffect = BlurEffect(radiusPx, radiusPx, TileMode.Clamp)
+            // 模糊结果的可见度：`drawLayer` 没有 alpha 参数，只能设在 layer 上。
+            blurLayer.alpha = BlurLayerAlpha
         }
     }
 
@@ -141,15 +150,14 @@ fun BlurredTopBar(
                 .onSizeChanged { size -> barHeight = with(density) { size.height.toDp() } }
                 .clipToBounds()
                 .drawWithContent {
+                    // 1) 不透明底，**先挡住原内容**。
+                    //    旧写法是「模糊层 + 半透明 scrim」，顶栏整体是透的：清晰的
+                    //    原内容从缝里透出来，和不清晰的副本叠在一起，于是半径怎么调
+                    //    都像「没糊」。挡住之后，下面只剩模糊结果。
+                    drawRect(barColor.copy(alpha = maxOf(barColor.alpha, LegacyScrimAlpha)))
+                    // 2) 模糊结果以半透明浮上去 —— 这一步才是「毛玻璃」，不是遮罩。
                     if (blurEnabled) {
                         drawLayer(blurLayer)
-                        drawRect(barColor.copy(alpha = BlurScrimAlpha))
-                    } else {
-                        // 没有模糊时铺实底：半透明会让人看到内容在底下穿过，
-                        // 又看不清，是最难看的中间状态。
-                        drawRect(
-                            barColor.copy(alpha = maxOf(barColor.alpha, LegacyScrimAlpha)),
-                        )
                     }
                     // 别漏了这行：`drawWithContent` 不自动画子内容，
                     // 少了它就是「底和模糊都有、顶栏控件全不见」。

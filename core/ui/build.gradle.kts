@@ -16,4 +16,6 @@ dependencies {
     implementation(libs.androidx.compose.animation)
     api(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.coil.compose)
+    // Lottie 只在 LottieIcon 内部使用，API 只暴露 `@RawRes Int`，不把 lottie 类型漏给调用方。
+    implementation(libs.lottie.compose)
 }

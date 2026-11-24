@@ -72,6 +72,7 @@ import com.liomix.mikomi.core.ui.base.PressButtonStyle
 import com.liomix.mikomi.core.ui.base.PressIconButton
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.window.LocalWindowSize
+import com.liomix.mikomi.core.ui.business.LottieIcons
 import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.feature.detail.component.CreditDetailSheet
 import com.liomix.mikomi.feature.detail.component.collapsingHeader
@@ -542,7 +543,7 @@ private fun FavoriteButton(
  * 放在顶层：`LottieCompositionSpec.RawRes` 是普通 class（不是 data class），
  * 每次新建都会让 `rememberLottieComposition` 的 key 变化、重新走一遍加载。
  */
-private val StarCollectSpec = LottieCompositionSpec.RawRes(R.raw.star_collect)
+private val StarCollectSpec = LottieCompositionSpec.RawRes(LottieIcons.StarCollect)
 
 /** 普通内容 Tab 的滚动容器（概述 / 主创等非懒加载内容）。 */
 @Composable

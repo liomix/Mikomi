@@ -32,6 +32,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.liomix.mikomi.core.ui.business.LocalNightModeToggleController
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.Motion
+import com.liomix.mikomi.core.ui.business.LottieIcons
 import com.liomix.mikomi.feature.settings.R
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 
@@ -56,7 +57,7 @@ fun BAndWSwitch(
     // 宿主的夜间状态是「点击即刻生效」的；上游（DataStore）会慢一两帧，仅在无宿主时退回用它。
     val darkMode = controller?.isDarkMode?.value ?: isDarkMode
 
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.sun_moon))
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(LottieIcons.SunMoon))
 
     // 图标表示**目标**模式，与右侧文案同一口径：
     // 夜间 →「切换到日间模式」→ 太阳；日间 →「切换到夜间模式」→ 月亮。

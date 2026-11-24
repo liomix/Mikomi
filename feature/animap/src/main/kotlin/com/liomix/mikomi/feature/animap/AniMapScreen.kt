@@ -41,6 +41,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.liomix.mikomi.core.navigation.ImmersionBridge
+import com.liomix.mikomi.core.ui.business.LottieIcon
+import com.liomix.mikomi.core.ui.business.LottieIcons
 import com.liomix.mikomi.core.ui.window.Insets
 
 /** 巡礼地图（anitabi）页面地址。 */
@@ -238,8 +240,8 @@ fun AniMapScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    LottieLoading(
-                        rawRes = R.raw.map,
+                    LottieIcon(
+                        rawRes = LottieIcons.MapLoading,
                         size = 96.dp,
                         // 这份动画自带配色（青/绿/橙），本来就是在同色底图上用的；
                         // 统一染色会把它压成一坨单色，反而看不出画的是什么。

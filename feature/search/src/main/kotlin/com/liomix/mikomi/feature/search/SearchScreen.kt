@@ -38,6 +38,8 @@ import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.ui.base.Icon
+import com.liomix.mikomi.core.ui.business.LottieIcon
+import com.liomix.mikomi.core.ui.business.LottieIcons
 import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.feature.search.components.SearchHistoryTags
 import com.liomix.mikomi.feature.search.components.SearchHotCard
@@ -119,13 +121,18 @@ fun SearchScreen(
                                     topPadding = Spacing.Xxs,
                                     action = {
                                         IconButton(onClick = onClearHistory) {
-                                            Icon(
-                                                icon = Icons.Delete,
+                                            // 用 delete 动画而不是静态垃圾桶图标：它自带
+                                            // 「灰 → 红」的变色（0.87s 播一次停住），点之前是
+                                            // 中性的灰、点下去立刻读成「红色 = 危险动作」。
+                                            // `tint = null` 保留原色，染色会把这个反馈压成单色。
+                                            LottieIcon(
+                                                rawRes = LottieIcons.Delete,
+                                                size = Sizes.IconMd,
+                                                tint = null,
+                                                iterations = 1,
                                                 contentDescription = stringResource(
                                                     R.string.search_history_clear,
                                                 ),
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                size = Sizes.IconMd,
                                             )
                                         }
                                     },

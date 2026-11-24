@@ -43,6 +43,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.liomix.mikomi.core.designsystem.Media
 import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.core.designsystem.ThemePalette
+import com.liomix.mikomi.core.ui.business.LottieIcons
 import com.liomix.mikomi.feature.settings.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -292,8 +293,8 @@ private fun SwatchEmoji(
  */
 private val ThemePalette.emojiRes: Int?
     get() = when (this) {
-        ThemePalette.Default -> R.raw.diamond_blue
-        ThemePalette.Orange -> R.raw.duck_orange
+        ThemePalette.Default -> LottieIcons.DiamondBlue
+        ThemePalette.Orange -> LottieIcons.DuckOrange
         ThemePalette.Sakura, ThemePalette.Mint, ThemePalette.Purple -> null
     }
 

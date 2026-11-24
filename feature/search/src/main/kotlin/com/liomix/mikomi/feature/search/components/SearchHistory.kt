@@ -1,7 +1,6 @@
 package com.liomix.mikomi.feature.search.components
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +14,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -23,14 +22,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Icons
+import com.liomix.mikomi.core.designsystem.Radius
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
-import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 import com.liomix.mikomi.feature.search.R
@@ -38,8 +36,8 @@ import com.liomix.mikomi.feature.search.R
 /** 历史未展开时最多显示的 chip 数。 */
 private const val CollapsedChipCount = 8
 
-/** 历史 chip 最小高度（Material chip 规格，兼顾触控）与单条最大宽度。 */
-private val ChipMinHeight = 36.dp
+/** 历史 chip 高度与单条最大宽度。32dp 是「一行小字 + 上下各 6dp」的结果。 */
+private val ChipMinHeight = 32.dp
 private val ChipMaxWidth = 180.dp
 
 /**
@@ -103,16 +101,19 @@ private fun SearchHistoryChip(
         modifier = modifier
             .heightIn(min = ChipMinHeight)
             .widthIn(max = ChipMaxWidth),
-        shape = CircleShape,
-        color = Color.Transparent,
-        border = BorderStroke(Stroke.Thin, MaterialTheme.colorScheme.outlineVariant),
+        // 4dp：圆角梯度里最方的一档。历史关键词是「一条可以点的文字」，
+        // 圆角只负责削掉尖角，不负责把它做成一枚按钮。
+        shape = RoundedCornerShape(Radius.Xs),
+        // 容器灰底而不是透明 + 描边：这些词是「可以点的内容」，不是边框里的输入物；
+        // 填充底色让它们连成一片、更好扫读，也少一圈杂线。
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
         Box(
             modifier = Modifier
                 // 组合点击：单击搜索、长按删除。用 `combinedClickable` 而不是自己拼两个手势，
                 // 长按的触发时长与系统一致。
                 .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-                .padding(horizontal = Spacing.Gutter, vertical = Spacing.Sm),
+                .padding(horizontal = Spacing.Sm, vertical = Spacing.Tight),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -136,18 +137,17 @@ private fun SearchHistoryExpandToggle(
     Surface(
         modifier = modifier
             .heightIn(min = ChipMinHeight)
-            .clip(CircleShape)
+            .clip(RoundedCornerShape(Radius.Xs))
             .mikomiClickable(onClick = onClick),
-        shape = CircleShape,
-        color = Color.Transparent,
-        border = BorderStroke(Stroke.Thin, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(Radius.Xs),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
         Row(
             modifier = Modifier.padding(
-                start = Spacing.Gutter,
-                end = Spacing.Compact,
-                top = Spacing.Sm,
-                bottom = Spacing.Sm,
+                start = Spacing.Sm,
+                end = Spacing.Tight,
+                top = Spacing.Tight,
+                bottom = Spacing.Tight,
             ),
             verticalAlignment = Alignment.CenterVertically,
         ) {

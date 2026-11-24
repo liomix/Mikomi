@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
@@ -33,10 +34,11 @@ import com.liomix.mikomi.core.designsystem.Spacing
  *
  * 交互写进组件就只能有一种；写成外观，两种实现共用同一套尺寸与配色。
  *
- * ## 尺寸由调用方给
+ * ## 高度由组件定，宽度由调用方定
  *
- * 高度与宽度都由 `modifier` 决定（`fillMaxWidth().height(...)`）。组件不自带高度：
- * 首页顶栏是 40dp、搜索页是 48dp，写死一个值就把两处绑在一起了。
+ * 高度固定 [Sizes.SearchFieldHeight]（40dp）—— 它是一条输入行，不是可以随页面
+ * 拉高的容器；两处搜索框高度不同会在切页面时读成「换了一个控件」。
+ * 宽度由 `modifier` 决定：等分剩余空间（首页 `weight(1f)`）还是整行铺满都行。
  *
  * ## 颜色也由调用方给
  *
@@ -84,7 +86,8 @@ fun SearchBox(
         color = containerColor,
         contentColor = contentColor,
         border = border,
-        modifier = modifier,
+        // 高度在这里定死；外部若显式再传 `height`，那层约束在外面、会覆盖这里。
+        modifier = modifier.height(Sizes.SearchFieldHeight),
     ) {
         Row(
             modifier = Modifier

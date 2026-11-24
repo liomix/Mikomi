@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -41,6 +42,7 @@ import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.business.LottieIcon
 import com.liomix.mikomi.core.ui.business.LottieIcons
 import com.liomix.mikomi.core.ui.window.Insets
+import com.liomix.mikomi.core.ui.layout.BlurredTopBar
 import com.liomix.mikomi.feature.search.components.SearchHistoryTags
 import com.liomix.mikomi.feature.search.components.SearchHotCard
 import com.liomix.mikomi.feature.search.components.SearchHotEmpty
@@ -81,24 +83,25 @@ fun SearchScreen(
     // 每次进入浏览态都从顶部开始：否则从结果页返回时会把上次的滚动位置
     // （可能停在榜单中段）恢复回来，搜索历史标题被顶出屏幕。
     val browseListState = remember { LazyListState() }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize(),
-    ) {
-        SearchTopBar(
-            query = state.query,
-            onQueryChange = onQueryChange,
-            onSearch = onSearch,
-            onClear = onClear,
-            onBack = onBack,
-        )
-
-        // 内容区随键盘上浮，避免联想被输入法遮挡。
+    BlurredTopBar(
+        modifier = modifier,
+        barColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        bar = {
+            SearchTopBar(
+                query = state.query,
+                onQueryChange = onQueryChange,
+                onSearch = onSearch,
+                onClear = onClear,
+                onBack = onBack,
+            )
+        },
+    ) { barHeight ->
+        // 内容铺满整屏、自己让出顶栏：滚动时列表会走到顶栏下方，
+        // 被那层毛玻璃糊掉 —— 这才是这个顶栏存在的意义。
+        // `barHeight` 是顶栏量出来的真实高度，不要自己再算（状态栏 + 内边距的地方最容易算错）。
         Box(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
+                .fillMaxSize()
                 .windowInsetsPadding(Insets.BottomOrIme),
         ) {
             Crossfade(
@@ -112,6 +115,15 @@ fun SearchScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = Spacing.Xl),
                     ) {
+                        // 用一条**占位 item** 让开顶栏，而不是 `contentPadding.top`。
+                        //
+                        // 原因：`contentPadding` 变大时，LazyList 会调整
+                        // `firstVisibleItemIndex` 来「保持内容的视觉位置」—— 于是列表
+                        // 自己滚掉前两项，首项仍停在顶栏底下。占位 item 是普通内容，
+                        // 长高就是把后面的内容往下推，没有这层补偿。
+                        item(key = "top_bar_inset") {
+                            Spacer(modifier = Modifier.height(barHeight))
+                        }
                         if (state.history.isNotEmpty()) {
                             item(key = "history_header") {
                                 SearchSectionHeader(
@@ -204,6 +216,8 @@ fun SearchScreen(
                         keyword = state.query,
                         suggestions = state.suggestions,
                         state = state.suggestionsState,
+                        // 联想列表没有自己的 contentPadding，用外边距让出顶栏。
+                        modifier = Modifier.padding(top = barHeight),
                         onSuggestionClick = { keyword ->
                             onSearch(keyword)
                             keyboardController?.hide()

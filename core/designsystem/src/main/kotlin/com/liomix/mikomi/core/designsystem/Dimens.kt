@@ -280,6 +280,15 @@ object Sizes {
     val AvatarMd: Dp = 40.dp
 
     /**
+     * 搜索框高度：一条「假输入框 / 输入行」的固定高度。
+     *
+     * 40dp 是控件在顶栏里能放下手势又不压住上方内容的那一档（与 [ChipHeight] 同值、
+     * 但语义不同：那是标签，这是输入行）。**宽度不在这里** —— 各页面自己决定是
+     * 等分剩余空间还是整行铺满。
+     */
+    val SearchFieldHeight: Dp = 40.dp
+
+    /**
      * 名次徽标：一个能装下两位数的圆。
      *
      * 26dp 是「两位数字的最大宽度 + 两侧各 4dp」算出来的，不是随手取的整十 ——
@@ -293,6 +302,7 @@ object Sizes {
         Step("IconMd", IconMd),
         Step("RankBadge", RankBadge),
         Step("ChipHeight", ChipHeight),
+        Step("SearchFieldHeight", SearchFieldHeight),
         Step("AvatarMd", AvatarMd),
         Step("TouchTarget", TouchTarget),
         Step("ButtonHeight", ButtonHeight),

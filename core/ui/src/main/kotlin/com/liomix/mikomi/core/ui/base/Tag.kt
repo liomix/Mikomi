@@ -74,8 +74,18 @@ enum class TagTone {
     /** 可选中：颜色在「透明底 + 中性描边」与「主色淡底 + 主色描边」之间切换。 */
     Selectable,
 
-    /** 只读：固定的浅容器底 + 次级文字色，不描边、不随状态变。 */
+    /** 只读、要显眼：主色淡底 + 主色字，随主题换色。 */
     Neutral,
+
+    /**
+     * 只读、不抢注意力：容器灰底 + 次级文字色。
+     *
+     * 与 [Neutral] 的分工不是「一个更好看」——是**它该不该被看见**：
+     * 题材、年份这类信息用 Neutral（跟主题走）；「清空历史」上面的关键词、
+     * 数量统计这类附属信息用 Muted（灰到底，不与主内容争）。
+     * 目前没有调用方，先留着这一档，等到有真正的场景再按需取用。
+     */
+    Muted,
 }
 
 /**
@@ -287,6 +297,11 @@ private fun TagTone.colorsFor(selected: Boolean): TagColors {
         TagTone.Neutral -> TagColors(
             container = colors.primary.copy(alpha = NeutralContainerAlpha),
             content = colors.primary,
+        )
+
+        TagTone.Muted -> TagColors(
+            container = colors.surfaceContainerHigh,
+            content = colors.onSurfaceVariant,
         )
     }
 }

@@ -2,12 +2,9 @@ package com.liomix.mikomi.feature.search.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -29,8 +26,9 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Icons
+import androidx.compose.foundation.BorderStroke
+import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.ui.base.Icon
@@ -68,8 +66,12 @@ internal fun SearchTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            // 底色由外层的 `BlurredTopBar` 提供（毛玻璃 + 同色 scrim）：
+            // 这里再铺一层会盖住模糊效果。
             .windowInsetsPadding(Insets.Chrome)
-            .padding(start = Spacing.Xs, end = Spacing.Sm, top = Spacing.Sm, bottom = Spacing.Md),
+            // 两侧留白收到最小：返回键（48dp 的 IconButton，图标本身只有 24）自带余量，
+            // 「搜索」按钮的 TextButton 也有内边距，这里再加就只是把输入框挤窄。
+            .padding(top = Spacing.Sm, bottom = Spacing.Md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBack) {
@@ -88,7 +90,6 @@ internal fun SearchTopBar(
             autoFocus = autoFocus,
             modifier = Modifier.weight(1f),
         )
-        Spacer(modifier = Modifier.width(Spacing.Xs))
         TextButton(
             onClick = { submit(query) },
             enabled = query.isNotBlank(),
@@ -126,11 +127,15 @@ private fun TopBarSearchField(
     }
 
     SearchBox(
-        modifier = modifier.height(TopBarFieldHeight),
+        // 高度用组件的默认档（40dp），与首页搜索框同一高度；这里只决定宽度。
+        modifier = modifier,
         // 透明底：搜索页背景就是页面底色，再铺一层容器色会让顶栏看起来有一条
         // 比页面「更亮/更暗」的带子。这里要的是「图标 + 可输入区」，不是一张卡片。
         containerColor = Color.Transparent,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        // 顶栏自己有底色，透明输入框若再没有边，和栏底就是同一块：
+        // 加一圈 `outlineVariant` 细线交代「这里是可输入的区域」，与首页顶栏的玻璃边同款。
+        border = BorderStroke(Stroke.Thin, MaterialTheme.colorScheme.outlineVariant),
         trailing = if (query.isEmpty()) {
             null
         } else {
@@ -182,6 +187,3 @@ private fun TopBarSearchField(
         },
     )
 }
-
-/** 顶栏输入框高度：48dp 是「顶栏内可输入」的触控与视觉平衡点。 */
-private val TopBarFieldHeight = 48.dp

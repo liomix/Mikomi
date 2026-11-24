@@ -27,6 +27,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -85,7 +86,8 @@ fun SearchScreen(
     val browseListState = remember { LazyListState() }
     BlurredTopBar(
         modifier = modifier,
-        barColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        // 透明底色 = 只要那层模糊，不要额外的实底。
+        barColor = Color.Transparent,
         bar = {
             SearchTopBar(
                 query = state.query,
@@ -129,8 +131,9 @@ fun SearchScreen(
                                 SearchSectionHeader(
                                     icon = Icons.History,
                                     title = stringResource(R.string.search_history),
-                                    // 紧贴搜索框，减少顶部空白。
-                                    topPadding = Spacing.Xxs,
+                                    // 紧贴顶栏下沿：这一段留白由顶栏的底部内边距负责，
+                                    // 内容这边再加就是两段叠着。
+                                    topPadding = Spacing.None,
                                     action = {
                                         IconButton(onClick = onClearHistory) {
                                             // 用 delete 动画而不是静态垃圾桶图标：它自带

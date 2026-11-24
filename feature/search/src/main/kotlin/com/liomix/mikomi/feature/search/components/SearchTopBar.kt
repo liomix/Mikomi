@@ -71,7 +71,10 @@ internal fun SearchTopBar(
             .windowInsetsPadding(Insets.Chrome)
             // 两侧留白收到最小：返回键（48dp 的 IconButton，图标本身只有 24）自带余量，
             // 「搜索」按钮的 TextButton 也有内边距，这里再加就只是把输入框挤窄。
-            .padding(top = Spacing.Sm, bottom = Spacing.Md),
+            // 底部内边距只留 8dp：这一段是「顶栏边」到内容的距离，量在顶栏高度里。
+            // 收小它，下面内容（搜索历史）就随之上移，不用给内容加负偏移 ——
+            // 顶栏是 `clipToBounds` 的，负偏移会把首行裁掉。
+            .padding(top = Spacing.Sm, bottom = Spacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBack) {

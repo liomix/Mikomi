@@ -107,6 +107,9 @@ fun BlurredTopBar(
     content: @Composable BoxScope.(barHeight: Dp) -> Unit,
 ) {
     val blurLayer = rememberGraphicsLayer()
+    // 顶栏要「只有模糊、没有底色」时（`barColor` 透明），模糊层得自己带一份背景，
+    // 否则它就是半透明的、下面的原件会透上来。取页面底色，与根容器一致。
+    val blurBackdrop = MaterialTheme.colorScheme.background
     // `barAlpha` 是「这条栏现在有多实」：0 = 完全透明（浮在图上，不糊也不挡），
     // 1 = 完整的毛玻璃。它是 **lambda** 而不是 Float：调用方通常接滚动进度，
     // 逐帧变化的值只能在绘制阶段读，进组合就是整页每帧重组。
@@ -135,7 +138,13 @@ fun BlurredTopBar(
                 .fillMaxSize()
                 .drawWithContent {
                     if (blurEnabled) {
-                        blurLayer.record { this@drawWithContent.drawContent() }
+                        blurLayer.record {
+                            // 模糊层自带一层页面底色。没有它，`barColor` 透明的顶栏
+                            // 会把下面的原内容透上来 —— 又变成「清晰 + 模糊叠加」，
+                            // 那正是之前「怎么调都看不出糊」的原因。
+                            drawRect(blurBackdrop)
+                            this@drawWithContent.drawContent()
+                        }
                     }
                     drawContent()
                 },
@@ -164,14 +173,18 @@ fun BlurredTopBar(
                     //    都像「没糊」。挡住之后，下面只剩模糊结果。
                     val strength = barAlpha().coerceIn(0f, 1f)
                     if (strength > 0f) {
-                        drawRect(
-                            barColor.copy(
-                                alpha = maxOf(barColor.alpha, LegacyScrimAlpha) * strength,
-                            ),
-                        )
-                        // 2) 模糊结果以半透明浮上去 —— 这一步才是「毛玻璃」，不是遮罩。
+                        // `barColor` 透明 = 只要模糊、不要底色：此时底色已经在模糊层里，
+                        // 模糊结果按强度整块盖上来即可（alpha = 1 才挡得住原内容）。
+                        val translucent = barColor.alpha <= 0f
+                        if (!translucent) {
+                            drawRect(
+                                barColor.copy(
+                                    alpha = maxOf(barColor.alpha, LegacyScrimAlpha) * strength,
+                                ),
+                            )
+                        }
                         if (blurEnabled) {
-                            blurLayer.alpha = BlurLayerAlpha * strength
+                            blurLayer.alpha = if (translucent) strength else BlurLayerAlpha * strength
                             drawLayer(blurLayer)
                         }
                     }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -129,33 +131,33 @@ fun BaseScreenLayout(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scrollState: ScrollState = rememberScrollState()
+    val expanded = LocalWindowSize.current.isExpandedWidth
 
-    Column(
-        modifier = modifier
-            .fillMaxSize(),
-    ) {
-        BaseScreenTopBar(
-            title = title,
-            onBackClick = onBackClick,
-            actions = actions,
-        )
-
-        val expanded = LocalWindowSize.current.isExpandedWidth
-
+    // 顶栏只要那层模糊，不要额外的实底：底色透明时组件会把页面背景画进模糊层，
+    // 顶栏就成了「一整块模糊后的页面」，既没有多出来的颜色，也不会透出原件。
+    BlurredTopBar(
+        modifier = modifier,
+        barColor = Color.Transparent,
+        bar = {
+            BaseScreenTopBar(
+                title = title,
+                onBackClick = onBackClick,
+                actions = actions,
+            )
+        },
+    ) { barHeight ->
         // 用 BoxWithConstraints 而不是直接摆 Column：这里需要「滚动视口有多高」这个数，
         // 而视口高度在 verticalScroll 之后是量不到内容区高度的，只能在它外侧取。
         BoxWithConstraints(
             modifier = Modifier
-                // weight 而不是 fillMaxSize：顶栏吃掉的高度必须让出来，否则内容会被顶栏遮住一截。
-                .weight(1f)
-                .fillMaxWidth()
+                .fillMaxSize()
                 // 宽屏收成可读列：一行汉字超过约 40 个，眼睛回扫到下一行起点就开始丢行。
                 // 手机上这个宽度本来就到不了，等于没有这一条。
                 .then(
                     if (expanded) {
                         Modifier
                             .widthIn(max = WindowSpec.ContentMaxWidth)
-                            .align(Alignment.CenterHorizontally)
+                            .align(Alignment.TopCenter)
                     } else {
                         Modifier
                     },
@@ -177,8 +179,14 @@ fun BaseScreenLayout(
                     .then(if (scrollable) Modifier.heightIn(min = maxHeight + OverscrollSlop) else Modifier)
                     .padding(contentPadding),
                 verticalArrangement = verticalArrangement,
-                content = content,
-            )
+            ) {
+                // 让开顶栏的是一条**占位**，不是 `contentPadding`：
+                // 一是 `verticalScroll` 的 padding 属于「内容区之外」，那一截永远不跟手；
+                // 二是滚动容器在 padding 变大时会调整首项索引来保视觉位置（LazyColumn 踩过）。
+                // 占位滚走之后，内容正好从顶栏底下经过 —— 模糊才有东西可糊。
+                Spacer(modifier = Modifier.height(barHeight))
+                content()
+            }
         }
     }
 }

@@ -38,9 +38,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.layout
@@ -60,6 +63,7 @@ import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.designsystem.TextStyles
 import kotlin.math.PI
 import kotlin.math.cos
@@ -68,6 +72,17 @@ import kotlin.math.sin
 
 /** 标签的排布方向：图标与文字横排，或图标在上、文字在下。 */
 enum class TabOrientation { Horizontal, Vertical }
+
+/**
+ * 选中指示器的形态。
+ *
+ * - [Fill]：一块与标签矩形完全重合的淡色底（胶囊 / 方形，由 `shape` 决定）。适合**并列**
+ *   的图标标签，选中项像一枚被按下的键。
+ * - [Underline]：贴底的一条短横线，宽度收在文字范围内。适合**一组文字分类**：它只在
+ *   告诉你「现在看的是哪一栏」，不在页面上多刷一块色。栏底会同时出现一条 1dp 分隔线
+ *   （参考 Material `TabRow` 的做法），否则下划线悬在空中没有落点。
+ */
+enum class TabHighlight { Fill, Underline }
 
 /**
  * 单个标签的样式。
@@ -204,6 +219,7 @@ private data class TabBarVisuals(
     val shape: Shape,
     val style: TabItemStyle,
     val colors: TabColors,
+    val highlight: TabHighlight,
 )
 
 private val LocalTabBarVisuals = compositionLocalOf {
@@ -211,6 +227,7 @@ private val LocalTabBarVisuals = compositionLocalOf {
         shape = PillShape,
         style = TabItemStyle(),
         colors = TabColors(Color.Transparent, Color.Unspecified, Color.Unspecified, Color.Unspecified),
+        highlight = TabHighlight.Fill,
     )
 }
 
@@ -252,21 +269,52 @@ fun TabBar(
     contentPadding: PaddingValues = PaddingValues(horizontal = Spacing.Compact, vertical = Spacing.Xs),
     itemSpacing: Dp = Spacing.Gutter,
     itemStyle: TabItemStyle = TabItemStyle.compact(),
+    highlight: TabHighlight = TabHighlight.Fill,
     content: @Composable RowScope.() -> Unit,
 ) {
     val state = remember { TabBarState() }
     state.selectedIndex = selectedIndex
     state.onSelect = onSelect
-    val visuals = TabBarVisuals(shape = shape, style = itemStyle, colors = colors)
+    val visuals = TabBarVisuals(
+        shape = shape,
+        style = itemStyle,
+        colors = colors,
+        highlight = highlight,
+    )
 
     Surface(
         modifier = modifier,
-        shape = shape,
+        // Underline 的容器不能是圆角：`Surface` 会把内容裁到 `shape`，
+        // 底部分隔线在两端会被圆弧切掉，看起来就是「线的两头是斜的」。
+        // 这一形态的栏通常是透明底，矩形裁剪不改变观感。
+        shape = if (highlight == TabHighlight.Underline) RectangleShape else shape,
         color = containerColor,
         contentColor = colors.selectedContent,
         shadowElevation = elevation,
     ) {
-        Box(modifier = Modifier.padding(contentPadding)) {
+        Box(
+            modifier = Modifier
+                // 分隔线画在 padding 外层：它属于「这一栏的底边」，应该贯穿整栏宽度，
+                // 而不是缩在文字两端。Underline 形态专属 —— Fill 形态的指示器本身就是
+                // 一块底色，再压一条线会变成「胶囊坐在一条横线上」。
+                .then(
+                    if (highlight == TabHighlight.Underline) {
+                        val dividerColor = MaterialTheme.colorScheme.outlineVariant
+                        Modifier.drawBehind {
+                            val y = size.height - Stroke.Thin.toPx() / 2f
+                            drawLine(
+                                color = dividerColor,
+                                start = Offset(0f, y),
+                                end = Offset(size.width, y),
+                                strokeWidth = Stroke.Thin.toPx(),
+                            )
+                        }
+                    } else {
+                        Modifier
+                    },
+                )
+                .padding(contentPadding),
+        ) {
             TabIndicator(state, visuals)
             CompositionLocalProvider(
                 LocalTabBarState provides state,
@@ -345,22 +393,34 @@ private fun TabIndicator(state: TabBarState, visuals: TabBarVisuals) {
         )
     }
 
+    val highlight = visuals.highlight
+    val inset = visuals.style.horizontalPadding
+    val thickness = UnderlineThickness
+
     Box(
         modifier = Modifier
             // 位移、透明度、裁剪都在绘制阶段读：动画推进只让这一层失效。
             .graphicsLayer {
                 val rect = resolveRect(bounds, fromRect, fromIndex, toIndex, progress.value)
+                    ?.toHighlight(highlight, inset.toPx(), thickness.toPx())
                 if (rect != null) {
                     translationX = rect.left
                     translationY = rect.top
                 }
                 alpha = fade.value
-                shape = visuals.shape
+                // Underline 必须笔直：跟着 `shape` 走会变成一根两头半圆的短棒，
+                // 在 2dp 的高度上读起来是「一颗小药丸」而不是一条线。
+                shape = if (highlight == TabHighlight.Underline) {
+                    RectangleShape
+                } else {
+                    visuals.shape
+                }
                 clip = true
             }
             // 尺寸在布局阶段读：只让这一个叶子的测量失效，不惊动标签行。
             .layout { measurable, _ ->
                 val rect = resolveRect(bounds, fromRect, fromIndex, toIndex, progress.value)
+                    ?.toHighlight(highlight, inset.toPx(), thickness.toPx())
                 val width = rect?.width?.roundToInt() ?: 0
                 val height = rect?.height?.roundToInt() ?: 0
                 val placeable = measurable.measure(Constraints.fixed(width, height))
@@ -369,6 +429,32 @@ private fun TabIndicator(state: TabBarState, visuals: TabBarVisuals) {
             .background(visuals.colors.indicator),
     )
 }
+
+/**
+ * 把「标签矩形」换算成指示器矩形。
+ *
+ * [TabHighlight.Fill] 原样使用（指示器就是标签本身）；[TabHighlight.Underline] 收成
+ * 贴底的一条：左右各让出标签的横内边距，于是线宽约等于文字宽 —— 和下划线该有的长度一致，
+ * 而不是跨满整个等分格。
+ */
+private fun Rect.toHighlight(
+    highlight: TabHighlight,
+    insetPx: Float,
+    thicknessPx: Float,
+): Rect = if (highlight == TabHighlight.Underline) {
+    val inset = insetPx.coerceAtMost(width / 2f)
+    Rect(
+        left = left + inset,
+        top = bottom - thicknessPx,
+        right = right - inset,
+        bottom = bottom,
+    )
+} else {
+    this
+}
+
+/** 下划线厚度：与「必须一眼分辨的指示」同档；再细在高密度屏上会被抹成半透明。 */
+private val UnderlineThickness = Stroke.Thick
 
 /**
  * 当前这一帧指示器应处的矩形：`to` 取目标标签的实测边界，`from` 取切换那一刻的快照。
@@ -518,6 +604,9 @@ fun Tab(
     when (resolved.orientation) {
         TabOrientation.Horizontal -> Row(
             modifier = base,
+            // 内容居中而不是靠左：等分宽度时（`weight(1f)`）靠左会让标签看起来
+            // 偏在自己的格子里，几个标签的间距一眼就不齐。
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TabContent(iconSlot, resolved.iconLabelSpacing, label, vertical = false)

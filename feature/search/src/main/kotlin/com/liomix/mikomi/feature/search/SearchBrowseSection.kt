@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -45,6 +47,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -63,6 +67,9 @@ import com.liomix.mikomi.core.ui.base.ScrollingText
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.Tab
 import com.liomix.mikomi.core.ui.base.TabBar
+import com.liomix.mikomi.core.ui.base.TagStyle
+import com.liomix.mikomi.core.ui.base.Tag
+import com.liomix.mikomi.core.ui.base.TabHighlight
 import com.liomix.mikomi.core.ui.base.TabItemStyle
 import com.liomix.mikomi.core.ui.business.AnimeCoverImage
 import java.util.Locale
@@ -146,33 +153,35 @@ internal fun SearchBrowseSection(
             )
         }
 
-        item(key = "hot_tabs") {
-            HotTabs(
+        // 标签栏与榜单是**同一张卡片**的两部分：卡片顶部一行分类，蓝线之下是内容。
+        // 分成两项时标签浮在卡片外，读起来像两个不相干的东西，切换也像换了一整个区块。
+        item(key = "hot_card") {
+            HotCard(
                 selected = state.hotTab,
                 onSelect = onHotTabChange,
-            )
-        }
+            ) {
+                // 内容按 Tab 分组：切换时新榜单重新播一次淡入上移，标签栏本身不动。
+                key(state.hotTab) {
+                    when (state.currentHotState) {
+                        LoadState.Idle,
+                        LoadState.Loading,
+                        -> HotSkeleton()
 
-        // key 随 Tab 变化，切换时让新榜单重新播一次淡入上移。
-        item(key = "hot_content_${state.hotTab.name}") {
-            when (state.currentHotState) {
-                LoadState.Idle,
-                LoadState.Loading,
-                -> HotSkeletonCard()
-
-                LoadState.Error -> RetryCard(
-                    message = stringResource(R.string.search_load_failed),
-                    onRetry = onRetryHot,
-                )
-
-                LoadState.Success -> {
-                    if (state.currentHot.isEmpty()) {
-                        HintCard(text = stringResource(R.string.search_hot_empty))
-                    } else {
-                        HotRankingCard(
-                            items = state.currentHot.take(HOT_LIMIT),
-                            onItemClick = onHotItemClick,
+                        LoadState.Error -> RetryHint(
+                            message = stringResource(R.string.search_load_failed),
+                            onRetry = onRetryHot,
                         )
+
+                        LoadState.Success -> {
+                            if (state.currentHot.isEmpty()) {
+                                EmptyHint(text = stringResource(R.string.search_hot_empty))
+                            } else {
+                                HotRankingList(
+                                    items = state.currentHot.take(HOT_LIMIT),
+                                    onItemClick = onHotItemClick,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -212,7 +221,12 @@ private fun SectionHeader(
     }
 }
 
-/** 日漫 / 国漫热播榜切换。 */
+/**
+ * 日漫 / 国漫热播榜切换。
+ *
+ * 用**下划线**而不是胶囊底：这两栏是同一种内容的两个分类，胶囊会把其中一栏读成
+ * 「被按下的按钮」，压过下面真正要点的那张榜单卡片。
+ */
 @Composable
 private fun HotTabs(
     selected: SearchHotTab,
@@ -222,11 +236,15 @@ private fun HotTabs(
     TabBar(
         selectedIndex = selected.ordinal,
         onSelect = { index -> onSelect(SearchHotTab.entries[index]) },
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.Lg, vertical = Spacing.Xs),
-        itemStyle = TabItemStyle.text(),
+        // 内边距走 contentPadding 而不是 modifier：分割线画在 padding 外层，
+        // 才能从屏幕左边缘贯到右边缘；挂到 modifier 上会让线两端各缩进 16。
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = Spacing.Xs, vertical = Spacing.None),
+        containerColor = Color.Transparent,
+        // 40dp：下划线形态不需要胶囊那圈厚度，48 会留出一条谁也用不上的空白带。
+        itemStyle = TabItemStyle.text().copy(height = Sizes.ChipHeight),
         itemSpacing = Spacing.None,
+        highlight = TabHighlight.Underline,
     ) {
         SearchHotTab.entries.forEachIndexed { index, tab ->
             Tab(
@@ -357,7 +375,7 @@ private fun ExpandTab(
 
 /** 热播榜卡片：一次淡入上移，避免滚动回看时反复播动画。 */
 @Composable
-private fun HotRankingCard(
+private fun HotRankingList(
     items: List<AniRpbHotItem>,
     onItemClick: (AniRpbHotItem) -> Unit,
     modifier: Modifier = Modifier,
@@ -375,7 +393,7 @@ private fun HotRankingCard(
         label = "hotOffset",
     )
 
-    BillboardSurface(
+    Column(
         modifier = modifier.graphicsLayer {
             this.alpha = alpha
             translationY = offsetY
@@ -390,6 +408,45 @@ private fun HotRankingCard(
     }
 }
 
+/** 空提示：与列表同一个卡片，只占一行高度。 */
+@Composable
+private fun EmptyHint(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = Spacing.Xxl),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * 热播榜卡片：顶部是日/国切换，其下就是榜单本身。
+ *
+ * 标签栏放在卡片里面而不是外面 —— 蓝线是卡片的**内部分界**，不是「页面上两个区块之间
+ * 的分割线」。所以它必须与内容同宽、同底，切换时只有内容换面，卡片不动。
+ */
+@Composable
+private fun HotCard(
+    selected: SearchHotTab,
+    onSelect: (SearchHotTab) -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    BillboardSurface(modifier = modifier) {
+        HotTabs(selected = selected, onSelect = onSelect)
+        content()
+    }
+}
+
 /** 榜单卡片外壳：圆角 + 低层容器色，内部行自带点击态。 */
 @Composable
 private fun BillboardSurface(
@@ -397,7 +454,9 @@ private fun BillboardSurface(
     content: @Composable () -> Unit,
 ) {
     Surface(
-        shape = RoundedCornerShape(Radius.Xxl),
+        // 12dp 而不是 20：这张卡里最高的是 84dp 的封面，大圆角会把四角切得像贴纸；
+        // 与页面其它卡片同一档也更好看。
+        shape = RoundedCornerShape(Radius.Lg),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier
             .fillMaxWidth()
@@ -419,111 +478,76 @@ private fun HotRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.Tight)
+            // 左右各 8dp：徽标要在「卡片边框」与「封面」之间**居中**，
+            // 所以它到边框的距离必须等于它到封面的距离。之前是 12 / 6，读起来偏左。
+            .padding(horizontal = Spacing.Sm)
             .clip(RoundedCornerShape(Radius.Xl))
             .mikomiClickable(onClick = onClick)
-            .padding(horizontal = Spacing.Sm, vertical = Spacing.Sm),
+            .padding(horizontal = Spacing.None, vertical = Spacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = item.rank.toString().padStart(2, '0'),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = rankColor(item.rank),
-            modifier = Modifier.width(28.dp),
-        )
+        RankBadge(rank = item.rank)
         Spacer(modifier = Modifier.width(Spacing.Sm))
         AnimeCoverImage(
             url = item.coverUrl,
             contentDescription = item.title,
-            modifier = Modifier.width(40.dp),
+            // 56dp 宽（2:3 → 84dp 高）：这一行只有名次、封面、标题和两个标签，
+            // 封面是唯一能让人一眼认出片子的东西，太小就白占一行的位置。
+            modifier = Modifier.width(56.dp),
         )
-        Spacer(modifier = Modifier.width(Spacing.Md))
+        Spacer(modifier = Modifier.width(Spacing.Sm))
         Column(modifier = Modifier.weight(1f)) {
             ScrollingText(
                 text = item.title,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                 modifier = Modifier.fillMaxWidth(),
             )
-            if (item.updateText.isNotBlank()) {
+            // 信息侧只留两个标签：评分与播放量。集数、更新文案都属于详情页的信息，
+            // 挤在这里会让每一行都变成一条小字带，反而看不出重点。
+            if (item.score != null || item.playCount > 0) {
+                Spacer(modifier = Modifier.height(Spacing.Tight))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.Xxs),
+                ) {
+                    // 圆头胶囊 + 图标跟随内容色：这两个标签是同一行的同级信息，
+                    // 给评分单独一颗金色星标会让「播放量」看起来是另一类东西。
+                    // 底色与文字都来自 `TagTone.Neutral`（主色容器），随主题换。
+                    item.score?.let { score ->
+                        Tag(
+                            text = stringResource(
+                                R.string.search_hot_score,
+                                String.format(Locale.ROOT, "%.1f", score),
+                            ),
+                            style = hotMetaTagStyle,
+                            leadingIcon = Icons.Star,
+                        )
+                    }
+                    if (item.playCount > 0) {
+                        Tag(
+                            text = formatPlayCount(item.playCount),
+                            style = hotMetaTagStyle,
+                            leadingIcon = Icons.Play,
+                        )
+                    }
+                }
+            }
+            // 动漫标签：纯文字不加胶囊。它是这一行的注脚（年份 / 类型 / 关键词），
+            // 再套一层标签框就会和上面的评分、播放量抢注意力。
+            if (item.tags.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(Spacing.Xxs))
                 Text(
-                    text = item.updateText,
+                    text = item.tags.joinToString("  "),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (item.currentEpisodes > 0 || item.score != null || item.playCount > 0) {
-                Spacer(modifier = Modifier.height(Spacing.Xxs))
-                HotMeta(item = item)
-            }
         }
     }
 }
 
-/** 集数 · 评分 · 播放量。 */
-@Composable
-private fun HotMeta(
-    item: AniRpbHotItem,
-    modifier: Modifier = Modifier,
-) {
-    val metaColor = MaterialTheme.colorScheme.onSurfaceVariant
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        var hasPrevious = false
-        if (item.currentEpisodes > 0) {
-            Text(
-                text = stringResource(R.string.search_hot_episodes, item.currentEpisodes),
-                style = MaterialTheme.typography.labelSmall,
-                color = metaColor,
-                maxLines = 1,
-            )
-            hasPrevious = true
-        }
-        if (item.score != null) {
-            if (hasPrevious) MetaSeparator(color = metaColor)
-            Icon(
-                icon = Icons.Star,
-                contentDescription = null,
-                tint = AppTheme.colors.rating,
-                size = Sizes.IconXs,
-            )
-            Spacer(modifier = Modifier.width(Spacing.Xxs))
-            Text(
-                text = String.format(Locale.ROOT, "%.1f", item.score),
-                style = MaterialTheme.typography.labelSmall,
-                color = metaColor,
-                maxLines = 1,
-            )
-            hasPrevious = true
-        }
-        if (item.playCount > 0) {
-            if (hasPrevious) MetaSeparator(color = metaColor)
-            Text(
-                text = stringResource(R.string.search_hot_play_count, formatPlayCount(item.playCount)),
-                style = MaterialTheme.typography.labelSmall,
-                color = metaColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
-private fun MetaSeparator(color: Color) {
-    Text(
-        text = " · ",
-        style = MaterialTheme.typography.labelSmall,
-        color = color,
-    )
-}
-
-/** 播放量按中文习惯缩短，避免右侧挤掉集数与评分。 */
 private fun formatPlayCount(count: Long): String = when {
     count >= 100_000_000 -> String.format(Locale.ROOT, "%.1f亿", count / 100_000_000.0)
     count >= 10_000 -> String.format(Locale.ROOT, "%.1f万", count / 10_000.0)
@@ -532,8 +556,8 @@ private fun formatPlayCount(count: Long): String = when {
 
 /** 榜单骨架屏：与真实行同构（数字块 + 封面块 + 两行文本）。 */
 @Composable
-private fun HotSkeletonCard(modifier: Modifier = Modifier) {
-    BillboardSurface(modifier = modifier) {
+private fun HotSkeleton(modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxWidth()) {
         repeat(HOT_SKELETON_COUNT) {
             Row(
                 modifier = Modifier
@@ -547,8 +571,9 @@ private fun HotSkeletonCard(modifier: Modifier = Modifier) {
                 )
                 Spacer(modifier = Modifier.width(Spacing.Md))
                 SkeletonBox(
-                    modifier = Modifier.size(width = 36.dp, height = 54.dp),
-                    shape = RoundedCornerShape(Radius.Sm),
+                    // 与真实封面同尺寸（56dp 宽、2:3），数据到位时这一行不改变高度。
+                    modifier = Modifier.size(width = 56.dp, height = 84.dp),
+                    shape = RoundedCornerShape(Radius.Md),
                 )
                 Spacer(modifier = Modifier.width(Spacing.Md))
                 Column(
@@ -561,12 +586,17 @@ private fun HotSkeletonCard(modifier: Modifier = Modifier) {
                             .height(14.dp),
                         shape = PillShape,
                     )
-                    SkeletonBox(
-                        modifier = Modifier
-                            .fillMaxWidth(0.25f)
-                            .height(11.dp),
-                        shape = RoundedCornerShape(Radius.Sm),
-                    )
+                    // 信息侧是两个标签（评分 / 播放量），骨架也占两个小胶囊的位置。
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.Xxs)) {
+                        SkeletonBox(
+                            modifier = Modifier.size(width = 44.dp, height = 18.dp),
+                            shape = PillShape,
+                        )
+                        SkeletonBox(
+                            modifier = Modifier.size(width = 40.dp, height = 18.dp),
+                            shape = PillShape,
+                        )
+                    }
                 }
             }
         }
@@ -574,61 +604,83 @@ private fun HotSkeletonCard(modifier: Modifier = Modifier) {
 }
 
 /** 卡片内提示（空态）。 */
-@Composable
-private fun HintCard(
-    text: String,
-    modifier: Modifier = Modifier,
-) {
-    BillboardSurface(modifier = modifier) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = Spacing.Xxl),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
+
 
 /** 卡片内失败提示 + 重试。 */
+/** 失败提示：同样长在卡片里，所以不是一张「错误卡片」，而是这栏内容暂时是空的。 */
 @Composable
-private fun RetryCard(
+private fun RetryHint(
     message: String,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BillboardSurface(modifier = modifier) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = Spacing.Xl),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            TextButton(onClick = onRetry) {
-                Text(text = stringResource(R.string.search_retry))
-            }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = Spacing.Xl),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        TextButton(onClick = onRetry) {
+            Text(text = stringResource(R.string.search_retry))
         }
     }
 }
 
 /**
- * 排名文字色：前三名金/银/铜，其余低对比中性色。
+ * 名次徽标：一个圆，数字居中。
  *
- * 名次色取自设计系统（`Colors.rank`）的 `ink` 那一档 —— 名次色有 fill（压在封面上）
- * 与 ink（当文字用）两种，金属色在白底上只有 1.2:1 的对比度，直接当文字读不出来。
+ * 颜色与排行榜名片同源（`AppTheme.colors.rank`）：前三名取金属色的淡底 + 深墨数字
+ * （`fill` 只用于底，`ink` 用于字 —— 金属色的 `fill` 直接当字会在浅底上发虚），
+ * 第 4 名起落到中性容器色。
  */
 @Composable
-private fun rankColor(rank: Int): Color =
-    AppTheme.colors.rank(rank)?.ink
-        ?: MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+private fun RankBadge(rank: Int) {
+    val metal = AppTheme.colors.rank(rank)
+    val container = metal?.fill?.copy(alpha = RankBadgeFillAlpha)
+        ?: MaterialTheme.colorScheme.surfaceContainerHigh
+    val content = metal?.ink ?: MaterialTheme.colorScheme.onSurfaceVariant
+    Box(
+        modifier = Modifier
+            .size(Sizes.RankBadge)
+            .clip(CircleShape)
+            .background(container),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = rank.toString(),
+            // 行高直接取字号：`labelLarge` 的 20sp 行高是在 12sp 字之外多加的上下空当，
+            // 盒子按行高居中，字就偏上。行高 = 字号之后布局高度贴着字形，Box 的中心
+            // 才是字形的中心；`includeFontPadding = false` 再去掉字体自带的留白。
+            style = rankBadgeTextStyle,
+            fontWeight = FontWeight.Bold,
+            color = content,
+        )
+    }
+}
+
+/** 金属色做底时的浓度：再深会压过封面上的主色，再浅就看不出是金/银/铜。 */
+private const val RankBadgeFillAlpha = 0.18f
+
+/**
+ * 热播行的元信息标签：胶囊（圆头）+ 主色容器底。
+ *
+ * `TagStyle.meta()` 原本是 6dp 小圆角 —— 那是「贴着文字的一块底」，适合在正文里
+ * 当注脚；这一行里它和封面并排、离文字更远，圆头才不显得像一块硬边小方块。
+ */
+private val hotMetaTagStyle: TagStyle
+    @Composable get() = TagStyle.meta().copy(shape = PillShape)
+
+/** 名次徽标里的数字：行高收到字号本身，让字形的中心就是盒子的中心。 */
+private val rankBadgeTextStyle: TextStyle
+    @Composable get() = MaterialTheme.typography.labelLarge.let { base ->
+        base.copy(
+            lineHeight = base.fontSize,
+            platformStyle = PlatformTextStyle(includeFontPadding = false),
+        )
+    }
 

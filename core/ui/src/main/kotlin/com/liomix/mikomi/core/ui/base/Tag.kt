@@ -3,12 +3,14 @@ package com.liomix.mikomi.core.ui.base
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -32,10 +35,14 @@ import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.TagSpec
 import com.liomix.mikomi.core.designsystem.Radius
 import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.Stroke
 
 /** 元信息徽标的小圆角：它是「贴住文字的一块底」，不是胶囊。 */
 private val MetaShape: Shape = RoundedCornerShape(Radius.Sm)
+
+/** 主色淡底的浓度：与 TabBar 指示器同一档（0.14），两处「主色被淡化当底」看起来才是一套。 */
+private const val NeutralContainerAlpha = 0.14f
 
 /** 选中态 / 未选中态切换时的颜色过渡时长。 */
 private const val ColorAnimMillis = Motion.Duration.Short
@@ -157,6 +164,9 @@ data class TagStyle(
  * @param style 规格预设（[TagStyle.selectable] / [TagStyle.content] / [TagStyle.meta]）；
  *   要微调某一项用 `copy`，不要再往这个签名上挂参数。
  * @param colors 配色；默认按 [TagStyle.tone] 与 [selected] 从主题推导。
+ * @param leadingIcon 前置图标（评分星标、播放量这种）；图标是内容不是样式，
+ *   所以走签名而不是 [TagStyle]。
+ * @param iconTint 图标色；null 表示跟随当前内容色。
  * @param maxLines 最多几行；默认不限（标签一般是短词，长文案由调用方决定是省略还是换行）。
  * @param overflow 超出 [maxLines] 时怎么收尾。
  */
@@ -168,6 +178,8 @@ fun Tag(
     onClick: (() -> Unit)? = null,
     style: TagStyle = if (onClick != null) TagStyle.selectable() else TagStyle.content(),
     colors: TagColors = style.tone.colorsFor(selected = selected),
+    leadingIcon: ImageVector? = null,
+    iconTint: Color? = null,
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Ellipsis,
 ) {
@@ -217,10 +229,20 @@ fun Tag(
         // 当父级把高度限制住时（例如嵌在 `Row` 里、`Row` 又撑满了一张卡片的高度），
         // 标签会跟着把最大高度也吃满：收藏区的「共 3 部」曾被拉成 948px 高，
         // 同一列里的网格因此被挤到 0 高度，整块区域看起来是空的。
-        Box(
+        Row(
             modifier = Modifier.padding(style.contentPadding),
-            contentAlignment = Alignment.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.Xxs),
         ) {
+            if (leadingIcon != null) {
+                // 夹在字行里的图标只有这一档：16dp，与 labelSmall 的笔画视觉等重。
+                Icon(
+                    icon = leadingIcon,
+                    contentDescription = null,
+                    tint = iconTint ?: LocalContentColor.current,
+                    size = Sizes.IconXs,
+                )
+            }
             Text(
                 text = text,
                 style = style.textStyle,
@@ -257,9 +279,14 @@ private fun TagTone.colorsFor(selected: Boolean): TagColors {
             )
         }
 
+        // 主色淡底 + 主色字：标签整体随主题换色。
+        //
+        // 底色不用 `primaryContainer`、字不用 `onPrimaryContainer` —— M3 给的
+        // `onPrimaryContainer` 是「容器上的深色字」，多数预设下接近黑，看上去
+        // 和主题没关系；这里要的是**主色本身**当字，所以底取主色的低透明度。
         TagTone.Neutral -> TagColors(
-            container = colors.surfaceContainerHigh,
-            content = colors.onSurfaceVariant,
+            container = colors.primary.copy(alpha = NeutralContainerAlpha),
+            content = colors.primary,
         )
     }
 }

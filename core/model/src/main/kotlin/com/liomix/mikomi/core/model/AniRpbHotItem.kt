@@ -9,8 +9,13 @@ package com.liomix.mikomi.core.model
 data class AniRpbHotItem(
     /** AniRpb 视频 id（后续可用于 `video.detail` / 播放链路）。 */
     val id: String,
-    /** 榜单名次，从 1 开始。 */
-    val rank: Int,
+    /**
+     * 榜单名次，从 1 开始。
+     *
+     * **不来自报文**：名次是「这一条在列表里的位置」，由数据层在组装完列表后统一赋值
+     * （见 `AniRpbRepositoryImpl` 的解析函数）。解析阶段先留 0。
+     */
+    val rank: Int = 0,
     val title: String,
     val coverUrl: String?,
     /** 服务端现成更新文案，例如 `7#周五16:00更`。 */
@@ -21,5 +26,11 @@ data class AniRpbHotItem(
     val score: Double?,
     /** 播放量（未知为 0）。 */
     val playCount: Long,
+    /**
+     * 动漫标签（年份 / 类型 / 关键词，如「2026」「动漫」「萧炎」）。
+     *
+     * 报文没带这个字段时是空列表，界面上整行不出现 —— 不用占位文本假装有数据。
+     */
+    val tags: List<String> = emptyList(),
 )
 

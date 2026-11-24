@@ -112,7 +112,9 @@ private fun RankTabs(
         onSelect = onSelect,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.Lg, vertical = Spacing.Md),
+            // 垂直留白与时间表的日历标签栏同档（8dp）：这里只是两个分类的切换条，
+            // 不是一排按钮；12dp 会让它读成「内容区的一部分」，把榜单往下推了一截。
+            .padding(horizontal = Spacing.Lg, vertical = Spacing.Sm),
         itemStyle = TabItemStyle.text(),
         itemSpacing = Spacing.None,
     ) {

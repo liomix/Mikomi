@@ -203,7 +203,12 @@ internal class AniRpbRepositoryImpl @Inject constructor(
         }
         val module = hotModule
             ?: throw IOException("AniRpb home.load response has no hot module")
-        return parseVideoArray(module.optJSONArray("items") ?: return emptyList())
+        // 热播榜按播放量降序：报文顺序是服务端的推荐位，不是「谁在热」。
+        // 播放量相同时 `sortedWith` 稳定，保持报文里的先后。
+        return parseVideoArray(
+            items = module.optJSONArray("items") ?: return emptyList(),
+            order = compareByDescending { it.playCount },
+        )
     }
 
     /** 整榜报文：`data.videos`（`video.categoryList` / 搜索用 `items` 兜底）。 */
@@ -212,32 +217,64 @@ internal class AniRpbRepositoryImpl @Inject constructor(
         return parseVideoArray(videos)
     }
 
-    /** 榜单条目解析：热播榜与整榜的字段完全一致，共用一份实现。 */
-    private fun parseVideoArray(items: JSONArray): List<AniRpbHotItem> = buildList {
-        for (index in 0 until items.length()) {
-            val item = items.optJSONObject(index) ?: continue
-            val title = item.optString("title").trim()
-            if (title.isEmpty()) continue
+    /**
+     * 榜单条目解析：热播榜与整榜的字段完全一致，共用一份实现。
+     *
+     * 名次在这里统一赋值，而不是在构造每一项时用 `size + 1`：
+     * 那样一来「排序」就必须发生在构造之前，两段逻辑会互相牵制
+     * （排序要用到已解析的字段，字段又要先知道名次）。先解析、再排序、最后编号，
+     * 每一步只看上一步的输出。
+     *
+     * @param order 决定列表顺序；null 表示保持报文顺序（整榜用）。
+     */
+    private fun parseVideoArray(
+        items: JSONArray,
+        order: Comparator<AniRpbHotItem>? = null,
+    ): List<AniRpbHotItem> {
+        val parsed = buildList {
+            for (index in 0 until items.length()) {
+                val item = items.optJSONObject(index) ?: continue
+                val title = item.optString("title").trim()
+                if (title.isEmpty()) continue
 
-            val coverUrl = normalizeImageUrl(
-                item.optString("coverUrl").ifBlank { item.optString("posterUrl") },
-            )
+                val coverUrl = normalizeImageUrl(
+                    item.optString("coverUrl").ifBlank { item.optString("posterUrl") },
+                )
 
-            add(
-                AniRpbHotItem(
-                    id = item.optString("id"),
-                    rank = size + 1,
-                    title = title,
-                    coverUrl = coverUrl,
-                    updateText = firstNonBlank(
-                        item.optString("customText"),
-                        item.optString("updateSchedule"),
-                    ).decodeHtmlEntities(),
-                    currentEpisodes = item.optInt("currentEpisodes", 0).coerceAtLeast(0),
-                    score = item.optScore(),
-                    playCount = item.optLong("playCount", 0L).coerceAtLeast(0L),
-                ),
-            )
+                add(
+                    AniRpbHotItem(
+                        id = item.optString("id"),
+                        title = title,
+                        coverUrl = coverUrl,
+                        updateText = firstNonBlank(
+                            item.optString("customText"),
+                            item.optString("updateSchedule"),
+                        ).decodeHtmlEntities(),
+                        currentEpisodes = item.optInt("currentEpisodes", 0).coerceAtLeast(0),
+                        score = item.optScore(),
+                        playCount = item.optLong("playCount", 0L).coerceAtLeast(0L),
+                        tags = item.optStringArray("tags"),
+                    ),
+                )
+            }
+        }
+        val ordered = if (order == null) parsed else parsed.sortedWith(order)
+        return ordered.mapIndexed { index, entry -> entry.copy(rank = index + 1) }
+    }
+
+    /**
+     * 读一个字符串数组；缺失、为空、元素不是字符串都退回空列表。
+     *
+     * 不做「猜键名」：报文里没有 `tags` 就是没有，界面上那一行不出现，
+     * 而不是去试 `tagList` / `keywords` 之类的名字碰运气。
+     */
+    private fun JSONObject.optStringArray(key: String): List<String> {
+        val array = optJSONArray(key) ?: return emptyList()
+        return buildList {
+            for (index in 0 until array.length()) {
+                val value = array.optString(index).trim()
+                if (value.isNotEmpty()) add(value)
+            }
         }
     }
 

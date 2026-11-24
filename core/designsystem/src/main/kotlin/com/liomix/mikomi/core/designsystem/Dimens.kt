@@ -279,10 +279,19 @@ object Sizes {
     /** 中头像：评论、日程、列表中的人物位。 */
     val AvatarMd: Dp = 40.dp
 
+    /**
+     * 名次徽标：一个能装下两位数的圆。
+     *
+     * 26dp 是「两位数字的最大宽度 + 两侧各 4dp」算出来的，不是随手取的整十 ——
+     * 再小两位数会贴到边缘，再大就不是「一枚徽标」而是「一个色块」。
+     */
+    val RankBadge: Dp = 26.dp
+
     /** 全部档位。规则同 [Spacing.steps]。 */
     val steps: List<Step> = listOf(
         Step("IconXs", IconXs),
         Step("IconMd", IconMd),
+        Step("RankBadge", RankBadge),
         Step("ChipHeight", ChipHeight),
         Step("AvatarMd", AvatarMd),
         Step("TouchTarget", TouchTarget),

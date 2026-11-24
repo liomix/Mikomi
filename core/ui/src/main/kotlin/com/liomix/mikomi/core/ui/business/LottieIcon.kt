@@ -33,6 +33,7 @@ import com.airbnb.lottie.compose.LottieDynamicProperties
 import com.airbnb.lottie.compose.LottieDynamicProperty
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.ui.R
 
 /**
@@ -47,7 +48,7 @@ import com.liomix.mikomi.core.ui.R
  *
  * ```kotlin
  * LottieIcon(rawRes = LottieIcons.StarCollect, size = 32.dp)
- * LottieIcon(rawRes = LottieIcons.MapLoading, size = 96.dp, tint = null)
+ * LottieIcon(rawRes = LottieIcons.MapLoading, size = 96.dp, themed = false)
  * ```
  *
  * 传 `@RawRes Int` 而不是 asset 路径或 `LottieCompositionSpec`：资源名有编译期检查，
@@ -71,9 +72,14 @@ import com.liomix.mikomi.core.ui.R
  * @param modifier 外部修饰符；尺寸类修饰符写在 [size] 之前即可覆盖默认大小。
  * @param size 动画边长，默认 [LottieIconDefaults.Size]。画布非正方形的动画按
  *   `ContentScale.Fit` 居中缩放，不会被拉变形。
- * @param tint 统一染色；传 `null` 保留 json 原色。
+ * @param tint 统一染色；`null` 表示跟随 `LocalContentColor`。
+ * @param themed 是否由主题接管颜色。`false` 时忽略 [tint]，保留 json 原色 ——
+ *   适合本身带配色的素材（火焰、地图加载）。判定「染不染」只看这一个开关，
+ *   不再靠 `tint = null` 这种隐式写法区分「有意保留」和「忘了传」。
  * @param speed 播放倍速，`0.5f` 让细节更清楚，`2f` 让慢动画不显得拖沓。
  * @param iterations 播放次数；默认无限循环。只播一次的图标传 `1`。
+ * @param playing 是否正在播放。传 `false` 停在当前帧 —— 想回到首帧就换个 `key` 重建
+ *   （「刷新中播放、刷新完回到静止图标」就是这种用法）。
  * @param contentDescription 无障碍描述。默认 `null` = 纯装饰不朗读；
  *   全屏加载页建议传「加载中」，列表里的小动画保持 `null`，避免读屏反复播报。
  */
@@ -83,8 +89,10 @@ fun LottieIcon(
     modifier: Modifier = Modifier,
     size: Dp = LottieIconDefaults.Size,
     tint: Color? = LocalContentColor.current,
+    themed: Boolean = true,
     speed: Float = LottieIconDefaults.Speed,
     iterations: Int = LottieConstants.IterateForever,
+    playing: Boolean = true,
     contentDescription: String? = null,
 ) {
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(rawRes))
@@ -111,11 +119,18 @@ fun LottieIcon(
     // 持有状态对象、在 `progress` lambda 里取值，读取才发生在绘制阶段。
     val state = animateLottieCompositionAsState(
         composition = composition,
-        isPlaying = started,
+        // 两个开关：`started` 是「页面在前台」，`playing` 是「这一帧该不该动」。
+        // 传 `false` 时停在当前帧（例如刷新结束，动画要停下来）。
+        isPlaying = started && playing,
         // lottie 内部对非有限值会抛 require，这里兜一下，避免调用方传错直接崩。
         speed = if (speed.isFinite()) speed else LottieIconDefaults.Speed,
         iterations = iterations,
     )
+
+    // `themed = false` 时完全交出主题控制权：json 里是什么色就画什么色。
+    // 这个开关比「tint 传 null」更明确 —— 后者读代码时看不出是「有意保留原色」
+    // 还是「忘了给」。
+    val effectiveTint = if (themed) tint else null
 
     LottieAnimation(
         composition = composition,
@@ -127,7 +142,7 @@ fun LottieIcon(
                 // 参数与 SemanticsPropertyReceiver 同名，必须显式落到 receiver 上。
                 contentDescription?.let { this.contentDescription = it }
             },
-        dynamicProperties = rememberTintProperties(tint),
+        dynamicProperties = rememberTintProperties(effectiveTint),
         alignment = Alignment.Center,
         contentScale = ContentScale.Fit,
     )
@@ -161,8 +176,8 @@ private fun rememberTintProperties(tint: Color?): LottieDynamicProperties? {
 
 /** [LottieIcon] 的默认值。 */
 object LottieIconDefaults {
-    /** 默认边长；比 Material 的 40dp 进度环略大，Lottie 图形通常留白较多。 */
-    val Size: Dp = 44.dp
+    /** 默认边长：与 `MikomiIcons` 的图标同档（24dp）—— 动画图标首先是「图标」。 */
+    val Size: Dp = Sizes.IconMd
 
     /** 默认倍速，保持 json 作者设定的节奏。 */
     const val Speed: Float = 1f
@@ -198,4 +213,13 @@ object LottieIcons {
 
     /** 地图加载：巡礼页在站点出图前的占位动画（自带配色，不要染色）。 */
     val MapLoading: Int = R.raw.map
+
+    /** 火焰：热播榜的区块图标，常驻循环（2s 一轮）。素材是纯白填充，**必须染色**。 */
+    val Fire: Int = R.raw.fire
+
+    /** 刷新箭头：顶栏刷新按钮，只在刷新期间播放。 */
+    val Refresh: Int = R.raw.refresh
+
+    /** 计时器：搜索历史的区块图标，常驻循环（1.1s 一轮）。 */
+    val Time: Int = R.raw.time
 }

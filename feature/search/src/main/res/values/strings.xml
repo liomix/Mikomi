@@ -6,6 +6,7 @@
     <string name="search_clear">清空输入</string>
 
     <string name="search_history">搜索历史</string>
+    <string name="search_history_delete">删除标签</string>
     <string name="search_history_clear">清空搜索历史</string>
     <string name="search_history_expand">展开</string>
     <string name="search_history_collapse">收起</string>

@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,18 +30,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.AniRpbHotItem
-import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.business.LottieIcon
 import com.liomix.mikomi.core.ui.business.LottieIcons
 import com.liomix.mikomi.core.ui.window.Insets
@@ -129,21 +128,30 @@ fun SearchScreen(
                         if (state.history.isNotEmpty()) {
                             item(key = "history_header") {
                                 SearchSectionHeader(
-                                    icon = Icons.History,
+                                    leading = {
+                                        // 与静态图标同色：巡礼页/设置页的图标都是主色，
+                                        // 历史的计时器动画也染成主色才不会跳出来。
+                                        LottieIcon(
+                                            rawRes = LottieIcons.Time,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                        )
+                                    },
                                     title = stringResource(R.string.search_history),
                                     // 紧贴顶栏下沿：这一段留白由顶栏的底部内边距负责，
                                     // 内容这边再加就是两段叠着。
                                     topPadding = Spacing.None,
+                                    // 标题与下面那排 chip 之间只留一点点：它们是一块内容，
+                                    // 分开太远会被读成两个区块。
+                                    bottomPadding = Spacing.Xxs,
                                     action = {
                                         IconButton(onClick = onClearHistory) {
-                                            // 用 delete 动画而不是静态垃圾桶图标：它自带
-                                            // 「灰 → 红」的变色（0.87s 播一次停住），点之前是
-                                            // 中性的灰、点下去立刻读成「红色 = 危险动作」。
-                                            // `tint = null` 保留原色，染色会把这个反馈压成单色。
+                                            // 素材是单色的，颜色由主题接管：用 `primary` 而不是
+                                            // `error` —— 后者在五套预设里都是同一个红，看起来像
+                                            // 「没跟上主题」；主色才会随预设换（蓝/粉/绿…）。
                                             LottieIcon(
                                                 rawRes = LottieIcons.Delete,
                                                 size = Sizes.IconMd,
-                                                tint = null,
+                                                tint = MaterialTheme.colorScheme.primary,
                                                 iterations = 1,
                                                 contentDescription = stringResource(
                                                     R.string.search_history_clear,
@@ -162,14 +170,22 @@ fun SearchScreen(
                                         onSearch(keyword)
                                         keyboardController?.hide()
                                     },
-                                    onKeywordLongClick = onRemoveHistory,
+                                    onKeywordDelete = onRemoveHistory,
                                 )
                             }
                         }
 
                         item(key = "hot_header") {
                             SearchSectionHeader(
-                                icon = Icons.Whatshot,
+                                leading = {
+                                    // 素材是纯白填充（所有 fill 都是 [1,1,1]），不染色会在浅底上
+                                    // 直接消失；跟主题走之后才会随预设变蓝/粉/绿。
+                                    LottieIcon(
+                                        rawRes = LottieIcons.Fire,
+                                        size = Sizes.IconMd,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                },
                                 title = stringResource(R.string.search_hot_ranking),
                             )
                         }
@@ -243,24 +259,30 @@ fun SearchScreen(
  */
 @Composable
 private fun SearchSectionHeader(
-    icon: ImageVector,
+    leading: @Composable () -> Unit,
     title: String,
     modifier: Modifier = Modifier,
     topPadding: Dp = 20.dp,
+    bottomPadding: Dp = Spacing.Sm,
     action: @Composable (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = Spacing.Lg, end = Spacing.Sm, top = topPadding, bottom = Spacing.Sm),
+            .padding(
+                start = Spacing.Lg,
+                end = Spacing.Sm,
+                top = topPadding,
+                bottom = bottomPadding,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            icon = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            size = Sizes.IconMd,
-        )
+        Box(
+            modifier = Modifier.size(Sizes.IconMd),
+            contentAlignment = Alignment.Center,
+        ) {
+            leading()
+        }
         Spacer(modifier = Modifier.width(Spacing.Sm))
         Text(
             text = title,
@@ -268,6 +290,18 @@ private fun SearchSectionHeader(
             fontWeight = FontWeight.Bold,
         )
         Spacer(modifier = Modifier.weight(1f))
-        action?.invoke()
+        if (action != null) {
+            // `unbounded = true`：动作区里的 `IconButton` 天生 48dp 高（最小触控区），
+            // 让它撑高整行的话，标题下方会凭空多出十几 dp，下面的标签就「贴不近」标题。
+            // 溢出测量之后行高只由图标与文字决定，点击区该多大还多大。
+            Box(
+                modifier = Modifier.wrapContentHeight(
+                    align = Alignment.CenterVertically,
+                    unbounded = true,
+                ),
+            ) {
+                action()
+            }
+        }
     }
 }

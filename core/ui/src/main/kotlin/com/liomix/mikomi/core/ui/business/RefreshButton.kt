@@ -2,35 +2,21 @@ package com.liomix.mikomi.core.ui.business
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.key
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.Icons
+import com.airbnb.lottie.compose.LottieConstants
 import com.liomix.mikomi.core.designsystem.Sizes
-import com.liomix.mikomi.core.designsystem.Stroke
-import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /** 图标尺寸：顶栏图标的标准档。 */
 private val GlyphSize = Sizes.IconMd
 
 /**
- * 进度环直径：比图标小一号。
- *
- * 环是「正在转的东西」，24dp 满格时它的外缘和图标同宽，看起来会是一颗比图标更重的圆盘；
- * 20dp 才和图标笔画的分量相当。小一圈不会让按钮缩小 —— 两者都居中在同一个 48dp 触控盒里。
- */
-private val IndicatorSize = 20.dp
-
-/** 进度环线宽：与「必须一眼分辨的指示」同档。 */
-private val IndicatorStroke = Stroke.Thick
-
-/**
- * 顶栏刷新按钮：刷新中换成进度环，同时禁用点击。
+ * 顶栏刷新按钮：刷新中图标转起来，同时禁用点击。
  *
  * ## 为什么要有这个组件
  *
@@ -43,9 +29,11 @@ private val IndicatorStroke = Stroke.Thick
  *
  * - **位置由外层 48dp 盒决定**：图标 24/环 20 都居中在这块盒子里，所以切换时按钮尺寸、
  *   相邻动作、标题的位置都不会动 —— 尺寸差只体现在图形本身。
- * - **硬切，不做交叉淡入**：这是一次状态替换（点了之后立刻在刷），过渡动画反而让人以为
- *   「按钮在动」；缓存命中的刷新只有几十毫秒，淡入淡出还没播完就切回去了。
- * - **刷新中禁用**：连点会叠加多次网络请求，而进度环本身已经说明「正在处理」。
+ * - **刷新中是同一枚图标在转，不是换成进度环**：`refresh.json` 本来就是一支循环箭头，
+ *   转起来就是「正在刷新」，换图形反而多一次视觉跳变。
+ * - **刷新完回到首帧**：动画停在半路会让箭头歪着，所以用 `key(isRefreshing)` 重建 ——
+ *   重建的只是这一个 24dp 的播放器，动画资源有缓存，代价可以忽略。
+ * - **刷新中禁用**：连点会叠加多次网络请求，而转动的图标本身已经说明「正在处理」。
  *
  * @param contentDescription 无障碍名。各页文案不同（「刷新排行榜」/「刷新时间表」），
  *   由调用方给，不在这里写死通用的「刷新」—— 读屏用户听到的是具体在刷新什么。
@@ -67,16 +55,15 @@ fun RefreshButton(
             .mikomiClickable(enabled = !isRefreshing, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        if (isRefreshing) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(IndicatorSize),
-                strokeWidth = IndicatorStroke,
-            )
-        } else {
-            Icon(
-                icon = Icons.Refresh,
-                contentDescription = contentDescription,
+        // 同一个动画两种状态：播放中 = 刷新中，暂停 = 静止的箭头。
+        // `key` 让暂停那一刻重建，进度归零 —— 否则箭头会歪在某一帧上。
+        key(isRefreshing) {
+            LottieIcon(
+                rawRes = LottieIcons.Refresh,
                 size = GlyphSize,
+                playing = isRefreshing,
+                iterations = LottieConstants.IterateForever,
+                contentDescription = contentDescription,
             )
         }
     }

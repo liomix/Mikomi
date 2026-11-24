@@ -43,8 +43,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.liomix.mikomi.core.designsystem.Media
 import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.core.designsystem.ThemePalette
-import com.liomix.mikomi.core.ui.business.LottieIcons
-import com.liomix.mikomi.feature.settings.R
+import com.liomix.mikomi.core.ui.base.LottieIcons
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 

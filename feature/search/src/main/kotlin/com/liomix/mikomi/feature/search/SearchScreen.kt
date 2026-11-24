@@ -3,7 +3,6 @@ package com.liomix.mikomi.feature.search
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,8 +38,8 @@ import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.AniRpbHotItem
-import com.liomix.mikomi.core.ui.business.LottieIcon
-import com.liomix.mikomi.core.ui.business.LottieIcons
+import com.liomix.mikomi.core.ui.base.LottieIcon
+import com.liomix.mikomi.core.ui.base.LottieIcons
 import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.core.ui.layout.BlurredTopBar
 import com.liomix.mikomi.feature.search.components.SearchHistoryTags

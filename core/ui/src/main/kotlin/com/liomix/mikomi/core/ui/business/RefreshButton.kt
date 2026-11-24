@@ -10,6 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import com.airbnb.lottie.compose.LottieConstants
 import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.ui.base.LottieIcon
+import com.liomix.mikomi.core.ui.base.LottieIcons
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /** 图标尺寸：顶栏图标的标准档。 */

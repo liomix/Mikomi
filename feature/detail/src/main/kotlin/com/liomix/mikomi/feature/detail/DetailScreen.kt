@@ -72,7 +72,7 @@ import com.liomix.mikomi.core.ui.base.PressButtonStyle
 import com.liomix.mikomi.core.ui.base.PressIconButton
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.window.LocalWindowSize
-import com.liomix.mikomi.core.ui.business.LottieIcons
+import com.liomix.mikomi.core.ui.base.LottieIcons
 import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.feature.detail.component.CreditDetailSheet
 import com.liomix.mikomi.feature.detail.component.collapsingHeader

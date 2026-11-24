@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.ui.business
+package com.liomix.mikomi.core.ui.base
 
 import androidx.annotation.RawRes
 import androidx.compose.foundation.layout.size
@@ -19,7 +19,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -222,4 +221,10 @@ object LottieIcons {
 
     /** 计时器：搜索历史的区块图标，常驻循环（1.1s 一轮）。 */
     val Time: Int = R.raw.time
+
+    /** 信息：弹窗里的 info 图标（0.75s）。 */
+    val Info: Int = R.raw.info
+
+    /** 警告 / 错误：弹窗里的感叹号图标（2s）。同一份素材靠染色区分等级。 */
+    val ErrorWarn: Int = R.raw.error_warn
 }

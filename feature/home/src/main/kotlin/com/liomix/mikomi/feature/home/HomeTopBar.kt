@@ -2,6 +2,9 @@ package com.liomix.mikomi.feature.home
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.draw.clip
+import com.liomix.mikomi.core.designsystem.PillShape
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -94,15 +97,17 @@ fun HomeTopBar(
         Spacer(modifier = Modifier.width(Spacing.Md))
 
         SearchBox(
-            hint = searchHint,
-            onClick = onSearchClick,
+            text = searchHint,
+            textColor = hint,
             containerColor = container,
             contentColor = content,
-            hintColor = hint,
             border = glass,
+            // 交互留在页面这一层：组件只负责外观，点了之后去哪是首页自己的事。
             modifier = Modifier
                 .weight(1f)
-                .height(HomeTopBarHeight),
+                .height(HomeTopBarHeight)
+                .clip(PillShape)
+                .mikomiClickable(onClick = onSearchClick),
         )
     }
 }

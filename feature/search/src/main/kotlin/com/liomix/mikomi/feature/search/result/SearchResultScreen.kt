@@ -20,12 +20,13 @@ import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.ui.business.AnimePosterCard
 import com.liomix.mikomi.core.ui.business.PosterCardSkeleton
 import com.liomix.mikomi.core.ui.business.PosterGrid
+import com.liomix.mikomi.core.ui.base.EmptyState
+import com.liomix.mikomi.core.ui.base.ErrorState
 import com.liomix.mikomi.core.ui.base.SkeletonShimmer
 import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.feature.search.LoadState
 import com.liomix.mikomi.feature.search.R
-import com.liomix.mikomi.feature.search.SearchCenteredHint
-import com.liomix.mikomi.feature.search.SearchTopBar
+import com.liomix.mikomi.feature.search.components.SearchTopBar
 
 /** 网格卡片最小宽度：与首页推荐区一致（手机竖屏约 3 列）。 */
 private val RESULT_GRID_MIN_SIZE = 100.dp
@@ -77,16 +78,15 @@ fun SearchResultScreen(
                 LoadState.Loading,
                 -> ResultSkeleton()
 
-                LoadState.Error -> SearchCenteredHint(
-                    title = stringResource(R.string.search_load_failed),
-                    actionLabel = stringResource(R.string.search_retry),
-                    onAction = onRetry,
+                LoadState.Error -> ErrorState(
+                    message = stringResource(R.string.search_load_failed),
+                    onRetry = onRetry,
                 )
 
                 LoadState.Success -> {
                     if (state.items.isEmpty()) {
-                        SearchCenteredHint(
-                            title = stringResource(R.string.search_no_result, state.keyword),
+                        EmptyState(
+                            message = stringResource(R.string.search_no_result, state.keyword),
                             subtitle = stringResource(R.string.search_no_result_hint),
                         )
                     } else {

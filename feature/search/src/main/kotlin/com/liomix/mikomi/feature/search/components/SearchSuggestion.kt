@@ -1,4 +1,4 @@
-package com.liomix.mikomi.feature.search
+package com.liomix.mikomi.feature.search.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -32,9 +32,13 @@ import com.liomix.mikomi.core.designsystem.Radius
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.ui.base.EmptyState
+import com.liomix.mikomi.core.ui.base.ErrorState
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.mikomiClickable
+import com.liomix.mikomi.feature.search.LoadState
+import com.liomix.mikomi.feature.search.R
 
 /** 联想骨架屏条数。 */
 private const val SUGGESTION_SKELETON_COUNT = 5
@@ -45,11 +49,12 @@ private const val SUGGESTION_SKELETON_COUNT = 5
  * 点击某条即以其标题发起搜索；匹配到的关键词用主色高亮，方便确认输入。
  */
 @Composable
-internal fun SearchSuggestionList(
+internal fun SearchSuggestion(
     keyword: String,
     suggestions: List<Anime>,
     state: LoadState,
     onSuggestionClick: (String) -> Unit,
+
     modifier: Modifier = Modifier,
 ) {
     when (state) {
@@ -59,16 +64,16 @@ internal fun SearchSuggestionList(
         -> SuggestionSkeleton(modifier = modifier)
 
         // 联想是即时反馈：失败后继续输入即会重新请求，无需单独重试入口。
-        LoadState.Error -> SearchCenteredHint(
-            title = stringResource(R.string.search_load_failed),
+        LoadState.Error -> ErrorState(
+            message = stringResource(R.string.search_load_failed),
             subtitle = stringResource(R.string.search_suggestion_retry_hint),
             modifier = modifier,
         )
 
         LoadState.Success -> {
             if (suggestions.isEmpty()) {
-                SearchCenteredHint(
-                    title = stringResource(R.string.search_no_suggestion),
+                EmptyState(
+                    message = stringResource(R.string.search_no_suggestion),
                     modifier = modifier,
                 )
             } else {

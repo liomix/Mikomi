@@ -1,24 +1,19 @@
-package com.liomix.mikomi.feature.search
+package com.liomix.mikomi.feature.search.components
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -38,13 +34,18 @@ import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.ui.base.Icon
+import com.liomix.mikomi.core.ui.base.SearchBox
 import com.liomix.mikomi.core.ui.window.Insets
+import com.liomix.mikomi.feature.search.R
 
 /**
- * 搜索栏：返回 + 胶囊输入框 + 搜索按钮。
+ * 搜索页顶栏：返回 + 输入框 + 搜索按钮。
  *
  * 搜索页与搜索结果页共用，结果页因此可以直接改关键词再次搜索。
  * 提交（按钮或键盘搜索键）后自动收起输入法。
+ *
+ * 顶栏内部只有两个动作：返回、提交当前关键词。输入框自己负责聚焦、清除与键盘行为，
+ * 见 [TopBarSearchField]。
  *
  * @param autoFocus 进入时是否自动聚焦并弹出输入法（结果页不聚焦，避免遮住结果）。
  */
@@ -73,11 +74,13 @@ internal fun SearchTopBar(
     ) {
         IconButton(onClick = onBack) {
             Icon(
-                icon = Icons.Back,
+                // 折角（ArrowBackIos）：顶栏只有一个返回动作，不需要「横线 + 箭头」
+                // 那种说明性的图形，一条折角更轻。
+                icon = Icons.BackIos,
                 contentDescription = stringResource(R.string.search_back),
             )
         }
-        SearchField(
+        TopBarSearchField(
             query = query,
             onQueryChange = onQueryChange,
             onSubmit = submit,
@@ -95,8 +98,19 @@ internal fun SearchTopBar(
     }
 }
 
+/**
+ * 顶栏里的输入框：**只有一个实例**，所以不对外暴露。
+ *
+ * 外观走通用壳 [SearchBox]（透明底、放大镜、内缩、字号都由它定），
+ * 这里只补输入框特有的三件事：聚焦、提交、清除。
+ *
+ * 与 `SearchBox` 不可输入的入口形态相比，区别只是「内容位放什么」——
+ * 一个放提示文字，一个放 `BasicTextField`。
+ *
+ * @param autoFocus 进入时是否自动聚焦。
+ */
 @Composable
-private fun SearchField(
+private fun TopBarSearchField(
     query: String,
     onQueryChange: (String) -> Unit,
     onSubmit: (String) -> Unit,
@@ -111,24 +125,30 @@ private fun SearchField(
         }
     }
 
-    Surface(
-        modifier = modifier.height(SEARCH_FIELD_HEIGHT),
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = Spacing.Lg, end = Spacing.Xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                icon = Icons.Search,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                size = Sizes.IconMd,
-            )
-            Spacer(modifier = Modifier.width(Spacing.Compact))
+    SearchBox(
+        modifier = modifier.height(TopBarFieldHeight),
+        // 透明底：搜索页背景就是页面底色，再铺一层容器色会让顶栏看起来有一条
+        // 比页面「更亮/更暗」的带子。这里要的是「图标 + 可输入区」，不是一张卡片。
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        trailing = if (query.isEmpty()) {
+            null
+        } else {
+            {
+                IconButton(
+                    onClick = onClear,
+                    modifier = Modifier.size(Sizes.TouchTarget),
+                ) {
+                    Icon(
+                        icon = Icons.Close,
+                        contentDescription = stringResource(R.string.search_clear),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        size = Sizes.IconMd,
+                    )
+                }
+            }
+        },
+        content = {
             BasicTextField(
                 value = query,
                 onValueChange = onQueryChange,
@@ -136,7 +156,7 @@ private fun SearchField(
                     .weight(1f)
                     .focusRequester(focusRequester),
                 singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                textStyle = MaterialTheme.typography.bodyMedium.copy(
                     color = MaterialTheme.colorScheme.onSurface,
                 ),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
@@ -149,7 +169,7 @@ private fun SearchField(
                         if (query.isEmpty()) {
                             Text(
                                 text = stringResource(R.string.search_hint),
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -159,64 +179,9 @@ private fun SearchField(
                     }
                 },
             )
-            if (query.isNotEmpty()) {
-                IconButton(
-                    onClick = onClear,
-                    modifier = Modifier.size(36.dp),
-                ) {
-                    Icon(
-                        icon = Icons.Close,
-                        contentDescription = stringResource(R.string.search_clear),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        size = Sizes.IconMd,
-                    )
-                }
-            }
-        }
-    }
+        },
+    )
 }
 
-/** 搜索框高度（触控与视觉平衡）。 */
-private val SEARCH_FIELD_HEIGHT = 48.dp
-
-/**
- * 居中提示（标题 + 可选副标题 / 操作按钮）。
- *
- * 搜索页与搜索结果页共用的空态、错误态容器。
- */
-@Composable
-internal fun SearchCenteredHint(
-    title: String,
-    modifier: Modifier = Modifier,
-    subtitle: String? = null,
-    actionLabel: String? = null,
-    onAction: (() -> Unit)? = null,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = Spacing.Xxl),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        if (subtitle != null) {
-            Spacer(modifier = Modifier.height(Spacing.Tight))
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (actionLabel != null && onAction != null) {
-            Spacer(modifier = Modifier.height(Spacing.Sm))
-            TextButton(onClick = onAction) {
-                Text(text = actionLabel)
-            }
-        }
-    }
-}
+/** 顶栏输入框高度：48dp 是「顶栏内可输入」的触控与视觉平衡点。 */
+private val TopBarFieldHeight = 48.dp

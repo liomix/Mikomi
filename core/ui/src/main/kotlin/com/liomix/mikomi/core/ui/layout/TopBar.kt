@@ -37,7 +37,7 @@ private val BlurRadius = 12.dp
  * 原内容（清晰的）从 55% 的缝里透出来，和模糊副本叠在一起，看起来就像「根本没糊」。
  * 那正是「半径怎么调都看不出区别」的原因。
  */
-private const val BlurLayerAlpha = 0.62f
+private const val BlurLayerAlpha = 0.65f
 
 /**
  * 低版本（无模糊）时那层底色的最低不透明度。
@@ -86,7 +86,12 @@ private const val LegacyScrimAlpha = 0.95f
  * 低端机上仍掉帧时，先调小 [blurRadius]，再考虑把这个顶栏换回普通实底。
  *
  * @param barColor 模糊之上那层底色。
+ * @param barAlpha 这条栏「有多实」：0 = 完全透明（不糊、不挡），1 = 完整毛玻璃。
+ *   接线到滚动进度即可做「滚到一定程度才出现」的效果。
  * @param blurRadius 模糊半径。
+ * @param reserveSpace 是否把 [content] 的 `barHeight` 当作必须让出的空间。
+ *   默认 `true`：静默等到量出高度再组合内容（避免让位不足导致首项压在栏下）。
+ *   内容本来就铺到屏幕顶部（头图型页面）时传 `false`。
  * @param bar 顶栏内容（标题、返回键这些）；高度由它决定。
  * @param content 页面内容。参数是量出来的顶栏高度，直接拿去当 `contentPadding.top`
  *   或 `padding(top)` 即可 —— 不要自己再算一遍。
@@ -95,11 +100,16 @@ private const val LegacyScrimAlpha = 0.95f
 fun BlurredTopBar(
     modifier: Modifier = Modifier,
     barColor: Color = MaterialTheme.colorScheme.surface,
+    barAlpha: () -> Float = { 1f },
     blurRadius: Dp = BlurRadius,
+    reserveSpace: Boolean = true,
     bar: @Composable () -> Unit,
     content: @Composable BoxScope.(barHeight: Dp) -> Unit,
 ) {
     val blurLayer = rememberGraphicsLayer()
+    // `barAlpha` 是「这条栏现在有多实」：0 = 完全透明（浮在图上，不糊也不挡），
+    // 1 = 完整的毛玻璃。它是 **lambda** 而不是 Float：调用方通常接滚动进度，
+    // 逐帧变化的值只能在绘制阶段读，进组合就是整页每帧重组。
     // 低版本没有 RenderEffect：记录与模糊都跳过，等于这块组件只剩下「一层底色」。
     val blurEnabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
@@ -109,8 +119,6 @@ fun BlurredTopBar(
         // `CLAMP` 而不是 `DECAL`：顶栏贴着屏幕边缘，DECAL 会让最外圈发暗。
         SideEffect {
             blurLayer.renderEffect = BlurEffect(radiusPx, radiusPx, TileMode.Clamp)
-            // 模糊结果的可见度：`drawLayer` 没有 alpha 参数，只能设在 layer 上。
-            blurLayer.alpha = BlurLayerAlpha
         }
     }
 
@@ -138,7 +146,7 @@ fun BlurredTopBar(
             // 从 0 变成真实高度时，它会**保持内容的视觉位置**（把 padding 增量当成滚动
             // 位置吃掉），列表于是永远停在顶栏底下 —— 这正是「内容像是被上移」的原因。
             // 首帧不组合、等量到高度后再组合，`LazyColumn` 第一次布局拿到的 padding 就是对的。
-            if (barHeight > 0.dp) {
+            if (!reserveSpace || barHeight > 0.dp) {
                 content(barHeight)
             }
         }
@@ -154,10 +162,18 @@ fun BlurredTopBar(
                     //    旧写法是「模糊层 + 半透明 scrim」，顶栏整体是透的：清晰的
                     //    原内容从缝里透出来，和不清晰的副本叠在一起，于是半径怎么调
                     //    都像「没糊」。挡住之后，下面只剩模糊结果。
-                    drawRect(barColor.copy(alpha = maxOf(barColor.alpha, LegacyScrimAlpha)))
-                    // 2) 模糊结果以半透明浮上去 —— 这一步才是「毛玻璃」，不是遮罩。
-                    if (blurEnabled) {
-                        drawLayer(blurLayer)
+                    val strength = barAlpha().coerceIn(0f, 1f)
+                    if (strength > 0f) {
+                        drawRect(
+                            barColor.copy(
+                                alpha = maxOf(barColor.alpha, LegacyScrimAlpha) * strength,
+                            ),
+                        )
+                        // 2) 模糊结果以半透明浮上去 —— 这一步才是「毛玻璃」，不是遮罩。
+                        if (blurEnabled) {
+                            blurLayer.alpha = BlurLayerAlpha * strength
+                            drawLayer(blurLayer)
+                        }
                     }
                     // 别漏了这行：`drawWithContent` 不自动画子内容，
                     // 少了它就是「底和模糊都有、顶栏控件全不见」。

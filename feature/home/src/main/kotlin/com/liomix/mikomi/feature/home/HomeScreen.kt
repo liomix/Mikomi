@@ -1,6 +1,5 @@
 package com.liomix.mikomi.feature.home
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +49,7 @@ import com.liomix.mikomi.core.ui.business.AnimePosterCard
 import com.liomix.mikomi.core.ui.business.PosterCardSkeleton
 import com.liomix.mikomi.core.ui.business.PosterGrid
 import com.liomix.mikomi.core.ui.layout.LocalBottomBarSpace
+import com.liomix.mikomi.core.ui.layout.BlurredTopBar
 import com.liomix.mikomi.core.ui.window.rememberBottomInset
 import com.liomix.mikomi.core.ui.window.rememberInsetsDp
 import com.liomix.mikomi.core.ui.window.rememberTopInset
@@ -408,19 +408,29 @@ private fun HomeFeed(
             }
         }
 
-        Box(modifier = Modifier.fillMaxSize()) {
+        // 头图型的页面：内容从 y=0 铺到屏幕顶端，顶栏是浮在上面的一层 —— 正好是
+        // `BlurredTopBar` 的形态（`reserveSpace = false`，内容不需要让位）。
+        BlurredTopBar(
+            modifier = Modifier.fillMaxSize(),
+            barColor = MaterialTheme.colorScheme.background,
+            // 顶栏「有多实」直接接滚动进度：浮在头图上时完全不糊，快顶到快捷栏时
+            // 才逐渐变成毛玻璃。lambda 形式，逐帧读在绘制阶段，不触发重组。
+            barAlpha = { scrollChrome.topBarSolid.value },
+            reserveSpace = false,
+            bar = {
+                HomeTopBarOverlay(
+                    solid = scrollChrome.topBarSolid,
+                    chrome = chrome,
+                    onSearchClick = onSearchClick,
+                    onProfileClick = onProfileClick,
+                    searchHint = searchHint,
+                    profileContentDescription = profileContentDescription,
+                )
+            },
+        ) {
             // 扫光容器会开一条按帧唤醒的时间线：只在骨架真的显示时挂上，
             // 内容到位后它随分支一起离开组合，不留一条空转的无限动画。
             if (showsSkeleton) SkeletonShimmer(grid) else grid()
-
-            HomeTopBarOverlay(
-                solid = scrollChrome.topBarSolid,
-                chrome = chrome,
-                onSearchClick = onSearchClick,
-                onProfileClick = onProfileClick,
-                searchHint = searchHint,
-                profileContentDescription = profileContentDescription,
-            )
         }
     }
 }
@@ -502,8 +512,8 @@ private fun HomeTopBarOverlay(
             .fillMaxWidth()
             // 底色比按钮多出 [TopBarScrimTail]：底边正好压在头像底线上时，
             // 那一条会读成「按钮自带的下边框」，而不是「顶栏容器」。
-            .height(chrome.top + HomeTopBarHeight + TopBarScrimTail)
-            .background(MaterialTheme.colorScheme.background.copy(alpha = alpha)),
+            // 底色本身由 `BlurredTopBar` 铺（毛玻璃 + 随滚动进度加深），这里只管几何。
+            .height(chrome.top + HomeTopBarHeight + TopBarScrimTail),
     ) {
         HomeTopBar(
             onSearchClick = onSearchClick,

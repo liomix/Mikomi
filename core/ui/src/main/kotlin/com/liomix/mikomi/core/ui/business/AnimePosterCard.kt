@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.ui.base.HapticTone
+import com.liomix.mikomi.core.ui.base.rememberHaptic
 import com.liomix.mikomi.core.ui.base.ScrollingText
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 
@@ -44,13 +44,13 @@ fun AnimePosterCard(
     onCardLongClick: ((String) -> Unit)? = null,
 ) {
     val heroController = LocalHeroFlightController.current
-    val haptics = LocalHapticFeedback.current
+    val haptic = rememberHaptic()
 
     Column(
         modifier = modifier.mikomiClickable(
             onLongClick = onCardLongClick?.let { callback ->
                 {
-                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    haptic(HapticTone.LongPress)
                     callback(id)
                 }
             },

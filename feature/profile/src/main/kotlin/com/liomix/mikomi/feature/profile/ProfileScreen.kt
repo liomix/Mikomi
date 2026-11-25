@@ -48,7 +48,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -56,7 +55,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -73,9 +71,11 @@ import com.liomix.mikomi.core.designsystem.Radius
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.TextStyles
+import com.liomix.mikomi.core.ui.base.Icon
+import com.liomix.mikomi.core.ui.base.HapticTone
+import com.liomix.mikomi.core.ui.base.rememberHaptic
 import com.liomix.mikomi.core.ui.base.TabColors
 import com.liomix.mikomi.core.ui.base.mikomiClickable
-import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.Tab
 import com.liomix.mikomi.core.ui.base.TabBar
 import com.liomix.mikomi.core.ui.layout.LocalBottomBarSpace
@@ -175,9 +175,9 @@ fun ProfileScreen(
     }
 
     // 上膛那一下长震：先震、再撑满（Telegram 在 expandProgress >= 0.33 时做的是同一件事）。
-    val haptics = LocalHapticFeedback.current
+    val haptic = rememberHaptic()
     LaunchedEffect(armed) {
-        if (armed) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        if (armed) haptic(HapticTone.LongPress)
     }
 
     // 兜底回弹：慢慢松手时系统不派发 fling，下拉量会停在原地。

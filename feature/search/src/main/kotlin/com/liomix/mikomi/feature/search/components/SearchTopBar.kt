@@ -45,7 +45,8 @@ import com.liomix.mikomi.feature.search.R
  * 顶栏内部只有两个动作：返回、提交当前关键词。输入框自己负责聚焦、清除与键盘行为，
  * 见 [TopBarSearchField]。
  *
- * @param autoFocus 进入时是否自动聚焦并弹出输入法（结果页不聚焦，避免遮住结果）。
+ * @param autoFocus 进入时是否自动聚焦并弹出输入法。**默认不聚焦**：一进来就弹键盘会
+ *   把搜索历史顶掉半屏，而多数人点进来是先看一眼热榜/历史。
  */
 @Composable
 internal fun SearchTopBar(
@@ -55,7 +56,7 @@ internal fun SearchTopBar(
     onClear: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    autoFocus: Boolean = true,
+    autoFocus: Boolean = false,
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val submit: (String) -> Unit = { keyword ->
@@ -97,7 +98,12 @@ internal fun SearchTopBar(
             onClick = { submit(query) },
             enabled = query.isNotBlank(),
         ) {
-            Text(text = stringResource(R.string.search_action))
+            Text(
+                text = stringResource(R.string.search_action),
+                // 颜色显式取主题主色：`TextButton` 的默认内容色也是它，但写出来之后
+                // 换主题/换配色时这一处不用再去猜「它跟的是哪一个」。
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
@@ -120,7 +126,7 @@ private fun TopBarSearchField(
     onSubmit: (String) -> Unit,
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
-    autoFocus: Boolean = true,
+    autoFocus: Boolean = false,
 ) {
     val focusRequester = remember { FocusRequester() }
     if (autoFocus) {

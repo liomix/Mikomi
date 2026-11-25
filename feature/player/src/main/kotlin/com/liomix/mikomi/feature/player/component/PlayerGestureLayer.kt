@@ -40,11 +40,9 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Icons
@@ -54,6 +52,8 @@ import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.TextStyles
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
 import com.liomix.mikomi.core.ui.base.Icon
+import com.liomix.mikomi.core.ui.base.HapticTone
+import com.liomix.mikomi.core.ui.base.rememberHaptic
 import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.feature.player.PlayerPlaybackState
 import kotlin.math.abs
@@ -156,7 +156,7 @@ internal fun PlayerGestureLayer(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val haptics = LocalHapticFeedback.current
+    val haptic = rememberHaptic()
     val audio = remember(context) {
         runCatching { context.getSystemService(AudioManager::class.java) }.getOrNull()
     }
@@ -194,7 +194,7 @@ internal fun PlayerGestureLayer(
                             brightness = brightness,
                             scope = scope,
                             performHaptic = {
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptic(HapticTone.LongPress)
                             },
                             onTap = onTap,
                             onFlash = ::flash,

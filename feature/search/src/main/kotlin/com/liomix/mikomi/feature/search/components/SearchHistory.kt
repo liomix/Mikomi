@@ -29,8 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -39,6 +37,8 @@ import com.liomix.mikomi.core.designsystem.Radius
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.ui.base.Icon
+import com.liomix.mikomi.core.ui.base.HapticTone
+import com.liomix.mikomi.core.ui.base.rememberHaptic
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 import com.liomix.mikomi.feature.search.R
 
@@ -133,7 +133,7 @@ private fun SearchHistoryChip(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberHaptic()
 
     Box(modifier = modifier) {
         Surface(
@@ -159,7 +159,7 @@ private fun SearchHistoryChip(
                         onLongClick = {
                             // 先震一下：长按本来就没有视觉反馈，没有这一下用户不知道
                             // 自己是「按住了」还是「按到了别的」。
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptic(HapticTone.LongPress)
                             onLongClick()
                         },
                     )

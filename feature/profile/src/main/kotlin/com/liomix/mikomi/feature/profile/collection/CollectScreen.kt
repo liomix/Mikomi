@@ -39,8 +39,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,6 +54,8 @@ import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.designsystem.TextStyles
 import com.liomix.mikomi.core.model.Favorite
 import com.liomix.mikomi.core.ui.base.Icon
+import com.liomix.mikomi.core.ui.base.HapticTone
+import com.liomix.mikomi.core.ui.base.rememberHaptic
 import com.liomix.mikomi.core.ui.base.PressButton
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.SkeletonShimmer
@@ -396,7 +396,7 @@ private fun TimelineRow(
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val haptics = LocalHapticFeedback.current
+    val haptic = rememberHaptic()
     val heroController = LocalHeroFlightController.current
     val interaction = remember { MutableInteractionSource() }
     val railColor = scheme.outlineVariant
@@ -429,7 +429,7 @@ private fun TimelineRow(
                     }
                 },
                 onLongClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    haptic(HapticTone.LongPress)
                     if (managing) onToggleSelect(animeId) else onStartManage(animeId)
                 },
             )

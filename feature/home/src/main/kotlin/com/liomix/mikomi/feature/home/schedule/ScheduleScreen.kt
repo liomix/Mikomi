@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -161,13 +162,13 @@ private fun ScheduleContentBody(
         pageCount = { days.size },
     )
     val coroutineScope = rememberCoroutineScope()
-    val selectedDay = pagerState.currentPage
 
     Column(modifier = modifier.fillMaxSize()) {
         DayTabBar(
             dates = dates,
-            selectedIndex = selectedDay,
             todayIndex = todayIndex,
+            // 与 pager 联动：拖动时高亮跟手在两格之间移动，松手落页。
+            pagerState = pagerState,
             onSelect = { index ->
                 coroutineScope.launch { pagerState.animateScrollToPage(index) }
             },
@@ -202,19 +203,24 @@ private fun ScheduleContentBody(
 @Composable
 private fun DayTabBar(
     dates: List<String>,
-    selectedIndex: Int,
     todayIndex: Int,
+    pagerState: PagerState,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     TabBar(
-        selectedIndex = selectedIndex,
+        // 选中项就是 pager 的当前页：两者本来就是一回事，再传一个 `selectedIndex`
+        // 只会多出一个可能不一致的来源。
+        selectedIndex = pagerState.currentPage,
         onSelect = onSelect,
         modifier = modifier,
         // 整行铺满的七等分卡片，胶囊容器在宽屏上会显得过于圆，改用大圆角矩形。
         shape = RoundedCornerShape(TAB_ROW_CORNER_RADIUS),
         itemStyle = TabItemStyle.twoLine(),
         itemSpacing = Spacing.None,
+        // 指示器跟手：`TabBar` 读 pager 的 `currentPage + offsetFraction` 插值，
+        // 不传这一项就只能在松手后一次性弹到新格。
+        pagerState = pagerState,
     ) {
         dates.indices.forEach { index ->
             val isToday = index == todayIndex
@@ -354,7 +360,8 @@ private fun ScheduleAnimeRow(
                     text = anime.synopsis ?: stringResource(R.string.schedule_no_synopsis),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
+                    // 三行：一句简介通常两三行收住，再长就该去详情页看。
+                    maxLines = SynopsisMaxLines,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -535,3 +542,5 @@ private fun ScheduleSkeleton(
     }
 }
 
+/** 单日列表里简介的行数上限：三行之后开始省略。 */
+private const val SynopsisMaxLines = 3

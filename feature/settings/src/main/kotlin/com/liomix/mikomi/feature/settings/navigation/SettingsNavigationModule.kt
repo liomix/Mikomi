@@ -5,6 +5,7 @@ import com.liomix.mikomi.core.navigation.LocalNavigator
 import com.liomix.mikomi.core.navigation.PlaybackSettingsDestination
 import com.liomix.mikomi.core.navigation.ProxyDestination
 import com.liomix.mikomi.core.navigation.SettingsDestination
+import com.liomix.mikomi.core.navigation.TestDestination
 import com.liomix.mikomi.core.navigation.ThemeDestination
 import com.liomix.mikomi.core.navigation.VdoPlgDestination
 import com.liomix.mikomi.core.navigation.VdoPlgStoreDestination
@@ -13,6 +14,7 @@ import com.liomix.mikomi.feature.settings.playback.PlaybackSettingsRoute
 import com.liomix.mikomi.feature.settings.plugin_test.PlgTstRoute
 import com.liomix.mikomi.feature.settings.plugin_test.store.PlgTstStoreRoute
 import com.liomix.mikomi.feature.settings.proxy.ProxyRoute
+import com.liomix.mikomi.feature.settings.test.TestScreen
 import com.liomix.mikomi.feature.settings.theme.ThemeRoute
 import dagger.Module
 import dagger.Provides
@@ -34,6 +36,7 @@ object SettingsNavigationModule {
                 onOpenProxy = { navigator.navigate(ProxyDestination) },
                 onOpenPlugins = { navigator.navigate(VdoPlgDestination) },
                 onOpenPlayback = { navigator.navigate(PlaybackSettingsDestination) },
+                onOpenTest = { navigator.navigate(TestDestination) },
                 onBackClick = { navigator.goBack() },
             )
         }
@@ -55,6 +58,10 @@ object SettingsNavigationModule {
                 onBackClick = { navigator.goBack() },
                 onOpenStore = { navigator.navigate(VdoPlgStoreDestination) },
             )
+        }
+        entry<TestDestination> {
+            val navigator = LocalNavigator.current
+            TestScreen(onBackClick = { navigator.goBack() })
         }
         entry<VdoPlgStoreDestination> {
             val navigator = LocalNavigator.current

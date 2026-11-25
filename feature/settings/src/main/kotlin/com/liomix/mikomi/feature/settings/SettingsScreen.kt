@@ -48,6 +48,7 @@ fun SettingsScreen(
     onOpenProxy: () -> Unit,
     onOpenPlugins: () -> Unit,
     onOpenPlayback: () -> Unit,
+    onOpenTest: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -95,6 +96,19 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_entry_playback),
                     description = stringResource(R.string.settings_entry_playback_desc),
                     onClick = onOpenPlayback,
+                )
+            }
+        }
+
+        // 开发用：把通用组件（弹窗、Toast…）集中放一处手工验证。
+        // 放在最后一张，不打断「外观 → 数据源 → 播放」这条正常路径。
+        SettingsCard {
+            SettingsCardSection {
+                EntryRow(
+                    icon = Icons.Science,
+                    title = stringResource(R.string.settings_test_title),
+                    description = stringResource(R.string.settings_test_subtitle),
+                    onClick = onOpenTest,
                 )
             }
         }

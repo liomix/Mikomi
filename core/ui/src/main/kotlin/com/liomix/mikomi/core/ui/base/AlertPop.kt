@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -18,45 +16,38 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.AppTheme
-import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.Radius
-import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
-import com.liomix.mikomi.core.designsystem.TagColor
 import com.liomix.mikomi.core.designsystem.TagHue
-import com.liomix.mikomi.core.ui.R
-import kotlinx.coroutines.delay
 
-/** 弹窗图标的边长：比常规图标大两档，它是这个弹窗唯一的「画面」。 */
-private val AlertIconSize = 56.dp
+/**
+ * 弹窗图标的边长：比常规图标大两档，它是这个弹窗唯一的「画面」。
+ *
+ * info 比另外两档**小一档**，这不是随手取的：两份素材的**形状**不同 ——
+ * `error_warn` 是一条细长的感叹号（高 64、宽只有二十几），`info` 是一个正圆
+ * 外加圈十二根线。同一个方框里，圆的面积是感叹号的几倍，看起来就「大一圈」。
+ * 等高等宽只是容器相等，视觉重量要靠尺寸补偿。
+ */
+private val AlertIconSize = 64.dp
+private val InfoIconSize = 48.dp
 
 /** 弹窗宽度上限：再宽就会读成一张卡片，而不是一句提示。 */
 private val AlertMaxWidth = 400.dp
 
 /**
- * 告知类弹窗自动停留的时长。
- *
- * 两秒够读完一行标题加一句正文；再长就是在占用户的时间，再短来不及看。
- * 只有 [AlertType.Info] 会用到 —— 需要用户做决定的那两档必须由他自己关。
- */
-private const val InfoDismissMillis = 2_000L
-
-/**
- * 弹窗的等级。决定**图标素材**与**颜色**，也决定用户要不要亲自关掉它。
+ * 弹窗的等级。决定**图标素材**与**颜色**。
  *
  * 只有三档，不按业务场景细分：
  *
- * - [Info] 告知（不需要决定什么），两秒后自己消失；
- * - [Warn] 劝一句（还能继续，但先想清楚），右上角 × 关闭；
- * - [Error] 出事了（失败、不可用），右上角 × 关闭。
+ * - [Info] 告知；
+ * - [Warn] 劝一句（还能继续，但先想清楚）；
+ * - [Error] 出事了（失败、不可用）。
  *
  * 再细分下去会变成「每加一个弹窗就要挑一次颜色」，而用户其实只分得清这三档。
  */
@@ -78,44 +69,66 @@ private val AlertType.iconRes: Int
         -> LottieIcons.ErrorWarn
     }
 
-/** 颜色取自标签色板：那里已经有日夜两套「淡底 + 深字」，是这套设计里唯一现成的语义色表。 */
-private val AlertType.palette: TagColor
-    @Composable get() = AppTheme.colors.tags[
-        when (this) {
-            AlertType.Info -> TagHue.Green
-            AlertType.Warn -> TagHue.Amber
-            AlertType.Error -> TagHue.Red
-        },
-    ]
+/**
+ * 图标颜色。
+ *
+ * info / error 用标签色板的 `content`（深绿 / 深红）—— 那是「淡底上的深字」，
+ * 当大图标画在弹窗浅底上正好。
+ *
+ * warn 单独给一个琥珀：色板里 `Amber.content` 是 `#8A4B00`，那是给浅黄底上的文字用的，
+ * 当 56dp 的图标看起来是棕色，不像「警告」。
+ */
+private val AlertType.iconColor: Color
+    @Composable get() = when (this) {
+        AlertType.Info -> AppTheme.colors.tags[TagHue.Green].content
+        AlertType.Warn -> WarnAmber
+        AlertType.Error -> AppTheme.colors.tags[TagHue.Red].content
+    }
 
 /**
- * 带图标的提示弹窗：一个 lottie 动画 + 标题 + 正文 + 按钮。
+ * 警告用的琥珀黄。
  *
- * ## 两种关闭方式，对应「用户要不要参与」
+ * 色板里 `Amber.content` 是 `#8A4B00`（深棕），那是给浅黄底上的**文字**用的；
+ * 当 56dp 的图标画在弹窗浅底上，它看起来就是棕色，读不出「警告」。
+ * 日夜两档都要够亮，所以这里给一个固定值，而不是再开一档标签色。
+ */
+private val WarnAmber = Color(0xFFE8A33D) // design-ok: 语义色，色板 amber 只适合文字
+
+/**
+ * info 素材的图层分工（从 json 里读出来的）：
+ * `Oval` 是**白底圆**、`info1` / `info2` 是 **i 的竖与点**、`luc1..12` 是外圈 12 条线。
  *
- * - [AlertType.Info] 是纯告知：`InfoDismissMillis` 后自动消失，也可以点确认或点外部提前走。
- * - [AlertType.Warn] / [AlertType.Error] 需要用户知道「我看到了」：只能由右上角的 ×、
- *   外部点击或返回键关闭，**不会自己消失** —— 一条两秒就滑走的错误提示等于没提示。
+ * 目标是「绿圆 + 白 i」：圆和外圈线用主色，i 保持白色。整份统一染色会把两半压成
+ * 同一个颜色，i 就消失在圆里了 —— 所以这里按图层分成两组，各给一个颜色。
+ */
+private val InfoBackdropLayers: List<String> = (1..12).map { "luc$it" } + "Oval"
+private val InfoGlyphLayers: List<String> = listOf("info1", "info2")
+
+/**
+ * 带图标的提示弹窗：一个 lottie 动画 + 标题 + 正文 + 一个按钮。
+ *
+ * 三档都**不会自己消失**：只能点「知道了」、点外部或按返回键关闭。
+ * 自动消失曾经只给 info 用，但一条刚出现就自己滑走的提示，用户往往还没读完 ——
+ * 需要它存在多久只有用户自己知道。
  *
  * ## 颜色为什么只用 `content`
  *
  * 色板给的是「淡底 + 深字」两件套，但弹窗的底已经是 `surfaceContainerHigh`，
- * 再铺一层淡底会让图标看起来被框住。这里只取 `content`（深色那一半）给图标的填充，
+ * 再铺一层淡底会让图标看起来被框住。这里只取深色那一半给图标的填充，
  * 于是同一份白色素材在信息档是绿、警告档是黄、错误档是红 —— 不需要三份素材。
  *
  * ## 为什么不用 M3 的 `AlertDialog`
  *
- * 它的槽位（icon / title / text / buttons）放不下「右上角一个 ×」—— 那个 × 与底部按钮
- * 并不重复（一个是「关掉」，一个是「确认执行」）。所以只用它的 [BasicAlertDialog]
+ * 它的槽位（icon / title / text / buttons）不好摆「图标在上、按钮贴右下」这种
+ * 更紧凑的排版，也没有留出调整垂直位置的地方。所以只用 [BasicAlertDialog]
  * （仍然带走宽度上限、返回键、点外关闭这些平台行为），内容自己排。
  *
- * @param type 弹窗等级，决定图标、颜色与关闭方式。
+ * @param type 弹窗等级，决定图标与颜色。
  * @param title 标题。
  * @param message 正文，一句话说清后果或下一步。
- * @param confirmLabel 确认按钮文案（「删除」「知道了」），调用方给具体动词。
+ * @param confirmLabel 确认按钮文案（「知道了」「删除」），调用方给具体动词。
  * @param onConfirm 确认回调。
- * @param onDismissRequest 点外部 / 返回键 / × 的回落。
- * @param dismissLabel 取消按钮文案；`null` 表示底部只有确认按钮。
+ * @param onDismissRequest 点外部 / 返回键的回落。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -127,90 +140,66 @@ fun AlertPop(
     onConfirm: () -> Unit,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
-    dismissLabel: String? = null,
 ) {
-    val palette = type.palette
-
-    if (type == AlertType.Info) {
-        // 只在弹窗真的在屏幕上时计时；离开组合就取消，不会出现「关掉之后又触发一次」。
-        LaunchedEffect(Unit) {
-            delay(InfoDismissMillis)
-            onDismissRequest()
-        }
-    }
-
     BasicAlertDialog(
         onDismissRequest = onDismissRequest,
         modifier = modifier,
     ) {
-        Surface(
-            // 与全站弹层同一档圆角。
-            shape = RoundedCornerShape(Radius.Xl),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier.widthIn(max = AlertMaxWidth),
-        ) {
-            Box {
+        // 整体上移一点：对话框默认在屏幕正中，而人读弹窗时视线偏上（下面常被键盘或
+        // 手势条占着）。底部垫一段留白，居中基准随之上移一半。
+        Box(modifier = Modifier.padding(bottom = Spacing.Xl)) {
+            Surface(
+                // 与全站弹层同一档圆角。
+                shape = RoundedCornerShape(Radius.Xl),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.widthIn(max = AlertMaxWidth),
+            ) {
                 Column(
                     modifier = Modifier.padding(
-                        start = Spacing.Xl,
-                        end = Spacing.Xl,
-                        top = Spacing.Xl,
-                        bottom = Spacing.Md,
+                        start = Spacing.Lg,
+                        end = Spacing.Lg,
+                        top = Spacing.Lg,
+                        bottom = Spacing.Xs,
                     ),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     LottieIcon(
                         rawRes = type.iconRes,
-                        size = AlertIconSize,
-                        tint = palette.content,
+                        size = if (type == AlertType.Info) InfoIconSize else AlertIconSize,
+                        tint = type.iconColor,
+                        // info 是双色素材：圆与外圈用主色，i 用白色，所以不走单色 tint。
+                        tints = if (type == AlertType.Info) {
+                            listOf(
+                                LottieTint(layers = InfoBackdropLayers, color = type.iconColor),
+                                LottieTint(layers = InfoGlyphLayers, color = Color.White),
+                            )
+                        } else {
+                            null
+                        },
                     )
-                    Spacer(modifier = Modifier.height(Spacing.Md))
+                    Spacer(modifier = Modifier.height(Spacing.Sm))
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                     )
-                    Spacer(modifier = Modifier.height(Spacing.Sm))
+                    Spacer(modifier = Modifier.height(Spacing.Xxs))
                     Text(
                         text = message,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                     )
-                    Spacer(modifier = Modifier.height(Spacing.Lg))
+                    // 按钮行贴右下：`End` 靠右，它是 Column 的最后一项，本身就在底部。
+                    // 内边距已经收到最小，再缩就要压到正文了。
                     Row(
                         modifier = Modifier.align(Alignment.End),
                         horizontalArrangement = Arrangement.spacedBy(Spacing.Xs),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (dismissLabel != null) {
-                            TextButton(onClick = onDismissRequest) {
-                                Text(text = dismissLabel)
-                            }
-                        }
                         TextButton(onClick = onConfirm) {
                             Text(text = confirmLabel)
                         }
-                    }
-                }
-
-                // 右上角 ×：只给 warn / error。info 会自己消失，再加一个关闭键只是噪音。
-                if (type != AlertType.Info) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(Spacing.Tight)
-                            .size(Sizes.ChipHeight)
-                            .clip(CircleShape)
-                            .mikomiClickable(onClick = onDismissRequest),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            icon = Icons.Close,
-                            contentDescription = stringResource(R.string.core_ui_close),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            size = Sizes.IconMd,
-                        )
                     }
                 }
             }

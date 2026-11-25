@@ -190,4 +190,19 @@
     <string name="settings_playback_seek_sweep">左右滑动幅度</string>
     <string name="settings_playback_seek_sweep_desc">手指横滑一整屏宽度时快进或快退的时长，松手才真的跳过去</string>
     <string name="settings_playback_hint">竖屏上下滑：左半屏调音量，右半屏调亮度；双击画面暂停或继续。</string>
+    <string name="settings_test_title">系统测试</string>
+    <string name="settings_test_subtitle">手工验证通用组件</string>
+    <string name="settings_test_group_pop">弹窗与提示</string>
+    <string name="settings_test_alert_info">信息弹窗（2 秒自动消失）</string>
+    <string name="settings_test_alert_warn">警告弹窗（点 × 关闭）</string>
+    <string name="settings_test_alert_error">错误弹窗（点 × 关闭）</string>
+    <string name="settings_test_toast">Toast 提示</string>
+    <string name="settings_test_alert_info_title">提示</string>
+    <string name="settings_test_alert_info_message">这是一条告知类弹窗，两秒后自己消失。</string>
+    <string name="settings_test_alert_warn_title">注意</string>
+    <string name="settings_test_alert_warn_message">这是一条警告，需要你自己关掉。</string>
+    <string name="settings_test_alert_error_title">出错了</string>
+    <string name="settings_test_alert_error_message">这是一条错误提示，不会自动消失。</string>
+    <string name="settings_test_confirm">知道了</string>
+    <string name="settings_test_toast_message">这是一条应用内提示</string>
 </resources>

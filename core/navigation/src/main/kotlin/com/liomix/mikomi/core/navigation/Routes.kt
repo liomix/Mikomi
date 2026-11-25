@@ -34,6 +34,10 @@ data object HistoryDestination : NavKey
 data object SettingsDestination : NavKey
 
 /** 主题设置二级页面（我的页左上角图标进入）。 */
+/** 系统测试页（设置里的「系统测试」进入）：用来手工验证通用组件。 */
+@Serializable
+data object TestDestination : NavKey
+
 @Serializable
 data object ThemeDestination : NavKey
 

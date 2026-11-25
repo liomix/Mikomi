@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,8 +74,12 @@ import com.liomix.mikomi.core.ui.R
  *   `ContentScale.Fit` 居中缩放，不会被拉变形。
  * @param tint 统一染色；`null` 表示跟随 `LocalContentColor`。
  * @param themed 是否由主题接管颜色。`false` 时忽略 [tint]，保留 json 原色 ——
- *   适合本身带配色的素材（火焰、地图加载）。判定「染不染」只看这一个开关，
+ *   适合本身带配色的素材（地图加载）。判定「染不染」只看这一个开关，
  *   不再靠 `tint = null` 这种隐式写法区分「有意保留」和「忘了传」。
+ * @param tintLayers 只染这些图层（按 json 里的图层名）。`null` = 全部图层。
+ *   单色素材用它挑出「该染的那一半」。
+ * @param tints 按图层分组染色（每个分组一个颜色），优先于 [tint] / [tintLayers]。
+ *   用于真正的多色素材：例如「绿圆 + 白字」需要两种颜色同时存在。
  * @param speed 播放倍速，`0.5f` 让细节更清楚，`2f` 让慢动画不显得拖沓。
  * @param iterations 播放次数；默认无限循环。只播一次的图标传 `1`。
  * @param playing 是否正在播放。传 `false` 停在当前帧 —— 想回到首帧就换个 `key` 重建
@@ -89,6 +94,8 @@ fun LottieIcon(
     size: Dp = LottieIconDefaults.Size,
     tint: Color? = LocalContentColor.current,
     themed: Boolean = true,
+    tintLayers: List<String>? = null,
+    tints: List<LottieTint>? = null,
     speed: Float = LottieIconDefaults.Speed,
     iterations: Int = LottieConstants.IterateForever,
     playing: Boolean = true,
@@ -141,7 +148,7 @@ fun LottieIcon(
                 // 参数与 SemanticsPropertyReceiver 同名，必须显式落到 receiver 上。
                 contentDescription?.let { this.contentDescription = it }
             },
-        dynamicProperties = rememberTintProperties(effectiveTint),
+        dynamicProperties = rememberTintProperties(effectiveTint, tintLayers, tints),
         alignment = Alignment.Center,
         contentScale = ContentScale.Fit,
     )
@@ -154,24 +161,55 @@ fun LottieIcon(
  * 全部填充色与描边色的属性（`COLOR` 只能按图层逐个指定，面对几十层的动画不现实）。
  */
 @Composable
-private fun rememberTintProperties(tint: Color?): LottieDynamicProperties? {
+private fun rememberTintProperties(
+    tint: Color?,
+    layers: List<String>?,
+    tints: List<LottieTint>?,
+): LottieDynamicProperties? {
     // Unspecified 的 toArgb() 会落到不透明白色，等于把动画染成白色，宁可不染。
     val argb = if (tint == null || tint == Color.Unspecified) null else tint.toArgb()
     // remember 必须无条件调用：这里不提前 return，否则 tint 从 null 变成有值时槽位对不上。
-    return remember(argb) {
+    return remember(argb, layers, tints) {
+        // 多色素材：每个分组用各自的颜色，比 [tint] 更细。
+        if (tints != null) {
+            return@remember LottieDynamicProperties(
+                tints.flatMap { group ->
+                    val filter = SimpleColorFilter(group.color.toArgb())
+                    group.layers.map { layer ->
+                        LottieDynamicProperty(
+                            LottieProperty.COLOR_FILTER,
+                            KeyPath(layer, "**"),
+                            filter,
+                        )
+                    }
+                },
+            )
+        }
         argb?.let { color ->
+            val filter = SimpleColorFilter(color)
+            // 指定图层时只染这些图层：多色素材（白圆 + 黑字）整份染会把两种颜色压成一种，
+            // 图形就「糊」掉了。`**` 表示该图层下所有内容。
+            val paths = layers?.map { KeyPath(it, "**") } ?: listOf(KeyPath("**"))
             LottieDynamicProperties(
-                listOf(
-                    LottieDynamicProperty(
-                        LottieProperty.COLOR_FILTER,
-                        KeyPath("**"),
-                        SimpleColorFilter(color),
-                    ),
-                ),
+                paths.map { path ->
+                    LottieDynamicProperty(LottieProperty.COLOR_FILTER, path, filter)
+                },
             )
         }
     }
 }
+
+/**
+ * 一组图层的统一颜色。
+ *
+ * @param layers json 里的图层名（`nm`）。
+ * @param color 这一组染成的颜色。
+ */
+@Immutable
+data class LottieTint(
+    val layers: List<String>,
+    val color: Color,
+)
 
 /** [LottieIcon] 的默认值。 */
 object LottieIconDefaults {

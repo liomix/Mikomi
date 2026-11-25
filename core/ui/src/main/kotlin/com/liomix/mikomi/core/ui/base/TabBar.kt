@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -388,8 +389,22 @@ fun TabBar(
     state.onSelect = { index ->
         // 有 pager 时**由这里统一滚动**：指示器的位置读的就是 pager 的偏移量，
         // 两者的速度必须是同一条曲线，否则会「指示器到了、内容还在滑」。
+        //
+        // 用 `animateScrollBy` 而不是 `animateScrollToPage`：后者的实现里有一段
+        // 「跨页超过一格时先瞬移到目标前一页，再动画最后一格」的优化 ——
+        // 从第 1 个点到第 5 个，画面上看到的是「从 4 滑到 5」，中间三格被跳过。
+        // 按整段距离一次滚动，指示器才会真的从头走到尾。
         pagerState?.let { pager ->
-            scope.launch { pager.animateScrollToPage(page = index, animationSpec = IndicatorSwapSpec) }
+            scope.launch {
+                val pageSize = pager.layoutInfo.pageSize
+                if (pageSize <= 0) {
+                    pager.animateScrollToPage(page = index, animationSpec = IndicatorSwapSpec)
+                } else {
+                    // 当前位置 = currentPage + offsetFraction，只算差值，不依赖中间页。
+                    val delta = (index - pager.currentPage - pager.currentPageOffsetFraction) * pageSize
+                    pager.animateScrollBy(value = delta, animationSpec = IndicatorSwapSpec)
+                }
+            }
         }
         onSelect(index)
     }

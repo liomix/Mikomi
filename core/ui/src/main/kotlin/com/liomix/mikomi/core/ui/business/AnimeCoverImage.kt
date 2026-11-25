@@ -26,6 +26,7 @@ import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.skeletonBaseColor
 import com.liomix.mikomi.core.ui.image.AsyncImage
+import androidx.compose.ui.unit.Dp
 
 /** 加载失败后的最大自动重试次数；超过后停留占位色块，避免无限循环请求。 */
 private const val MAX_RETRY = 3
@@ -63,6 +64,7 @@ fun AnimeCoverImage(
     shimmerWhileLoading: Boolean = true,
     aspectRatio: Float? = COVER_ASPECT_RATIO,
     cropAlignment: Alignment = Alignment.Center,
+    cornerRadius: Dp = COVER_CORNER_RADIUS,
 ) {
     val placeholderColor = MaterialTheme.colorScheme.surfaceContainerHigh
     var retryHash by remember(url) { mutableIntStateOf(0) }
@@ -91,7 +93,7 @@ fun AnimeCoverImage(
 
         Box(
             modifier = sized
-                .clip(RoundedCornerShape(COVER_CORNER_RADIUS))
+                .clip(RoundedCornerShape(cornerRadius))
                 // 垫底必须在图片之下、且恒定存在：`placeholder` 为 null（有扫光时）的
                 // 那几帧里，这里是唯一的不透明来源。
                 .background(baseColor)
@@ -99,7 +101,7 @@ fun AnimeCoverImage(
                     key = heroKey,
                     url = url,
                     description = contentDescription,
-                    radius = COVER_CORNER_RADIUS,
+                    radius = cornerRadius,
                 ),
         ) {
             // 画在图片**底下**：图片一落地就把它完全盖住，不依赖 settled 提前一帧生效。

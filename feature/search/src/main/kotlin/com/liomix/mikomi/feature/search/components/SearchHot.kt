@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -29,14 +30,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.Motion
@@ -44,6 +48,7 @@ import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.Radius
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.TextStyles
 import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.ScrollingText
@@ -60,20 +65,29 @@ import com.liomix.mikomi.feature.search.R
 import com.liomix.mikomi.feature.search.SearchHotTab
 import java.util.Locale
 
+/** 分类胶囊的高度：与区块标题同一水平线，再高就把整行撑起来。 */
+private val HotTabHeight = 24.dp
+
+/**
+ * 名次数字相对排行榜的缩放。
+ *
+ * 排行榜的数字是压在 84dp 封面上的画面元素（42 / 34 / 26sp）；这里一行只有 32dp 高，
+ * 乘 0.6 之后是 25 / 20 / 15sp —— 同一个阶梯，小一号。
+ */
+private const val HotRankScale = 0.6f
+
 /** 热播榜展示条数。 */
 private const val HOT_LIMIT = 10
 
 /** 热播榜骨架屏条数。 */
 private const val HOT_SKELETON_COUNT = 6
 
-/** 金属色做底时的浓度：再深会压过封面上的主色，再浅就看不出是金 / 银 / 铜。 */
-private const val RankBadgeFillAlpha = 0.18f
-
 /**
- * 热播榜卡片：顶部是日 / 国切换，其下就是榜单本身。
+ * 热播榜卡片：只有榜单本身。
  *
- * 标签栏放在卡片**里面**而不是外面 —— 那条线是卡片的内部界线，不是「页面上两个区块之间
- * 的分割线」。所以它必须与内容同宽、同底，切换时只有内容换面，卡片不动。
+ * 日 / 国切换不在卡片里 —— 它已经挪到区块标题那一行，和「热播榜」并排（见
+ * `SearchHotTabs`）。分类是这一块的**标题属性**，不是卡片内部的导航；
+ * 放在标题旁边，用户一眼就能看到「这块可以换类」。
  *
  * 内容由调用方给（骨架 / 失败 / 空 / 列表），因为这个组件只负责「卡片长什么样」，
  * 不负责「现在该显示哪种状态」。
@@ -84,8 +98,6 @@ private const val RankBadgeFillAlpha = 0.18f
  */
 @Composable
 internal fun SearchHotCard(
-    selected: SearchHotTab,
-    onSelect: (SearchHotTab) -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -98,21 +110,24 @@ internal fun SearchHotCard(
             .fillMaxWidth()
             .padding(horizontal = Spacing.Lg),
     ) {
+        // 分类切换已经挪到区块标题那一行（与「热播榜」同高），卡片里只剩榜单本身。
         Column(modifier = Modifier.padding(vertical = Spacing.Tight)) {
-            SearchHotTabs(selected = selected, onSelect = onSelect)
             content()
         }
     }
 }
 
 /**
- * 日 / 国漫切换。
+ * 日 / 国漫切换：一枚小胶囊，和「热播榜」标题并排。
  *
- * 用**下划线**而不是胶囊底：这两栏是同一种内容的两个分类，胶囊会把其中一栏读成
- * 「被按下的按钮」，压过下面真正要点的那张榜单卡片。
+ * 用胶囊（[TabHighlight.Fill]）而不是下划线：它现在和标题在同一行，是标题的**附属**
+ * 而不是一整块导航区 —— 下划线形态需要一条贯穿整行的基线与它配合，放在标题右侧
+ * 会显得那条线是从半空里开始的。
+ *
+ * 高度压到 24dp：与标题同一水平线，再高就把整行撑起来，标题看着像偏上。
  */
 @Composable
-private fun SearchHotTabs(
+internal fun SearchHotTabs(
     selected: SearchHotTab,
     onSelect: (SearchHotTab) -> Unit,
     modifier: Modifier = Modifier,
@@ -120,22 +135,28 @@ private fun SearchHotTabs(
     TabBar(
         selectedIndex = selected.ordinal,
         onSelect = { index -> onSelect(SearchHotTab.entries[index]) },
-        // 内边距走 contentPadding 而不是 modifier：分割线画在 padding 外层，
-        // 才能从卡片左边缘贯到右边缘；挂到 modifier 上会让线两端各缩进。
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = Spacing.Xs, vertical = Spacing.None),
-        containerColor = Color.Transparent,
-        // 40dp：下划线形态不需要胶囊那圈厚度，48 会留出一条谁也用不上的空白带。
-        itemStyle = TabItemStyle.text().copy(height = Sizes.ChipHeight),
-        itemSpacing = Spacing.None,
-        highlight = TabHighlight.Underline,
+        modifier = modifier
+            // 右端让出 8dp：卡片右边缘在 16dp 上，标题行的 action 槽只让到 8dp，
+            // 补齐这一档两条边才对得齐。
+            .padding(end = Spacing.Sm),
+        contentPadding = PaddingValues(horizontal = Spacing.Xxs),
+        // 外壳要看得见：透明底 + 只有选中项有胶囊时，整条栏读起来是「两个飘着的字」。
+        // 用 `surfaceContainerHigh`（比页面底色深一档），选中项的主色胶囊才落在一个底上。
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        // 24dp 是这一行的高度上限：标题文字本身约 20dp，胶囊再厚就压过它。
+        itemStyle = TabItemStyle.text().copy(
+            height = HotTabHeight,
+            horizontalPadding = Spacing.Md,
+            verticalPadding = Spacing.None,
+            // 13sp 而不是 14.5sp 的 `TabLabel`：它现在缩在标题右侧，字要小一档
+            // 才不会被读成和「热播榜」同级的标题。
+            labelStyle = TextStyles.TabLabel.copy(fontSize = 13.sp), // design-ok: 标题附属文字，比 TabLabel 小一档
+        ),
+        itemSpacing = Spacing.Xxs,
+        highlight = TabHighlight.Fill,
     ) {
         SearchHotTab.entries.forEachIndexed { index, tab ->
-            Tab(
-                index = index,
-                text = stringResource(tab.labelRes()),
-                modifier = Modifier.weight(1f),
-            )
+            Tab(index = index, text = stringResource(tab.labelRes()))
         }
     }
 }
@@ -193,7 +214,7 @@ private fun SearchHotRow(
             .padding(vertical = Spacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SearchHotRankBadge(rank = item.rank)
+        SearchHotRankNumber(rank = item.rank)
         Spacer(modifier = Modifier.width(Spacing.Sm))
         AnimeCoverImage(
             url = item.coverUrl,
@@ -201,6 +222,9 @@ private fun SearchHotRow(
             // 56dp 宽（2:3 → 84dp 高）：这一行只有名次、封面、标题和两个标签，
             // 封面是唯一能让人一眼认出片子的东西，太小就白占一行的位置。
             modifier = Modifier.width(56.dp),
+            // 圆角降一档（Md → Sm）：这一行已经有名次、标题、两行小字，
+            // 封面的圆角再大就会读成「一张卡里还有一张卡」。
+            cornerRadius = Radius.Sm,
         )
         Spacer(modifier = Modifier.width(Spacing.Sm))
         Column(modifier = Modifier.weight(1f)) {
@@ -255,35 +279,35 @@ private fun SearchHotRow(
 }
 
 /**
- * 名次徽标：一个圆，数字居中。
+ * 名次：裸数字，与排行榜同款字形（衬线、Black、斜体），只是小一号。
  *
- * 颜色与排行榜名片同源（`AppTheme.colors.rank`）：前三名取金属色的淡底 + 深墨数字
- * （`fill` 只用于底、`ink` 用于字 —— 金属色的 `fill` 直接当字在浅底上只有 1.2:1），
- * 第 4 名起落到中性容器色。
+ * 之前是一个圆徽标（浅色底 + 深色数字）。改成裸数字为了和排行榜**读成同一套语言**：
+ * 两处都是「第几名」，一个套了圆底、一个压在大封面上，就变成了两种标记。
+ *
+ * 字号按排行榜的阶梯乘 [HotRankScale]：排行榜那张卡的数字压在 84dp 高的封面上，
+ * 是画面的一部分；这里一行只有 32dp 高，原尺寸会把行距顶开。
+ *
+ * 颜色仍走 `AppTheme.colors.rank`：前三名取金属墨色（`ink`，不是 `fill` —— 金属色的
+ * `fill` 当字画在浅底上只有 1.2:1），第 4 名起落到次级文字色。
  */
 @Composable
-private fun SearchHotRankBadge(rank: Int) {
-    val metal = AppTheme.colors.rank(rank)
-    val container = metal?.fill?.copy(alpha = RankBadgeFillAlpha)
-        ?: MaterialTheme.colorScheme.surfaceContainerHigh
-    val content = metal?.ink ?: MaterialTheme.colorScheme.onSurfaceVariant
-    Box(
-        modifier = Modifier
-            .size(Sizes.RankBadge)
-            .clip(CircleShape)
-            .background(container),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = rank.toString(),
-            // 行高直接取字号：`labelLarge` 的 20sp 行高是在 12sp 字之外多加的上下空当，
-            // 盒子按行高居中，字就偏上。行高 = 字号之后布局高度贴着字形，Box 的中心
-            // 才是字形的中心；`includeFontPadding = false` 再去掉字体自带的留白。
-            style = rankBadgeTextStyle,
-            fontWeight = FontWeight.Bold,
-            color = content,
-        )
-    }
+private fun SearchHotRankNumber(rank: Int) {
+    val base = TextStyles.rankNumber(rank)
+    val style = base.copy(
+        fontSize = base.fontSize * HotRankScale,
+        lineHeight = base.lineHeight * HotRankScale,
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.Black,
+        fontStyle = FontStyle.Italic,
+    )
+    Text(
+        text = rank.toString(),
+        modifier = Modifier.widthIn(min = Sizes.RankBadge),
+        style = style,
+        color = AppTheme.colors.rank(rank)?.ink ?: MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+    )
 }
 
 /** 榜单骨架屏：与真实行同构，数据到位时行高不变。 */
@@ -402,11 +426,3 @@ private fun formatPlayCount(count: Long): String = when {
 private val hotMetaTagStyle: TagStyle
     @Composable get() = TagStyle.meta().copy(shape = PillShape)
 
-/** 名次徽标里的数字：行高收到字号本身，让字形的中心就是盒子的中心。 */
-private val rankBadgeTextStyle: TextStyle
-    @Composable get() = MaterialTheme.typography.labelLarge.let { base ->
-        base.copy(
-            lineHeight = base.fontSize,
-            platformStyle = PlatformTextStyle(includeFontPadding = false),
-        )
-    }

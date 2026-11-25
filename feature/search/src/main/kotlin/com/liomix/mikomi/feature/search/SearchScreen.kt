@@ -41,9 +41,11 @@ import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.ui.base.LottieIcon
 import com.liomix.mikomi.core.ui.base.LottieIcons
 import com.liomix.mikomi.core.ui.window.Insets
+import com.liomix.mikomi.core.ui.base.tabSwipe
 import com.liomix.mikomi.core.ui.layout.BlurredTopBar
 import com.liomix.mikomi.feature.search.components.SearchHistoryTags
 import com.liomix.mikomi.feature.search.components.SearchHotCard
+import com.liomix.mikomi.feature.search.components.SearchHotTabs
 import com.liomix.mikomi.feature.search.components.SearchHotEmpty
 import com.liomix.mikomi.feature.search.components.SearchHotList
 import com.liomix.mikomi.feature.search.components.SearchHotRetry
@@ -130,9 +132,12 @@ fun SearchScreen(
                                     leading = {
                                         // 与静态图标同色：巡礼页/设置页的图标都是主色，
                                         // 历史的计时器动画也染成主色才不会跳出来。
+                                        // 与垃圾桶同一套播放逻辑：播一次停住，不做常驻循环 ——
+                                        // 一排里两个一直在动的东西会分散注意力。
                                         LottieIcon(
                                             rawRes = LottieIcons.Time,
                                             tint = MaterialTheme.colorScheme.primary,
+                                            iterations = 1,
                                         )
                                     },
                                     title = stringResource(R.string.search_history),
@@ -186,6 +191,13 @@ fun SearchScreen(
                                     )
                                 },
                                 title = stringResource(R.string.search_hot_ranking),
+                                // 分类切换与标题并排：它是这一块的属性，不是卡片的导航。
+                                action = {
+                                    SearchHotTabs(
+                                        selected = state.hotTab,
+                                        onSelect = onHotTabChange,
+                                    )
+                                },
                             )
                         }
 
@@ -193,8 +205,12 @@ fun SearchScreen(
                         // 线之下是内容。分成两项时标签浮在卡片外，读起来像两个不相干的东西。
                         item(key = "hot_card") {
                             SearchHotCard(
-                                selected = state.hotTab,
-                                onSelect = onHotTabChange,
+                                // 手势挂在榜单内容上：用户拖的是这张卡，栏只是它的标题。
+                                modifier = Modifier.tabSwipe(
+                                    selectedIndex = state.hotTab.ordinal,
+                                    itemCount = SearchHotTab.entries.size,
+                                    onSelect = { index -> onHotTabChange(SearchHotTab.entries[index]) },
+                                ),
                             ) {
                                 // 内容按 Tab 分组：切换时新榜单重新播一次淡入上移，
                                 // 标签栏本身不动。

@@ -21,9 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke as DrawStroke
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +34,7 @@ import com.liomix.mikomi.core.designsystem.TextStyles
 import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.ui.base.ScrollingText
 import com.liomix.mikomi.core.ui.base.SkeletonBox
+import com.liomix.mikomi.core.ui.base.RankNumber as RankNumberText
 import com.liomix.mikomi.core.ui.business.AnimeCoverImage
 import androidx.compose.ui.draw.clip
 import com.liomix.mikomi.core.ui.base.mikomiClickable
@@ -51,7 +49,7 @@ import com.liomix.mikomi.core.ui.base.mikomiClickable
  * 卡片只由「封面 + 文字」构成，不铺底色、不叠任何遮罩：多铺一层兜底色，
  * 图片没就绪时会先闪出一块深灰，看起来像卡片坏了。加载态交给列表骨架屏
  * （`RankCardSkeletonList`），卡片本身保持空白等图。文字靠
- * [RankTitleShadow] / [RankNumberShadow] 的深色描影压在画面上。
+ * [RankTitleShadow] 的深色描影压在画面上。
  *
  * 缺封面（数据里没有图）的条目也按「还没加载出来」处理：整条退化成同尺寸骨架，
  * 不留一张空白卡——亮字压在页面背景上等于什么都没有，看起来更像坏了。
@@ -86,7 +84,7 @@ internal fun RankAnimeCard(
         border = BorderStroke(
             width = Stroke.Thin,
             // 前三名用描边色勾一圈：压在封面上时金属色本身就够亮，描边只做收边。
-            color = rankOutline(rank)?.copy(alpha = 0.55f) ?: AppTheme.colors.media.outline,
+            color = rankAccent(rank).copy(alpha = 0.55f),
         ),
         shadowElevation = if (isTopRank) TopRankShadow else 0.dp,
         modifier = modifier
@@ -108,8 +106,10 @@ internal fun RankAnimeCard(
                     .padding(start = RowStartPadding, end = RowEndPadding),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RankNumber(
+                RankNumberText(
                     rank = rank,
+                    color = AppTheme.colors.rank(rank)?.fill ?: AppTheme.colors.rankOther.fill,
+                    // 固定宽度：两位数与一位数占同一格，标题的起点才不会左右跳。
                     modifier = Modifier.width(RankNumberWidth),
                 )
 
@@ -129,57 +129,6 @@ internal fun RankAnimeCard(
                 )
             }
         }
-    }
-}
-
-/**
- * 名次数字。
- *
- * 前三名用金 / 银 / 铜这类高亮金属色：压在封面上够醒目，但遇到浅色封面
- * （天空、雪地）会糊进背景，所以给它们垫一层同字形的深色描边
- * （见 [RankNumberOutline]），靠轮廓把字形勾出来。第 4 名起用亮灰，
- * 靠 [RankNumberShadow] 的深色描影即可。
- */
-@Composable
-private fun RankNumber(
-    rank: Int,
-    modifier: Modifier = Modifier,
-) {
-    val accent = rankAccent(rank)
-    val outlineColor = rankOutline(rank)
-    val outlineStyle = rememberRankNumberOutline()
-    // 字号阶梯（42 / 34 / 26）住在设计系统里：搜索页的排名圆标用的是同一套，
-    // 两处各写一份就会出现「同一个第 12 名，两个页面大小不同」。
-    val style = TextStyles.rankNumber(rank).copy(
-        fontFamily = FontFamily.Serif,
-        fontWeight = FontWeight.Black,
-        fontStyle = FontStyle.Italic,
-    )
-
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        if (outlineColor != null) {
-            Text(
-                text = rank.toString(),
-                modifier = Modifier.fillMaxWidth(),
-                color = outlineColor,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                style = style.copy(drawStyle = outlineStyle),
-            )
-        }
-        Text(
-            text = rank.toString(),
-            modifier = Modifier.fillMaxWidth(),
-            color = accent,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            // 有描边时不再叠投影：两层边缘会互相弄脏。
-            style = if (outlineColor == null) {
-                style.copy(shadow = RankNumberShadow)
-            } else {
-                style
-            },
-        )
     }
 }
 
@@ -208,18 +157,15 @@ private fun CoverBackdrop(
 }
 
 /**
- * 名次填色：前三名取设计系统的金属色（金 / 银 / 铜），第 4 名起用亮灰。
+ * 名次填色：前三名用该名次的金属色本身，第 4 名起用浅灰。
  *
- * 金属色分 fill / outline / ink 三档，这里是 `fill`（压在封面上的那一档）：
- * 银色因此是偏冷的浅金属灰而不是近白 —— 近白压在浅色封面（天空、雪地）上几乎消失。
+ * 只有两个来源：`rank(rank).fill` 与 `rankOther`。名次色不再做「描边版 /
+ * 文字版 / 压图版」之类的派生 —— 同一个第 1 名在排行榜和搜索页必须是同一种金，
+ * 派生色越多，两处就越容易挑到不同的那一支。
  */
 @Composable
 private fun rankAccent(rank: Int): Color =
-    AppTheme.colors.rank(rank)?.fill ?: AppTheme.colors.media.content
-
-/** 前三名对应的描边色；第 4 名起无描边（返回 null）。 */
-@Composable
-private fun rankOutline(rank: Int): Color? = AppTheme.colors.rank(rank)?.outline
+    AppTheme.colors.rank(rank)?.fill ?: AppTheme.colors.rankOther.fill
 
 /**
  * 标题文字的深色描影。
@@ -231,13 +177,6 @@ private val RankTitleShadow = Shadow(
     color = ShadowColor.copy(alpha = 0.8f),
     offset = Offset(0f, 1.5f),
     blurRadius = 8f,
-)
-
-/** 名次文字的深色描影：亮底封面（草地、天空）上靠它勾住轮廓。 */
-private val RankNumberShadow = Shadow(
-    color = ShadowColor.copy(alpha = 0.65f),
-    offset = Offset(0f, 2f),
-    blurRadius = 9f,
 )
 
 /** 卡片高度：固定 112dp 的横条，一屏能看到约 5 张，不与封面比例挂钩。 */
@@ -275,15 +214,3 @@ private const val TopRankHighlight = 3
 
 /** 描边宽度：细到只勾轮廓，粗了会把金属色挤没。 */
 private val RankNumberOutlineWidth = 1.2.dp
-
-/** 描边笔：圆角接头，避免斜体衬线的尖角处出现毛刺。宽度需按屏幕密度换算。 */
-@Composable
-private fun rememberRankNumberOutline(): DrawStroke {
-    val density = LocalDensity.current
-    return remember(density) {
-        DrawStroke(
-            width = with(density) { RankNumberOutlineWidth.toPx() },
-            join = StrokeJoin.Round,
-        )
-    }
-}

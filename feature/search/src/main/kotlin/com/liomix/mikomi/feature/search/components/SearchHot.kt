@@ -37,9 +37,6 @@ import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.liomix.mikomi.core.designsystem.AppTheme
@@ -58,6 +55,7 @@ import com.liomix.mikomi.core.ui.base.Tab
 import com.liomix.mikomi.core.ui.base.TabBar
 import com.liomix.mikomi.core.ui.base.TabHighlight
 import com.liomix.mikomi.core.ui.base.TabItemStyle
+import com.liomix.mikomi.core.ui.base.RankNumber as RankNumberText
 import com.liomix.mikomi.core.ui.base.Tag
 import com.liomix.mikomi.core.ui.base.TagStyle
 import com.liomix.mikomi.core.ui.base.mikomiClickable
@@ -284,34 +282,21 @@ private fun SearchHotRow(
 }
 
 /**
- * 名次：裸数字，与排行榜同款字形（衬线、Black、斜体），只是小一号。
+ * 名次：与排行榜同一个组件 [RankNumberText]，只是小一号。
  *
- * 之前是一个圆徽标（浅色底 + 深色数字）。改成裸数字为了和排行榜**读成同一套语言**：
- * 两处都是「第几名」，一个套了圆底、一个压在大封面上，就变成了两种标记。
- *
- * 字号按排行榜的阶梯乘 [HotRankScale]：排行榜那张卡的数字压在 84dp 高的封面上，
- * 是画面的一部分；这里一行只有 32dp 高，原尺寸会把行距顶开。
- *
- * 颜色仍走 `AppTheme.colors.rank`：前三名取金属墨色（`ink`，不是 `fill` —— 金属色的
- * `fill` 当字画在浅底上只有 1.2:1），第 4 名起落到次级文字色。
+ * 之前这里自己拼过一份样式（衬线 + Black + 斜体 + 手算缩放），和排行榜那份是两处
+ * 独立实现 —— 同一个「第 12 名」在两边迟早会不一样大。现在字形只有一份定义，
+ * 差异只通过 `scale` 表达；颜色仍按底色选：前三名金属色，第 4 名起用中性文字色
+ * （这里在浅底卡片上，`rankOther` 那种压图浅灰会看不见）。
  */
 @Composable
 private fun SearchHotRankNumber(rank: Int) {
-    val base = TextStyles.rankNumber(rank)
-    val style = base.copy(
-        fontSize = base.fontSize * HotRankScale,
-        lineHeight = base.lineHeight * HotRankScale,
-        fontFamily = FontFamily.Serif,
-        fontWeight = FontWeight.Black,
-        fontStyle = FontStyle.Italic,
-    )
-    Text(
-        text = rank.toString(),
+    RankNumberText(
+        rank = rank,
+        color = AppTheme.colors.rank(rank)?.fill ?: MaterialTheme.colorScheme.onSurfaceVariant,
+        // 固定最小宽度：一位数与两位数占同一格，右侧标题的起点才不会跳。
         modifier = Modifier.widthIn(min = Sizes.RankBadge),
-        style = style,
-        color = AppTheme.colors.rank(rank)?.ink ?: MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-        maxLines = 1,
+        scale = HotRankScale,
     )
 }
 

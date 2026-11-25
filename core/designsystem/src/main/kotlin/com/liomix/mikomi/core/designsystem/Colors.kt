@@ -96,8 +96,6 @@ data class TagColor(
 @Immutable
 data class RankColor(
     val fill: Color,
-    val outline: Color,
-    val ink: Color,
 )
 
 /**
@@ -233,7 +231,7 @@ data class Colors(
      * 在 `background`(#F1F1F3) 上 1.45:1 —— 当文字用是读不出来的。
      * 目前三处调用（详情头部、首页 banner、搜索封面）都压在图上，符合这个约束；
      * 将来若要在浅色卡片上显示评分，别用它，用 `onSurface` 配这个金色图标，
-     * 或者先补一档 `ratingInk`（做法同 [RankColor.ink]）。
+     * 或者先补一档 `ratingInk`（做法同曾经的 `RankColor.ink`）。
      *
      * 这条约束现在**有机器在查**：`./gradlew contrastAudit` 会把「金压白」算出来，
      * 低于门槛直接让构建失败，所以它不是靠自觉。
@@ -243,6 +241,8 @@ data class Colors(
     val tags: TagColors,
     /** 前三名的金属色。 */
     val ranks: Ranks,
+    /** 第 4 名起的名次色（浅灰）。与前三名同类型，方便按观感单独微调。 */
+    val rankOther: RankColor,
     /** 骨架块底色：半透明墨色，与页面底色同源。 */
     val skeletonBase: Color,
     /** 骨架扫光亮带：比底色更亮一档。 */
@@ -307,47 +307,27 @@ private val TagNight: Map<TagHue, TagColor> = mapOf(
     TagHue.Neutral to TagColor(Color(0xFF2C2C31), Color(0xFFC7C7CC)),
 )
 
-/** 名次：金属填充、描边、页面文字色三档。 */
-private val RankFirst = RankColor(
-    fill = Color(0xFFFFD700),
-    outline = Color(0xFF4A3700),
-    // 压在 #F1F1F3 上 4.82:1，压在纯白卡片上 5.44:1。
-    ink = Color(0xFF856500),
-)
-private val RankSecond = RankColor(
-    fill = Color(0xFFC9D3DE),
-    outline = Color(0xFF39414B),
-    // 4.83:1 / 5.45:1
-    ink = Color(0xFF5F6B76),
-)
-private val RankThird = RankColor(
-    fill = Color(0xFFD98719),
-    outline = Color(0xFF4B2A00),
-    // 5.85:1 / 6.60:1
-    ink = Color(0xFF8A4E17),
-)
-
-/** 前三名的色板（日间）。金属色压在封面上，两种模式下都成立；**但文字墨色要变**，见下。 */
-private val RankColors = Ranks(RankFirst, RankSecond, RankThird)
+// ---- 名次色：前三名金属 + 第 4 名起的浅灰。微调名次颜色只需要改这一段 ----
 
 /**
- * 前三名的色板（夜间）。
+ * 第 4 名起的颜色：压在封面上的浅灰。
  *
- * `fill` / `outline` 与日间相同 —— 它们压在封面图上，与页面底色无关。
- * 变的是 `ink`：它是**当文字用**的（名次数字），压在 `#181818` 的卡片上一资格外吃亏。
- * 日间那三个墨色在夜间只有 3.26 / 3.26 / 2.69，最后一条连大号文字的 3.0 都不到。
- *
- * 数值说明：名次数字是 26~42sp 粗体，属于 WCAG 的「大号文字」，门槛 3.0:1。
- * 下面三个值是在日间墨色上向白混合 5% / 5% / 10% 得到的，实测：
- * 压卡片 3.63 / 3.62 / 3.39，压纯黑底 4.29 / 4.28 / 4.01。
- * 门禁：`ContrastTest.everyPaletteAndModePassesContrast`。
+ * 与前三名同一个类型（[RankColor]），改色时不必先想「这一档是不是另一种结构」。
+ * 单独一档而不是复用 `media.contentTertiary`：名次色是会被反复微调的东西，
+ * 挂到通用的三级文字上改一次，会连带改掉一堆与名次无关的文字。
  */
-private val RankFirstNight = RankFirst.copy(ink = Color(0xFF8B6D0D))
-private val RankSecondNight = RankSecond.copy(ink = Color(0xFF67727D))
-private val RankThirdNight = RankThird.copy(ink = Color(0xFF96602E))
 
-/** 前三名的色板（夜间）：只换文字墨色。 */
-private val RankColorsNight = Ranks(RankFirstNight, RankSecondNight, RankThirdNight)
+private val RankFirst = RankColor(fill = Color(0xFFFFD700))
+private val RankSecond = RankColor(fill = Color(0xFFC9D3DE))
+private val RankThird = RankColor(fill = Color(0xFFD98719))
+private val RankOther = RankColor(fill = Color(0xFFA9A8A8))
+
+/**
+ * 前三名的色板。
+ *
+ * **只有一套**：金属色压在封面图上，与页面底色无关，夜间不需要换色。
+ */
+private val RankColors = Ranks(RankFirst, RankSecond, RankThird)
 
 /** 骨架底色透明度：浅色 8.6% 黑（Telegram `setAlpha(listSelector, 22)`）。 */
 private const val SkeletonDayBaseAlpha = 22f / 255f
@@ -513,7 +493,8 @@ internal fun resolveColors(scheme: ColorScheme, dark: Boolean): Colors {
     return Colors(
         rating = Gold,
         tags = TagColors(if (dark) TagNight else TagDay),
-        ranks = if (dark) RankColorsNight else RankColors,
+        ranks = RankColors,
+        rankOther = RankOther,
         skeletonBase = ink.copy(
             alpha = if (dark) SkeletonNightBaseAlpha else SkeletonDayBaseAlpha,
         ),

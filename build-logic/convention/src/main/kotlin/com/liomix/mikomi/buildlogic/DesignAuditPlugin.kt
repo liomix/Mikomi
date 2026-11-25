@@ -327,63 +327,13 @@ class DesignAuditPlugin : Plugin<Project> {
                         }
                     }
 
-                    // ---- 名次 ink：压页面底色与卡片都要能读 ----
-                    // 页面底色 / 卡片色从 Theme.kt 的日间表面层级取。
-                    val background = Regex("""background = Color\(0xFF([0-9A-Fa-f]{6})\)""")
-                        .find(themeSource)?.groupValues?.get(1)
-                        ?: throw GradleException("Theme.kt 里找不到日间 background，contrastAudit 需要更新")
+                    // 名次色不再审：`RankColor` 只剩 `fill` 一档，金属色天生压在封面/图像上，
+                    // 不进「浅底文字」这条口径（名次数字画在浅底时用的是另一档，见 Colors.kt）。
+                    //
+                    // 卡片色仍要解析 —— 下面评分金那条要拿它算「最坏情况」。
                     val surface = Regex("""surface = Color\(0xFF([0-9A-Fa-f]{6})\)""")
                         .find(themeSource)?.groupValues?.get(1)
                         ?: throw GradleException("Theme.kt 里找不到日间 surface，contrastAudit 需要更新")
-
-                    // 名次数字是 26~42sp 粗体（`TextStyles.rankNumber`），属于 WCAG 的「大号文字」，
-                    // 门槛 3.0 而不是正文的 4.5。这里不写死数字，直接引 `Contrast.Large` 的源码值，
-                    // 与 Kotlin 侧保持一致 —— 两边各写一个 4.5/3.0 就是两份真相。
-                    val largeTextMin = Regex("""const val Large: Float = ([0-9.]+)f""").find(contrastSource)
-                        ?.groupValues?.get(1)?.toFloat()
-                        ?: throw GradleException("Contrast.kt 里找不到 Contrast.Large，contrastAudit 需要更新")
-
-                    // 行首的 `ink = Color(...)`：日间三个。夜间那三行是 `RankXxxNight = ….copy(ink = …)`，
-                    // 不以 `ink` 开头，所以不会被这条正则吞进来。
-                    val dayInks = Regex("""(?m)^\s*ink = Color\(0xFF([0-9A-Fa-f]{6})\)""").findAll(colorsSource)
-                        .map { it.groupValues[1] }.toList()
-                    if (dayInks.size != 3) {
-                        throw GradleException("日间名次 ink 预期 3 个，解析到 ${dayInks.size} 个 —— 请更新 contrastAudit 的正则。")
-                    }
-                    for (ink in dayInks) {
-                        for ((name, bg) in listOf("页面底色" to background, "卡片" to surface)) {
-                            val ratio = wcagContrast(ink, bg)
-                            checked++
-                            if (ratio < largeTextMin) {
-                                failures += "日间名次文字 $ink 压在$name $bg 上只有 ${"%.2f".format(ratio)}:1（需 $largeTextMin）"
-                            }
-                        }
-                    }
-
-                    // 夜间是另一套墨色（`RankXxxNight`）：金属色在深底上必然掉对比度，共用一套就是 bug。
-                    val nightInks = Regex("""Rank\w+Night = Rank\w+\.copy\(ink = Color\(0xFF([0-9A-Fa-f]{6})\)\)""")
-                        .findAll(colorsSource).map { it.groupValues[1] }.toList()
-                    if (nightInks.size != 3) {
-                        throw GradleException("夜间名次 ink 预期 3 个，解析到 ${nightInks.size} 个 —— 请更新 contrastAudit 的正则。")
-                    }
-                    if (nightInks.toSet() == dayInks.toSet()) {
-                        failures += "夜间名次 ink 与日间完全相同 —— 深底上必然低于门槛，见 Colors.kt 的 RankColorsNight"
-                    }
-                    val nightBackground = Regex("""private val NightBackground = Color\(0xFF([0-9A-Fa-f]{6})\)""")
-                        .find(themeSource)?.groupValues?.get(1)
-                        ?: throw GradleException("Theme.kt 里找不到 NightBackground，contrastAudit 需要更新")
-                    val nightSurface = Regex("""private val NightSurface = Color\(0xFF([0-9A-Fa-f]{6})\)""")
-                        .find(themeSource)?.groupValues?.get(1)
-                        ?: throw GradleException("Theme.kt 里找不到 NightSurface，contrastAudit 需要更新")
-                    for (ink in nightInks) {
-                        for ((name, bg) in listOf("夜间页面底色" to nightBackground, "夜间卡片" to nightSurface)) {
-                            val ratio = wcagContrast(ink, bg)
-                            checked++
-                            if (ratio < largeTextMin) {
-                                failures += "夜间名次文字 $ink 压在$name $bg 上只有 ${"%.2f".format(ratio)}:1（需 $largeTextMin）"
-                            }
-                        }
-                    }
 
                     // ---- 评分金：只允许压在图像上，所以对一个「最坏情况」的浅底也报数 ----
                     val gold = Regex("""private val Gold = Color\(0xFF([0-9A-Fa-f]{6})\)""")

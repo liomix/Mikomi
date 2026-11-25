@@ -185,23 +185,30 @@ data class TagColors(
 }
 
 /**
- * 前三名的配色。
+ * 名次配色：前三名是金属色，第四名起共用一档中性色。
  *
- * 只到三名：第 4 名起的样式完全不同（中性灰 + 投影，而不是金属色 + 描边），
- * 调用方本来就要走另一条分支 —— 见 [of] 返回可空而不是给一个默认值。
+ * 四档**同族**而不是「三个名次 + 一个顶层字段」：名次色会被反复微调，
+ * 调色的人应该只需要看这一处。`of` 因此不再返回可空 —— 每个名次都有颜色，
+ * 调用方不用再写 `?:` 兜底（那种兜底还会各自挑一个不同的灰）。
  */
 @Immutable
 data class Ranks(
     val first: RankColor,
     val second: RankColor,
     val third: RankColor,
+    val other: RankColor,
 ) {
-    /** 按名次取配色；三名之后返回 `null`。 */
-    fun of(place: Int): RankColor? = when (place) {
+    /** 按名次取配色；四名之后都是 [other]。 */
+    fun of(place: Int): RankColor = when (place) {
         1 -> first
         2 -> second
         3 -> third
-        else -> null
+        else -> other
+    }
+
+    companion object {
+        /** 有金属色的名次数。超过它的名次用 [other]。 */
+        const val TopCount: Int = 3
     }
 }
 
@@ -214,7 +221,7 @@ data class Ranks(
  * ## 字段是按「族」分组的
  *
  * 上一版把所有语义色平铺成 22 个字段（九个标签、三个名次各占一格），于是每加一个
- * 语义色就把这个类撑宽一行。现在按族归拢：[tags] 是一张九格色板、[ranks] 是前三名、
+ * 语义色就把这个类撑宽一行。现在按族归拢：[tags] 是一张九格色板、[ranks] 是四个名次档、
  * [media] 是压在图像上的一整套前景色。顶层只剩「单值」的语义色。
  *
  * 新增颜色的判断顺序：
@@ -239,10 +246,8 @@ data class Colors(
     val rating: Color,
     /** 九个色相的标签色板。 */
     val tags: TagColors,
-    /** 前三名的金属色。 */
+    /** 名次色：前三名金属 + 第 4 名起的中性档。 */
     val ranks: Ranks,
-    /** 第 4 名起的名次色（浅灰）。与前三名同类型，方便按观感单独微调。 */
-    val rankOther: RankColor,
     /** 骨架块底色：半透明墨色，与页面底色同源。 */
     val skeletonBase: Color,
     /** 骨架扫光亮带：比底色更亮一档。 */
@@ -255,8 +260,8 @@ data class Colors(
     /** 按色相取标签配色。 */
     fun tag(hue: TagHue): TagColor = tags[hue]
 
-    /** 按名次取名次配色；三名之后返回 `null`（用中性色）。 */
-    fun rank(place: Int): RankColor? = ranks.of(place)
+    /** 按名次取名次配色；四名之后是 [Ranks.other]。 */
+    fun rank(place: Int): RankColor = ranks.of(place)
 }
 
 /*
@@ -309,25 +314,24 @@ private val TagNight: Map<TagHue, TagColor> = mapOf(
 
 // ---- 名次色：前三名金属 + 第 4 名起的浅灰。微调名次颜色只需要改这一段 ----
 
-/**
- * 第 4 名起的颜色：压在封面上的浅灰。
- *
- * 与前三名同一个类型（[RankColor]），改色时不必先想「这一档是不是另一种结构」。
- * 单独一档而不是复用 `media.contentTertiary`：名次色是会被反复微调的东西，
- * 挂到通用的三级文字上改一次，会连带改掉一堆与名次无关的文字。
- */
-
 private val RankFirst = RankColor(fill = Color(0xFFFFD700))
 private val RankSecond = RankColor(fill = Color(0xFFC9D3DE))
 private val RankThird = RankColor(fill = Color(0xFFD98719))
+
+/**
+ * 第 4 名起的颜色：压在封面上的中性灰。
+ *
+ * 单独一档而不是复用 `media.contentTertiary`：名次色是会被反复微调的东西，
+ * 挂到通用的三级文字上改一次，会连带改掉一堆与名次无关的文字。
+ */
 private val RankOther = RankColor(fill = Color(0xFFA9A8A8))
 
 /**
- * 前三名的色板。
+ * 名次色板（四档）。
  *
- * **只有一套**：金属色压在封面图上，与页面底色无关，夜间不需要换色。
+ * **只有一套**：前三名的金属色压在封面图上，与页面底色无关，夜间不需要换色。
  */
-private val RankColors = Ranks(RankFirst, RankSecond, RankThird)
+private val RankColors = Ranks(RankFirst, RankSecond, RankThird, RankOther)
 
 /** 骨架底色透明度：浅色 8.6% 黑（Telegram `setAlpha(listSelector, 22)`）。 */
 private const val SkeletonDayBaseAlpha = 22f / 255f
@@ -494,7 +498,6 @@ internal fun resolveColors(scheme: ColorScheme, dark: Boolean): Colors {
         rating = Gold,
         tags = TagColors(if (dark) TagNight else TagDay),
         ranks = RankColors,
-        rankOther = RankOther,
         skeletonBase = ink.copy(
             alpha = if (dark) SkeletonNightBaseAlpha else SkeletonDayBaseAlpha,
         ),

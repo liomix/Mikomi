@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.Ranks
 import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.model.RankEntry
 import com.liomix.mikomi.core.designsystem.ShadowColor
@@ -62,7 +63,7 @@ internal fun RankAnimeCard(
     modifier: Modifier = Modifier,
 ) {
     val anime = entry.anime
-    val isTopRank = rank <= TopRankHighlight
+    val isTopRank = rank <= Ranks.TopCount
     val coverUrl = anime.coverUrl
 
     if (coverUrl.isNullOrBlank()) {
@@ -108,7 +109,7 @@ internal fun RankAnimeCard(
             ) {
                 RankNumberText(
                     rank = rank,
-                    color = AppTheme.colors.rank(rank)?.fill ?: AppTheme.colors.rankOther.fill,
+                    color = AppTheme.colors.rank(rank).fill,
                     // 固定宽度：两位数与一位数占同一格，标题的起点才不会左右跳。
                     modifier = Modifier.width(RankNumberWidth),
                 )
@@ -165,7 +166,7 @@ private fun CoverBackdrop(
  */
 @Composable
 private fun rankAccent(rank: Int): Color =
-    AppTheme.colors.rank(rank)?.fill ?: AppTheme.colors.rankOther.fill
+    AppTheme.colors.rank(rank).fill
 
 /**
  * 标题文字的深色描影。
@@ -208,9 +209,6 @@ private val RowEndPadding = 18.dp // design-ok: 非梯队精确值，排名行�
 
 /** 前三名的高亮阴影。 */
 private val TopRankShadow = 4.dp
-
-/** 前三名高亮名次的最大名次。 */
-private const val TopRankHighlight = 3
 
 /** 描边宽度：细到只勾轮廓，粗了会把金属色挤没。 */
 private val RankNumberOutlineWidth = 1.2.dp

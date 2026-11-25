@@ -44,6 +44,7 @@ import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.Ranks
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.TextStyles
@@ -293,7 +294,13 @@ private fun SearchHotRow(
 private fun SearchHotRankNumber(rank: Int) {
     RankNumberText(
         rank = rank,
-        color = AppTheme.colors.rank(rank)?.fill ?: MaterialTheme.colorScheme.onSurfaceVariant,
+        // 前三名用金属色；第 4 名起在这个浅底卡片上要用中性文字色 ——
+        // `Ranks.other` 是压图用的中性灰，放这里会看不见。
+        color = if (rank <= Ranks.TopCount) {
+            AppTheme.colors.rank(rank).fill
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
         // 固定最小宽度：一位数与两位数占同一格，右侧标题的起点才不会跳。
         modifier = Modifier.widthIn(min = Sizes.RankBadge),
         scale = HotRankScale,

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -130,6 +131,7 @@ internal fun SearchHotCard(
 internal fun SearchHotTabs(
     selected: SearchHotTab,
     onSelect: (SearchHotTab) -> Unit,
+    pagerState: PagerState,
     modifier: Modifier = Modifier,
 ) {
     TabBar(
@@ -139,7 +141,8 @@ internal fun SearchHotTabs(
             // 右端让出 8dp：卡片右边缘在 16dp 上，标题行的 action 槽只让到 8dp，
             // 补齐这一档两条边才对得齐。
             .padding(end = Spacing.Sm),
-        contentPadding = PaddingValues(horizontal = Spacing.Xxs),
+        // 四边等距：上下左右都是 4dp，胶囊才像「嵌在外壳里」而不是贴边。
+        contentPadding = PaddingValues(all = Spacing.Xs),
         // 外壳要看得见：透明底 + 只有选中项有胶囊时，整条栏读起来是「两个飘着的字」。
         // 用 `surfaceContainerHigh`（比页面底色深一档），选中项的主色胶囊才落在一个底上。
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -154,6 +157,8 @@ internal fun SearchHotTabs(
         ),
         itemSpacing = Spacing.Xxs,
         highlight = TabHighlight.Fill,
+        // 指示器跟手：拖动到一半就停在两格之间，与榜单同步。
+        pagerState = pagerState,
     ) {
         SearchHotTab.entries.forEachIndexed { index, tab ->
             Tab(index = index, text = stringResource(tab.labelRes()))

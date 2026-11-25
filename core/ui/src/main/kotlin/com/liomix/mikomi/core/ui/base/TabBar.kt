@@ -7,7 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -38,7 +38,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -56,6 +55,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import kotlin.math.abs
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
@@ -255,6 +255,8 @@ private val LocalTabBarVisuals = compositionLocalOf {
  * @param selectedIndex 当前选中项下标；组件不自己存选中态。
  * @param onSelect 点击某项时回调下标。
  * @param containerColor 栏底色；需要和内容同色（例如叠在卡片上）时传透明或卡片色。
+ * @param pagerState 与之联动的 pager。传了之后指示器**跟手移动**（拖动到一半就停在两格
+ *   中间），而不是松手后才弹到新格；不传则用内部的一次性切换动画。
 
  * @param colors 一组配色（指示器 / 选中 / 未选中 / 悬停）。**四个颜色是一组，所以做成一个参数**：
  *   个人页那种用自己的调色板的地方，一眼能看出这四项必须同源。
@@ -273,6 +275,7 @@ fun TabBar(
     itemSpacing: Dp = Spacing.Gutter,
     itemStyle: TabItemStyle = TabItemStyle.compact(),
     highlight: TabHighlight = TabHighlight.Fill,
+    pagerState: PagerState? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
     val state = remember { TabBarState() }
@@ -318,7 +321,7 @@ fun TabBar(
                 )
                 .padding(contentPadding),
         ) {
-            TabIndicator(state, visuals)
+            TabIndicator(state, visuals, pagerState)
             CompositionLocalProvider(
                 LocalTabBarState provides state,
                 LocalTabBarVisuals provides visuals,
@@ -363,7 +366,11 @@ fun TabBar(
  * 属于「能跑但没必要」的那类浪费。
  */
 @Composable
-private fun TabIndicator(state: TabBarState, visuals: TabBarVisuals) {
+private fun TabIndicator(
+    state: TabBarState,
+    visuals: TabBarVisuals,
+    pagerState: PagerState?,
+) {
     val bounds = state.bounds
     val selected = state.selectedIndex
     // 1 = 停稳在目标上；切换时从 0 走到 1。
@@ -400,12 +407,36 @@ private fun TabIndicator(state: TabBarState, visuals: TabBarVisuals) {
     val inset = visuals.style.horizontalPadding
     val thickness = UnderlineThickness
 
+    /**
+     * 当前该画在哪一格。
+     *
+     * 有 pager 时按它的 `currentPage + offsetFraction` 在两格之间线性插值 ——
+     * 拖动多少就走多少，这就是「跟手」；没有 pager 时走内部的一次性动画（[resolveRect]）。
+     */
+    fun currentRect(): Rect? {
+        val pager = pagerState
+        if (pager != null && bounds.size > 1) {
+            val page = pager.currentPage.coerceIn(0, bounds.lastIndex)
+            val fraction = pager.currentPageOffsetFraction
+            val other = (page + if (fraction >= 0f) 1 else -1).coerceIn(0, bounds.lastIndex)
+            val from = bounds[page]
+            val to = bounds[other]
+            val t = abs(fraction).coerceIn(0f, 1f)
+            return Rect(
+                left = from.left + (to.left - from.left) * t,
+                top = from.top + (to.top - from.top) * t,
+                right = from.right + (to.right - from.right) * t,
+                bottom = from.bottom + (to.bottom - from.bottom) * t,
+            )
+        }
+        return resolveRect(bounds, fromRect, fromIndex, toIndex, progress.value)
+    }
+
     Box(
         modifier = Modifier
             // 位移、透明度、裁剪都在绘制阶段读：动画推进只让这一层失效。
             .graphicsLayer {
-                val rect = resolveRect(bounds, fromRect, fromIndex, toIndex, progress.value)
-                    ?.toHighlight(highlight, inset.toPx(), thickness.toPx())
+                val rect = currentRect()?.toHighlight(highlight, inset.toPx(), thickness.toPx())
                 if (rect != null) {
                     translationX = rect.left
                     translationY = rect.top
@@ -422,8 +453,7 @@ private fun TabIndicator(state: TabBarState, visuals: TabBarVisuals) {
             }
             // 尺寸在布局阶段读：只让这一个叶子的测量失效，不惊动标签行。
             .layout { measurable, _ ->
-                val rect = resolveRect(bounds, fromRect, fromIndex, toIndex, progress.value)
-                    ?.toHighlight(highlight, inset.toPx(), thickness.toPx())
+                val rect = currentRect()?.toHighlight(highlight, inset.toPx(), thickness.toPx())
                 val width = rect?.width?.roundToInt() ?: 0
                 val height = rect?.height?.roundToInt() ?: 0
                 val placeable = measurable.measure(Constraints.fixed(width, height))
@@ -697,43 +727,3 @@ private fun TabLabel(
 
 /** 内容色过渡时长：只影响颜色，不参与指示器位移。 */
 private const val ColorAnimMillis = Motion.Duration.Short
-
-/** 滑动切页的判定：拖过整栏宽度的 1/6 就算一次切换。 */
-private const val SwipeThresholdDivisor = 6f
-
-/**
- * 让**内容区**支持左右滑动切页，滑动后选中的栏跟着变。
- *
- * 手势挂在内容上而不是栏上：用户拖的是榜单本身，栏只是它的标题。
- * 在栏上拖动等于要求用户对准一条 24dp 高的细条 —— 那是遥控器，不是拇指。
- *
- * 阈值是内容宽度的 1/6：比一半低得多，拇指拖一小段就能换页；到头到尾不做任何事。
- *
- * @param selectedIndex 当前页。
- * @param itemCount 总页数。`<= 1` 时不挂手势（没有可切的目标）。
- * @param onSelect 切到新页。
- */
-fun Modifier.tabSwipe(
-    selectedIndex: Int,
-    itemCount: Int,
-    onSelect: (Int) -> Unit,
-): Modifier = if (itemCount <= 1) {
-    this
-} else {
-    this.pointerInput(selectedIndex, itemCount) {
-        var travelled = 0f
-        detectHorizontalDragGestures(
-            onDragStart = { travelled = 0f },
-            onHorizontalDrag = { _, dragAmount -> travelled += dragAmount },
-            onDragEnd = {
-                val threshold = size.width / SwipeThresholdDivisor
-                when {
-                    travelled <= -threshold && selectedIndex < itemCount - 1 ->
-                        onSelect(selectedIndex + 1)
-                    travelled >= threshold && selectedIndex > 0 ->
-                        onSelect(selectedIndex - 1)
-                }
-            },
-        )
-    }
-}

@@ -2,6 +2,8 @@ package com.liomix.mikomi.feature.search
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -41,7 +44,6 @@ import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.ui.base.LottieIcon
 import com.liomix.mikomi.core.ui.base.LottieIcons
 import com.liomix.mikomi.core.ui.window.Insets
-import com.liomix.mikomi.core.ui.base.tabSwipe
 import com.liomix.mikomi.core.ui.layout.BlurredTopBar
 import com.liomix.mikomi.feature.search.components.SearchHistoryTags
 import com.liomix.mikomi.feature.search.components.SearchHotCard
@@ -84,6 +86,19 @@ fun SearchScreen(
     // 每次进入浏览态都从顶部开始：否则从结果页返回时会把上次的滚动位置
     // （可能停在榜单中段）恢复回来，搜索历史标题被顶出屏幕。
     val browseListState = remember { LazyListState() }
+    // 热搜榜用 pager 承载：拖动时内容跟手位移，松手才落页 —— 比「松手直接换一屏」自然。
+    val hotPagerState = rememberPagerState { SearchHotTab.entries.size }
+    // pager 落页 → 通知状态层（数据按 tab 分组，切页即换数据源）。
+    LaunchedEffect(hotPagerState.currentPage) {
+        val tab = SearchHotTab.entries[hotPagerState.currentPage]
+        if (tab != state.hotTab) onHotTabChange(tab)
+    }
+    // 点胶囊 → 滚到对应页；`hotTab` 由状态层改，这里跟着走。
+    LaunchedEffect(state.hotTab) {
+        if (hotPagerState.currentPage != state.hotTab.ordinal) {
+            hotPagerState.animateScrollToPage(state.hotTab.ordinal)
+        }
+    }
     BlurredTopBar(
         modifier = modifier,
         // 透明底色 = 只要那层模糊，不要额外的实底。
@@ -196,6 +211,7 @@ fun SearchScreen(
                                     SearchHotTabs(
                                         selected = state.hotTab,
                                         onSelect = onHotTabChange,
+                                        pagerState = hotPagerState,
                                     )
                                 },
                             )
@@ -204,18 +220,25 @@ fun SearchScreen(
                         // 标签栏与榜单是**同一张卡片**的两部分：卡片顶部一行分类，
                         // 线之下是内容。分成两项时标签浮在卡片外，读起来像两个不相干的东西。
                         item(key = "hot_card") {
-                            SearchHotCard(
-                                // 手势挂在榜单内容上：用户拖的是这张卡，栏只是它的标题。
-                                modifier = Modifier.tabSwipe(
-                                    selectedIndex = state.hotTab.ordinal,
-                                    itemCount = SearchHotTab.entries.size,
-                                    onSelect = { index -> onHotTabChange(SearchHotTab.entries[index]) },
-                                ),
-                            ) {
-                                // 内容按 Tab 分组：切换时新榜单重新播一次淡入上移，
-                                // 标签栏本身不动。
-                                key(state.hotTab) {
-                                    when (state.currentHotState) {
+                            SearchHotCard {
+                                HorizontalPager(
+                                    state = hotPagerState,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) { page ->
+                                    // 按页取数据，而不是读 `currentHot`：pager 会同时组合
+                                    // 相邻页，两者必须各有各的数据源，否则预组合的那页
+                                    // 会短暂显示当前页的榜单。
+                                    val tab = SearchHotTab.entries[page]
+                                    val items = when (tab) {
+                                        SearchHotTab.JAPANESE -> state.japaneseHot
+                                        SearchHotTab.CHINESE -> state.chineseHot
+                                    }
+                                    val loadState = when (tab) {
+                                        SearchHotTab.JAPANESE -> state.japaneseHotState
+                                        SearchHotTab.CHINESE -> state.chineseHotState
+                                    }
+
+                                    when (loadState) {
                                         LoadState.Idle,
                                         LoadState.Loading,
                                         -> SearchHotSkeleton()
@@ -226,13 +249,13 @@ fun SearchScreen(
                                         )
 
                                         LoadState.Success -> {
-                                            if (state.currentHot.isEmpty()) {
+                                            if (items.isEmpty()) {
                                                 SearchHotEmpty(
                                                     text = stringResource(R.string.search_hot_empty),
                                                 )
                                             } else {
                                                 SearchHotList(
-                                                    items = state.currentHot,
+                                                    items = items,
                                                     onItemClick = { item ->
                                                         onHotItemClick(item)
                                                         keyboardController?.hide()

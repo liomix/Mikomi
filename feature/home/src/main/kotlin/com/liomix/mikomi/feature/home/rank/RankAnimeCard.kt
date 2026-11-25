@@ -18,9 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -30,12 +28,11 @@ import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.Ranks
 import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.model.RankEntry
-import com.liomix.mikomi.core.designsystem.ShadowColor
 import com.liomix.mikomi.core.designsystem.TextStyles
 import com.liomix.mikomi.core.designsystem.AppTheme
-import com.liomix.mikomi.core.ui.base.ScrollingText
 import com.liomix.mikomi.core.ui.base.SkeletonBox
-import com.liomix.mikomi.core.ui.base.RankNumber as RankNumberText
+import com.liomix.mikomi.core.ui.base.FrostedText
+import com.liomix.mikomi.core.ui.base.Number
 import com.liomix.mikomi.core.ui.business.AnimeCoverImage
 import androidx.compose.ui.draw.clip
 import com.liomix.mikomi.core.ui.base.mikomiClickable
@@ -107,7 +104,7 @@ internal fun RankAnimeCard(
                     .padding(start = RowStartPadding, end = RowEndPadding),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RankNumberText(
+                Number(
                     rank = rank,
                     color = AppTheme.colors.rank(rank).fill,
                     // 固定宽度：两位数与一位数占同一格，标题的起点才不会左右跳。
@@ -116,17 +113,11 @@ internal fun RankAnimeCard(
 
                 Spacer(modifier = Modifier.width(NumberToTitleGap))
 
-                // 关闭手动拖动，避免标题抢占 HorizontalPager 的左右切页手势；
-                // 网格内多卡同时跑 marquee 会拖慢滚动，走静态省略。
-                ScrollingText(
+                // 毛玻璃标题：亮字 + 描影，压在封面上读得出来。
+                // 不跑马灯 —— 网格内多卡同时滚动会拖慢帧率，也避免抢走 pager 的横向手势。
+                FrostedText(
                     text = anime.title,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = AppTheme.colors.media.content,
-                        shadow = RankTitleShadow,
-                    ),
                     modifier = Modifier.weight(1f),
-                    userScrollEnabled = false,
                 )
             }
         }
@@ -168,17 +159,6 @@ private fun CoverBackdrop(
 private fun rankAccent(rank: Int): Color =
     AppTheme.colors.rank(rank).fill
 
-/**
- * 标题文字的深色描影。
- *
- * 卡片上不再铺提亮遮罩，标题直接压在封面上：亮底（草地、天空）会把亮字吃掉，
- * 所以垫一层黑色描影勾出轮廓（与名次数字同一套做法），比加一层白雾干净。
- */
-private val RankTitleShadow = Shadow(
-    color = ShadowColor.copy(alpha = 0.8f),
-    offset = Offset(0f, 1.5f),
-    blurRadius = 8f,
-)
 
 /** 卡片高度：固定 112dp 的横条，一屏能看到约 5 张，不与封面比例挂钩。 */
 internal val RankCardHeight = 112.dp

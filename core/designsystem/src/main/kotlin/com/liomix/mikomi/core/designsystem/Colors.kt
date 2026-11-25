@@ -472,6 +472,15 @@ object MediaAlpha {
     /** 轻一档的遮罩：盖住画面但仍要看得出底下是什么。 */
     const val ScrimSoft: Float = 0.62f
 
+    /**
+     * 毛玻璃文字：压在画面上的标题与名次数字的默认不透明度。
+     *
+     * 让一点点画面从字里透出来，于是它看起来像「浮在画面上的一层玻璃字」，
+     * 而不是随手盖上去的一张不透明贴纸。0.9 是起点：再淡，亮画面上读不动；
+     * 再实，就和普通白字没区别了。
+     */
+    const val FrostedText: Float = 0.90f
+
     /** 浅色浮层底板（音量 HUD 这类）。 */
     const val OverlayContainer: Float = 0.85f
 

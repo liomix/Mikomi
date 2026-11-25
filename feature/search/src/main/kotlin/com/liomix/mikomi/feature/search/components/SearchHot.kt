@@ -56,7 +56,7 @@ import com.liomix.mikomi.core.ui.base.Tab
 import com.liomix.mikomi.core.ui.base.TabBar
 import com.liomix.mikomi.core.ui.base.TabHighlight
 import com.liomix.mikomi.core.ui.base.TabItemStyle
-import com.liomix.mikomi.core.ui.base.RankNumber as RankNumberText
+import com.liomix.mikomi.core.ui.base.Number
 import com.liomix.mikomi.core.ui.base.Tag
 import com.liomix.mikomi.core.ui.base.TagStyle
 import com.liomix.mikomi.core.ui.base.mikomiClickable
@@ -292,7 +292,7 @@ private fun SearchHotRow(
  */
 @Composable
 private fun SearchHotRankNumber(rank: Int) {
-    RankNumberText(
+    Number(
         rank = rank,
         // 前三名用金属色；第 4 名起在这个浅底卡片上要用中性文字色 ——
         // `Ranks.other` 是压图用的中性灰，放这里会看不见。

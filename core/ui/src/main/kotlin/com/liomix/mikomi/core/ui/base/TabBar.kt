@@ -11,6 +11,7 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -42,8 +43,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -84,7 +87,96 @@ enum class TabOrientation { Horizontal, Vertical }
  *   告诉你「现在看的是哪一栏」，不在页面上多刷一块色。栏底会同时出现一条 1dp 分隔线
  *   （参考 Material `TabRow` 的做法），否则下划线悬在空中没有落点。
  */
-enum class TabHighlight { Fill, Underline }
+enum class TabHighlight {
+    /** 指示器就是标签本身：整块矩形（胶囊 / 方形由 `shape` 决定）。 */
+    Fill {
+        override fun containerShape(base: Shape): Shape = base
+
+        override val drawsDivider: Boolean get() = false
+
+        override fun indicatorShape(base: Shape): Shape = base
+
+        override fun indicatorRect(
+            label: Rect,
+            insetPx: Float,
+            thicknessPx: Float,
+            dividerPx: Float,
+        ): Rect = label
+    },
+
+    /** 贴底的一条短横线：左右让出标签的横内边距，宽度约等于文字本身。 */
+    Underline {
+        override fun containerShape(base: Shape): Shape = RectangleShape
+
+        override val drawsDivider: Boolean get() = true
+
+        // 拱形：**半个椭圆**（宽 > 高时顶部是扁平的弧），底部一条直线贴住分隔线。
+        //
+        // 不是「顶部两角倒圆」—— 那样在 8dp 高的条上只是两个小圆角，看着还是矩形；
+        // 也不是半圆（半径 = 宽/2），那样在长标签上会鼓成一个包。椭圆的横轴跟着宽度走、
+        // 纵轴跟着高度走，任何宽度下都只是一层薄薄的拱。
+        //
+        // 用 `GenericShape` 而不是 `RoundedCornerShape`：半径必须按实际绘制尺寸算。
+        override fun indicatorShape(base: Shape): Shape = GenericShape { size, _ ->
+            val fullEllipse = Rect(0f, 0f, size.width, size.height * 2f)
+            moveTo(0f, size.height)
+            // 180° 起、扫 180°：取椭圆的上半圈，左右端点正好落在底边两端。
+            arcTo(fullEllipse, 180f, 180f, true)
+            lineTo(size.width, size.height)
+            close()
+        }
+
+        override fun indicatorRect(
+            label: Rect,
+            insetPx: Float,
+            thicknessPx: Float,
+            dividerPx: Float,
+        ): Rect {
+            val inset = insetPx.coerceAtMost(label.width / 2f)
+            // 底边让出那条 1dp 灰线的位置：指示条压在线的**上沿**，不是盖在线上。
+            // 否则线的两半会被圆头遮掉，看起来像「线断了一截」。
+            val bottom = label.bottom - dividerPx
+            return Rect(
+                left = label.left + inset,
+                top = bottom - thicknessPx,
+                right = label.right - inset,
+                bottom = bottom,
+            )
+        }
+    },
+    ;
+
+    /**
+     * 栏容器的形状。
+     *
+     * Underline 必须是矩形：`Surface` 会把内容裁到 `shape`，底部那条分隔线在两端
+     * 会被圆弧切掉，看起来就是「线的两头是斜的」。这一形态的栏通常是透明底，
+     * 矩形裁剪不改变观感。
+     */
+    internal abstract fun containerShape(base: Shape): Shape
+
+    /**
+     * 是否在栏底画一条分隔线。
+     *
+     * Fill 的指示器本身就是一块底色，再压一条线会变成「胶囊坐在一条横线上」。
+     */
+    internal abstract val drawsDivider: Boolean
+
+    /** 指示条自己的形状。Underline 是两端半圆的短棒，Fill 跟随栏的 `shape`。 */
+    internal abstract fun indicatorShape(base: Shape): Shape
+
+    /**
+     * 把标签矩形换算成**指示器**矩形：两种形态对「指示器」的定义不一样。
+     *
+     * @param dividerPx 栏底那条分隔线的厚度（px），Underline 用它把指示条抬到线之上。
+     */
+    internal abstract fun indicatorRect(
+        label: Rect,
+        insetPx: Float,
+        thicknessPx: Float,
+        dividerPx: Float,
+    ): Rect
+}
 
 /**
  * 单个标签的样式。
@@ -288,12 +380,22 @@ fun TabBar(
         highlight = highlight,
     )
 
+    // 下划线形态不要垂直内距：标签贴到栏底，指示条才会紧挨着那条灰线。
+    // 留着 4dp 的话，线画在栏底、指示条在线上方 4dp，中间悬着一段空气。
+    val layoutDirection = LocalLayoutDirection.current
+    val barPadding = if (highlight.drawsDivider) {
+        PaddingValues(
+            start = contentPadding.calculateLeftPadding(layoutDirection),
+            end = contentPadding.calculateRightPadding(layoutDirection),
+        )
+    } else {
+        contentPadding
+    }
+
     Surface(
         modifier = modifier,
-        // Underline 的容器不能是圆角：`Surface` 会把内容裁到 `shape`，
-        // 底部分隔线在两端会被圆弧切掉，看起来就是「线的两头是斜的」。
-        // 这一形态的栏通常是透明底，矩形裁剪不改变观感。
-        shape = if (highlight == TabHighlight.Underline) RectangleShape else shape,
+        // 形状交给形态自己决定：Underline 必须是矩形，否则底部分隔线会被圆弧切掉。
+        shape = highlight.containerShape(shape),
         color = containerColor,
         contentColor = colors.selectedContent,
         shadowElevation = elevation,
@@ -301,10 +403,9 @@ fun TabBar(
         Box(
             modifier = Modifier
                 // 分隔线画在 padding 外层：它属于「这一栏的底边」，应该贯穿整栏宽度，
-                // 而不是缩在文字两端。Underline 形态专属 —— Fill 形态的指示器本身就是
-                // 一块底色，再压一条线会变成「胶囊坐在一条横线上」。
+                // 而不是缩在文字两端。是否需要这条线由形态自己回答（见 `drawsDivider`）。
                 .then(
-                    if (highlight == TabHighlight.Underline) {
+                    if (highlight.drawsDivider) {
                         val dividerColor = MaterialTheme.colorScheme.outlineVariant
                         Modifier.drawBehind {
                             val y = size.height - Stroke.Thin.toPx() / 2f
@@ -319,7 +420,7 @@ fun TabBar(
                         Modifier
                     },
                 )
-                .padding(contentPadding),
+                .padding(barPadding),
         ) {
             TabIndicator(state, visuals, pagerState)
             CompositionLocalProvider(
@@ -327,8 +428,17 @@ fun TabBar(
                 LocalTabBarVisuals provides visuals,
             ) {
                 Row(
-                    modifier = Modifier.selectableGroup(),
-                    horizontalArrangement = Arrangement.spacedBy(itemSpacing),
+                    // `fillMaxWidth` 是居中的前提：Row 只占内容宽时，`CenterHorizontally`
+                    // 没有多余空间可分配，标签仍然贴在左边。
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .selectableGroup(),
+                    // 整体居中：标签按内容宽排列时（不传 `weight`），靠左会让两栏挤在
+                    // 屏幕左边。传了 `weight` 的那几个调用点本来就被撑满，居中不起作用。
+                    horizontalArrangement = Arrangement.spacedBy(
+                        space = itemSpacing,
+                        alignment = Alignment.CenterHorizontally,
+                    ),
                     verticalAlignment = Alignment.CenterVertically,
                     content = content,
                 )
@@ -406,12 +516,17 @@ private fun TabIndicator(
     val highlight = visuals.highlight
     val inset = visuals.style.horizontalPadding
     val thickness = UnderlineThickness
+    // 形状按**实际绘制尺寸**算，所以只能交给 `background` 去画（它在拿到节点尺寸后
+    // 才求形状）。放进 `graphicsLayer { shape = ...; clip = true }` 是不行的：
+    // 那层裁剪作用在「之后声明的内容」上，而底色是最内层的绘制，顺序反了。
+    val indicatorShape = highlight.indicatorShape(visuals.shape)
 
     /**
      * 当前该画在哪一格。
      *
-     * 有 pager 时按它的 `currentPage + offsetFraction` 在两格之间线性插值 ——
-     * 拖动多少就走多少，这就是「跟手」；没有 pager 时走内部的一次性动画（[resolveRect]）。
+     * 有 pager 时按它的 `currentPage + offsetFraction` 在两格之间插值 ——
+     * 拖动多少就走多少（跟手），并且**两种形态共用**这一条路径：弹性插值算出来的是一个
+     * 会被拉伸的矩形，胶囊与下划线都直接用它的结果。没有 pager 时走内部动画（[resolveRect]）。
      */
     fun currentRect(): Rect? {
         val pager = pagerState
@@ -419,14 +534,16 @@ private fun TabIndicator(
             val page = pager.currentPage.coerceIn(0, bounds.lastIndex)
             val fraction = pager.currentPageOffsetFraction
             val other = (page + if (fraction >= 0f) 1 else -1).coerceIn(0, bounds.lastIndex)
-            val from = bounds[page]
-            val to = bounds[other]
+            // 关键：跟手这一段也走 `elasticRect`，不是逐边线性插值。
+            // 线性插值下矩形只是「整体平移」，看起来像一块贴纸在滑；
+            // 弹性插值让左右两边用不同缓动（一走一赶），拖动时矩形的宽度会先拉长再收回，
+            // 这才是「液体」的观感 —— 也就是 Flutter `TabBar` 的 indicator 手感。
             val t = abs(fraction).coerceIn(0f, 1f)
-            return Rect(
-                left = from.left + (to.left - from.left) * t,
-                top = from.top + (to.top - from.top) * t,
-                right = from.right + (to.right - from.right) * t,
-                bottom = from.bottom + (to.bottom - from.bottom) * t,
+            return elasticRect(
+                from = bounds[page],
+                to = bounds[other],
+                progress = t,
+                movingRight = other > page,
             )
         }
         return resolveRect(bounds, fromRect, fromIndex, toIndex, progress.value)
@@ -436,7 +553,7 @@ private fun TabIndicator(
         modifier = Modifier
             // 位移、透明度、裁剪都在绘制阶段读：动画推进只让这一层失效。
             .graphicsLayer {
-                val rect = currentRect()?.toHighlight(highlight, inset.toPx(), thickness.toPx())
+                val rect = currentRect()?.let { rect -> highlight.indicatorRect(rect, inset.toPx(), thickness.toPx(), Stroke.Thin.toPx()) }
                 if (rect != null) {
                     translationX = rect.left
                     translationY = rect.top
@@ -453,41 +570,18 @@ private fun TabIndicator(
             }
             // 尺寸在布局阶段读：只让这一个叶子的测量失效，不惊动标签行。
             .layout { measurable, _ ->
-                val rect = currentRect()?.toHighlight(highlight, inset.toPx(), thickness.toPx())
+                val rect = currentRect()?.let { rect -> highlight.indicatorRect(rect, inset.toPx(), thickness.toPx(), Stroke.Thin.toPx()) }
                 val width = rect?.width?.roundToInt() ?: 0
                 val height = rect?.height?.roundToInt() ?: 0
                 val placeable = measurable.measure(Constraints.fixed(width, height))
                 layout(width, height) { placeable.place(0, 0) }
             }
-            .background(visuals.colors.indicator),
+            .background(color = visuals.colors.indicator, shape = indicatorShape),
     )
 }
 
-/**
- * 把「标签矩形」换算成指示器矩形。
- *
- * [TabHighlight.Fill] 原样使用（指示器就是标签本身）；[TabHighlight.Underline] 收成
- * 贴底的一条：左右各让出标签的横内边距，于是线宽约等于文字宽 —— 和下划线该有的长度一致，
- * 而不是跨满整个等分格。
- */
-private fun Rect.toHighlight(
-    highlight: TabHighlight,
-    insetPx: Float,
-    thicknessPx: Float,
-): Rect = if (highlight == TabHighlight.Underline) {
-    val inset = insetPx.coerceAtMost(width / 2f)
-    Rect(
-        left = left + inset,
-        top = bottom - thicknessPx,
-        right = right - inset,
-        bottom = bottom,
-    )
-} else {
-    this
-}
-
-/** 下划线厚度：与「必须一眼分辨的指示」同档；再细在高密度屏上会被抹成半透明。 */
-private val UnderlineThickness = Stroke.Thick
+/** 下划线厚度：走 `Stroke.Underline`（4dp）。2dp 时它会被读成一条分隔线而不是「选中的那一栏」。 */
+private val UnderlineThickness = Stroke.Underline
 
 /**
  * 当前这一帧指示器应处的矩形：`to` 取目标标签的实测边界，`from` 取切换那一刻的快照。

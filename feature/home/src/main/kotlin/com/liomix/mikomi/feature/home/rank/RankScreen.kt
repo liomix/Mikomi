@@ -15,7 +15,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -31,7 +30,6 @@ import com.liomix.mikomi.core.ui.business.RefreshButton
 import com.liomix.mikomi.core.ui.image.CoverPrefetch
 import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.home.R
-import kotlinx.coroutines.launch
 
 /**
  * 排行榜：首页快捷入口的二级页面（AniRpb 日漫 / 国漫整榜）。
@@ -63,7 +61,6 @@ fun RankScreen(
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState { RankType.entries.size }
-    val scope = rememberCoroutineScope()
 
     BaseScreenLayout(
         title = stringResource(R.string.home_action_rank),
@@ -84,7 +81,8 @@ fun RankScreen(
     ) {
         TabBar(
             selectedIndex = pagerState.currentPage,
-            onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } },
+            // 切页由 TabBar 自己做（它知道该给多久的动画，与指示器一致）。
+            onSelect = {},
             modifier = Modifier
                 .fillMaxWidth()
                 // 只是两个分类的切换条，不是一排按钮：上下各 8dp，多了会把榜单往下推。

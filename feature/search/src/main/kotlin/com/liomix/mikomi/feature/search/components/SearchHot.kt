@@ -156,6 +156,8 @@ internal fun SearchHotTabs(
         ),
         itemSpacing = Spacing.Xxs,
         highlight = TabHighlight.Fill,
+        // 不撑满：这栏挂在「热播榜」标题右侧，撑满会把胶囊拉成一条横贯整行的长条。
+        fillWidth = false,
         // 指示器跟手：拖动到一半就停在两格之间，与榜单同步。
         pagerState = pagerState,
     ) {

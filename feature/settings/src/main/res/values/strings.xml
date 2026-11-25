@@ -193,6 +193,7 @@
     <string name="settings_test_title">系统测试</string>
     <string name="settings_test_subtitle">手工验证通用组件</string>
     <string name="settings_test_group_pop">弹窗与提示</string>
+    <string name="settings_test_group_tabbar">标签栏</string>
     <string name="settings_test_alert_info">信息弹窗（2 秒自动消失）</string>
     <string name="settings_test_alert_warn">警告弹窗（点 × 关闭）</string>
     <string name="settings_test_alert_error">错误弹窗（点 × 关闭）</string>

@@ -3,6 +3,7 @@ package com.liomix.mikomi.feature.settings.test
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,10 +13,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.liomix.mikomi.core.designsystem.Icons
@@ -24,6 +27,10 @@ import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.ui.base.AlertPop
 import com.liomix.mikomi.core.ui.base.AlertType
 import com.liomix.mikomi.core.ui.base.Icon
+import com.liomix.mikomi.core.ui.base.Tab
+import com.liomix.mikomi.core.ui.base.TabBar
+import com.liomix.mikomi.core.ui.base.TabHighlight
+import com.liomix.mikomi.core.ui.base.TabItemStyle
 import com.liomix.mikomi.core.ui.base.Toast
 import com.liomix.mikomi.core.ui.base.ToastData
 import com.liomix.mikomi.core.ui.base.mikomiClickable
@@ -89,6 +96,23 @@ fun TestScreen(
                     TestEntry(stringResource(R.string.settings_test_toast)) {
                         toast = ToastData(toastMessage)
                     }
+                }
+            }
+
+            // 标签栏：两种形态各一条，七格/三格 —— 跨格切换是本轮改动的重点
+            // （拉长、拱形、弹簧），眼睛看一遍比读代码快。
+            SettingsCard {
+                SettingsCardSection {
+                    SettingsCardHeader(stringResource(R.string.settings_test_group_tabbar))
+                    TabBarPreview(
+                        highlight = TabHighlight.Underline,
+                        labels = WeekLabels,
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.Lg))
+                    TabBarPreview(
+                        highlight = TabHighlight.Fill,
+                        labels = CategoryLabels,
+                    )
                 }
             }
         }
@@ -157,3 +181,43 @@ private fun TestEntry(
         )
     }
 }
+
+/**
+ * 标签栏预览：点一格看指示器怎么过去。
+ *
+ * 下划线那条给七格：跨四格是「拉长盖住中间」，跨一格是「被拽过去」——
+ * 两种手感的差别只有七个格子的跨度才看得出来。胶囊那条给三格，看选中块的吸附。
+ */
+@Composable
+private fun TabBarPreview(
+    highlight: TabHighlight,
+    labels: List<String>,
+    modifier: Modifier = Modifier,
+) {
+    var selected by remember { mutableIntStateOf(0) }
+
+    TabBar(
+        selectedIndex = selected,
+        onSelect = { selected = it },
+        modifier = modifier.fillMaxWidth(),
+        itemStyle = TabItemStyle.text(),
+        itemSpacing = Spacing.None,
+        highlight = highlight,
+        // 下划线要落在那条 1dp 分隔线上，所以栏本身透明；胶囊靠底色区分选中块。
+        containerColor = if (highlight == TabHighlight.Fill) {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        } else {
+            Color.Transparent
+        },
+    ) {
+        labels.forEachIndexed { index, label ->
+            Tab(index = index, text = label, modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+/** 七格：用来观察跨多格与相邻一格两种手感。 */
+private val WeekLabels = listOf("一", "二", "三", "四", "五", "六", "日")
+
+/** 三格：胶囊形态。 */
+private val CategoryLabels = listOf("日漫", "国漫", "完结")

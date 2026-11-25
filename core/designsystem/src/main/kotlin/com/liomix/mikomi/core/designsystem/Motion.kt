@@ -73,6 +73,14 @@ object Motion {
         const val ExtraLong = 350
 
         /**
+         * 550ms：需要「看着它走过去」的位移。
+         *
+         * 标签指示器横跨整栏时，它是**一边移动一边变形**的，速度感比单纯位移强得多 ——
+         * 300ms 像被弹过去，450ms 才刚够看清。这一档专给这种「跨格换位」。
+         */
+        const val Deliberate = 550
+
+        /**
          * 全部时长档位。
          *
          * 与尺寸的 `steps` 同一个用途：审计从它读档位，于是「加了档位忘记登记」
@@ -85,6 +93,7 @@ object Motion {
             Time("Medium", Medium),
             Time("Long", Long),
             Time("ExtraLong", ExtraLong),
+            Time("Deliberate", Deliberate),
         )
     }
 

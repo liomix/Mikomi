@@ -23,7 +23,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,10 +30,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.Radius
 import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.Sizes
+import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.AirTime
 import com.liomix.mikomi.core.model.AirTimePrecision
@@ -51,7 +50,6 @@ import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.home.R
 import java.util.Calendar
 import java.util.Locale
-import kotlinx.coroutines.launch
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 import com.liomix.mikomi.core.ui.business.RefreshButton
@@ -161,7 +159,6 @@ private fun ScheduleContentBody(
         initialPage = todayIndex,
         pageCount = { days.size },
     )
-    val coroutineScope = rememberCoroutineScope()
 
     Column(modifier = modifier.fillMaxSize()) {
         DayTabBar(
@@ -169,9 +166,8 @@ private fun ScheduleContentBody(
             todayIndex = todayIndex,
             // 与 pager 联动：拖动时高亮跟手在两格之间移动，松手落页。
             pagerState = pagerState,
-            onSelect = { index ->
-                coroutineScope.launch { pagerState.animateScrollToPage(index) }
-            },
+            // 切页由 TabBar 自己做：时长与指示器同源。
+            onSelect = {},
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.Md, vertical = Spacing.Sm),

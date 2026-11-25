@@ -2,6 +2,9 @@ package com.liomix.mikomi.core.ui.base
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -35,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,6 +47,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -58,6 +64,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -110,20 +117,23 @@ enum class TabHighlight {
 
         override val drawsDivider: Boolean get() = true
 
-        // 拱形：**半个椭圆**（宽 > 高时顶部是扁平的弧），底部一条直线贴住分隔线。
+        // 拱形：**顶部倒圆、左右两条竖边、底边平**贴在分隔线上。
         //
-        // 不是「顶部两角倒圆」—— 那样在 8dp 高的条上只是两个小圆角，看着还是矩形；
-        // 也不是半圆（半径 = 宽/2），那样在长标签上会鼓成一个包。椭圆的横轴跟着宽度走、
-        // 纵轴跟着高度走，任何宽度下都只是一层薄薄的拱。
+        // 关键在顶角半径取高度的一部分而不是整个高度：
+        // - 取整个高度 → 顶部成半圆，左右收成尖，读起来是「一片叶子」；
+        // - 取 0 → 就是一块矩形。
+        // 0.6 时顶部是一段扁弧、两侧各留四成高的竖边，形状才像「拱」。
         //
-        // 用 `GenericShape` 而不是 `RoundedCornerShape`：半径必须按实际绘制尺寸算。
+        // 用 `GenericShape`：半径要按实际绘制尺寸算（高度变了圆角跟着变）。
         override fun indicatorShape(base: Shape): Shape = GenericShape { size, _ ->
-            val fullEllipse = Rect(0f, 0f, size.width, size.height * 2f)
-            moveTo(0f, size.height)
-            // 180° 起、扫 180°：取椭圆的上半圈，左右端点正好落在底边两端。
-            arcTo(fullEllipse, 180f, 180f, true)
-            lineTo(size.width, size.height)
-            close()
+            val radius = size.height * ArchCornerRatio
+            addRoundRect(
+                RoundRect(
+                    rect = Rect(0f, 0f, size.width, size.height),
+                    topLeft = CornerRadius(radius),
+                    topRight = CornerRadius(radius),
+                ),
+            )
         }
 
         override fun indicatorRect(
@@ -347,6 +357,7 @@ private val LocalTabBarVisuals = compositionLocalOf {
  * @param selectedIndex 当前选中项下标；组件不自己存选中态。
  * @param onSelect 点击某项时回调下标。
  * @param containerColor 栏底色；需要和内容同色（例如叠在卡片上）时传透明或卡片色。
+ * @param fillWidth 标签行是否撑满栏宽。默认 `true`（`weight` 均分需要）；紧贴内容时传 `false`。
  * @param pagerState 与之联动的 pager。传了之后指示器**跟手移动**（拖动到一半就停在两格
  *   中间），而不是松手后才弹到新格；不传则用内部的一次性切换动画。
 
@@ -368,11 +379,20 @@ fun TabBar(
     itemStyle: TabItemStyle = TabItemStyle.compact(),
     highlight: TabHighlight = TabHighlight.Fill,
     pagerState: PagerState? = null,
+    fillWidth: Boolean = true,
     content: @Composable RowScope.() -> Unit,
 ) {
     val state = remember { TabBarState() }
+    val scope = rememberCoroutineScope()
     state.selectedIndex = selectedIndex
-    state.onSelect = onSelect
+    state.onSelect = { index ->
+        // 有 pager 时**由这里统一滚动**：指示器的位置读的就是 pager 的偏移量，
+        // 两者的速度必须是同一条曲线，否则会「指示器到了、内容还在滑」。
+        pagerState?.let { pager ->
+            scope.launch { pager.animateScrollToPage(page = index, animationSpec = IndicatorSwapSpec) }
+        }
+        onSelect(index)
+    }
     val visuals = TabBarVisuals(
         shape = shape,
         style = itemStyle,
@@ -431,7 +451,9 @@ fun TabBar(
                     // `fillMaxWidth` 是居中的前提：Row 只占内容宽时，`CenterHorizontally`
                     // 没有多余空间可分配，标签仍然贴在左边。
                     modifier = Modifier
-                        .fillMaxWidth()
+                        // 撑满：标签用 `weight` 等分时必须有富余宽度可分。
+                        // 嵌在「标题行右侧」这种位置时传 `false`，栏紧贴内容，不被拉到整行宽。
+                        .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
                         .selectableGroup(),
                     // 整体居中：标签按内容宽排列时（不传 `weight`），靠左会让两栏挤在
                     // 屏幕左边。传了 `weight` 的那几个调用点本来就被撑满，居中不起作用。
@@ -490,8 +512,12 @@ private fun TabIndicator(
     var toIndex by remember { mutableIntStateOf(selected) }
     val fade = remember { Animatable(0f) }
 
-    LaunchedEffect(selected) {
+    LaunchedEffect(selected, pagerState) {
         if (selected == toIndex) return@LaunchedEffect
+        // 有 pager 时位置完全由它驱动（`currentRect` 读 `currentPageOffsetFraction`），
+        // 再跑一遍这个内部动画就是白跑：`progress` 每帧变化 → `graphicsLayer` 与 `layout`
+        // 跟着失效重算，结果却和上一帧一样 —— 点击时那一下卡顿就是它。
+        if (pagerState != null) return@LaunchedEffect
         // 这里读 `progress.value` 不算组合期读取（协程里不受快照订阅影响），
         // 拿到的是上一帧画面上的真实位置（进度为 1 时就是旧标签的矩形）。
         fromRect = resolveRect(bounds, fromRect, fromIndex, toIndex, progress.value)
@@ -500,7 +526,7 @@ private fun TabIndicator(
         progress.snapTo(0f)
         progress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = IndicatorSwapMillis, easing = IndicatorSwapEasing),
+            animationSpec = IndicatorSwapSpec,
         )
     }
 
@@ -580,6 +606,9 @@ private fun TabIndicator(
     )
 }
 
+/** 拱形指示器的顶角半径占高度比例：0.6 时顶部是扁弧、两侧留四成竖边。 */
+private const val ArchCornerRatio = 0.6f
+
 /** 下划线厚度：走 `Stroke.Underline`（4dp）。2dp 时它会被读成一条分隔线而不是「选中的那一栏」。 */
 private val UnderlineThickness = Stroke.Underline
 
@@ -596,6 +625,9 @@ private fun resolveRect(
     progress: Float,
 ): Rect? {
     val to = bounds.getOrNull(toIndex) ?: return null
+    // 一种路径，不分跨几格：起始格的左边去追目标格的左边、右边去追右边。
+    // 跨一格时两侧速度差最明显（先拉开再收住）；跨多格时它被拉长、盖住中间的格子。
+    // 不再为「跨多格」单独写一条 —— 那只是同一个动作在更长距离上的样子。
     return elasticRect(
         from = fromRect ?: to,
         to = to,
@@ -603,6 +635,7 @@ private fun resolveRect(
         movingRight = toIndex > fromIndex,
     )
 }
+
 
 /**
  * 弹性插值：左右边各用一条缓动，得到「被拉长再收拢」的中间矩形。
@@ -635,13 +668,20 @@ private fun accelerate(t: Float): Float = 1f - cos(t * HalfPi)
 private fun decelerate(t: Float): Float = sin(t * HalfPi)
 
 /**
- * 切换时长：Flutter `TabController.animationDuration` 的默认值（`kTabScrollDuration`）。
- * 追番页没有传 `animationDuration`，所以走的就是这个 300ms。
+ * 换位用的动画：**弹簧**，不是固定时长。
+ *
+ * 抄 Flutter `TabIndicatorAnimation.elastic`：跨一格轻推就把目标吸过来，跨四格距离长、
+ * 弹簧给的速度自然更大，于是它真的会「甩」过去，而且比跨一格用时更长。
+ * 固定 `tween` 做不到 —— 同样时长跨 4 格，速度就是 4 倍，只会显得急。
+ *
+ * `DampingRatioNoBouncy`（1.0）：临界阻尼，停在目标上不再回头。
+ * 想要「撞一下再弹回」就调低它 —— 那是另一种手感，默认不要。
  */
-private const val IndicatorSwapMillis = Motion.Duration.Long
+private val IndicatorSwapSpec: SpringSpec<Float> = spring(
+    dampingRatio = Spring.DampingRatioNoBouncy,
+    stiffness = Spring.StiffnessMediumLow,
+)
 
-/** 整体进度的缓动：Flutter `TabController.animateTo` 的默认 `Curves.ease`。 */
-private val IndicatorSwapEasing = Motion.Curve.Standard
 
 /** 指示器从「还没量到边界」到可见的淡入时长；只跑一次，不影响切换动效。 */
 private const val IndicatorFadeMillis = Motion.Duration.Fast

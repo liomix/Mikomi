@@ -93,12 +93,6 @@ fun SearchScreen(
         val tab = SearchHotTab.entries[hotPagerState.currentPage]
         if (tab != state.hotTab) onHotTabChange(tab)
     }
-    // 点胶囊 → 滚到对应页；`hotTab` 由状态层改，这里跟着走。
-    LaunchedEffect(state.hotTab) {
-        if (hotPagerState.currentPage != state.hotTab.ordinal) {
-            hotPagerState.animateScrollToPage(state.hotTab.ordinal)
-        }
-    }
     BlurredTopBar(
         modifier = modifier,
         // 透明底色 = 只要那层模糊，不要额外的实底。

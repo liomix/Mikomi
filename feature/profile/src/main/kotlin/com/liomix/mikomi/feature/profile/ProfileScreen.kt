@@ -957,6 +957,8 @@ private fun ProfileTabs(
             // 边缘，水平方向却多留 6dp，两端看着松。这里把左右收到与上下相同的 4dp ——
             // 指示器与容器都是胶囊（半圆端），同值内缩才是同心圆，四边间隙处处相等。
             contentPadding = PaddingValues(Spacing.Xs),
+            // 两个标签按文字宽度排列、整体居中；撑满会让外壳拉成一条长带。
+            fillWidth = false,
         ) {
             Tab(
                 index = 0,

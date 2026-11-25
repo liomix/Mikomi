@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -682,20 +683,8 @@ private fun accelerate(t: Float): Float = 1f - cos(t * HalfPi)
 /** Flutter `decelerateInterpolation`：`sin(tπ/2)`，起步快、收尾慢。 */
 private fun decelerate(t: Float): Float = sin(t * HalfPi)
 
-/**
- * 换位用的动画：**弹簧**，不是固定时长。
- *
- * 抄 Flutter `TabIndicatorAnimation.elastic`：跨一格轻推就把目标吸过来，跨四格距离长、
- * 弹簧给的速度自然更大，于是它真的会「甩」过去，而且比跨一格用时更长。
- * 固定 `tween` 做不到 —— 同样时长跨 4 格，速度就是 4 倍，只会显得急。
- *
- * `DampingRatioNoBouncy`（1.0）：临界阻尼，停在目标上不再回头。
- * 想要「撞一下再弹回」就调低它 —— 那是另一种手感，默认不要。
- */
-private val IndicatorSwapSpec: SpringSpec<Float> = spring(
-    dampingRatio = Spring.DampingRatioNoBouncy,
-    stiffness = Spring.StiffnessMediumLow,
-)
+/** 换位动画：与底部导航栏共用同一条（[Motion.IndicatorSwap]），两处胶囊手感一致。 */
+private val IndicatorSwapSpec: AnimationSpec<Float> = Motion.IndicatorSwap
 
 
 /** 指示器从「还没量到边界」到可见的淡入时长；只跑一次，不影响切换动效。 */

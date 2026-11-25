@@ -1,5 +1,9 @@
 package com.liomix.mikomi.core.designsystem
 
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.runtime.Immutable
@@ -53,6 +57,21 @@ object Motion {
      *
      * **不要为了 10ms 的差别新增一档**：两档之间差 20% 以上用户才分得出来。
      */
+    /**
+     * 选中指示器的换位动画：**弹簧、无回弹**。
+     *
+     * 用弹簧而不是 `tween`：跨一格与跨四格的距离差三倍，固定时长会让远的那个
+     * 快得「闪一下」。弹簧按距离给速度 —— 近的轻推、远的甩过去，两端都收在同一处。
+     *
+     * 底部导航栏与标签栏共用这一条，两处的胶囊手感才不会各走各的。
+     */
+    val IndicatorSwap: AnimationSpec<Float> = spring(
+        // 临界阻尼：停在目标上，不回头。「液体感」不在这条曲线上 —— 它来自指示器
+        // 左右两边不同速的几何变形（见 `elasticRect`），与回弹是两件事。
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMediumLow,
+    )
+
     object Duration {
         /** 60ms：只有三四帧。按压反馈、按下瞬间的形变（即 `ButtonBounce` 的按下时长）。 */
         const val Instant = 60

@@ -50,6 +50,8 @@ import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.TextStyles
 import com.liomix.mikomi.core.ui.base.Icon
+import kotlin.math.sin
+import kotlin.math.pow
 import kotlin.math.roundToInt
 
 /**
@@ -183,9 +185,6 @@ data class MikomiNavItem(
     val label: String,
 )
 
-/** 胶囊滑动时长。Telegram 的实际曲线没测，这里用通用减速曲线。 */
-private const val IndicatorMillis = Motion.Duration.Short
-
 /**
  * 单个条目：图标在上、文字在下，整块可点。**横竖两种形态共用这一份**。
  *
@@ -291,7 +290,8 @@ private fun NavBarIndicator(
         progress.snapTo(0f)
         progress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = IndicatorMillis, easing = Motion.Curve.Emphasized),
+            // 与标签栏同一条弹簧：跨得远用时自然更长，不会「闪过去」。
+            animationSpec = Motion.IndicatorSwap,
         )
     }
 
@@ -325,10 +325,20 @@ private fun indicatorRect(
 ): Rect? {
     val to = bounds.getOrNull(toIndex) ?: return null
     val from = fromRect ?: to
+    // 左右两边不同速：往右切换时右边先冲、左边后跟，中途被拉开再收拢 —— 液体感。
+    val movingRight = toIndex > fromIndex
+    // 前导边用 `t^0.45`（很早就冲到接近目标）、尾随边用 `t^2.2`（前段几乎不动）——
+    // 两条曲线差得越开，中途被拉得越长，「液体」越明显。
+    val lead = leadFraction(progress)
+    val trail = trailFraction(progress)
+    val leftFraction = if (movingRight) trail else lead
+    val rightFraction = if (movingRight) lead else trail
+    val left = lerp(from.left, to.left, leftFraction)
+    val right = lerp(from.right, to.right, rightFraction)
     return Rect(
-        left = lerp(from.left, to.left, progress),
+        left = left,
         top = lerp(from.top, to.top, progress),
-        right = lerp(from.right, to.right, progress),
+        right = right.coerceAtLeast(left),
         bottom = lerp(from.bottom, to.bottom, progress),
     )
 }
@@ -345,3 +355,25 @@ val MikomiNavBarBottomMargin = NavBarSpec.BottomMargin
 /** 栏体从屏幕下沿往上占用的高度（栏体 + 底部外边距，**不含**系统导航栏 inset）。 */
 val MikomiNavBarBottomSpace = MikomiNavBarBottomMargin + MikomiNavBarBodyHeight
 
+/**
+ * 前导边：`t^0.45` —— 起步就冲到接近目标，是「先甩出去」的那一头。
+ *
+ * 0.45 比 Flutter 的 `decelerateInterpolation`（`sin(tπ/2)`）更激进：中途同一时刻，
+ * 它已经走到 73%，而后者只有 71%… 真正拉开差距的是尾随边（见下）。
+ */
+private fun leadFraction(t: Float): Float = t.pow(LeadPower)
+
+/**
+ * 尾随边：`t^2.2` —— 前段几乎不动，最后才追上来。
+ *
+ * 两者一起决定了「液体有多长」：同一时刻前导走 73%、尾随只走 22%，
+ * 宽度就是目标宽度的 1.5 倍左右（原来那对 `cos/sin` 是 1.4 倍）。
+ * 想更夸张就压小 [LeadPower]、调大 [TrailPower]。
+ */
+private fun trailFraction(t: Float): Float = t.pow(TrailPower)
+
+/** 前导边幂次：越小起步越猛。 */
+private const val LeadPower = 0.45f
+
+/** 尾随边幂次：越大后段越拖。 */
+private const val TrailPower = 2.2f

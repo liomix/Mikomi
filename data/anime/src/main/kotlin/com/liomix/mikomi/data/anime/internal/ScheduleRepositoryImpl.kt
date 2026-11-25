@@ -9,6 +9,9 @@ import com.liomix.mikomi.core.database.dao.ScheduleDao
 import com.liomix.mikomi.core.database.dao.ScheduleSourceDao
 import com.liomix.mikomi.core.database.entity.ScheduleConflictEntity
 import com.liomix.mikomi.core.database.entity.ScheduleSourceEntity
+import com.liomix.mikomi.core.datastore.cache.CacheTtl
+import com.liomix.mikomi.core.datastore.cache.CacheStore
+import com.liomix.mikomi.core.datastore.cache.CacheKey
 import com.liomix.mikomi.core.model.ScheduleEntry
 import com.liomix.mikomi.core.model.ScheduleProvenance
 import com.liomix.mikomi.data.anime.ScheduleRepository
@@ -69,6 +72,7 @@ internal class ScheduleRepositoryImpl @Inject constructor(
     private val sourceDao: ScheduleSourceDao,
     private val conflictDao: ScheduleConflictDao,
     private val database: MikomiDatabase,
+    private val cacheStore: CacheStore,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ScheduleRepository {
 
@@ -109,6 +113,14 @@ internal class ScheduleRepositoryImpl @Inject constructor(
     override suspend fun refreshSchedule(): Unit = withContext(ioDispatcher) {
         // 重试按钮可能连点，串行化避免并发写库把分源版本号改乱。
         refreshMutex.withLock { runRefresh() }
+    }
+
+    override suspend fun refreshScheduleIfStale() {
+        if (!cacheStore.isStale(CacheKey.SCHEDULE, CacheTtl.SCHEDULE)) return
+
+        refreshSchedule()
+        // 只有成功走到这里才盖时间戳：失败时下次进来还会重试，而不是被 TTL 挡住。
+        cacheStore.touch(CacheKey.SCHEDULE)
     }
 
     private suspend fun runRefresh() {

@@ -88,6 +88,7 @@ class HomeViewModel @Inject constructor(
     )
 
     init {
+        // 首页刚拉过就不发请求：轮播与推荐来自同一次刷新。
         startRefresh(userInitiated = false)
     }
 
@@ -104,9 +105,15 @@ class HomeViewModel @Inject constructor(
             // 每次发起都重置 failed：这是一次新的尝试，页面不该带着上一次的结论进加载。
             refreshState.value = RefreshState(inFlight = true, userVisible = userInitiated)
             try {
-                val result = homeRepository.refreshHome()
-                offset = result.loadedCount
-                paging.value = PagingState(isLoadingMore = false, hasMore = result.hasMore)
+                // 非用户触发时交给数据层判断 TTL；它内部会决定要不要真的发请求，
+                // 所以这里不需要再读返回值（分页状态由 Room 的列表长度驱动）。
+                if (userInitiated) {
+                    val result = homeRepository.refreshHome()
+                    offset = result.loadedCount
+                    paging.value = PagingState(isLoadingMore = false, hasMore = result.hasMore)
+                } else {
+                    homeRepository.refreshHomeIfStale()
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

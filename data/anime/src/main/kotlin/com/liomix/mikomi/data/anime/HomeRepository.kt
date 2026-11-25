@@ -15,6 +15,14 @@ interface HomeRepository {
     /** 刷新：拉取第一页并回写本地（Bangumi 主，失败降级 AniList）。 */
     suspend fun refreshHome(): LoadMoreResult
 
+    /**
+     * 进页面时调用：首页刚拉过就跳过。
+     *
+     * 轮播与推荐来自同一次 `refreshHome`，所以共用一个时间戳 —— 不存在「轮播该刷、
+     * 推荐不该刷」的时刻，它们本身就是一个响应。
+     */
+    suspend fun refreshHomeIfStale()
+
     /** 加载下一页并追加回写本地。 */
     suspend fun loadMore(offset: Int): LoadMoreResult
 }

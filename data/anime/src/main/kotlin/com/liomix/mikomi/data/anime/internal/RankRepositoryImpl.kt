@@ -1,17 +1,17 @@
 package com.liomix.mikomi.data.anime.internal
 
 import android.util.Log
-import androidx.room.withTransaction
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
-import com.liomix.mikomi.core.database.MikomiDatabase
-import com.liomix.mikomi.core.database.dao.RankDao
-import com.liomix.mikomi.core.database.entity.RankEntity
+import com.liomix.mikomi.core.datastore.cache.CacheJson
+import com.liomix.mikomi.core.datastore.cache.CacheKey
+import com.liomix.mikomi.core.datastore.cache.CacheStore
+import com.liomix.mikomi.core.datastore.cache.CacheTtl
 import com.liomix.mikomi.core.model.AniRpbHotItem
+import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.RankEntry
 import com.liomix.mikomi.core.model.RankRegion
 import com.liomix.mikomi.data.anime.AniRpbRepository
 import com.liomix.mikomi.data.anime.RankRepository
-import com.liomix.mikomi.data.anime.mapper.toDomain
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -20,35 +20,42 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 /**
- * 热播榜：AniRpb `video.categoryList`（分类整榜，sort=hottest）为唯一数据源，
- * 国漫 / 日漫各取 [RANK_LIMIT] 条。
+ * 热播榜：AniRpb `video.categoryList`（分类整榜，sort=hottest）为唯一数据源，两榜各 100 条。
  *
- * AniRpb 的频道 id 在数据层按 `type.listActive` 动态解析，这里只按产地请求榜单；
- * 名次直接沿用服务端返回顺序（[RankEntity.position]），不再按评分重排。
- * 整榜接口不可用时数据层会回退到 `home.load` 的 hot 模块（条数更少）。
- * 离线优先由 Room SSOT 保证：刷新失败时继续展示本地缓存。
+ * 本地副本走 [CacheStore]（一整块 JSON），不再是 Room 的 `rank` 表 —— 这一页要的只是
+ * 「上次服务端给了什么」，没有查询、没有关联，所以「可丢弃」比「可查询」更重要。
+ *
+ * 两榜合并成一个 payload：它们来自同一次刷新，拆成两条只会带来「刷新一半」的状态。
  */
 internal class RankRepositoryImpl @Inject constructor(
     private val aniRpbRepository: AniRpbRepository,
-    private val rankDao: RankDao,
-    private val database: MikomiDatabase,
+    private val cacheStore: CacheStore,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : RankRepository {
 
     override fun observeRank(region: RankRegion): Flow<List<RankEntry>> =
-        rankDao.observeByRegion(region.storageValue()).map { list ->
-            list.map { it.toRankEntry() }
+        cacheStore.observe(CacheKey.RANK).map { entry ->
+            entry?.payload
+                ?.let { raw -> CacheJson.decode<List<RankEntry>>(raw) }
+                ?.filter { it.region == region }
+                .orEmpty()
         }
 
+    override suspend fun refreshIfStale() {
+        if (cacheStore.isStale(CacheKey.RANK, CacheTtl.RANK)) refreshRank()
+    }
+
     override suspend fun refreshRank(): Unit = withContext(ioDispatcher) {
-        val entitiesByRegion = mutableMapOf<RankRegion, List<RankEntity>>()
-        var successCount = 0
+        val cached = cacheStore.get(CacheKey.RANK)?.payload
+            ?.let { raw -> CacheJson.decode<List<RankEntry>>(raw) }
+            .orEmpty()
+
+        val fetched = mutableMapOf<RankRegion, List<RankEntry>>()
         var lastFailure: Exception? = null
 
         for (region in RankRegion.entries) {
             try {
-                entitiesByRegion[region] = fetchRank(region)
-                successCount++
+                fetched[region] = fetchRank(region)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -57,69 +64,43 @@ internal class RankRepositoryImpl @Inject constructor(
             }
         }
 
-        // 两榜都失败才向 UI 报错；单榜失败时保留该榜本地缓存。
-        if (successCount == 0) {
+        // 两榜都失败才向上抛；单榜失败时那一榜继续用缓存里的旧数据。
+        if (fetched.isEmpty()) {
             lastFailure?.let { throw it }
             return@withContext
         }
 
-        // 空结果不等于「榜上确实没有条目」，更可能是限额 / 空响应。
-        // 按产地逐个替换：哪一榜拿到数据才更新哪一榜，不把已展示的榜单抹成骨架屏。
-        // 两榜在同一事务里替换，Room Flow 只发射一次，刷新过程中不会闪空数据。
-        database.withTransaction {
-            entitiesByRegion.forEach { (region, entities) ->
-                if (entities.isEmpty()) return@forEach
-                rankDao.deleteByRegion(region.storageValue())
-                rankDao.upsertAll(entities)
-            }
+        // 空结果多半是限额或空响应，不当成「榜上真的没有」：那一榜保留旧数据。
+        val merged = RankRegion.entries.flatMap { region ->
+            fetched[region]?.takeIf { it.isNotEmpty() }
+                ?: cached.filter { it.region == region }
         }
+        cacheStore.put(CacheKey.RANK, CacheJson.encode(merged))
     }
 
     /** AniRpb 整榜：名次取接口返回顺序（第 N 条 = position N-1）。 */
-    private suspend fun fetchRank(region: RankRegion): List<RankEntity> {
+    private suspend fun fetchRank(region: RankRegion): List<RankEntry> {
         val items = aniRpbRepository.fetchRanking(region, RANK_LIMIT)
-        // 条数落在日志里：整榜接口被裁剪或回退 home.load 时，这里能直接看出来。
         Log.i(TAG, "整榜拉取完成 region=$region 条数=${items.size}")
-        return items.mapIndexed { index, item ->
-            item.toRankEntity(region.storageValue(), position = index)
-        }
+        return items.map { it.toRankEntry(region) }
     }
 
-    private fun AniRpbHotItem.toRankEntity(region: String, position: Int): RankEntity = RankEntity(
-        id = "$ANIRPB_ID_PREFIX$id",
-        region = region,
-        title = title,
-        coverUrl = coverUrl,
-        // AniRpb 只提供评分与更新文案，没有简介 / 类型标签，留空由 UI 自行降级。
-        synopsis = null,
-        rating = score,
-        status = "unknown",
-        genres = "",
-        position = position,
-    )
-
-    private fun RankEntity.toRankEntry(): RankEntry {
-        val anime = toDomain()
+    private fun AniRpbHotItem.toRankEntry(region: RankRegion): RankEntry {
+        val anime = Anime(
+            id = "$ANIRPB_ID_PREFIX$id",
+            title = title,
+            coverUrl = coverUrl,
+            // AniRpb 只给评分与更新文案，没有简介与类型标签。
+            rating = score,
+        )
         return RankEntry(
             anime = anime,
-            region = when (region) {
-                REGION_CHINESE -> RankRegion.CHINESE
-                else -> RankRegion.JAPANESE
-            },
-            genres = anime.genres,
+            region = region,
+            genres = emptyList(),
         )
     }
 
-    private fun RankRegion.storageValue(): String = when (this) {
-        RankRegion.CHINESE -> REGION_CHINESE
-        RankRegion.JAPANESE -> REGION_JAPANESE
-    }
-
     private companion object {
-        /** 产地存储值（[RankEntity.region]）。 */
-        const val REGION_CHINESE = "cn"
-        const val REGION_JAPANESE = "jp"
-
         /** 主键前缀：AniRpb 视频 id 与 Bangumi / AniList 条目 id 不在同一命名空间。 */
         const val ANIRPB_ID_PREFIX = "anirpb:"
 

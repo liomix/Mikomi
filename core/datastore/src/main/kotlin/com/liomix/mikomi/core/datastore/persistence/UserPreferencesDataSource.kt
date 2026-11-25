@@ -1,6 +1,7 @@
-package com.liomix.mikomi.core.datastore
+package com.liomix.mikomi.core.datastore.persistence
 
 import android.content.Context
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -15,7 +16,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-private val Context.userPreferencesDataStore: androidx.datastore.core.DataStore<Preferences> by
+private val Context.userPreferencesDataStore: DataStore<Preferences> by
     preferencesDataStore(name = "user_preferences")
 
 /** 用户偏好数据源（DataStore，进程内单例）。 */

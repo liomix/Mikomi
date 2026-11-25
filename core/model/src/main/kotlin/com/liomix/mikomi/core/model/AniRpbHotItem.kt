@@ -1,11 +1,14 @@
 package com.liomix.mikomi.core.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * AniRpb 热播榜条目。
  *
  * 这是独立数据源的专用模型：AniRpb 的视频 id 与 Bangumi / AniList 的条目 id
  * 不在同一命名空间，因此不塞进通用 [Anime]，避免详情页误把两套 id 混用。
  */
+@Serializable
 data class AniRpbHotItem(
     /** AniRpb 视频 id（后续可用于 `video.detail` / 播放链路）。 */
     val id: String,

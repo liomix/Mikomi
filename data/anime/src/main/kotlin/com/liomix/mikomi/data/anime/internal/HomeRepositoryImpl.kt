@@ -2,6 +2,9 @@ package com.liomix.mikomi.data.anime.internal
 
 import android.util.Log
 import androidx.room.withTransaction
+import com.liomix.mikomi.core.datastore.cache.CacheKey
+import com.liomix.mikomi.core.datastore.cache.CacheStore
+import com.liomix.mikomi.core.datastore.cache.CacheTtl
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
 import com.liomix.mikomi.core.database.MikomiDatabase
 import com.liomix.mikomi.core.database.dao.AnimeDao
@@ -31,6 +34,7 @@ internal class HomeRepositoryImpl @Inject constructor(
     private val anilistApi: AniListApi,
     private val animeDao: AnimeDao,
     private val database: MikomiDatabase,
+    private val cacheStore: CacheStore,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : HomeRepository {
 
@@ -39,6 +43,13 @@ internal class HomeRepositoryImpl @Inject constructor(
 
     override fun observeRecommended(): Flow<List<Anime>> =
         animeDao.observeAnimeByPopularity().map { list -> list.map { it.toDomain() } }
+
+    override suspend fun refreshHomeIfStale() {
+        if (!cacheStore.isStale(CacheKey.HOME, CacheTtl.HOME)) return
+        refreshHome()
+        // 成功才盖时间戳：失败时下次进来还要重试。
+        cacheStore.touch(CacheKey.HOME)
+    }
 
     override suspend fun refreshHome(): LoadMoreResult = withContext(ioDispatcher) {
         val page = fetchPage(offset = 0)

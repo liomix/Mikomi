@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.datastore
+package com.liomix.mikomi.core.datastore.persistence
 
 import android.content.Context
 import androidx.datastore.core.DataStore

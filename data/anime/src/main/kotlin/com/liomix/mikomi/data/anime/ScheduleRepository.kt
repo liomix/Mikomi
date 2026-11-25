@@ -24,4 +24,12 @@ interface ScheduleRepository {
      * 全部源失败时向上抛出（保留上一次结果）；全部源为空时清空本周数据。
      */
     suspend fun refreshSchedule()
+
+    /**
+     * 进页面时调用：**上周刚拉过就不再拉**。
+     *
+     * 时间表的合并结果已经在 Room 里，缓存层只记「上次成功的时间」。所以这里不涉及
+     * 数据搬运，只决定要不要发起这次多源请求 —— 那是一次要并发打三四个源的活。
+     */
+    suspend fun refreshScheduleIfStale()
 }

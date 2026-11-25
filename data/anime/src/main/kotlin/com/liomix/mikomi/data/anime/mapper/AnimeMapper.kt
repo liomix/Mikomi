@@ -2,7 +2,6 @@ package com.liomix.mikomi.data.anime.mapper
 
 import com.liomix.mikomi.core.database.entity.AnimeEntity
 import com.liomix.mikomi.core.database.entity.EpisodeEntity
-import com.liomix.mikomi.core.database.entity.RankEntity
 import com.liomix.mikomi.core.database.entity.ScheduleEntity
 import com.liomix.mikomi.core.model.AirTime
 import com.liomix.mikomi.core.model.Anime
@@ -42,17 +41,6 @@ internal fun AnimeEntity.toDomain(): Anime = Anime(
     airDate = airDate.takeIf { it.isNotBlank() },
     rank = rank,
     ratingCount = ratingCount,
-    genres = genres.split(GENRES_SEPARATOR).filter { it.isNotBlank() },
-)
-
-internal fun RankEntity.toDomain(): Anime = Anime(
-    id = id,
-    title = title,
-    coverUrl = coverUrl,
-    synopsis = synopsis,
-    rating = rating,
-    status = AnimeStatus.from(status),
-    popularity = popularity,
     genres = genres.split(GENRES_SEPARATOR).filter { it.isNotBlank() },
 )
 

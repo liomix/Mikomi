@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.model.RankRegion
-import com.liomix.mikomi.data.anime.AniRpbRepository
+import com.liomix.mikomi.data.anime.HotRepository
 import com.liomix.mikomi.data.anime.SearchRepository
 import com.liomix.mikomi.data.user.UserDataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -36,7 +36,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     private val searchRepository: SearchRepository,
-    private val aniRpbRepository: AniRpbRepository,
+    private val hotRepository: HotRepository,
     private val userDataRepository: UserDataRepository,
 ) : ViewModel() {
 
@@ -49,8 +49,8 @@ class SearchViewModel @Inject constructor(
     init {
         observeHistory()
         observeSuggestions()
-        loadHotRanking(SearchHotTab.JAPANESE)
-        loadHotRanking(SearchHotTab.CHINESE)
+        SearchHotTab.entries.forEach { tab -> observeHot(tab) }
+        refreshHotIfStale()
     }
 
     private fun observeHistory() {
@@ -91,12 +91,14 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    /** 加载指定热播榜；失败保留该 Tab 的旧数据并切换为可重试错误态。 */
-    private fun loadHotRanking(tab: SearchHotTab) {
+    /**
+     * 观察某一榜的缓存。热播榜的数据源改成缓存之后，这里不再「请求 → 塞进状态」，
+     * 而是「订阅 → 状态跟着缓存变」：进页面有旧数据就先显示，刷新完成后再换一版。
+     */
+    private fun observeHot(tab: SearchHotTab) {
         viewModelScope.launch {
-            updateHotState(tab, LoadState.Loading)
-            try {
-                val items = aniRpbRepository.fetchHotRanking(tab.region())
+            hotRepository.observeHot(tab.region()).collect { items ->
+                if (items.isEmpty()) return@collect
                 _uiState.update { state ->
                     when (tab) {
                         SearchHotTab.JAPANESE -> state.copy(
@@ -110,11 +112,27 @@ class SearchViewModel @Inject constructor(
                         )
                     }
                 }
+            }
+        }
+    }
+
+    /** 进页面时刷新：缓存还新就不发请求。失败时把还没有内容的 Tab 标成可重试错误态。 */
+    private fun refreshHotIfStale() {
+        viewModelScope.launch {
+            try {
+                hotRepository.refreshHotIfStale()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Log.w(TAG, "Load ${tab.name} hot ranking failed", e)
-                updateHotState(tab, LoadState.Error)
+                Log.w(TAG, "Load hot ranking failed", e)
+                SearchHotTab.entries.forEach { tab ->
+                    val hasContent = when (tab) {
+                        SearchHotTab.JAPANESE -> _uiState.value.japaneseHot.isNotEmpty()
+                        SearchHotTab.CHINESE -> _uiState.value.chineseHot.isNotEmpty()
+                    }
+                    // 已有内容的 Tab 保持原样：刷新失败不该把看得见的榜单换成错误页。
+                    if (!hasContent) updateHotState(tab, LoadState.Error)
+                }
             }
         }
     }
@@ -144,8 +162,20 @@ class SearchViewModel @Inject constructor(
         _uiState.update { it.copy(hotTab = tab) }
     }
 
-    /** 重试指定热播榜。 */
-    fun retryHot(tab: SearchHotTab = _uiState.value.hotTab) = loadHotRanking(tab)
+    /** 重试指定热播榜：用户主动点，无视缓存新旧。 */
+    fun retryHot(tab: SearchHotTab = _uiState.value.hotTab) {
+        viewModelScope.launch {
+            updateHotState(tab, LoadState.Loading)
+            try {
+                hotRepository.refreshHot()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Retry hot ranking failed", e)
+                updateHotState(tab, LoadState.Error)
+            }
+        }
+    }
 
     /** 清空输入：回到浏览态（历史 + 热播榜）。 */
     fun clearQuery() {

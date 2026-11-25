@@ -1,6 +1,9 @@
 package com.liomix.mikomi.core.model
 
+import kotlinx.serialization.Serializable
+
 /** 番剧上映状态。 */
+@Serializable
 enum class AnimeStatus {
     ONGOING,
     COMPLETED,
@@ -15,6 +18,7 @@ enum class AnimeStatus {
 }
 
 /** 番剧领域模型。 */
+@Serializable
 data class Anime(
     val id: String,
     val title: String,

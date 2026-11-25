@@ -17,4 +17,12 @@ interface RankRepository {
 
     /** 从 AniRpb 拉取日漫 / 国漫整榜并回写本地；两榜都失败时向上抛出。 */
     suspend fun refreshRank()
+
+    /**
+     * 进页面时调用：缓存还新就什么都不做。
+     *
+     * 「多久算旧」是数据层的知识（[com.liomix.mikomi.core.datastore.cache.CacheTtl]），
+     * 放在这里而不是 ViewModel —— 否则每个页面都要再抄一遍 TTL。
+     */
+    suspend fun refreshIfStale()
 }

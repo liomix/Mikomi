@@ -72,10 +72,15 @@ class RankViewModel @Inject constructor(
         refresh()
     }
 
-    /** 静默刷新（进入页面时自动执行）：不点亮顶栏按钮。 */
+    /**
+     * 静默刷新（进入页面时自动执行）：**缓存还新就不发请求**。
+     *
+     * 「多久算旧」由数据层回答（[RankRepository.refreshIfStale]）—— 页面不该知道 TTL，
+     * 否则六个页面各抄一份，改一处忘五处。
+     */
     fun refresh() = startRefresh(userInitiated = false)
 
-    /** 用户点击顶栏刷新：按钮在请求期间换成进度环。 */
+    /** 用户点击顶栏刷新：无视缓存新旧，按钮在请求期间换成进度环。 */
     fun refreshByUser() = startRefresh(userInitiated = true)
 
     private fun startRefresh(userInitiated: Boolean) {
@@ -88,7 +93,7 @@ class RankViewModel @Inject constructor(
             // 新的一次尝试：清掉上一次的失败结论。
             refreshState.value = RefreshState(inFlight = true, userVisible = userInitiated)
             try {
-                rankRepository.refreshRank()
+                if (userInitiated) rankRepository.refreshRank() else rankRepository.refreshIfStale()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

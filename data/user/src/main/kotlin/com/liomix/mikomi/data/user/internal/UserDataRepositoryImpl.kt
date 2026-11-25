@@ -4,8 +4,8 @@ import com.liomix.mikomi.core.database.dao.FavoriteDao
 import com.liomix.mikomi.core.database.dao.HistoryDao
 import com.liomix.mikomi.core.database.entity.FavoriteEntity
 import com.liomix.mikomi.core.database.entity.HistoryEntity
-import com.liomix.mikomi.core.datastore.SearchHistoryDataSource
-import com.liomix.mikomi.core.datastore.UserPreferencesDataSource
+import com.liomix.mikomi.core.datastore.persistence.SearchHistoryDataSource
+import com.liomix.mikomi.core.datastore.persistence.UserPreferencesDataSource
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.Favorite
 import com.liomix.mikomi.core.model.UserPreferences

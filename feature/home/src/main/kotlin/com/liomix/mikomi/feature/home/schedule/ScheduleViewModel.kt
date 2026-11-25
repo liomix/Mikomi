@@ -62,9 +62,29 @@ class ScheduleViewModel @Inject constructor(
     )
 
     init {
-        refresh()
+        // 进页面先看缓存新旧：刚拉过就不发请求（时间表一次刷新要并发打三四个源）。
+        refreshIfStale()
     }
 
+    /** 静默刷新：缓存新鲜时什么都不做，也不点亮顶栏按钮。 */
+    fun refreshIfStale() {
+        if (refreshJob?.isActive == true) return
+        refreshJob = viewModelScope.launch {
+            refreshState.value = RefreshState(inFlight = true)
+            try {
+                scheduleRepository.refreshScheduleIfStale()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Refresh schedule failed", e)
+                refreshState.value = refreshState.value.copy(failed = true)
+            } finally {
+                refreshState.value = refreshState.value.copy(inFlight = false)
+            }
+        }
+    }
+
+    /** 用户点顶栏刷新：无视缓存新旧。 */
     fun refresh() {
         if (refreshJob?.isActive == true) return
         refreshJob = viewModelScope.launch {

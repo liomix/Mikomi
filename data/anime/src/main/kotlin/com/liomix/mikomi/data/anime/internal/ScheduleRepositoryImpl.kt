@@ -11,6 +11,7 @@ import com.liomix.mikomi.core.database.entity.ScheduleConflictEntity
 import com.liomix.mikomi.core.database.entity.ScheduleSourceEntity
 import com.liomix.mikomi.core.datastore.cache.CacheTtl
 import com.liomix.mikomi.core.datastore.cache.CacheStore
+import com.liomix.mikomi.core.datastore.cache.CacheJson
 import com.liomix.mikomi.core.datastore.cache.CacheKey
 import com.liomix.mikomi.core.model.ScheduleEntry
 import com.liomix.mikomi.core.model.ScheduleProvenance
@@ -29,6 +30,7 @@ import com.liomix.mikomi.data.anime.schedule.ScheduleMerger
 import com.liomix.mikomi.data.anime.schedule.ScheduleMergeOutcome
 import com.liomix.mikomi.data.anime.schedule.ScheduleSource
 import com.liomix.mikomi.data.anime.schedule.ScheduleFieldCompleter
+import com.liomix.mikomi.data.anime.schedule.ScheduleCache
 import com.liomix.mikomi.data.anime.schedule.ScheduleWeek
 import com.liomix.mikomi.data.anime.schedule.SourcePayload
 import com.liomix.mikomi.data.anime.schedule.TitleNormalizer
@@ -79,35 +81,31 @@ internal class ScheduleRepositoryImpl @Inject constructor(
     private val refreshMutex = Mutex()
 
     override fun observeSchedule(): Flow<List<ScheduleEntry>> =
-        scheduleDao.observeSchedule().map { list ->
-            // 只展示本周：离线跨周时上一周的行还躺在库里，直接展示会让「今天」错位。
+        cacheStore.observe(CacheKey.SCHEDULE).map { entry ->
+            val cached = entry?.payload
+                ?.let { raw -> CacheJson.decode<ScheduleCache>(raw) }
+                ?.entries
+                .orEmpty()
+
+            // 只展示本周：跨周后旧条目还在缓存里，直接展示会让「今天」错位。
             val week = ScheduleWeek.current()
-            list.mapNotNull { entity ->
-                // 兜底再滤一次已完结：本次刷新全失败时会保留旧数据，库里可能还躺着
-                // 完结条目（新规则只在物化阶段生效），读的时候也不要展示。
-                if (ScheduleContentFilter.isFinishedText(entity.episodeText) ||
-                    ScheduleContentFilter.isFinishedText(entity.updateText)
-                ) {
-                    return@mapNotNull null
-                }
-                val entry = entity.toScheduleEntry()
-                entry.takeIf { it.airTime.date == null || it.airTime.date in week.dates }
+            cached.filter { item ->
+                // 兜底再滤一次已完结：刷新全失败时缓存里可能躺上新规则生效前的条目。
+                !ScheduleContentFilter.isFinishedText(item.episodeText) &&
+                    !ScheduleContentFilter.isFinishedText(item.updateText) &&
+                    (item.airTime.date == null || item.airTime.date in week.dates)
             }
         }
 
     override fun observeProvenance(): Flow<ScheduleProvenance> =
-        combine(sourceDao.observeSources(), conflictDao.observeCount()) { metas, conflicts ->
-            // 数据库已按 priority 升序返回，第一个可用源就是本次的 base。
-            val available = metas.filter { it.lastStatus == STATUS_AVAILABLE }
-            ScheduleProvenance(
-                baseSourceId = available.firstOrNull()?.sourceId.orEmpty(),
-                baseSourceLabel = available.firstOrNull()?.displayName.orEmpty(),
-                usedSourceLabels = available.map { it.displayName },
-                unavailableSourceLabels = metas
-                    .filterNot { it.lastStatus == STATUS_AVAILABLE }
-                    .map { it.displayName },
-                conflictCount = conflicts,
-            )
+        combine(cacheStore.observe(CacheKey.SCHEDULE), conflictDao.observeCount()) { entry, conflicts ->
+            val cached = entry?.payload
+                ?.let { raw -> CacheJson.decode<ScheduleCache>(raw) }
+                ?.provenance
+                ?: ScheduleProvenance()
+            // 来源说明是「这次合并的快照」，随 payload 一起存；冲突数来自复核队列，
+            // 它会被逐条标记处理，必须实时取。
+            cached.copy(conflictCount = conflicts)
         }
 
     override suspend fun refreshSchedule(): Unit = withContext(ioDispatcher) {
@@ -118,9 +116,10 @@ internal class ScheduleRepositoryImpl @Inject constructor(
     override suspend fun refreshScheduleIfStale() {
         if (!cacheStore.isStale(CacheKey.SCHEDULE, CacheTtl.SCHEDULE)) return
 
+        // 这里**不调 `touch`**：`runRefresh` 里的 `put` 已经带上时间戳了。
+        // 两个都写会构成竞态 —— `touch` 读到的可能是 `put` 之前的快照，
+        // 然后把整块 JSON 用旧值回写一次，刚拉到的数据当场丢掉。
         refreshSchedule()
-        // 只有成功走到这里才盖时间戳：失败时下次进来还会重试，而不是被 TTL 挡住。
-        cacheStore.touch(CacheKey.SCHEDULE)
     }
 
     private suspend fun runRefresh() {
@@ -143,7 +142,10 @@ internal class ScheduleRepositoryImpl @Inject constructor(
             if (collected.anyFailure) {
                 throw IOException("时间表数据源全部不可用：${collected.failedSourceIds}")
             }
-            scheduleDao.deleteAll()
+            cacheStore.put(
+                CacheKey.SCHEDULE,
+                CacheJson.encode(ScheduleCache(provenance = provenanceOf(metas.values, conflicts = 0))),
+            )
             Log.i(TAG, "所有源均无本周数据，已清空时间表")
             return
         }
@@ -151,9 +153,18 @@ internal class ScheduleRepositoryImpl @Inject constructor(
         val outcome = merger.merge(feeds)
         // 第二阶段之后再用本地番剧库补一轮简介（base 源没有简介字段，取不到就留空）。
         val rows = fieldCompleter.completeFromLibrary(outcome.rows)
+        // 合并结果进缓存：页面只读缓存，这张表不再是页面数据的来源。
+        // 分源版本与冲突队列留在 Room —— 它们要被查询、被逐条标记，不是可丢弃的快照。
+        cacheStore.put(
+            CacheKey.SCHEDULE,
+            CacheJson.encode(
+                ScheduleCache(
+                    entries = rows.map { it.toScheduleEntry() },
+                    provenance = provenanceOf(metas.values, conflicts = outcome.conflicts.size),
+                ),
+            ),
+        )
         database.withTransaction {
-            scheduleDao.deleteAll()
-            scheduleDao.upsertAll(rows.map { it.toEntity() })
             sourceDao.upsertAll(metas.values.toList())
             if (outcome.conflicts.isNotEmpty()) {
                 conflictDao.upsertAll(outcome.conflicts.map { it.toEntity(now) })
@@ -162,6 +173,23 @@ internal class ScheduleRepositoryImpl @Inject constructor(
         }
         identityRegistry.learn(outcome.identityGroups)
         logOutcome(outcome, metas.values.toList())
+    }
+
+    /** 从各源状态算出来源说明：第一个可用源就是本次 base。 */
+    private fun provenanceOf(
+        metas: Collection<ScheduleSourceEntity>,
+        conflicts: Int,
+    ): ScheduleProvenance {
+        val available = metas.filter { it.lastStatus == STATUS_AVAILABLE }
+        return ScheduleProvenance(
+            baseSourceId = available.firstOrNull()?.sourceId.orEmpty(),
+            baseSourceLabel = available.firstOrNull()?.displayName.orEmpty(),
+            usedSourceLabels = available.map { it.displayName },
+            unavailableSourceLabels = metas
+                .filterNot { it.lastStatus == STATUS_AVAILABLE }
+                .map { it.displayName },
+            conflictCount = conflicts,
+        )
     }
 
     /** 并行抓取 + 物化，返回可用 feed 与各源状态。 */

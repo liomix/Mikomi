@@ -1,5 +1,7 @@
 package com.liomix.mikomi.core.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * 放送时间的精度三态。
  *
@@ -7,6 +9,7 @@ package com.liomix.mikomi.core.model
  * 的章节文案里带 `⏰HH:mm`）。用三态建模后，UI 能区分「精确 / 时间待定 / 待公布」，
  * 合并阶段也只在**精度更低**的一侧才允许被补全。
  */
+@Serializable
 enum class AirTimePrecision {
     /** 日期 + 具体时刻（HH:mm）。 */
     EXACT,
@@ -26,6 +29,7 @@ enum class AirTimePrecision {
  *
  * 不用 `java.time`：minSdk 24 且未开启 core library desugaring，`LocalDate` 需 API 26。
  */
+@Serializable
 data class AirTime(
     val date: String?,
     val time: String?,

@@ -1,6 +1,9 @@
 package com.liomix.mikomi.core.model
 
+import kotlinx.serialization.Serializable
+
 /** 时间表条目：番剧展示信息与该集的放送时间。 */
+@Serializable
 data class ScheduleEntry(
     val anime: Anime,
     /** 三态放送时间（精确 / 仅日期 / 未知），合并与展示以它为准。 */
@@ -47,6 +50,7 @@ data class ScheduleSourceState(
  * 供 UI 标注「数据来源」与线上监控使用；[conflictCount] 只统计去重阶段的冲突，
  * 明细落在数据库的复核队列里。
  */
+@Serializable
 data class ScheduleProvenance(
     val baseSourceId: String = "",
     val baseSourceLabel: String = "",

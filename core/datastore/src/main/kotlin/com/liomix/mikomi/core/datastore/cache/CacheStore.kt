@@ -66,6 +66,9 @@ class CacheStore @Inject constructor(
      */
     suspend fun isStale(key: String, ttlMillis: Long): Boolean {
         val entry = get(key) ?: return true
+        // 有戳没数据 = 这条缓存无效（比如上次只写了时间戳、或者数据被清掉了）。
+        // 只看时间的话，它会「新鲜」好几个小时，这期间页面一直是空的。
+        if (entry.payload.isBlank()) return true
         return System.currentTimeMillis() - entry.savedAt > ttlMillis
     }
 

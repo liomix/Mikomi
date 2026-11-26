@@ -2,7 +2,9 @@ package com.liomix.mikomi.data.anime.mapper
 
 import com.liomix.mikomi.core.database.entity.ScheduleEntity
 import com.liomix.mikomi.core.database.entity.ScheduleSourceEntryEntity
+import com.liomix.mikomi.core.model.ScheduleEntry
 import com.liomix.mikomi.core.model.AirTime
+import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.AirTimePrecision
 import com.liomix.mikomi.data.anime.schedule.MergedScheduleRow
 import com.liomix.mikomi.data.anime.schedule.ScheduleFeedItem
@@ -75,3 +77,27 @@ private fun String.toPrecision(): AirTimePrecision =
     AirTimePrecision.entries.firstOrNull { it.name == this } ?: AirTimePrecision.UNKNOWN
 
 internal fun String.toAirTimePrecision(): AirTimePrecision = toPrecision()
+
+/**
+ * 合并结果行 → 领域模型（进缓存的那一份）。
+ *
+ * 与 [toEntity] 的分工：实体是「给 Room 查询用的形状」，这里是「给页面直接渲染的形状」。
+ * 页面不再经过实体，所以简介、类型这些合并阶段已经算好的字段直接带上。
+ */
+internal fun MergedScheduleRow.toScheduleEntry(): ScheduleEntry = ScheduleEntry(
+    anime = Anime(
+        id = "$sourceId:$canonicalKey",
+        title = title,
+        coverUrl = coverUrl,
+        synopsis = synopsis,
+    ),
+    airTime = airTime,
+    airingAtMillis = airingAtMillis,
+    episode = episode,
+    episodeText = episodeText,
+    updateText = updateText,
+    channelId = channelId,
+    detailLink = detailLink,
+    canonicalKey = canonicalKey,
+    sourceId = sourceId,
+)

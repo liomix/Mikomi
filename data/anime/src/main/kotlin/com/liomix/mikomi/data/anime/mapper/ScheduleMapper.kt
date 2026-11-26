@@ -2,10 +2,10 @@ package com.liomix.mikomi.data.anime.mapper
 
 import com.liomix.mikomi.core.database.entity.ScheduleEntity
 import com.liomix.mikomi.core.database.entity.ScheduleSourceEntryEntity
-import com.liomix.mikomi.core.model.ScheduleEntry
-import com.liomix.mikomi.core.model.AirTime
+import com.liomix.mikomi.core.model.anime.ScheduleEntry
+import com.liomix.mikomi.core.model.anime.AirTime
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.model.AirTimePrecision
+import com.liomix.mikomi.core.model.anime.AirTimePrecision
 import com.liomix.mikomi.data.anime.schedule.MergedScheduleRow
 import com.liomix.mikomi.data.anime.schedule.ScheduleFeedItem
 

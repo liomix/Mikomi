@@ -8,8 +8,8 @@ import com.liomix.mikomi.core.datastore.cache.CacheStore
 import com.liomix.mikomi.core.datastore.cache.CacheTtl
 import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.model.RankEntry
-import com.liomix.mikomi.core.model.RankRegion
+import com.liomix.mikomi.core.model.anime.RankEntry
+import com.liomix.mikomi.core.model.anime.RankRegion
 import com.liomix.mikomi.data.anime.AniRpbRepository
 import com.liomix.mikomi.data.anime.RankRepository
 import javax.inject.Inject

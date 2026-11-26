@@ -1,7 +1,7 @@
 package com.liomix.mikomi.data.anime
 
-import com.liomix.mikomi.core.model.RankEntry
-import com.liomix.mikomi.core.model.RankRegion
+import com.liomix.mikomi.core.model.anime.RankEntry
+import com.liomix.mikomi.core.model.anime.RankRegion
 import kotlinx.coroutines.flow.Flow
 
 /**

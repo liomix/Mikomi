@@ -6,7 +6,7 @@ import com.liomix.mikomi.core.datastore.cache.CacheKey
 import com.liomix.mikomi.core.datastore.cache.CacheStore
 import com.liomix.mikomi.core.datastore.cache.CacheTtl
 import com.liomix.mikomi.core.model.AniRpbHotItem
-import com.liomix.mikomi.core.model.RankRegion
+import com.liomix.mikomi.core.model.anime.RankRegion
 import com.liomix.mikomi.data.anime.AniRpbRepository
 import com.liomix.mikomi.data.anime.HotRepository
 import javax.inject.Inject

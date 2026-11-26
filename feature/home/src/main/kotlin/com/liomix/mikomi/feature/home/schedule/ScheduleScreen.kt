@@ -35,9 +35,9 @@ import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.Spacing
-import com.liomix.mikomi.core.model.AirTime
-import com.liomix.mikomi.core.model.AirTimePrecision
-import com.liomix.mikomi.core.model.ScheduleEntry
+import com.liomix.mikomi.core.model.anime.AirTime
+import com.liomix.mikomi.core.model.anime.AirTimePrecision
+import com.liomix.mikomi.core.model.anime.ScheduleEntry
 import com.liomix.mikomi.core.ui.base.EmptyState
 import com.liomix.mikomi.core.ui.base.ErrorState
 import com.liomix.mikomi.core.ui.base.ScrollingText

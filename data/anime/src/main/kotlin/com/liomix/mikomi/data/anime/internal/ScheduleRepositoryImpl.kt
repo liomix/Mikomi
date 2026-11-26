@@ -13,8 +13,8 @@ import com.liomix.mikomi.core.datastore.cache.CacheTtl
 import com.liomix.mikomi.core.datastore.cache.CacheStore
 import com.liomix.mikomi.core.datastore.cache.CacheJson
 import com.liomix.mikomi.core.datastore.cache.CacheKey
-import com.liomix.mikomi.core.model.ScheduleEntry
-import com.liomix.mikomi.core.model.ScheduleProvenance
+import com.liomix.mikomi.core.model.anime.ScheduleEntry
+import com.liomix.mikomi.core.model.anime.ScheduleProvenance
 import com.liomix.mikomi.data.anime.ScheduleRepository
 import com.liomix.mikomi.data.anime.mapper.toCacheEntity
 import com.liomix.mikomi.data.anime.mapper.toEntity

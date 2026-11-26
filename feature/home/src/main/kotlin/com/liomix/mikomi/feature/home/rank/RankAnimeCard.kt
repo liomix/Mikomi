@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.Ranks
 import com.liomix.mikomi.core.designsystem.Stroke
-import com.liomix.mikomi.core.model.RankEntry
+import com.liomix.mikomi.core.model.anime.RankEntry
 import com.liomix.mikomi.core.designsystem.TextStyles
 import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.ui.base.SkeletonBox

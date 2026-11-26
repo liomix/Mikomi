@@ -2,8 +2,8 @@ package com.liomix.mikomi.data.anime.schedule
 
 import android.util.Log
 import com.liomix.mikomi.core.database.dao.AnimeDao
-import com.liomix.mikomi.core.model.AirTime
-import com.liomix.mikomi.core.model.AirTimePrecision
+import com.liomix.mikomi.core.model.anime.AirTime
+import com.liomix.mikomi.core.model.anime.AirTimePrecision
 import javax.inject.Inject
 import javax.inject.Singleton
 

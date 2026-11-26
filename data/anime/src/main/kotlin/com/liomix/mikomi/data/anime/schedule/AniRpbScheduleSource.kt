@@ -1,7 +1,7 @@
 package com.liomix.mikomi.data.anime.schedule
 
 import android.util.Log
-import com.liomix.mikomi.core.model.AirTime
+import com.liomix.mikomi.core.model.anime.AirTime
 import com.liomix.mikomi.core.model.AniRpbScheduleItem
 import com.liomix.mikomi.data.anime.AniRpbRepository
 import java.io.IOException

@@ -5,7 +5,7 @@ import android.util.Log
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
 import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.model.AniRpbScheduleItem
-import com.liomix.mikomi.core.model.RankRegion
+import com.liomix.mikomi.core.model.anime.RankRegion
 import com.liomix.mikomi.data.anime.remote.anirpb.client.ZhuqueTransport
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject

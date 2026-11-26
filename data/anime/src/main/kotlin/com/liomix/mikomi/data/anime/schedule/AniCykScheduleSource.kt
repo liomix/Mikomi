@@ -1,8 +1,8 @@
 package com.liomix.mikomi.data.anime.schedule
 
 import android.util.Log
-import com.liomix.mikomi.core.model.AirTime
-import com.liomix.mikomi.core.model.AirTimePrecision
+import com.liomix.mikomi.core.model.anime.AirTime
+import com.liomix.mikomi.core.model.anime.AirTimePrecision
 import com.liomix.mikomi.data.anime.AniCykCalendar
 import com.liomix.mikomi.data.anime.AniCykRepository
 import com.liomix.mikomi.data.anime.remote.anicyk.CykScheduleDay

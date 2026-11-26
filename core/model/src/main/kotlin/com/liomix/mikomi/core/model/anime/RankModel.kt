@@ -1,5 +1,6 @@
-package com.liomix.mikomi.core.model
+package com.liomix.mikomi.core.model.anime
 
+import com.liomix.mikomi.core.model.Anime
 import kotlinx.serialization.Serializable
 
 /** 榜单产地维度：国漫 / 日漫。 */

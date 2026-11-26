@@ -3,7 +3,7 @@ package com.liomix.mikomi.feature.home.schedule
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.liomix.mikomi.core.model.ScheduleEntry
+import com.liomix.mikomi.core.model.anime.ScheduleEntry
 import com.liomix.mikomi.data.anime.ScheduleRepository
 import com.liomix.mikomi.feature.home.RefreshState
 import dagger.hilt.android.lifecycle.HiltViewModel

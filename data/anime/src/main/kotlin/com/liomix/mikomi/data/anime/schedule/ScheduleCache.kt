@@ -1,7 +1,7 @@
 package com.liomix.mikomi.data.anime.schedule
 
-import com.liomix.mikomi.core.model.ScheduleEntry
-import com.liomix.mikomi.core.model.ScheduleProvenance
+import com.liomix.mikomi.core.model.anime.ScheduleEntry
+import com.liomix.mikomi.core.model.anime.ScheduleProvenance
 import kotlinx.serialization.Serializable
 
 /**

@@ -1,6 +1,6 @@
 package com.liomix.mikomi.data.anime.schedule
 
-import com.liomix.mikomi.core.model.AirTime
+import com.liomix.mikomi.core.model.anime.AirTime
 import javax.inject.Inject
 import javax.inject.Singleton
 

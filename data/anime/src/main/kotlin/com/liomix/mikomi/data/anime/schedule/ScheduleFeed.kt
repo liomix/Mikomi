@@ -1,6 +1,6 @@
 package com.liomix.mikomi.data.anime.schedule
 
-import com.liomix.mikomi.core.model.AirTime
+import com.liomix.mikomi.core.model.anime.AirTime
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale

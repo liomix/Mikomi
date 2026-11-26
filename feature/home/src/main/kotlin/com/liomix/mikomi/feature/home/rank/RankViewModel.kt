@@ -3,8 +3,8 @@ package com.liomix.mikomi.feature.home.rank
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.liomix.mikomi.core.model.RankEntry
-import com.liomix.mikomi.core.model.RankRegion
+import com.liomix.mikomi.core.model.anime.RankEntry
+import com.liomix.mikomi.core.model.anime.RankRegion
 import com.liomix.mikomi.data.anime.RankRepository
 import com.liomix.mikomi.feature.home.RefreshState
 import dagger.hilt.android.lifecycle.HiltViewModel

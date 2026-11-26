@@ -1,7 +1,7 @@
 package com.liomix.mikomi.data.anime
 
-import com.liomix.mikomi.core.model.ScheduleEntry
-import com.liomix.mikomi.core.model.ScheduleProvenance
+import com.liomix.mikomi.core.model.anime.ScheduleEntry
+import com.liomix.mikomi.core.model.anime.ScheduleProvenance
 import kotlinx.coroutines.flow.Flow
 
 /**

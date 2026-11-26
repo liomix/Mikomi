@@ -10,6 +10,7 @@ import com.liomix.mikomi.data.anime.RankRepository
 import com.liomix.mikomi.data.anime.repository.CommentRepository
 import com.liomix.mikomi.data.anime.repository.DetailRepository
 import com.liomix.mikomi.data.anime.repository.HomeRepository as HomeFeedRepository
+import com.liomix.mikomi.data.anime.repository.RankRepository as RankListRepository
 import com.liomix.mikomi.data.anime.repository.SearchRepository
 import com.liomix.mikomi.data.anime.ScheduleRepository
 import com.liomix.mikomi.data.anime.internal.AniCykRepositoryImpl
@@ -23,6 +24,7 @@ import com.liomix.mikomi.data.anime.internal.ScheduleRepositoryImpl
 import com.liomix.mikomi.data.anime.repository.Ipml.CommentRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.DetailRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.HomeRepositoryIpml
+import com.liomix.mikomi.data.anime.repository.Ipml.RankRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.SearchRepositoryIpml
 import com.liomix.mikomi.data.anime.remote.AnimeApi
 import com.liomix.mikomi.data.anime.schedule.AniCykScheduleSource
@@ -70,6 +72,9 @@ internal abstract class AnimeDataModule {
 
     @Binds
     internal abstract fun bindRankRepository(impl: RankRepositoryImpl): RankRepository
+
+    @Binds
+    internal abstract fun bindRankListRepository(impl: RankRepositoryIpml): RankListRepository
 
     @Binds
     internal abstract fun bindHomeFeedRepository(impl: HomeRepositoryIpml): HomeFeedRepository

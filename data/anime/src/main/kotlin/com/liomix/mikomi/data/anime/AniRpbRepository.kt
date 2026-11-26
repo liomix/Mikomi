@@ -2,7 +2,7 @@ package com.liomix.mikomi.data.anime
 
 import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.model.AniRpbScheduleItem
-import com.liomix.mikomi.core.model.RankRegion
+import com.liomix.mikomi.core.model.anime.RankRegion
 
 /**
  * AniRpb 特殊数据源。

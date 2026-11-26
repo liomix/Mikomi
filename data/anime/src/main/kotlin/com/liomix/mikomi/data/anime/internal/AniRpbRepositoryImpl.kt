@@ -3,7 +3,7 @@ package com.liomix.mikomi.data.anime.internal
 import android.util.Log
 import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.model.AniRpbScheduleItem
-import com.liomix.mikomi.core.model.RankRegion
+import com.liomix.mikomi.core.model.anime.RankRegion
 import com.liomix.mikomi.data.anime.AniRpbRepository
 import com.liomix.mikomi.data.anime.remote.anirpb.AniRpbSource
 import javax.inject.Inject

@@ -1,6 +1,6 @@
 package com.liomix.mikomi.data.anime.schedule
 
-import com.liomix.mikomi.core.model.AirTime
+import com.liomix.mikomi.core.model.anime.AirTime
 
 /**
  * 把源抓取的原始产物物化成带日期的 [ScheduleFeed]。

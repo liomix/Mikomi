@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.model.anime.ScheduleEntry
-import com.liomix.mikomi.data.anime.ScheduleRepository
+import com.liomix.mikomi.data.anime.repository.ScheduleRepository
 import com.liomix.mikomi.feature.home.RefreshState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.text.SimpleDateFormat

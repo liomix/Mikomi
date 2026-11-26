@@ -6,8 +6,8 @@ import com.liomix.mikomi.core.model.anime.ScheduleEntry
 import com.liomix.mikomi.core.model.anime.AirTime
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.anime.AirTimePrecision
-import com.liomix.mikomi.data.anime.schedule.MergedScheduleRow
-import com.liomix.mikomi.data.anime.schedule.ScheduleFeedItem
+import com.liomix.mikomi.data.anime.processor.schedule.MergedScheduleRow
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleFeedItem
 
 /** 合并结果行 → 时间表实体（UI 观察的就是这张表）。 */
 internal fun MergedScheduleRow.toEntity(): ScheduleEntity = ScheduleEntity(

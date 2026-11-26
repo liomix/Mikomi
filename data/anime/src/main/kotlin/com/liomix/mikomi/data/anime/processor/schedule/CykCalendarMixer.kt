@@ -1,4 +1,6 @@
-package com.liomix.mikomi.data.anime.schedule
+package com.liomix.mikomi.data.anime.processor.schedule
+
+import com.liomix.mikomi.data.anime.processor.schedule.TitleNormalizer
 
 /**
  * 把次元库两条线路的日历合成一份。

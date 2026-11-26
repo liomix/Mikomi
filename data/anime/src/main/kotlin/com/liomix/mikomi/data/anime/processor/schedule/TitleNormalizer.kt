@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.schedule
+package com.liomix.mikomi.data.anime.processor.schedule
 
 /**
  * 标题归一化：把各源风格迥异的标题压成可比较的指纹。

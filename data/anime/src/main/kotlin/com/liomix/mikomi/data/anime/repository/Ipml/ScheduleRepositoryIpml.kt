@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.internal
+package com.liomix.mikomi.data.anime.repository.Ipml
 
 import android.util.Log
 import androidx.room.withTransaction
@@ -15,25 +15,24 @@ import com.liomix.mikomi.core.datastore.cache.CacheJson
 import com.liomix.mikomi.core.datastore.cache.CacheKey
 import com.liomix.mikomi.core.model.anime.ScheduleEntry
 import com.liomix.mikomi.core.model.anime.ScheduleProvenance
-import com.liomix.mikomi.data.anime.ScheduleRepository
+import com.liomix.mikomi.data.anime.repository.ScheduleRepository
 import com.liomix.mikomi.data.anime.mapper.toCacheEntity
-import com.liomix.mikomi.data.anime.mapper.toEntity
 import com.liomix.mikomi.data.anime.mapper.toFeedItem
 import com.liomix.mikomi.data.anime.mapper.toScheduleEntry
-import com.liomix.mikomi.data.anime.schedule.AnimeIdentityRegistry
-import com.liomix.mikomi.data.anime.schedule.ScheduleConflict
-import com.liomix.mikomi.data.anime.schedule.ScheduleContentFilter
-import com.liomix.mikomi.data.anime.schedule.ScheduleDateAnchor
-import com.liomix.mikomi.data.anime.schedule.ScheduleFeed
-import com.liomix.mikomi.data.anime.schedule.ScheduleFeedBuilder
-import com.liomix.mikomi.data.anime.schedule.ScheduleMerger
-import com.liomix.mikomi.data.anime.schedule.ScheduleMergeOutcome
-import com.liomix.mikomi.data.anime.schedule.ScheduleSource
-import com.liomix.mikomi.data.anime.schedule.ScheduleFieldCompleter
-import com.liomix.mikomi.data.anime.schedule.ScheduleCache
-import com.liomix.mikomi.data.anime.schedule.ScheduleWeek
-import com.liomix.mikomi.data.anime.schedule.SourcePayload
-import com.liomix.mikomi.data.anime.schedule.TitleNormalizer
+import com.liomix.mikomi.data.anime.processor.schedule.AnimeIdentityRegistry
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleConflict
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleContentFilter
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleDateAnchor
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleFeed
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleFeedBuilder
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleMerger
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleMergeOutcome
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleSource
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleFieldCompleter
+import com.liomix.mikomi.core.model.anime.ScheduleCache
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleWeek
+import com.liomix.mikomi.data.anime.processor.schedule.SourcePayload
+import com.liomix.mikomi.data.anime.processor.schedule.TitleNormalizer
 import java.io.IOException
 import java.util.Locale
 import javax.inject.Inject
@@ -65,7 +64,7 @@ import kotlinx.coroutines.withContext
  *
  * 全部源失败时抛异常并保留旧数据；全部源返回空数据时清空本周（确实是空周）。
  */
-internal class ScheduleRepositoryImpl @Inject constructor(
+internal class ScheduleRepositoryIpml @Inject constructor(
     private val sources: Set<@JvmSuppressWildcards ScheduleSource>,
     private val identityRegistry: AnimeIdentityRegistry,
     private val merger: ScheduleMerger,

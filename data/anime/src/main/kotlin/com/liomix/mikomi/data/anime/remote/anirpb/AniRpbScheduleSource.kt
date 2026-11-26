@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.schedule
+package com.liomix.mikomi.data.anime.remote.anirpb
 
 import android.util.Log
 import com.liomix.mikomi.core.model.anime.AirTime
@@ -8,6 +8,11 @@ import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleContentFilter
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleFeedItem
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleSource
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleWeek
+import com.liomix.mikomi.data.anime.processor.schedule.SourcePayload
 
 /**
  * AniRpb 更新表源，优先级 2。

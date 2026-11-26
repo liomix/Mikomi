@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.schedule
+package com.liomix.mikomi.data.anime.processor.schedule
 
 import java.util.Locale
 
@@ -59,7 +59,7 @@ internal object ScheduleContentFilter {
         val hour = match.groupValues[HOUR_GROUP].toIntOrNull() ?: return null
         val minute = match.groupValues[MINUTE_GROUP].toIntOrNull() ?: return null
         if (hour !in 0..MAX_HOUR || minute !in 0..MAX_MINUTE) return null
-        return String.format(Locale.US, "%02d:%02d", hour, minute)
+        return String.Companion.format(Locale.US, "%02d:%02d", hour, minute)
     }
 
     /**

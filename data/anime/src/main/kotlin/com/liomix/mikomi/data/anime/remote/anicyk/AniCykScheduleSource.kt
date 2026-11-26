@@ -1,17 +1,22 @@
-package com.liomix.mikomi.data.anime.schedule
+package com.liomix.mikomi.data.anime.remote.anicyk
 
 import android.util.Log
 import com.liomix.mikomi.core.model.anime.AirTime
 import com.liomix.mikomi.core.model.anime.AirTimePrecision
 import com.liomix.mikomi.data.anime.AniCykCalendar
 import com.liomix.mikomi.data.anime.AniCykRepository
-import com.liomix.mikomi.data.anime.remote.anicyk.CykScheduleDay
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import com.liomix.mikomi.data.anime.processor.schedule.CalendarDay
+import com.liomix.mikomi.data.anime.processor.schedule.CykCalendarMixer
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleFeedItem
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleSource
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleWeek
+import com.liomix.mikomi.data.anime.processor.schedule.SourcePayload
 
 /**
  * 次元库（AniCyk）时间表源，优先级 1。

@@ -1,6 +1,6 @@
 package com.liomix.mikomi.data.anime.di
 
-import com.liomix.mikomi.data.anime.schedule.ScheduleMergeConfig
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleMergeConfig
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

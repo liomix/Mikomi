@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.schedule
+package com.liomix.mikomi.data.anime.processor.schedule
 
 import com.liomix.mikomi.core.model.anime.AirTime
 import java.text.SimpleDateFormat

@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime
+package com.liomix.mikomi.data.anime.repository
 
 import com.liomix.mikomi.core.model.anime.ScheduleEntry
 import com.liomix.mikomi.core.model.anime.ScheduleProvenance

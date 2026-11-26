@@ -10,24 +10,24 @@ import com.liomix.mikomi.data.anime.repository.HomeRepository
 import com.liomix.mikomi.data.anime.repository.HotRepository
 import com.liomix.mikomi.data.anime.repository.RankRepository
 import com.liomix.mikomi.data.anime.repository.SearchRepository
-import com.liomix.mikomi.data.anime.ScheduleRepository
+import com.liomix.mikomi.data.anime.repository.ScheduleRepository
 import com.liomix.mikomi.data.anime.internal.AniCykRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.AniRpbRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.AnimeIdMapperImpl
 import com.liomix.mikomi.data.anime.internal.AnimeRepositoryImpl
 import com.liomix.mikomi.data.anime.repository.Ipml.HotRepositoryIpml
-import com.liomix.mikomi.data.anime.internal.ScheduleRepositoryImpl
+import com.liomix.mikomi.data.anime.repository.Ipml.ScheduleRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.CommentRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.DetailRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.HomeRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.RankRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.SearchRepositoryIpml
 import com.liomix.mikomi.data.anime.remote.AnimeApi
-import com.liomix.mikomi.data.anime.schedule.AniCykScheduleSource
-import com.liomix.mikomi.data.anime.schedule.AniRpbScheduleSource
-import com.liomix.mikomi.data.anime.schedule.AnimeIdentityRegistry
-import com.liomix.mikomi.data.anime.schedule.AnimeIdentityRegistryImpl
-import com.liomix.mikomi.data.anime.schedule.ScheduleSource
+import com.liomix.mikomi.data.anime.remote.anicyk.AniCykScheduleSource
+import com.liomix.mikomi.data.anime.remote.anirpb.AniRpbScheduleSource
+import com.liomix.mikomi.data.anime.processor.schedule.AnimeIdentityRegistry
+import com.liomix.mikomi.data.anime.processor.schedule.AnimeIdentityRegistryImpl
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleSource
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -62,7 +62,7 @@ internal abstract class AnimeDataModule {
 
 
     @Binds
-    internal abstract fun bindScheduleRepository(impl: ScheduleRepositoryImpl): ScheduleRepository
+    internal abstract fun bindScheduleRepository(impl: ScheduleRepositoryIpml): ScheduleRepository
 
 
     @Binds

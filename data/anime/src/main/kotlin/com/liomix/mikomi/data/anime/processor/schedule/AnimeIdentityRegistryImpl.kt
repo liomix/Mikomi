@@ -1,19 +1,20 @@
-package com.liomix.mikomi.data.anime.schedule
+package com.liomix.mikomi.data.anime.processor.schedule
 
 import android.content.Context
 import android.util.Log
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
 import com.liomix.mikomi.core.database.dao.AnimeIdentityDao
 import com.liomix.mikomi.core.database.entity.AnimeIdentityEntity
+import com.liomix.mikomi.data.anime.processor.schedule.TitleNormalizer
 import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * 身份映射表实现。
@@ -181,7 +182,13 @@ internal class AnimeIdentityRegistryImpl @Inject constructor(
     }
 
     private fun AliasConfigEntry.toEntity(): AnimeIdentityEntity = AnimeIdentityEntity(
-        canonicalKey = canonicalKey.ifBlank { CanonicalKey.title(TitleNormalizer.normalize(primaryTitle)) },
+        canonicalKey = canonicalKey.ifBlank {
+            CanonicalKey.title(
+                TitleNormalizer.normalize(
+                    primaryTitle
+                )
+            )
+        },
         primaryTitle = primaryTitle,
         aliases = aliases.joinAliases(),
         externalIds = externalIds.joinExternalIds(),

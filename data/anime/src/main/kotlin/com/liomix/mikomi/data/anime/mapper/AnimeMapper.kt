@@ -9,7 +9,7 @@ import com.liomix.mikomi.core.model.AnimeStatus
 import com.liomix.mikomi.core.model.Episode
 import com.liomix.mikomi.core.model.anime.ScheduleEntry
 import com.liomix.mikomi.data.anime.remote.dto.AnimeDto
-import com.liomix.mikomi.data.anime.schedule.ScheduleContentFilter
+import com.liomix.mikomi.data.anime.processor.schedule.ScheduleContentFilter
 
 internal fun AnimeDto.toEntity(): AnimeEntity = AnimeEntity(
     id = id,

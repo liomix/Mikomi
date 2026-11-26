@@ -1,11 +1,14 @@
-package com.liomix.mikomi.data.anime.schedule
+package com.liomix.mikomi.data.anime.processor.schedule
 
 import android.util.Log
 import com.liomix.mikomi.core.database.dao.AnimeDao
 import com.liomix.mikomi.core.model.anime.AirTime
 import com.liomix.mikomi.core.model.anime.AirTimePrecision
+import com.liomix.mikomi.data.anime.processor.schedule.TitleNormalizer
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.collections.plusAssign
+import kotlin.math.abs
 
 /**
  * 时间表字段补全：**唯一**决定「哪些字段会被补、按什么优先级补、冲突怎么记」的地方。
@@ -83,7 +86,7 @@ internal class ScheduleFieldCompleter @Inject constructor(
                 base.time != incoming.time &&
                 base.date == incoming.date
             ) {
-                conflicts += scheduleConflictFor(
+                conflicts plusAssign scheduleConflictFor(
                     target = target,
                     type = ScheduleConflictType.TIME_MISMATCH,
                     candidateSourceId = candidate.sourceId,
@@ -100,7 +103,7 @@ internal class ScheduleFieldCompleter @Inject constructor(
 
         // 日期不一致时保留 base，记冲突（不猜测谁对）。
         if (base.date != null && incoming.date != null && base.date != incoming.date) {
-            conflicts += scheduleConflictFor(
+            conflicts plusAssign scheduleConflictFor(
                 target = target,
                 type = ScheduleConflictType.DATE_MISMATCH,
                 candidateSourceId = candidate.sourceId,
@@ -184,7 +187,7 @@ internal class ScheduleFieldCompleter @Inject constructor(
             if (!seasonsCompatible(signature.season, candidate.season)) return@forEach
             // 太短的标题做前缀匹配误伤严重（「剑」会命中「剑来」）。
             if (minOf(key.length, other.length) < MIN_PREFIX_LENGTH) return@forEach
-            if (kotlin.math.abs(key.length - other.length) > MAX_TITLE_LENGTH_DELTA) return@forEach
+            if (abs(key.length - other.length) > MAX_TITLE_LENGTH_DELTA) return@forEach
             if (!key.startsWith(other) && !other.startsWith(key)) return@forEach
             if (matched != null) return null
             matched = candidate.synopsis

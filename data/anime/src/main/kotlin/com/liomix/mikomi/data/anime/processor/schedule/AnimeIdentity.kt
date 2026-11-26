@@ -1,6 +1,7 @@
-package com.liomix.mikomi.data.anime.schedule
+package com.liomix.mikomi.data.anime.processor.schedule
 
 import com.liomix.mikomi.core.database.entity.AnimeIdentityEntity
+import com.liomix.mikomi.data.anime.processor.schedule.TitleNormalizer
 
 /** canonical 身份键的构造与解析。 */
 internal object CanonicalKey {

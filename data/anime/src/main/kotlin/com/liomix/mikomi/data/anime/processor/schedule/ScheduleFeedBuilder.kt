@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.schedule
+package com.liomix.mikomi.data.anime.processor.schedule
 
 import com.liomix.mikomi.core.model.anime.AirTime
 
@@ -68,7 +68,7 @@ internal object ScheduleFeedBuilder {
             ongoing.forEach { item ->
                 items += item.copy(
                     entryId = "${item.entryId}|$date",
-                    airTime = AirTime.of(date = date, time = item.airTime.time),
+                    airTime = AirTime.Companion.of(date = date, time = item.airTime.time),
                 )
             }
         }

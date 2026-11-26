@@ -1,8 +1,10 @@
-package com.liomix.mikomi.data.anime.schedule
+package com.liomix.mikomi.data.anime.processor.schedule
 
 import com.liomix.mikomi.core.model.anime.AirTime
+import com.liomix.mikomi.data.anime.processor.schedule.TitleNormalizer
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.abs
 
 /**
  * 合并 / 补全策略开关。
@@ -258,7 +260,7 @@ internal class ScheduleMerger @Inject constructor(
         /** 两条同身份条目的集数口径是否相差过大（累计话数 vs 本季集数）。 */
         fun hasEpisodeConflict(otherEpisode: Int, config: ScheduleMergeConfig): Boolean {
             if (episode <= 0 || otherEpisode <= 0) return false
-            return kotlin.math.abs(episode - otherEpisode) > config.episodeTolerance
+            return abs(episode - otherEpisode) > config.episodeTolerance
         }
 
         /**
@@ -269,7 +271,7 @@ internal class ScheduleMerger @Inject constructor(
             val left = signature.normalized
             val right = other.normalized
             if (left.isBlank() || right.isBlank() || left == right) return false
-            val delta = kotlin.math.abs(left.length - right.length)
+            val delta = abs(left.length - right.length)
             if (delta > MAX_TITLE_LENGTH_DELTA) return false
             return left.startsWith(right) || right.startsWith(left)
         }
@@ -282,12 +284,12 @@ internal class ScheduleMerger @Inject constructor(
             if (baseDate == null || otherDate == null) return true
 
             val diff = ScheduleWeek.daysBetween(baseDate, otherDate)
-                ?.let { kotlin.math.abs(it) }
+                ?.let { abs(it) }
                 ?: return true
             if (diff > config.dayWindow) return false
 
             val episodeDiff = if (episode > 0 && otherEpisode > 0) {
-                kotlin.math.abs(episode - otherEpisode)
+                abs(episode - otherEpisode)
             } else {
                 0
             }

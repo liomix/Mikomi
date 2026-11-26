@@ -1,10 +1,10 @@
 package com.liomix.mikomi.data.anime.repository.Ipml
 
 import android.util.Log
-import com.liomix.mikomi.core.datastore.cache.CacheJson
-import com.liomix.mikomi.core.datastore.cache.CacheKey
-import com.liomix.mikomi.core.datastore.cache.CacheStore
-import com.liomix.mikomi.core.datastore.cache.CacheTtl
+import com.liomix.mikomi.core.cache.CacheJson
+import com.liomix.mikomi.core.cache.CacheKey
+import com.liomix.mikomi.core.cache.disk.DiskCache
+import com.liomix.mikomi.core.cache.CacheTtl
 import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.anime.RankEntry
@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.map
  */
 internal class RankRepositoryIpml @Inject constructor(
     private val source: AniRpbSource,
-    private val cacheStore: CacheStore,
+    private val cacheStore: DiskCache,
 ) : RankRepository {
 
     override fun observe(region: RankRegion): Flow<List<RankEntry>> =

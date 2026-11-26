@@ -1,4 +1,8 @@
-package com.liomix.mikomi.core.datastore.cache
+package com.liomix.mikomi.core.cache
+
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * 缓存的 key：**一个页面一条**。
@@ -22,17 +26,18 @@ object CacheKey {
 /**
  * 每条缓存多久算「旧」。
  *
- * 只影响**要不要后台刷新**，不影响要不要显示 —— 过期的数据照样先出来，
- * 这是「切页不白屏」的关键。数值按数据的变脸速度定：
+ * 用 [Duration] 而不是毫秒常量：`5.minutes` 比 `300_000` 少一次心算，也少一次
+ * 「这是秒还是毫秒」的怀疑。
  *
- * - 排名会动（热播）→ 5 分钟
- * - 一天才换（榜单、时间表）→ 1 小时 / 6 小时
+ * 只影响**要不要后台刷新**，不影响要不要显示 —— 过期的数据照样先出来，这是「切页不白屏」
+ * 的关键。数值按数据的变脸速度定：排名会动（热播）→ 5 分钟；一天才换（榜单、时间表）
+ * → 1 小时 / 6 小时。
  */
 object CacheTtl {
-    const val BANNER = 30 * 60 * 1000L
-    const val HOME = 10 * 60 * 1000L
-    const val SCHEDULE = 6 * 60 * 60 * 1000L
-    const val RANK = 60 * 60 * 1000L
-    const val HOT = 5 * 60 * 1000L
-    const val CATEGORY = 60 * 60 * 1000L
+    val BANNER: Duration = 30.minutes
+    val HOME: Duration = 10.minutes
+    val SCHEDULE: Duration = 6.hours
+    val RANK: Duration = 1.hours
+    val HOT: Duration = 5.minutes
+    val CATEGORY: Duration = 1.hours
 }

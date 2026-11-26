@@ -18,6 +18,7 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:network"))
     implementation(project(":core:datastore"))
+    implementation(project(":core:cache"))
     implementation(libs.retrofit)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)

@@ -1,9 +1,9 @@
 package com.liomix.mikomi.data.anime.repository.Ipml
 
-import com.liomix.mikomi.core.datastore.cache.CacheJson
-import com.liomix.mikomi.core.datastore.cache.CacheKey
-import com.liomix.mikomi.core.datastore.cache.CacheStore
-import com.liomix.mikomi.core.datastore.cache.CacheTtl
+import com.liomix.mikomi.core.cache.CacheJson
+import com.liomix.mikomi.core.cache.CacheKey
+import com.liomix.mikomi.core.cache.disk.DiskCache
+import com.liomix.mikomi.core.cache.CacheTtl
 import com.liomix.mikomi.core.model.anime.RankRegion
 import com.liomix.mikomi.core.model.anime.HotRanking
 import com.liomix.mikomi.data.anime.remote.anirpb.AniRpbSource
@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.map
  */
 internal class HotRepositoryIpml @Inject constructor(
     private val source: AniRpbSource,
-    private val cacheStore: CacheStore,
+    private val cacheStore: DiskCache,
 ) : HotRepository {
 
     override fun observe(region: RankRegion): Flow<List<HotRanking>> =

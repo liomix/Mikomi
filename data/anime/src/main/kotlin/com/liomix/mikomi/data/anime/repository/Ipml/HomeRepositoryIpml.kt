@@ -1,10 +1,10 @@
 package com.liomix.mikomi.data.anime.repository.Ipml
 
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.datastore.cache.CacheJson
-import com.liomix.mikomi.core.datastore.cache.CacheKey
-import com.liomix.mikomi.core.datastore.cache.CacheStore
-import com.liomix.mikomi.core.datastore.cache.CacheTtl
+import com.liomix.mikomi.core.cache.CacheJson
+import com.liomix.mikomi.core.cache.CacheKey
+import com.liomix.mikomi.core.cache.disk.DiskCache
+import com.liomix.mikomi.core.cache.CacheTtl
 import com.liomix.mikomi.data.anime.remote.bangumi.BangumiSource
 import com.liomix.mikomi.data.anime.repository.HomeRepository
 import javax.inject.Inject
@@ -20,7 +20,7 @@ import kotlinx.serialization.Serializable
  */
 internal class HomeRepositoryIpml @Inject constructor(
     private val source: BangumiSource,
-    private val cacheStore: CacheStore,
+    private val cacheStore: DiskCache,
 ) : HomeRepository {
 
     override fun observeBanners(): Flow<List<Anime>> =
@@ -78,7 +78,7 @@ internal class HomeRepositoryIpml @Inject constructor(
         return HomeRepository.LoadResult(hasMore = items.size >= PAGE_SIZE, loadedCount = items.size)
     }
 
-    private fun com.liomix.mikomi.core.datastore.cache.CacheSnapshot.Entry.decode(): HomeCache =
+    private fun com.liomix.mikomi.core.cache.CacheSnapshot.Entry.decode(): HomeCache =
         CacheJson.decode<HomeCache>(payload) ?: HomeCache()
 
     private companion object {

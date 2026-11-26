@@ -1,4 +1,4 @@
-package com.liomix.mikomi.core.datastore.cache
+package com.liomix.mikomi.core.cache
 
 import kotlinx.serialization.json.Json
 

@@ -9,10 +9,10 @@ import com.liomix.mikomi.core.database.dao.ScheduleDao
 import com.liomix.mikomi.core.database.dao.ScheduleSourceDao
 import com.liomix.mikomi.core.database.entity.ScheduleConflictEntity
 import com.liomix.mikomi.core.database.entity.ScheduleSourceEntity
-import com.liomix.mikomi.core.datastore.cache.CacheTtl
-import com.liomix.mikomi.core.datastore.cache.CacheStore
-import com.liomix.mikomi.core.datastore.cache.CacheJson
-import com.liomix.mikomi.core.datastore.cache.CacheKey
+import com.liomix.mikomi.core.cache.CacheTtl
+import com.liomix.mikomi.core.cache.disk.DiskCache
+import com.liomix.mikomi.core.cache.CacheJson
+import com.liomix.mikomi.core.cache.CacheKey
 import com.liomix.mikomi.core.model.anime.ScheduleEntry
 import com.liomix.mikomi.core.model.anime.ScheduleProvenance
 import com.liomix.mikomi.data.anime.repository.ScheduleRepository
@@ -73,7 +73,7 @@ internal class ScheduleRepositoryIpml @Inject constructor(
     private val sourceDao: ScheduleSourceDao,
     private val conflictDao: ScheduleConflictDao,
     private val database: MikomiDatabase,
-    private val cacheStore: CacheStore,
+    private val cacheStore: DiskCache,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ScheduleRepository {
 

@@ -8,10 +8,12 @@ import com.liomix.mikomi.core.model.AniRpbScheduleItem
 import com.liomix.mikomi.core.model.anime.RankRegion
 import com.liomix.mikomi.data.anime.remote.anirpb.client.ZhuqueTransport
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -49,15 +51,17 @@ internal class AniRpbSource @Inject constructor(
 
     /** `home.load` 的热播模块（首屏热播榜，条数由服务端模块决定）。 */
     suspend fun hotRanking(region: RankRegion): List<AniRpbHotItem> = withContext(ioDispatcher) {
-        requestMutex.withLock {
-            val data = AniRpbMapper.decodeEnvelope(
+        withBootstrapRetry {
+            requestMutex.withLock {
+                val data = AniRpbMapper.decodeEnvelope(
                 op = OP_HOME_LOAD,
                 response = transport.hotRanking(
                     categoryId = resolveChannelId(region),
                     pageSize = PAGE_SIZE,
                 ),
-            )
-            AniRpbMapper.parseHotItems(data)
+                )
+                AniRpbMapper.parseHotItems(data)
+            }
         }
     }
 
@@ -67,19 +71,21 @@ internal class AniRpbSource @Inject constructor(
         page: Int,
         pageSize: Int,
     ): Page<List<AniRpbHotItem>> = withContext(ioDispatcher) {
-        requestMutex.withLock {
-            val data = AniRpbMapper.decodeEnvelope(
+        withBootstrapRetry {
+            requestMutex.withLock {
+                val data = AniRpbMapper.decodeEnvelope(
                 op = OP_VIDEO_CATEGORY_LIST,
                 response = transport.ranking(
                     categoryId = resolveChannelId(region),
                     pageIndex = page,
                     pageSize = pageSize,
                 ),
-            )
-            Page(
-                items = AniRpbMapper.parseRankingItems(data),
-                totalPages = AniRpbMapper.totalPages(data),
-            )
+                )
+                Page(
+                    items = AniRpbMapper.parseRankingItems(data),
+                    totalPages = AniRpbMapper.totalPages(data),
+                )
+            }
         }
     }
 
@@ -89,20 +95,47 @@ internal class AniRpbSource @Inject constructor(
         page: Int,
         pageSize: Int,
     ): Page<List<AniRpbScheduleItem>> = withContext(ioDispatcher) {
-        requestMutex.withLock {
-            val data = AniRpbMapper.decodeEnvelope(
+        withBootstrapRetry {
+            requestMutex.withLock {
+                val data = AniRpbMapper.decodeEnvelope(
                 op = OP_CALENDAR_VIDEOS,
                 response = transport.calendar(
                     playDate = playDate,
                     pageIndex = page,
                     pageSize = pageSize,
                 ),
-            )
-            Page(
-                items = AniRpbMapper.parseCalendarItems(data, requestedDate = playDate),
-                totalPages = AniRpbMapper.totalPages(data),
-            )
+                )
+                Page(
+                    items = AniRpbMapper.parseCalendarItems(data, requestedDate = playDate),
+                    totalPages = AniRpbMapper.totalPages(data),
+                )
+            }
         }
+    }
+
+    /**
+     * 签名引导未完成时短重试。
+     *
+     * native 库的 bootstrap 是在**第一次业务请求时才发起**的，所以首次请求必然拿到
+     * `503 op dormant (no signSecret; bootstrap first)`；握手几百毫秒后完成，重发就正常。
+     *
+     * 只对这一个错误重试：网络断了、签名错、op 不存在也重试的话，用户要白等好几秒
+     * 才看到「网络错误」。其余异常原样上抛。
+     */
+    private suspend fun <T> withBootstrapRetry(block: suspend () -> T): T {
+        repeat(MAX_BOOTSTRAP_ATTEMPTS) { attempt ->
+            try {
+                return block()
+            } catch (e: IOException) {
+                val bootstrapping = e.message.orEmpty().contains(BOOTSTRAP_PENDING_MARK)
+                val lastAttempt = attempt == MAX_BOOTSTRAP_ATTEMPTS - 1
+                if (!bootstrapping || lastAttempt) throw e
+                Log.i(TAG, "签名引导未完成，${BOOTSTRAP_RETRY_DELAY_MS}ms 后重试")
+                delay(BOOTSTRAP_RETRY_DELAY_MS)
+            }
+        }
+        // repeat 全部走完只可能是最后一次 throw 之前就被中断，这里理论上到不了。
+        throw IllegalStateException("unreachable")
     }
 
     /** 一页结果：[totalPages] 为 0 表示服务端没给，调用方按「本页是否为空」判断。 */
@@ -156,6 +189,13 @@ internal class AniRpbSource @Inject constructor(
         const val OP_CALENDAR_VIDEOS = "calendar.videos"
 
         const val PAGE_SIZE = 20
+
+        /** 首次请求 + 2 次重试：握手通常几百毫秒，最坏等 1.6 秒。 */
+        const val MAX_BOOTSTRAP_ATTEMPTS = 3
+        const val BOOTSTRAP_RETRY_DELAY_MS = 800L
+
+        /** 服务端在签名引导未完成时返回的固定标记。 */
+        const val BOOTSTRAP_PENDING_MARK = "op dormant"
 
         /** 实测兜底值；正常路径始终优先使用 `type.listActive` 的动态结果。 */
         const val FALLBACK_JAPANESE_CHANNEL_ID = "316207249407696896"

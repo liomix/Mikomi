@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.Flow
  *
  * ## 存储
  *
- * 走 [com.liomix.mikomi.core.datastore.cache.CacheStore]（整块 JSON），不落 Room：
+ * 走 [com.liomix.mikomi.core.cache.disk.DiskCache]（整块 JSON），不落 Room：
  * 首页数据是「服务端上次给了什么」，没有查询需求，随时可以整块丢掉重建。
  */
 interface HomeRepository {

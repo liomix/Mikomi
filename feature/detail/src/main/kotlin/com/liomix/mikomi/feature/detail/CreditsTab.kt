@@ -35,8 +35,8 @@ import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.TagColor
 import com.liomix.mikomi.core.designsystem.TagHue
 import com.liomix.mikomi.core.designsystem.AppTheme
-import com.liomix.mikomi.core.model.AnimeCharacter
-import com.liomix.mikomi.core.model.StaffMember
+import com.liomix.mikomi.core.model.anime.DetailCharacter
+import com.liomix.mikomi.core.model.anime.DetailStaff
 import com.liomix.mikomi.core.ui.base.EmptyState
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.ScrollingText
@@ -100,8 +100,8 @@ internal fun CreditsTab(
 
 @Composable
 private fun CreditsContent(
-    characters: List<AnimeCharacter>,
-    staff: List<StaffMember>,
+    characters: List<DetailCharacter>,
+    staff: List<DetailStaff>,
     onCharacterClick: (Int) -> Unit,
     onStaffClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -181,7 +181,7 @@ private fun <T> CreditGrid(
 
 @Composable
 private fun CharacterCard(
-    character: AnimeCharacter,
+    character: DetailCharacter,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -200,7 +200,7 @@ private fun CharacterCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Avatar(
-                url = character.images?.grid ?: character.images?.medium,
+                url = character.imageUrl,
                 contentDescription = character.name,
             )
             Spacer(modifier = Modifier.width(Spacing.Sm))
@@ -233,7 +233,7 @@ private fun CharacterCard(
 
 @Composable
 private fun StaffCard(
-    member: StaffMember,
+    member: DetailStaff,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -252,7 +252,7 @@ private fun StaffCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Avatar(
-                url = member.images?.grid ?: member.images?.medium,
+                url = member.imageUrl,
                 contentDescription = member.displayName,
             )
             Spacer(modifier = Modifier.width(Spacing.Sm))
@@ -266,9 +266,9 @@ private fun StaffCard(
                         ),
                         modifier = Modifier.weight(1f, fill = false),
                     )
-                    if (member.positionText.isNotEmpty()) {
+                    if (member.position.isNotEmpty()) {
                         Spacer(modifier = Modifier.width(Spacing.Xs))
-                        RelationBadge(text = member.positionText)
+                        RelationBadge(text = member.position)
                     }
                 }
                 if (member.localizedName?.isNotBlank() == true &&

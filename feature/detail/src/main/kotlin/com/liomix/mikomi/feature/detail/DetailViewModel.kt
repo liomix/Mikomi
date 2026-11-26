@@ -4,8 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.data.anime.AnimeCommentRepository
-import com.liomix.mikomi.data.anime.AnimeCreditsRepository
+import com.liomix.mikomi.data.anime.repository.CommentRepository
+import com.liomix.mikomi.data.anime.repository.DetailRepository
 import com.liomix.mikomi.data.anime.AnimeRepository
 import com.liomix.mikomi.data.user.UserDataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -41,8 +41,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class DetailViewModel @Inject constructor(
     private val animeRepository: AnimeRepository,
-    private val creditsRepository: AnimeCreditsRepository,
-    private val commentRepository: AnimeCommentRepository,
+    private val detailRepository: DetailRepository,
+    private val commentRepository: CommentRepository,
     private val userDataRepository: UserDataRepository,
 ) : ViewModel() {
 
@@ -187,10 +187,12 @@ class DetailViewModel @Inject constructor(
         credits.value = AnimeCreditsUiState.Loading
         viewModelScope.launch {
             try {
-                val result = creditsRepository.fetchCredits(id)
+                // 详情与角色/职员是同一个请求（`BangumiSource.detail` 内部并发取），
+                // 所以进主创 Tab 拿一次就够，不必再单独请求两类主创。
+                val detail = detailRepository.detail(id)
                 credits.value = AnimeCreditsUiState.Loaded(
-                    characters = result.characters,
-                    staff = result.staff,
+                    characters = detail.characters,
+                    staff = detail.staff,
                 )
             } catch (e: CancellationException) {
                 throw e
@@ -202,44 +204,36 @@ class DetailViewModel @Inject constructor(
     }
 
     /** 打开主创详情弹层（isCharacter 区分角色/制作人员），同时拉详情与评论。 */
-    fun openCreditDetail(id: Int, isCharacter: Boolean) {
+    fun openCreatorDetail(id: Int, isCharacter: Boolean) {
         // **一次写入**把两个面同时切到 Loading。分成两次赋值时，中间那一帧是
         // 「详情转圈、评论区还停在 Hidden」，弹层里会闪一下空白。
         creditSheet.value = CreditSheetUiState.Loading
         viewModelScope.launch {
             try {
-                val detail = if (isCharacter) {
-                    creditsRepository.fetchCharacterDetail(id)
-                } else {
-                    creditsRepository.fetchPersonDetail(id)
-                }
-                creditSheet.update { it.copy(detail = CreditDetailUiState.Loaded(detail)) }
+                val detail = detailRepository.creatorDetail(id, isCharacter)
+                creditSheet.update { it.copy(detail = CreatorDetailUiState.Loaded(detail)) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Load credit detail failed", e)
-                creditSheet.update { it.copy(detail = CreditDetailUiState.Error) }
+                creditSheet.update { it.copy(detail = CreatorDetailUiState.Error) }
             }
         }
         viewModelScope.launch {
             try {
-                val comments = if (isCharacter) {
-                    creditsRepository.fetchCharacterComments(id)
-                } else {
-                    creditsRepository.fetchPersonComments(id)
-                }
-                creditSheet.update { it.copy(comments = CreditCommentsUiState.Loaded(comments)) }
+                val comments = detailRepository.creatorComments(id, isCharacter)
+                creditSheet.update { it.copy(comments = CreatorCommentsUiState.Loaded(comments)) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Load credit comments failed", e)
-                creditSheet.update { it.copy(comments = CreditCommentsUiState.Error) }
+                creditSheet.update { it.copy(comments = CreatorCommentsUiState.Error) }
             }
         }
     }
 
     /** 关闭主创详情弹层。 */
-    fun dismissCreditDetail() {
+    fun dismissCreatorDetail() {
         creditSheet.value = CreditSheetUiState.Hidden
     }
 
@@ -275,9 +269,9 @@ class DetailViewModel @Inject constructor(
         teasing.value = TeasingUiState.Loading
         viewModelScope.launch {
             try {
-                val page = commentRepository.fetchTeasingComments(id, TEASING_PAGE_SIZE, offset = 0)
+                val page = commentRepository.comments(id, TEASING_PAGE_SIZE, offset = 0)
                 teasing.value = TeasingUiState.Loaded(
-                    comments = page.comments,
+                    comments = page.items,
                     hasMore = page.hasMore,
                 )
             } catch (e: CancellationException) {
@@ -298,14 +292,14 @@ class DetailViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 // 以已加载条数作为 offset，避免维护额外游标。
-                val page = commentRepository.fetchTeasingComments(
+                val page = commentRepository.comments(
                     animeId = id,
                     limit = TEASING_PAGE_SIZE,
                     offset = current.comments.size,
                 )
                 // 服务端分页可能因新评论插入而返回重复项，按 id 去重保证列表 key 唯一。
                 val existingIds = current.comments.mapTo(HashSet()) { it.id }
-                val appended = page.comments.filter { it.id !in existingIds }
+                val appended = page.items.filter { it.id !in existingIds }
                 teasing.value = TeasingUiState.Loaded(
                     comments = current.comments + appended,
                     // 无新增内容时终止分页，避免同一 offset 反复请求。

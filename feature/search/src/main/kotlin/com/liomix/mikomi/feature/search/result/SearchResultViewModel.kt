@@ -3,7 +3,7 @@ package com.liomix.mikomi.feature.search.result
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.liomix.mikomi.data.anime.SearchRepository
+import com.liomix.mikomi.data.anime.repository.SearchRepository
 import com.liomix.mikomi.feature.search.LoadState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject

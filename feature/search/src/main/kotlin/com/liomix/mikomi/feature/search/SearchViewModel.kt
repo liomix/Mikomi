@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.model.RankRegion
 import com.liomix.mikomi.data.anime.HotRepository
-import com.liomix.mikomi.data.anime.SearchRepository
+import com.liomix.mikomi.data.anime.repository.SearchRepository
 import com.liomix.mikomi.data.user.UserDataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject

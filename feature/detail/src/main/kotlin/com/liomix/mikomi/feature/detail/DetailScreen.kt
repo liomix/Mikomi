@@ -74,7 +74,7 @@ import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.window.LocalWindowSize
 import com.liomix.mikomi.core.ui.base.LottieIcons
 import com.liomix.mikomi.core.ui.window.Insets
-import com.liomix.mikomi.feature.detail.component.CreditDetailSheet
+import com.liomix.mikomi.feature.detail.component.CreatorDetailSheet
 import com.liomix.mikomi.feature.detail.component.collapsingHeader
 import com.liomix.mikomi.feature.detail.component.rememberHeaderCollapse
 import com.liomix.mikomi.feature.detail.component.rememberHeaderCollapseConnection
@@ -151,7 +151,7 @@ fun DetailScreen(
     onLoadCredits: () -> Unit,
     onCharacterClick: (Int) -> Unit,
     onStaffClick: (Int) -> Unit,
-    onDismissCreditDetail: () -> Unit,
+    onDismissCreatorDetail: () -> Unit,
     onLoadTeasing: () -> Unit,
     onLoadMoreTeasing: () -> Unit,
     onRetryTeasing: () -> Unit,
@@ -198,11 +198,11 @@ fun DetailScreen(
     }
 
     // 主创详情底部弹层。
-    if (uiState.creditDetail != CreditDetailUiState.Hidden) {
-        CreditDetailSheet(
+    if (uiState.creditDetail != CreatorDetailUiState.Hidden) {
+        CreatorDetailSheet(
             detailState = uiState.creditDetail,
             commentsState = uiState.creditComments,
-            onDismiss = onDismissCreditDetail,
+            onDismiss = onDismissCreatorDetail,
         )
     }
 }

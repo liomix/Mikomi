@@ -19,7 +19,7 @@ import com.liomix.mikomi.data.anime.mapper.toEntity
 import com.liomix.mikomi.data.anime.remote.anilist.AniListApi
 import com.liomix.mikomi.data.anime.remote.anilist.AniListQueries
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListGraphqlRequest
-import com.liomix.mikomi.data.anime.remote.bangumi.BangumiTrendApi
+import com.liomix.mikomi.data.anime.remote.bangumi.BangumiSource
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -30,7 +30,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 internal class HomeRepositoryImpl @Inject constructor(
-    private val bangumiApi: BangumiTrendApi,
+    private val bangumiSource: BangumiSource,
     private val anilistApi: AniListApi,
     private val animeDao: AnimeDao,
     private val database: MikomiDatabase,
@@ -80,14 +80,11 @@ internal class HomeRepositoryImpl @Inject constructor(
         }
 
     private suspend fun fetchBangumiPage(offset: Int): HomePage {
-        val response = bangumiApi.fetchTrending(
-            type = TYPE_ANIME,
-            limit = PAGE_SIZE,
-            offset = offset,
-        )
+        val items = bangumiSource.trending(limit = PAGE_SIZE, offset = offset)
         return HomePage(
-            entities = response.data.map { it.toEntity() },
-            hasMore = (offset + response.data.size) < response.total,
+            entities = items.map { it.toEntity() },
+            // 用「本页是否填满」判断，不读 total：趋势接口的 total 与可翻页条数并不总一致。
+            hasMore = items.size >= PAGE_SIZE,
         )
     }
 

@@ -1,11 +1,11 @@
 package com.liomix.mikomi.feature.detail
 
 import com.liomix.mikomi.core.model.Anime
-import com.liomix.mikomi.core.model.AnimeCharacter
-import com.liomix.mikomi.core.model.CreditComment
-import com.liomix.mikomi.core.model.CreditDetail
-import com.liomix.mikomi.core.model.StaffMember
-import com.liomix.mikomi.core.model.TeasingComment
+import com.liomix.mikomi.core.model.anime.DetailCharacter
+import com.liomix.mikomi.core.model.anime.CreatorComment
+import com.liomix.mikomi.core.model.anime.CreatorDetail
+import com.liomix.mikomi.core.model.anime.DetailStaff
+import com.liomix.mikomi.core.model.anime.AnimeComment
 
 /**
  * 详情页的**唯一**状态。
@@ -15,7 +15,7 @@ import com.liomix.mikomi.core.model.TeasingComment
  * 但那是**按消费方分层**，不是按变化频率分层 —— 这七个值全都是用户操作或一次网络请求驱动的低频状态，
  * 拆开没有任何性能收益，只换来两个真实代价：
  *
- * - **非原子**：`openCreditDetail` 先写详情态再写评论态，中间那一帧「详情已 Loading、评论还是 Hidden」
+ * - **非原子**：`openCreatorDetail` 先写详情态再写评论态，中间那一帧「详情已 Loading、评论还是 Hidden」
  *   会被看到；`bind()` 要连续改五个可变源，任何一步抛异常都会留下半新半旧的页面。
  * - **接口膨胀**：六个状态参数让 `DetailScreen` 无法用一组样例数据摆出来看，`@Preview` 与后续拆组件
  *   都得先造六份假数据。
@@ -40,8 +40,8 @@ data class DetailUiState(
     /** 当前番剧是否已收藏（跟随本地收藏列表实时变化）。 */
     val isFavorite: Boolean = false,
     val credits: AnimeCreditsUiState = AnimeCreditsUiState.Idle,
-    val creditDetail: CreditDetailUiState = CreditDetailUiState.Hidden,
-    val creditComments: CreditCommentsUiState = CreditCommentsUiState.Hidden,
+    val creditDetail: CreatorDetailUiState = CreatorDetailUiState.Hidden,
+    val creditComments: CreatorCommentsUiState = CreatorCommentsUiState.Hidden,
     val teasing: TeasingUiState = TeasingUiState.Loading,
 )
 
@@ -68,35 +68,35 @@ sealed interface AnimeCreditsUiState {
     data object Loading : AnimeCreditsUiState
 
     data class Loaded(
-        val characters: List<AnimeCharacter>,
-        val staff: List<StaffMember>,
+        val characters: List<DetailCharacter>,
+        val staff: List<DetailStaff>,
     ) : AnimeCreditsUiState
 
     data object Error : AnimeCreditsUiState
 }
 
 /** 主创详情弹层的状态。 */
-sealed interface CreditDetailUiState {
+sealed interface CreatorDetailUiState {
     /** 弹层未打开。 */
-    data object Hidden : CreditDetailUiState
+    data object Hidden : CreatorDetailUiState
 
-    data object Loading : CreditDetailUiState
+    data object Loading : CreatorDetailUiState
 
-    data class Loaded(val detail: CreditDetail) : CreditDetailUiState
+    data class Loaded(val detail: CreatorDetail) : CreatorDetailUiState
 
-    data object Error : CreditDetailUiState
+    data object Error : CreatorDetailUiState
 }
 
 /** 主创吐槽/评论的状态。 */
-sealed interface CreditCommentsUiState {
+sealed interface CreatorCommentsUiState {
     /** 弹层未打开。 */
-    data object Hidden : CreditCommentsUiState
+    data object Hidden : CreatorCommentsUiState
 
-    data object Loading : CreditCommentsUiState
+    data object Loading : CreatorCommentsUiState
 
-    data class Loaded(val comments: List<CreditComment>) : CreditCommentsUiState
+    data class Loaded(val comments: List<CreatorComment>) : CreatorCommentsUiState
 
-    data object Error : CreditCommentsUiState
+    data object Error : CreatorCommentsUiState
 }
 
 /**
@@ -106,13 +106,13 @@ sealed interface CreditCommentsUiState {
  * 而中间那一帧是可以被看见的（详情转圈、评论区还是空白）。
  */
 internal data class CreditSheetUiState(
-    val detail: CreditDetailUiState = CreditDetailUiState.Hidden,
-    val comments: CreditCommentsUiState = CreditCommentsUiState.Hidden,
+    val detail: CreatorDetailUiState = CreatorDetailUiState.Hidden,
+    val comments: CreatorCommentsUiState = CreatorCommentsUiState.Hidden,
 ) {
     companion object {
         val Loading = CreditSheetUiState(
-            detail = CreditDetailUiState.Loading,
-            comments = CreditCommentsUiState.Loading,
+            detail = CreatorDetailUiState.Loading,
+            comments = CreatorCommentsUiState.Loading,
         )
         val Hidden = CreditSheetUiState()
     }
@@ -126,7 +126,7 @@ sealed interface TeasingUiState {
     data object Error : TeasingUiState
 
     data class Loaded(
-        val comments: List<TeasingComment>,
+        val comments: List<AnimeComment>,
         /** 是否还有更多（服务端仍有下一页）。 */
         val hasMore: Boolean,
         /** 正在加载下一页。 */

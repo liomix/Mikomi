@@ -10,12 +10,12 @@ import com.liomix.mikomi.data.anime.AnimeIdMapper
 import com.liomix.mikomi.data.anime.AnimeRepository
 import com.liomix.mikomi.data.anime.mapper.ANILIST_ID_PREFIX
 import com.liomix.mikomi.data.anime.mapper.BANGUMI_ID_PREFIX
-import com.liomix.mikomi.data.anime.mapper.toDetailEntity
+import com.liomix.mikomi.data.anime.mapper.toEntity
 import com.liomix.mikomi.data.anime.mapper.toDomain
 import com.liomix.mikomi.data.anime.mapper.toEntity
 import com.liomix.mikomi.data.anime.mapper.toEpisodeEntities
 import com.liomix.mikomi.data.anime.remote.AnimeApi
-import com.liomix.mikomi.data.anime.remote.bangumi.BangumiApi
+import com.liomix.mikomi.data.anime.remote.bangumi.BangumiSource
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -25,7 +25,7 @@ import kotlinx.coroutines.withContext
 
 internal class AnimeRepositoryImpl @Inject constructor(
     private val api: AnimeApi,
-    private val bangumiApi: BangumiApi,
+    private val bangumiSource: BangumiSource,
     private val animeIdMapper: AnimeIdMapper,
     private val animeDao: AnimeDao,
     private val episodeDao: EpisodeDao,
@@ -49,8 +49,8 @@ internal class AnimeRepositoryImpl @Inject constructor(
 
     override suspend fun refreshAnimeDetail(animeId: String) = withContext(ioDispatcher) {
         val bangumiId = resolveBangumiId(animeId) ?: return@withContext
-        val detail = bangumiApi.getSubject(bangumiId)
-        val entity = detail.toDetailEntity()
+        val detail = bangumiSource.detail(bangumiId)
+        val entity = detail.toEntity()
         // 同一番剧在首页 trending 里也有一行（`bangumi:` 前缀 id 相同）。
         // 若直接把 source 写成 detail，首页查询（WHERE source = 'home'）就查不到它了，
         // 表现为「点开过的番剧从首页网格里消失、后面整排卡片左移」。

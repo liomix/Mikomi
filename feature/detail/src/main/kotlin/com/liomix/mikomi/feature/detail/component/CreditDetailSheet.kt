@@ -45,13 +45,13 @@ import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.Radius
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
-import com.liomix.mikomi.core.model.CreditComment
-import com.liomix.mikomi.core.model.CreditDetail
+import com.liomix.mikomi.core.model.anime.CreatorComment
+import com.liomix.mikomi.core.model.anime.CreatorDetail
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.image.AsyncImage
-import com.liomix.mikomi.feature.detail.CreditCommentsUiState
-import com.liomix.mikomi.feature.detail.CreditDetailUiState
+import com.liomix.mikomi.feature.detail.CreatorCommentsUiState
+import com.liomix.mikomi.feature.detail.CreatorDetailUiState
 import com.liomix.mikomi.feature.detail.R
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 
@@ -80,9 +80,9 @@ private val ReplyIndent = COMMENT_AVATAR_SIZE + Spacing.Md
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CreditDetailSheet(
-    detailState: CreditDetailUiState,
-    commentsState: CreditCommentsUiState,
+internal fun CreatorDetailSheet(
+    detailState: CreatorDetailUiState,
+    commentsState: CreatorCommentsUiState,
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(
@@ -110,8 +110,8 @@ internal fun CreditDetailSheet(
                     .height(480.dp),
             ) {
                 when (selectedTab) {
-                    0 -> CreditDetailInfo(state = detailState)
-                    else -> CreditCommentList(state = commentsState)
+                    0 -> CreatorDetailInfo(state = detailState)
+                    else -> CreatorCommentList(state = commentsState)
                 }
             }
         }
@@ -119,18 +119,18 @@ internal fun CreditDetailSheet(
 }
 
 @Composable
-private fun CreditDetailInfo(
-    state: CreditDetailUiState,
+private fun CreatorDetailInfo(
+    state: CreatorDetailUiState,
     modifier: Modifier = Modifier,
 ) {
     when (state) {
-        CreditDetailUiState.Hidden -> Unit
+        CreatorDetailUiState.Hidden -> Unit
 
-        CreditDetailUiState.Loading -> CreditDetailSkeleton(modifier = modifier)
+        CreatorDetailUiState.Loading -> CreatorDetailSkeleton(modifier = modifier)
 
-        CreditDetailUiState.Error -> CreditDetailError(modifier = modifier)
+        CreatorDetailUiState.Error -> CreatorDetailError(modifier = modifier)
 
-        is CreditDetailUiState.Loaded -> CreditDetailContent(
+        is CreatorDetailUiState.Loaded -> CreatorDetailContent(
             detail = state.detail,
             modifier = modifier,
         )
@@ -138,8 +138,8 @@ private fun CreditDetailInfo(
 }
 
 @Composable
-private fun CreditDetailContent(
-    detail: CreditDetail,
+private fun CreatorDetailContent(
+    detail: CreatorDetail,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -216,18 +216,18 @@ private fun CreditDetailContent(
 }
 
 @Composable
-private fun CreditCommentList(
-    state: CreditCommentsUiState,
+private fun CreatorCommentList(
+    state: CreatorCommentsUiState,
     modifier: Modifier = Modifier,
 ) {
     when (state) {
-        CreditCommentsUiState.Hidden -> Unit
+        CreatorCommentsUiState.Hidden -> Unit
 
-        CreditCommentsUiState.Loading -> CommentsSkeleton(modifier = modifier)
+        CreatorCommentsUiState.Loading -> CommentsSkeleton(modifier = modifier)
 
-        CreditCommentsUiState.Error -> CreditDetailError(modifier = modifier)
+        CreatorCommentsUiState.Error -> CreatorDetailError(modifier = modifier)
 
-        is CreditCommentsUiState.Loaded -> {
+        is CreatorCommentsUiState.Loaded -> {
             if (state.comments.isEmpty()) {
                 Box(
                     modifier = modifier.fillMaxSize(),
@@ -259,7 +259,7 @@ private fun CreditCommentList(
 
 @Composable
 private fun CommentItem(
-    comment: CreditComment,
+    comment: CreatorComment,
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -271,7 +271,7 @@ private fun CommentItem(
             Spacer(modifier = Modifier.width(Spacing.Md))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = comment.user.displayName,
+                    text = comment.user.name,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                 )
@@ -336,7 +336,7 @@ private fun CommentItem(
                     Spacer(modifier = Modifier.width(Spacing.Md))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = reply.user.displayName,
+                            text = reply.user.name,
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Medium,
                         )
@@ -394,7 +394,7 @@ private fun CommentAvatar(
 }
 
 @Composable
-private fun CreditDetailSkeleton(
+private fun CreatorDetailSkeleton(
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -509,7 +509,7 @@ private fun CommentsSkeleton(
 }
 
 @Composable
-private fun CreditDetailError(
+private fun CreatorDetailError(
     modifier: Modifier = Modifier,
 ) {
     Box(

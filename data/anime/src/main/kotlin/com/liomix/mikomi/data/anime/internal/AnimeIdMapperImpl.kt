@@ -5,8 +5,8 @@ import com.liomix.mikomi.data.anime.AnimeIdMapper
 import com.liomix.mikomi.data.anime.remote.anilist.AniListApi
 import com.liomix.mikomi.data.anime.remote.anilist.AniListQueries
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListGraphqlRequest
-import com.liomix.mikomi.data.anime.remote.bangumi.BangumiApi
-import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchRequest
+import com.liomix.mikomi.data.anime.remote.bangumi.client.BangumiApi
+import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchDto
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -57,7 +57,7 @@ internal class AnimeIdMapperImpl @Inject constructor(
 
     private suspend fun searchBangumi(keyword: String): Int? {
         val result = bangumiApi.search(
-            request = BangumiSearchRequest(keyword = keyword),
+            request = BangumiSearchDto(keyword = keyword),
             limit = SEARCH_LIMIT,
             offset = 0,
         )

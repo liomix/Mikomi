@@ -7,7 +7,7 @@ import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListGraphqlResponse
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListMediaDto
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListPage
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListTitleDto
-import com.liomix.mikomi.data.anime.remote.bangumi.BangumiApi
+import com.liomix.mikomi.data.anime.remote.bangumi.client.BangumiApi
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiCharacterDto
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchRequest
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchResponse

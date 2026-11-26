@@ -34,7 +34,7 @@ import com.liomix.mikomi.core.common.util.formatRelativeTime
 import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.Spacing
-import com.liomix.mikomi.core.model.TeasingComment
+import com.liomix.mikomi.core.model.anime.AnimeComment
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.SkeletonShimmer
@@ -101,7 +101,7 @@ internal fun TeasingTab(
                         key = { comment -> "teasing_${comment.id}" },
                         contentType = { "teasing_item" },
                     ) { comment ->
-                        TeasingCommentItem(comment = comment)
+                        AnimeCommentItem(comment = comment)
                     }
                     item(key = "teasing_footer") {
                         TeasingFooter(
@@ -118,8 +118,8 @@ internal fun TeasingTab(
 
 /** 单条吐槽：头像 + 昵称/时间 + 正文。 */
 @Composable
-private fun TeasingCommentItem(
-    comment: TeasingComment,
+private fun AnimeCommentItem(
+    comment: AnimeComment,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -127,12 +127,12 @@ private fun TeasingCommentItem(
             .fillMaxWidth()
             .padding(horizontal = Spacing.Lg, vertical = Spacing.Gutter),
     ) {
-        TeasingAvatar(url = comment.user.avatarUrl, name = comment.user.displayName)
+        TeasingAvatar(url = comment.user.avatarUrl, name = comment.user.name)
         Spacer(modifier = Modifier.width(Spacing.Md))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = comment.user.displayName,
+                    text = comment.user.name,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,

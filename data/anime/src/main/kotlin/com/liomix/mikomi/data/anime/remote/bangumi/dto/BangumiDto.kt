@@ -1,54 +1,26 @@
 package com.liomix.mikomi.data.anime.remote.bangumi.dto
 
-import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** trending 响应（next.bgm.tv /p1/trending/subjects）。 */
-@Serializable
-data class BangumiTrendResponse(
-    val data: List<BangumiTrendItem> = emptyList(),
-    val total: Int = 0,
-)
-
-@Serializable
-data class BangumiTrendItem(
-    val subject: BangumiSubjectDto,
-    /** 趋势计数，用作首页热度排序。 */
-    val count: Int = 0,
-)
-
-/** 搜索请求体（api.bgm.tv /v0/search/subjects）。 */
-@Serializable
-data class BangumiSearchRequest(
-    val keyword: String,
-    val sort: String = "rank",
-    val filter: BangumiSearchFilter = BangumiSearchFilter(),
-)
-
-@Serializable
-data class BangumiSearchFilter(
-    /** 条目类型（2 = 动画）。默认值需始终编码，榜单过滤依赖它排除书籍/游戏等条目。 */
-    @EncodeDefault(EncodeDefault.Mode.ALWAYS)
-    val type: List<Int> = listOf(2),
-    /** 标签过滤（如产地标签「国产动画」「日本」）；空表示不过滤。 */
-    val tag: List<String> = emptyList(),
-    /** 排名过滤表达式（如 `">0"` 表示仅保留有站内排名的条目）；空表示不过滤。 */
-    val rank: List<String> = emptyList(),
-)
-
-/** 搜索响应。 */
-@Serializable
-data class BangumiSearchResponse(
-    val data: List<BangumiSubjectDto> = emptyList(),
-    val total: Int = 0,
-)
-
 /**
- * 条目。v0 用 `name_cn`，p1 用 `nameCN`，两者语义相同，分别映射到 [nameCn] / [nameCnNext]。
+ * 番剧基础信息 —— **其余所有 DTO 的公共零件**。
+ *
+ * 首页、搜索、详情、榜单拿到的都是「一个条目」，只是各自附带的字段不同。所以这里只放
+ * 无论从哪个接口拿都一定有的那几项；`infobox`、`eps`、`tags` 这类只在详情接口才完整的
+ * 字段归 [BangumiDetailDto]，不往基类里塞 —— 否则首页每一条都要背着一堆空字段。
+ *
+ * ## 两个名字字段
+ *
+ * Bangumi 的两套接口用不同拼法表示同一个东西：
+ * - v0（`api.bgm.tv`）是 `name_cn`，映射到 [nameCn]
+ * - Next（`next.bgm.tv`）是 `nameCN`，映射到 [nameCnNext]
+ *
+ * 保留两个字段而不是在解析时合并：合并就丢掉了「这个中文名是哪个接口给的」这条信息，
+ * 而排查「首页有中文名、详情页却没有」这类问题时，恰恰需要它。展示用 [displayName]。
  */
 @Serializable
-data class BangumiSubjectDto(
+data class BangumiDto(
     val id: Int,
     val name: String,
     @SerialName("name_cn") val nameCn: String? = null,
@@ -57,8 +29,9 @@ data class BangumiSubjectDto(
     val images: BangumiImagesDto? = null,
     val rating: BangumiRatingDto? = null,
     val summary: String? = null,
+    /** 首播日期（`yyyy-MM-dd`，可能只到年或月）。 */
     val date: String? = null,
-    /** 标准标签（v0 搜索响应为下划线风格 `meta_tags`；Next trending 的 `metaTags` 由 [tags] 之外的字段忽略）。 */
+    /** 标准标签（v0 是下划线风格的 `meta_tags`）。 */
     @SerialName("meta_tags") val metaTags: List<String> = emptyList(),
 ) {
     /** 展示名：中文名优先，回退原名。 */
@@ -68,6 +41,7 @@ data class BangumiSubjectDto(
             ?: name
 }
 
+/** 封面尺寸集合。Bangumi 一次给五档，取哪一档由调用方按屏幕决定。 */
 @Serializable
 data class BangumiImagesDto(
     val large: String? = null,
@@ -77,6 +51,12 @@ data class BangumiImagesDto(
     val grid: String? = null,
 )
 
+/**
+ * 评分。
+ *
+ * 三个字段常常只有一部分有值：新番没有 `rank`、没人评分的条目 `score` 为 0。
+ * 用可空类型表达「服务端没给」，不用 0 表示 —— 0 分和没有评分是两件事。
+ */
 @Serializable
 data class BangumiRatingDto(
     val score: Double? = null,

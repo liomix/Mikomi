@@ -1,9 +1,9 @@
 package com.liomix.mikomi.data.anime.di
 
-import com.liomix.mikomi.data.anime.remote.bangumi.BangumiApi
+import com.liomix.mikomi.data.anime.remote.bangumi.client.BangumiApi
 import com.liomix.mikomi.core.network.bangumi.BangumiMirrorInterceptor
 import com.liomix.mikomi.core.network.bangumi.BangumiNetworkConfigProvider
-import com.liomix.mikomi.data.anime.remote.bangumi.BangumiTrendApi
+import com.liomix.mikomi.data.anime.remote.bangumi.client.BangumiTrendApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

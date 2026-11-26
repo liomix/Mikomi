@@ -2,26 +2,26 @@ package com.liomix.mikomi.data.anime.di
 
 import com.liomix.mikomi.data.anime.AniCykRepository
 import com.liomix.mikomi.data.anime.AniRpbRepository
-import com.liomix.mikomi.data.anime.AnimeCommentRepository
-import com.liomix.mikomi.data.anime.AnimeCreditsRepository
 import com.liomix.mikomi.data.anime.AnimeIdMapper
 import com.liomix.mikomi.data.anime.AnimeRepository
 import com.liomix.mikomi.data.anime.HomeRepository
 import com.liomix.mikomi.data.anime.HotRepository
 import com.liomix.mikomi.data.anime.RankRepository
-import com.liomix.mikomi.data.anime.SearchRepository
+import com.liomix.mikomi.data.anime.repository.CommentRepository
+import com.liomix.mikomi.data.anime.repository.DetailRepository
+import com.liomix.mikomi.data.anime.repository.SearchRepository
 import com.liomix.mikomi.data.anime.ScheduleRepository
 import com.liomix.mikomi.data.anime.internal.AniCykRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.AniRpbRepositoryImpl
-import com.liomix.mikomi.data.anime.internal.AnimeCommentRepositoryImpl
-import com.liomix.mikomi.data.anime.internal.AnimeCreditsRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.AnimeIdMapperImpl
 import com.liomix.mikomi.data.anime.internal.AnimeRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.HomeRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.HotRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.RankRepositoryImpl
-import com.liomix.mikomi.data.anime.internal.SearchRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.ScheduleRepositoryImpl
+import com.liomix.mikomi.data.anime.repository.Ipml.CommentRepositoryIpml
+import com.liomix.mikomi.data.anime.repository.Ipml.DetailRepositoryIpml
+import com.liomix.mikomi.data.anime.repository.Ipml.SearchRepositoryIpml
 import com.liomix.mikomi.data.anime.remote.AnimeApi
 import com.liomix.mikomi.data.anime.schedule.AniCykScheduleSource
 import com.liomix.mikomi.data.anime.schedule.AniRpbScheduleSource
@@ -70,13 +70,13 @@ internal abstract class AnimeDataModule {
     internal abstract fun bindRankRepository(impl: RankRepositoryImpl): RankRepository
 
     @Binds
-    internal abstract fun bindAnimeCreditsRepository(impl: AnimeCreditsRepositoryImpl): AnimeCreditsRepository
+    internal abstract fun bindDetailRepository(impl: DetailRepositoryIpml): DetailRepository
 
     @Binds
-    internal abstract fun bindAnimeCommentRepository(impl: AnimeCommentRepositoryImpl): AnimeCommentRepository
+    internal abstract fun bindCommentRepository(impl: CommentRepositoryIpml): CommentRepository
 
     @Binds
-    internal abstract fun bindSearchRepository(impl: SearchRepositoryImpl): SearchRepository
+    internal abstract fun bindSearchRepository(impl: SearchRepositoryIpml): SearchRepository
 
     @Binds
     internal abstract fun bindAnimeIdMapper(impl: AnimeIdMapperImpl): AnimeIdMapper

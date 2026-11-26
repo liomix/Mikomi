@@ -75,6 +75,21 @@ internal class AniListSource @Inject constructor(
         ).data?.page?.media.orEmpty().map { it.toDomain() }
     }
 
+    /**
+     * 按 AniList id 取标题。
+     *
+     * 只为了「AniList id → 别的源」这条反查：跨源定位只能靠标题，而 id 本身不带标题。
+     * 不带标题就返回 null，而不是回退成空串 —— 空串会让调用方拿它去搜一堆无关结果。
+     */
+    suspend fun titleById(id: Int): String? = withContext(ioDispatcher) {
+        api.execute(
+            AniListGraphqlRequest(
+                query = AniListQueries.MEDIA_BY_ID,
+                variables = buildJsonObject { put("id", id) },
+            ),
+        ).data?.media?.title?.displayTitle()?.takeIf { it.isNotBlank() }
+    }
+
     /** 一页结果：[hasNextPage] 是 GraphQL 唯一能给的「还有没有」信号。 */
     data class AniListPage(
         val items: List<Anime> = emptyList(),

@@ -8,6 +8,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -75,3 +76,18 @@ object BangumiModule {
     private const val BANGUMI_USER_AGENT =
         "Mikomi/1.0.0 (Android) (https://github.com/liomix/mikomi)"
 }
+
+/** Bangumi Next（next.bgm.tv）专用 Retrofit 限定符。 */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class BangumiNextRetrofit
+
+/** Bangumi v0（api.bgm.tv）专用 Retrofit 限定符。 */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class BangumiApiRetrofit
+
+/** 携带 Bangumi 官方要求 User-Agent 的 OkHttpClient 限定符。 */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class BangumiClient

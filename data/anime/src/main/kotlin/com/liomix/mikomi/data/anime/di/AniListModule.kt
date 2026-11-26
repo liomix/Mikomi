@@ -5,6 +5,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -31,3 +32,8 @@ object AniListModule {
 
     private const val ANILIST_BASE_URL = "https://graphql.anilist.co/"
 }
+
+/** AniList 专用 Retrofit 实例的限定符，与默认 baseUrl 的 Retrofit 区分。 */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class AniListRetrofit

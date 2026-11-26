@@ -6,7 +6,8 @@ import com.liomix.mikomi.core.database.dao.AnimeDao
 import com.liomix.mikomi.core.database.dao.EpisodeDao
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.Episode
-import com.liomix.mikomi.data.anime.AnimeIdMapper
+import com.liomix.mikomi.data.anime.processor.AnimeIdConverter
+import com.liomix.mikomi.data.anime.processor.AnimeSource
 import com.liomix.mikomi.data.anime.AnimeRepository
 import com.liomix.mikomi.data.anime.remote.anilist.ANILIST_ID_PREFIX
 import com.liomix.mikomi.data.anime.mapper.BANGUMI_ID_PREFIX
@@ -26,7 +27,7 @@ import kotlinx.coroutines.withContext
 internal class AnimeRepositoryImpl @Inject constructor(
     private val api: AnimeApi,
     private val bangumiSource: BangumiSource,
-    private val animeIdMapper: AnimeIdMapper,
+    private val idConverter: AnimeIdConverter,
     private val animeDao: AnimeDao,
     private val episodeDao: EpisodeDao,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
@@ -67,27 +68,19 @@ internal class AnimeRepositoryImpl @Inject constructor(
         )
     }
 
-    /** 解析领域 id → Bangumi 数字 id；AniList 前缀先做 id 映射。 */
+    /** 解析领域 id → Bangumi 数字 id；跨源前缀走 [AnimeIdConverter]。 */
     private suspend fun resolveBangumiId(animeId: String): Int? {
-        val bangumiRaw = animeId.removePrefix(BANGUMI_ID_PREFIX)
-        if (bangumiRaw != animeId) {
-            // 原 id 已是 bangumi: 前缀，直接解析数字。
-            return bangumiRaw.toIntOrNull()
+        val parsed = idConverter.parse(animeId) ?: return null
+        if (parsed.source == AnimeSource.BANGUMI) return parsed.raw.toIntOrNull()
+
+        return try {
+            idConverter.convert(parsed, AnimeSource.BANGUMI)?.raw?.toIntOrNull()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "id 转换失败：${parsed.source} → Bangumi", e)
+            null
         }
-        val anilistRaw = animeId.removePrefix(ANILIST_ID_PREFIX)
-        if (anilistRaw != animeId) {
-            // anilist: 前缀，映射到 Bangumi。
-            val anilistId = anilistRaw.toIntOrNull() ?: return null
-            return try {
-                animeIdMapper.aniListToBangumi(anilistId)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.w(TAG, "AniList→Bangumi id mapping failed", e)
-                null
-            }
-        }
-        return null
     }
 
     private companion object {

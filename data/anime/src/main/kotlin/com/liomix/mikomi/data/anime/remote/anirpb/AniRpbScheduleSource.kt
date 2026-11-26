@@ -3,7 +3,7 @@ package com.liomix.mikomi.data.anime.remote.anirpb
 import android.util.Log
 import com.liomix.mikomi.core.model.anime.AirTime
 import com.liomix.mikomi.core.model.AniRpbScheduleItem
-import com.liomix.mikomi.data.anime.AniRpbRepository
+import com.liomix.mikomi.data.anime.remote.anirpb.AniRpbSource
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,7 +22,7 @@ import com.liomix.mikomi.data.anime.processor.schedule.SourcePayload
  */
 @Singleton
 internal class AniRpbScheduleSource @Inject constructor(
-    private val repository: AniRpbRepository,
+    private val source: AniRpbSource,
 ) : ScheduleSource {
 
     override val id: String = SOURCE_ID
@@ -37,7 +37,7 @@ internal class AniRpbScheduleSource @Inject constructor(
 
         week.dates.forEach { date ->
             try {
-                val dayItems = repository.fetchCalendar(date)
+                val dayItems = fetchCalendar(date)
                 items += dayItems.map { it.toFeedItem(date) }
                 coveredDates += date
             } catch (e: CancellationException) {
@@ -89,5 +89,32 @@ internal class AniRpbScheduleSource @Inject constructor(
     companion object {
         const val SOURCE_ID = "anirpb"
         private const val TAG = "AniRpbScheduleSource"
+
+        private const val FIRST_PAGE = 1
+        private const val CALENDAR_PAGE_SIZE = 20
+        private const val MAX_CALENDAR_PAGES = 4
+    }
+
+    /**
+     * 某天的更新表（翻页直到没有下一页）。
+     *
+     * 放在源实现里而不是数据源：`AniRpbSource` 只回答「第 N 页是什么」，
+     * 「翻到什么时候停」是取数策略。
+     */
+    private suspend fun fetchCalendar(date: String): List<AniRpbScheduleItem> {
+        val items = mutableListOf<AniRpbScheduleItem>()
+        var page = FIRST_PAGE
+        var totalPages = 0
+
+        do {
+            val result = source.calendarPage(playDate = date, page = page, pageSize = CALENDAR_PAGE_SIZE)
+            items += result.items
+            totalPages = result.totalPages
+            page++
+        } while (page <= totalPages && page <= MAX_CALENDAR_PAGES)
+
+        return items.distinctBy { item ->
+            listOf(item.videoId, item.playDate, item.updateTime, item.episode).joinToString("|")
+        }
     }
 }

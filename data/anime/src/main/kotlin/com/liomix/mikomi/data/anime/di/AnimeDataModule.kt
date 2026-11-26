@@ -1,8 +1,5 @@
 package com.liomix.mikomi.data.anime.di
 
-import com.liomix.mikomi.data.anime.AniCykRepository
-import com.liomix.mikomi.data.anime.AniRpbRepository
-import com.liomix.mikomi.data.anime.AnimeIdMapper
 import com.liomix.mikomi.data.anime.AnimeRepository
 import com.liomix.mikomi.data.anime.repository.CommentRepository
 import com.liomix.mikomi.data.anime.repository.DetailRepository
@@ -11,9 +8,6 @@ import com.liomix.mikomi.data.anime.repository.HotRepository
 import com.liomix.mikomi.data.anime.repository.RankRepository
 import com.liomix.mikomi.data.anime.repository.SearchRepository
 import com.liomix.mikomi.data.anime.repository.ScheduleRepository
-import com.liomix.mikomi.data.anime.internal.AniCykRepositoryImpl
-import com.liomix.mikomi.data.anime.internal.AniRpbRepositoryImpl
-import com.liomix.mikomi.data.anime.internal.AnimeIdMapperImpl
 import com.liomix.mikomi.data.anime.internal.AnimeRepositoryImpl
 import com.liomix.mikomi.data.anime.repository.Ipml.HotRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.ScheduleRepositoryIpml
@@ -27,6 +21,8 @@ import com.liomix.mikomi.data.anime.remote.anicyk.AniCykScheduleSource
 import com.liomix.mikomi.data.anime.remote.anirpb.AniRpbScheduleSource
 import com.liomix.mikomi.data.anime.processor.schedule.AnimeIdentityRegistry
 import com.liomix.mikomi.data.anime.processor.schedule.AnimeIdentityRegistryImpl
+import com.liomix.mikomi.data.anime.processor.AnimeIdConverter
+import com.liomix.mikomi.data.anime.processor.AnimeIdConverterImpl
 import com.liomix.mikomi.data.anime.processor.schedule.ScheduleSource
 import dagger.Binds
 import dagger.Module
@@ -48,11 +44,7 @@ object AnimeApiModule {
 @InstallIn(SingletonComponent::class)
 internal abstract class AnimeDataModule {
 
-    @Binds
-    internal abstract fun bindAniRpbRepository(impl: AniRpbRepositoryImpl): AniRpbRepository
 
-    @Binds
-    internal abstract fun bindAniCykRepository(impl: AniCykRepositoryImpl): AniCykRepository
 
     @Binds
     internal abstract fun bindAnimeRepository(impl: AnimeRepositoryImpl): AnimeRepository
@@ -69,6 +61,9 @@ internal abstract class AnimeDataModule {
     internal abstract fun bindRankRepository(impl: RankRepositoryIpml): RankRepository
 
     @Binds
+    internal abstract fun bindAnimeIdConverter(impl: AnimeIdConverterImpl): AnimeIdConverter
+
+    @Binds
     internal abstract fun bindHomeRepository(impl: HomeRepositoryIpml): HomeRepository
 
     @Binds
@@ -80,8 +75,6 @@ internal abstract class AnimeDataModule {
     @Binds
     internal abstract fun bindSearchRepository(impl: SearchRepositoryIpml): SearchRepository
 
-    @Binds
-    internal abstract fun bindAnimeIdMapper(impl: AnimeIdMapperImpl): AnimeIdMapper
 
     @Binds
     internal abstract fun bindAnimeIdentityRegistry(

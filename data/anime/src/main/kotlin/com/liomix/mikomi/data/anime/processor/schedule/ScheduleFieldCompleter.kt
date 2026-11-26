@@ -86,7 +86,7 @@ internal class ScheduleFieldCompleter @Inject constructor(
                 base.time != incoming.time &&
                 base.date == incoming.date
             ) {
-                conflicts plusAssign scheduleConflictFor(
+                conflicts += scheduleConflictFor(
                     target = target,
                     type = ScheduleConflictType.TIME_MISMATCH,
                     candidateSourceId = candidate.sourceId,
@@ -103,7 +103,7 @@ internal class ScheduleFieldCompleter @Inject constructor(
 
         // 日期不一致时保留 base，记冲突（不猜测谁对）。
         if (base.date != null && incoming.date != null && base.date != incoming.date) {
-            conflicts plusAssign scheduleConflictFor(
+            conflicts += scheduleConflictFor(
                 target = target,
                 type = ScheduleConflictType.DATE_MISMATCH,
                 candidateSourceId = candidate.sourceId,

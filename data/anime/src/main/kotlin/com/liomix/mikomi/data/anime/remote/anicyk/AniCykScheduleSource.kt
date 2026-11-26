@@ -3,8 +3,8 @@ package com.liomix.mikomi.data.anime.remote.anicyk
 import android.util.Log
 import com.liomix.mikomi.core.model.anime.AirTime
 import com.liomix.mikomi.core.model.anime.AirTimePrecision
-import com.liomix.mikomi.data.anime.AniCykCalendar
-import com.liomix.mikomi.data.anime.AniCykRepository
+import com.liomix.mikomi.data.anime.remote.anicyk.AniCykCalendar
+import com.liomix.mikomi.data.anime.remote.anicyk.AniCykSource
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,7 +31,7 @@ import com.liomix.mikomi.data.anime.processor.schedule.SourcePayload
  */
 @Singleton
 internal class AniCykScheduleSource @Inject constructor(
-    private val repository: AniCykRepository,
+    private val source: AniCykSource,
 ) : ScheduleSource {
 
     override val id: String = SOURCE_ID
@@ -62,7 +62,7 @@ internal class AniCykScheduleSource @Inject constructor(
         calendar: AniCykCalendar,
         entryIdPrefix: String,
     ): List<CalendarDay>? = try {
-        repository.fetchSchedule(calendar)
+        source.schedule(calendar)
             .toCalendarDays(
                 sourceId = id,
                 keepDays = WEEK_DAYS,

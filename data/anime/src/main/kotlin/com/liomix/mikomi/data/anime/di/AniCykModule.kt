@@ -5,6 +5,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import java.util.concurrent.TimeUnit
+import javax.inject.Qualifier
 import javax.inject.Singleton
 import okhttp3.OkHttpClient
 
@@ -27,3 +28,8 @@ object AniCykModule {
         .callTimeout(30, TimeUnit.SECONDS)
         .build()
 }
+
+/** 次元库（AniCyk）专用 OkHttp 实例：超时更短，且只访问明文节点白名单。 */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class AniCykHttp

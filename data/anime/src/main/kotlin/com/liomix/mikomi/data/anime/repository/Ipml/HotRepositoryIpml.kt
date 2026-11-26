@@ -6,7 +6,7 @@ import com.liomix.mikomi.core.datastore.cache.CacheStore
 import com.liomix.mikomi.core.datastore.cache.CacheTtl
 import com.liomix.mikomi.core.model.anime.RankRegion
 import com.liomix.mikomi.core.model.anime.HotRanking
-import com.liomix.mikomi.data.anime.AniRpbRepository
+import com.liomix.mikomi.data.anime.remote.anirpb.AniRpbSource
 import com.liomix.mikomi.data.anime.remote.anirpb.AniRpbMapper.toHotRanking
 import com.liomix.mikomi.data.anime.repository.HotRepository
 import javax.inject.Inject
@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.map
  * 更差（用户会以为国漫区就是空的）。与排行榜不同 —— 那边每榜 100 条，缺一半仍可用。
  */
 internal class HotRepositoryIpml @Inject constructor(
-    private val aniRpbRepository: AniRpbRepository,
+    private val source: AniRpbSource,
     private val cacheStore: CacheStore,
 ) : HotRepository {
 
@@ -41,7 +41,7 @@ internal class HotRepositoryIpml @Inject constructor(
         val fetched = mutableMapOf<RankRegion, List<HotRanking>>()
         for (region in RankRegion.entries) {
             try {
-                fetched[region] = aniRpbRepository.fetchHotRanking(region).map { it.toHotRanking() }
+                fetched[region] = source.hotRanking(region).map { it.toHotRanking() }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

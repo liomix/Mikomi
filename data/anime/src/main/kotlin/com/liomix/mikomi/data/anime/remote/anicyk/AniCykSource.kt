@@ -1,7 +1,6 @@
 package com.liomix.mikomi.data.anime.remote.anicyk
 
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
-import com.liomix.mikomi.data.anime.AniCykCalendar
 import com.liomix.mikomi.data.anime.remote.anicyk.client.AniCykClient
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -39,4 +38,20 @@ internal class AniCykSource @Inject constructor(
     private companion object {
         const val SCHEDULE_PATH = "/mobile/schedule"
     }
+}
+
+/**
+ * 追番日历的两条线路。
+ *
+ * [HQ] 是主线路、只给 7 天；[SAKURA] 是备用（超清缺某部番时补位），报文给 11 天 ——
+ * 第 7 天之后是下周数据，物化时按 `dayCount` 截断。
+ */
+internal enum class AniCykCalendar(
+    /** 请求参数 `type` 的取值。 */
+    val apiType: String,
+    /** 报文天数。两条线路都从周一开始。 */
+    val dayCount: Int,
+) {
+    HQ("超清", 7),
+    SAKURA("樱花", 11),
 }

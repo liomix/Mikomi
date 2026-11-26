@@ -3,7 +3,7 @@ package com.liomix.mikomi.feature.home
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.liomix.mikomi.data.anime.HomeRepository
+import com.liomix.mikomi.data.anime.repository.HomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -42,7 +42,7 @@ class HomeViewModel @Inject constructor(
     // 两个数据源各留一份引用：除了喂给 combine，loadMore 还要拿 recommended
     // 判断「本地是不是真的多出了条目」。
     private val banners = homeRepository.observeBanners()
-    private val recommended = homeRepository.observeRecommended()
+    private val recommended = homeRepository.observeRecommend()
 
     private val refreshState = MutableStateFlow(RefreshState())
     private val paging = MutableStateFlow(PagingState())
@@ -108,11 +108,11 @@ class HomeViewModel @Inject constructor(
                 // 非用户触发时交给数据层判断 TTL；它内部会决定要不要真的发请求，
                 // 所以这里不需要再读返回值（分页状态由 Room 的列表长度驱动）。
                 if (userInitiated) {
-                    val result = homeRepository.refreshHome()
+                    val result = homeRepository.refresh()
                     offset = result.loadedCount
                     paging.value = PagingState(isLoadingMore = false, hasMore = result.hasMore)
                 } else {
-                    homeRepository.refreshHomeIfStale()
+                    homeRepository.refreshIfStale()
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -144,7 +144,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             paging.value = state.copy(isLoadingMore = true)
             try {
-                val result = homeRepository.loadMore(offset)
+                val result = homeRepository.loadMore()
                 offset += result.loadedCount
                 // 保持「正在补内容」，直到本地条数变化或宽限到期。
                 paging.value = PagingState(isLoadingMore = true, hasMore = result.hasMore)

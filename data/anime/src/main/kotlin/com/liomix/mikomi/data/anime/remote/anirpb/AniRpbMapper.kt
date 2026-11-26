@@ -2,6 +2,7 @@ package com.liomix.mikomi.data.anime.remote.anirpb
 
 import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.model.AniRpbScheduleItem
+import com.liomix.mikomi.core.model.anime.HotRanking
 import java.io.IOException
 import org.json.JSONArray
 import org.json.JSONObject
@@ -220,4 +221,23 @@ internal object AniRpbMapper {
     private const val HTTP_PREFIX_LENGTH = 7
     private const val MAX_ERROR_BODY_CHARS = 200
     private val EPISODE_NUMBER_REGEX = Regex("(\\d+)")
+
+    /**
+     * 报文条目 → 热播榜条目。
+     *
+     * 字段一一对应，看起来像多余的搬运 —— 但两边会分头演化：报文模型可能被别的 op 复用，
+     * 而榜单条目要跟着 UI 走（比如将来加「在追」标记）。直接复用 `AniRpbHotItem`
+     * 会让「这条为什么多了个 UI 字段」变成没人答得出的问题。
+     */
+    fun AniRpbHotItem.toHotRanking(): HotRanking = HotRanking(
+        id = id,
+        rank = rank,
+        title = title,
+        coverUrl = coverUrl,
+        updateText = updateText,
+        currentEpisodes = currentEpisodes,
+        score = score,
+        playCount = playCount,
+        tags = tags,
+    )
 }

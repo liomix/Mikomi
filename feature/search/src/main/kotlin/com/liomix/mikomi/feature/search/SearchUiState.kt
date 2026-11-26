@@ -1,6 +1,6 @@
 package com.liomix.mikomi.feature.search
 
-import com.liomix.mikomi.core.model.AniRpbHotItem
+import com.liomix.mikomi.core.model.anime.HotRanking
 import com.liomix.mikomi.core.model.Anime
 
 /** 搜索页当前展示的内容区。 */
@@ -40,9 +40,9 @@ data class SearchUiState(
     /** 当前选中的热播榜。 */
     val hotTab: SearchHotTab = SearchHotTab.JAPANESE,
     /** AniRpb 日漫热播榜。 */
-    val japaneseHot: List<AniRpbHotItem> = emptyList(),
+    val japaneseHot: List<HotRanking> = emptyList(),
     /** AniRpb 国漫热播榜。 */
-    val chineseHot: List<AniRpbHotItem> = emptyList(),
+    val chineseHot: List<HotRanking> = emptyList(),
     val japaneseHotState: LoadState = LoadState.Loading,
     val chineseHotState: LoadState = LoadState.Loading,
     /** 实时联想结果。 */
@@ -50,7 +50,7 @@ data class SearchUiState(
     val suggestionsState: LoadState = LoadState.Idle,
 ) {
     /** 当前 Tab 对应的榜单数据。 */
-    val currentHot: List<AniRpbHotItem>
+    val currentHot: List<HotRanking>
         get() = when (hotTab) {
             SearchHotTab.JAPANESE -> japaneseHot
             SearchHotTab.CHINESE -> chineseHot

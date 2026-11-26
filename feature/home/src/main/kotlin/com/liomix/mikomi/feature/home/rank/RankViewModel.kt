@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.model.anime.RankEntry
 import com.liomix.mikomi.core.model.anime.RankRegion
-import com.liomix.mikomi.data.anime.RankRepository
+import com.liomix.mikomi.data.anime.repository.RankRepository
 import com.liomix.mikomi.feature.home.RefreshState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -42,8 +42,8 @@ class RankViewModel @Inject constructor(
      * 内层 sealed 只表达内容态。
      */
     val uiState: StateFlow<RankUiState> = combine(
-        rankRepository.observeRank(RankRegion.CHINESE),
-        rankRepository.observeRank(RankRegion.JAPANESE),
+        rankRepository.observe(RankRegion.CHINESE),
+        rankRepository.observe(RankRegion.JAPANESE),
         refreshState,
     ) { chinese, japanese, refresh ->
         RankUiState(
@@ -93,7 +93,7 @@ class RankViewModel @Inject constructor(
             // 新的一次尝试：清掉上一次的失败结论。
             refreshState.value = RefreshState(inFlight = true, userVisible = userInitiated)
             try {
-                if (userInitiated) rankRepository.refreshRank() else rankRepository.refreshIfStale()
+                if (userInitiated) rankRepository.refresh() else rankRepository.refreshIfStale()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

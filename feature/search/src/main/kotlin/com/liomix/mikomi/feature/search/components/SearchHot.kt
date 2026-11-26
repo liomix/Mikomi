@@ -48,7 +48,7 @@ import com.liomix.mikomi.core.designsystem.Ranks
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.TextStyles
-import com.liomix.mikomi.core.model.AniRpbHotItem
+import com.liomix.mikomi.core.model.anime.HotRanking
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.ScrollingText
 import com.liomix.mikomi.core.ui.base.SkeletonBox
@@ -170,8 +170,8 @@ internal fun SearchHotTabs(
 /** 榜单条目：一次淡入上移，避免滚动回看时反复播动画。 */
 @Composable
 internal fun SearchHotList(
-    items: List<AniRpbHotItem>,
-    onItemClick: (AniRpbHotItem) -> Unit,
+    items: List<HotRanking>,
+    onItemClick: (HotRanking) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var revealed by remember { mutableStateOf(false) }
@@ -205,7 +205,7 @@ internal fun SearchHotList(
 /** 单行：名次 + 封面 + 标题 + 评分 / 播放量 + 动漫标签。 */
 @Composable
 private fun SearchHotRow(
-    item: AniRpbHotItem,
+    item: HotRanking,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {

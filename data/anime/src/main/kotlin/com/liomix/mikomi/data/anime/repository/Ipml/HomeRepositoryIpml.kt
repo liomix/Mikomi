@@ -34,14 +34,16 @@ internal class HomeRepositoryIpml @Inject constructor(
         refresh()
     }
 
-    override suspend fun loadMore(): Boolean {
+    override suspend fun refresh(): HomeRepository.LoadResult = refreshPage()
+
+    override suspend fun loadMore(): HomeRepository.LoadResult {
         val current = cacheStore.get(CacheKey.HOME)?.decode() ?: HomeCache()
 
         val next = source.trending(limit = PAGE_SIZE, offset = current.nextOffset)
         if (next.isEmpty()) {
             // 空页 = 到底了。把 hasMore 落到缓存里，下次进页面不会再试。
             cacheStore.put(CacheKey.HOME, CacheJson.encode(current.copy(hasMore = false)))
-            return false
+            return HomeRepository.LoadResult(hasMore = false)
         }
 
         // 趋势榜分页会因新条目上架而重复返回，按 id 去重，避免列表出现两条一样的卡片。
@@ -56,11 +58,11 @@ internal class HomeRepositoryIpml @Inject constructor(
                 ),
             ),
         )
-        return true
+        return HomeRepository.LoadResult(hasMore = next.size >= PAGE_SIZE, loadedCount = next.size)
     }
 
     /** 拉首页第一页：轮播取前几张、内容区取整页。 */
-    private suspend fun refresh() {
+    private suspend fun refreshPage(): HomeRepository.LoadResult {
         val items = source.trending(limit = PAGE_SIZE, offset = 0)
         cacheStore.put(
             CacheKey.HOME,
@@ -73,6 +75,7 @@ internal class HomeRepositoryIpml @Inject constructor(
                 ),
             ),
         )
+        return HomeRepository.LoadResult(hasMore = items.size >= PAGE_SIZE, loadedCount = items.size)
     }
 
     private fun com.liomix.mikomi.core.datastore.cache.CacheSnapshot.Entry.decode(): HomeCache =

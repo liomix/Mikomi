@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.model.anime.RankRegion
-import com.liomix.mikomi.data.anime.HotRepository
+import com.liomix.mikomi.data.anime.repository.HotRepository
 import com.liomix.mikomi.data.anime.repository.SearchRepository
 import com.liomix.mikomi.data.user.UserDataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -97,7 +97,7 @@ class SearchViewModel @Inject constructor(
      */
     private fun observeHot(tab: SearchHotTab) {
         viewModelScope.launch {
-            hotRepository.observeHot(tab.region()).collect { items ->
+            hotRepository.observe(tab.region()).collect { items ->
                 if (items.isEmpty()) return@collect
                 _uiState.update { state ->
                     when (tab) {
@@ -120,7 +120,7 @@ class SearchViewModel @Inject constructor(
     private fun refreshHotIfStale() {
         viewModelScope.launch {
             try {
-                hotRepository.refreshHotIfStale()
+                hotRepository.refreshIfStale()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -167,7 +167,7 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             updateHotState(tab, LoadState.Loading)
             try {
-                hotRepository.refreshHot()
+                hotRepository.refresh()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

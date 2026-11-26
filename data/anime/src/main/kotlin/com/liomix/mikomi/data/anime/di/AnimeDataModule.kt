@@ -4,22 +4,18 @@ import com.liomix.mikomi.data.anime.AniCykRepository
 import com.liomix.mikomi.data.anime.AniRpbRepository
 import com.liomix.mikomi.data.anime.AnimeIdMapper
 import com.liomix.mikomi.data.anime.AnimeRepository
-import com.liomix.mikomi.data.anime.HomeRepository
-import com.liomix.mikomi.data.anime.HotRepository
-import com.liomix.mikomi.data.anime.RankRepository
 import com.liomix.mikomi.data.anime.repository.CommentRepository
 import com.liomix.mikomi.data.anime.repository.DetailRepository
-import com.liomix.mikomi.data.anime.repository.HomeRepository as HomeFeedRepository
-import com.liomix.mikomi.data.anime.repository.RankRepository as RankListRepository
+import com.liomix.mikomi.data.anime.repository.HomeRepository
+import com.liomix.mikomi.data.anime.repository.HotRepository
+import com.liomix.mikomi.data.anime.repository.RankRepository
 import com.liomix.mikomi.data.anime.repository.SearchRepository
 import com.liomix.mikomi.data.anime.ScheduleRepository
 import com.liomix.mikomi.data.anime.internal.AniCykRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.AniRpbRepositoryImpl
 import com.liomix.mikomi.data.anime.internal.AnimeIdMapperImpl
 import com.liomix.mikomi.data.anime.internal.AnimeRepositoryImpl
-import com.liomix.mikomi.data.anime.internal.HomeRepositoryImpl
-import com.liomix.mikomi.data.anime.internal.HotRepositoryImpl
-import com.liomix.mikomi.data.anime.internal.RankRepositoryImpl
+import com.liomix.mikomi.data.anime.repository.Ipml.HotRepositoryIpml
 import com.liomix.mikomi.data.anime.internal.ScheduleRepositoryImpl
 import com.liomix.mikomi.data.anime.repository.Ipml.CommentRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.DetailRepositoryIpml
@@ -62,22 +58,18 @@ internal abstract class AnimeDataModule {
     internal abstract fun bindAnimeRepository(impl: AnimeRepositoryImpl): AnimeRepository
 
     @Binds
-    internal abstract fun bindHotRepository(impl: HotRepositoryImpl): HotRepository
+    internal abstract fun bindHotRepository(impl: HotRepositoryIpml): HotRepository
 
-    @Binds
-    internal abstract fun bindHomeRepository(impl: HomeRepositoryImpl): HomeRepository
 
     @Binds
     internal abstract fun bindScheduleRepository(impl: ScheduleRepositoryImpl): ScheduleRepository
 
-    @Binds
-    internal abstract fun bindRankRepository(impl: RankRepositoryImpl): RankRepository
 
     @Binds
-    internal abstract fun bindRankListRepository(impl: RankRepositoryIpml): RankListRepository
+    internal abstract fun bindRankRepository(impl: RankRepositoryIpml): RankRepository
 
     @Binds
-    internal abstract fun bindHomeFeedRepository(impl: HomeRepositoryIpml): HomeFeedRepository
+    internal abstract fun bindHomeRepository(impl: HomeRepositoryIpml): HomeRepository
 
     @Binds
     internal abstract fun bindDetailRepository(impl: DetailRepositoryIpml): DetailRepository

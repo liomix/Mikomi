@@ -31,12 +31,17 @@ interface HomeRepository {
     /** 进页面时调用：缓存还新就不发请求。 */
     suspend fun refreshIfStale()
 
-    /**
-     * 加载下一页。
-     *
-     * @return 是否拿到了新内容；`false` 表示已到底或本次失败，列表不再显示「加载中」。
-     */
-    suspend fun loadMore(): Boolean
+    /** 无条件刷新第一页（用户下拉刷新）。 */
+    suspend fun refresh(): LoadResult
+
+    /** 加载下一页；游标在数据层内部维护。 */
+    suspend fun loadMore(): LoadResult
+
+    /** 一次加载的结果：[loadedCount] 用来推进页面的分页状态，[hasMore] 决定要不要显示底部骨架。 */
+    data class LoadResult(
+        val hasMore: Boolean = false,
+        val loadedCount: Int = 0,
+    )
 
     companion object {
         /** 内容区一页条数。 */

@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
-import com.liomix.mikomi.core.model.AniRpbHotItem
+import com.liomix.mikomi.core.model.anime.HotRanking
 import com.liomix.mikomi.core.ui.base.LottieIcon
 import com.liomix.mikomi.core.ui.base.LottieIcons
 import com.liomix.mikomi.core.ui.window.Insets
@@ -77,7 +77,7 @@ fun SearchScreen(
     onRemoveHistory: (String) -> Unit,
     onClearHistory: () -> Unit,
     onHotTabChange: (SearchHotTab) -> Unit,
-    onHotItemClick: (AniRpbHotItem) -> Unit,
+    onHotItemClick: (HotRanking) -> Unit,
     onRetryHot: () -> Unit,
     modifier: Modifier = Modifier,
 ) {

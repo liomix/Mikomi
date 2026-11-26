@@ -11,14 +11,7 @@ import com.liomix.mikomi.core.model.anime.AnimeComment
 import com.liomix.mikomi.core.model.anime.AnimeDetail
 import com.liomix.mikomi.core.model.anime.CreatorComment
 import com.liomix.mikomi.core.model.anime.CreatorDetail
-import com.liomix.mikomi.data.anime.remote.bangumi.mapper.toAnimeComment
-import com.liomix.mikomi.data.anime.remote.bangumi.mapper.toCreatorComment
-import com.liomix.mikomi.data.anime.remote.bangumi.mapper.toCreatorDetail
-import com.liomix.mikomi.data.anime.remote.bangumi.mapper.toDetail
-import com.liomix.mikomi.data.anime.remote.bangumi.mapper.toDetailCharacter
-import com.liomix.mikomi.data.anime.remote.bangumi.mapper.toDetailStaff
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchDto
-import com.liomix.mikomi.data.anime.remote.bangumi.mapper.toDomain
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher

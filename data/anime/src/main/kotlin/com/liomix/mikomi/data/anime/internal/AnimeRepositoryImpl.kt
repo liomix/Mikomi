@@ -8,7 +8,7 @@ import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.Episode
 import com.liomix.mikomi.data.anime.AnimeIdMapper
 import com.liomix.mikomi.data.anime.AnimeRepository
-import com.liomix.mikomi.data.anime.mapper.ANILIST_ID_PREFIX
+import com.liomix.mikomi.data.anime.remote.anilist.ANILIST_ID_PREFIX
 import com.liomix.mikomi.data.anime.mapper.BANGUMI_ID_PREFIX
 import com.liomix.mikomi.data.anime.mapper.toEntity
 import com.liomix.mikomi.data.anime.mapper.toDomain

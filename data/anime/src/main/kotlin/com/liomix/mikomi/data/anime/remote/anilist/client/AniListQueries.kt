@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.remote.anilist
+package com.liomix.mikomi.data.anime.remote.anilist.client
 
 /** AniList GraphQL 查询模板。 */
 internal object AniListQueries {

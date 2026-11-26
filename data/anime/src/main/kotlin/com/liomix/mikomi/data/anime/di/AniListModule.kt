@@ -1,6 +1,6 @@
 package com.liomix.mikomi.data.anime.di
 
-import com.liomix.mikomi.data.anime.remote.anilist.AniListApi
+import com.liomix.mikomi.data.anime.remote.anilist.client.AniListApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

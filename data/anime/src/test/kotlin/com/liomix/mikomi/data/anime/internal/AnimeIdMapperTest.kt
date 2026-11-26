@@ -1,6 +1,6 @@
 package com.liomix.mikomi.data.anime.internal
 
-import com.liomix.mikomi.data.anime.remote.anilist.AniListApi
+import com.liomix.mikomi.data.anime.remote.anilist.client.AniListApi
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListData
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListGraphqlRequest
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListGraphqlResponse

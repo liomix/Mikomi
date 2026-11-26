@@ -2,8 +2,8 @@ package com.liomix.mikomi.data.anime.internal
 
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
 import com.liomix.mikomi.data.anime.AnimeIdMapper
-import com.liomix.mikomi.data.anime.remote.anilist.AniListApi
-import com.liomix.mikomi.data.anime.remote.anilist.AniListQueries
+import com.liomix.mikomi.data.anime.remote.anilist.client.AniListApi
+import com.liomix.mikomi.data.anime.remote.anilist.client.AniListQueries
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListGraphqlRequest
 import com.liomix.mikomi.data.anime.remote.bangumi.client.BangumiApi
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchDto

@@ -12,12 +12,12 @@ import com.liomix.mikomi.core.database.entity.AnimeEntity
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.data.anime.HomeRepository
 import com.liomix.mikomi.data.anime.LoadMoreResult
-import com.liomix.mikomi.data.anime.mapper.ANILIST_ID_PREFIX
+import com.liomix.mikomi.data.anime.remote.anilist.ANILIST_ID_PREFIX
 import com.liomix.mikomi.data.anime.mapper.BANGUMI_ID_PREFIX
 import com.liomix.mikomi.data.anime.mapper.toDomain
 import com.liomix.mikomi.data.anime.mapper.toEntity
-import com.liomix.mikomi.data.anime.remote.anilist.AniListApi
-import com.liomix.mikomi.data.anime.remote.anilist.AniListQueries
+import com.liomix.mikomi.data.anime.remote.anilist.AniListSource
+import com.liomix.mikomi.data.anime.remote.anilist.client.AniListQueries
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListGraphqlRequest
 import com.liomix.mikomi.data.anime.remote.bangumi.BangumiSource
 import javax.inject.Inject
@@ -31,7 +31,7 @@ import kotlinx.serialization.json.put
 
 internal class HomeRepositoryImpl @Inject constructor(
     private val bangumiSource: BangumiSource,
-    private val anilistApi: AniListApi,
+    private val anilistSource: AniListSource,
     private val animeDao: AnimeDao,
     private val database: MikomiDatabase,
     private val cacheStore: CacheStore,
@@ -89,20 +89,11 @@ internal class HomeRepositoryImpl @Inject constructor(
     }
 
     private suspend fun fetchAniListPage(offset: Int): HomePage {
-        val page = offset / PAGE_SIZE + 1
-        val response = anilistApi.execute(
-            AniListGraphqlRequest(
-                query = AniListQueries.TRENDING,
-                variables = buildJsonObject {
-                    put("page", page)
-                    put("perPage", PAGE_SIZE)
-                },
-            ),
-        )
-        val pageData = response.data?.page
+        // 兜底也走统一出口：请求组装（page/perPage）与 DTO 解析都不该散在 Repository 里。
+        val page = anilistSource.trending(page = offset / PAGE_SIZE + 1, perPage = PAGE_SIZE)
         return HomePage(
-            entities = pageData?.media.orEmpty().map { it.toEntity() },
-            hasMore = pageData?.pageInfo?.hasNextPage ?: false,
+            entities = page.items.map { it.toEntity() },
+            hasMore = page.hasNextPage,
         )
     }
 

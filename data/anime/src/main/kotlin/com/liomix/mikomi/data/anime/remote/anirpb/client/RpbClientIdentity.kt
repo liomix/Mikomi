@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.remote.anirpb
+package com.liomix.mikomi.data.anime.remote.anirpb.client
 
 /**
  * 上报给 RDIC 的客户端身份。

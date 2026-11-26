@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.remote.anicyk
+package com.liomix.mikomi.data.anime.remote.anicyk.client
 
 import android.content.Context
 import android.provider.Settings

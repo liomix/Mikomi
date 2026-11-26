@@ -33,3 +33,6 @@ internal fun Anime.toEntity(
 
 /** 首页来源标记（`AnimeEntity.source`）。详情页回写时保留已有行的来源，不覆盖。 */
 internal const val SOURCE_HOME = "home"
+
+/** 类型标签的多值分隔符：多值拼成一列存储，读出时按它切分。 */
+internal const val GENRES_SEPARATOR = "·"

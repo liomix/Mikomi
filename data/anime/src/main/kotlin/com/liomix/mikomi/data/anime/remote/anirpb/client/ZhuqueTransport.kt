@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.remote.anirpb
+package com.liomix.mikomi.data.anime.remote.anirpb.client
 
 import android.content.Context
 import android.net.ConnectivityManager

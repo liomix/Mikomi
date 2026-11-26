@@ -1,10 +1,19 @@
 package com.liomix.mikomi.data.anime.remote.anicyk
 
+import com.liomix.mikomi.data.anime.remote.anicyk.dto.CykScheduleItemDto
 import java.util.Locale
 import kotlinx.serialization.json.Json
 
-/** AniCyk 报文的解析规则（章节文案 → 时刻/集数/详情 id）。 */
-internal object AniCykParser {
+/**
+ * AniCyk 报文 → 领域模型的解析规则（章节文案 → 时刻 / 集数 / 详情 id）。
+ *
+ * 之所以是「解析」而不是简单映射：服务端只给一段混排文案（`更新至32话 ⏰09:00`），
+ * 时刻、集数、详情 id 都得从里面抠出来，抠不出来时按「未知」降级而不是丢条目。
+ *
+ * 同文件里放着解析产物 [CykScheduleDay] / [CykScheduleItem]：它们不是 DTO，
+ * 也不该被上层当领域模型用（上游还要做多源合并），放在这里最贴近产出它的地方。
+ */
+internal object AniCykMapper {
 
     fun parseDays(body: String, json: Json): List<CykScheduleDay> {
         val days = json.decodeFromString<List<List<CykScheduleItemDto>>>(body)
@@ -81,3 +90,23 @@ internal object AniCykParser {
     private val DETAIL_ID = Regex("(\\d+)\\.html")
     private val MULTI_SPACE = Regex("\\s+")
 }
+
+/** 单日日历条目（已解析出时刻/集数/详情 id）。 */
+internal data class CykScheduleItem(
+    val detailId: String,
+    val title: String,
+    val coverUrl: String?,
+    /** 章节文案原文，例如 `更新至32话`。 */
+    val chapterText: String,
+    /** 章节文案里解析出的时刻 `HH:mm`，没有则为 null。 */
+    val airTime: String?,
+    /** 从章节文案解析出的集数；无法解析时为 0。 */
+    val episode: Int,
+    val detailLink: String,
+)
+
+/** 一天的日历条目；[index] 从 0 开始，与报文顺序一致。 */
+internal data class CykScheduleDay(
+    val index: Int,
+    val items: List<CykScheduleItem>,
+)

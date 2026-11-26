@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.remote.anilist
+package com.liomix.mikomi.data.anime.remote.anilist.client
 
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListGraphqlRequest
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListGraphqlResponse

@@ -1,22 +1,21 @@
 package com.liomix.mikomi.data.anime.di
 
-import com.liomix.mikomi.data.anime.AnimeRepository
 import com.liomix.mikomi.data.anime.repository.CommentRepository
 import com.liomix.mikomi.data.anime.repository.DetailRepository
 import com.liomix.mikomi.data.anime.repository.HomeRepository
 import com.liomix.mikomi.data.anime.repository.HotRepository
+import com.liomix.mikomi.data.anime.repository.PlayerRepository
 import com.liomix.mikomi.data.anime.repository.RankRepository
 import com.liomix.mikomi.data.anime.repository.SearchRepository
 import com.liomix.mikomi.data.anime.repository.ScheduleRepository
-import com.liomix.mikomi.data.anime.internal.AnimeRepositoryImpl
 import com.liomix.mikomi.data.anime.repository.Ipml.HotRepositoryIpml
+import com.liomix.mikomi.data.anime.repository.Ipml.PlayerRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.ScheduleRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.CommentRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.DetailRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.HomeRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.RankRepositoryIpml
 import com.liomix.mikomi.data.anime.repository.Ipml.SearchRepositoryIpml
-import com.liomix.mikomi.data.anime.remote.AnimeApi
 import com.liomix.mikomi.data.anime.remote.anicyk.AniCykScheduleSource
 import com.liomix.mikomi.data.anime.remote.anirpb.AniRpbScheduleSource
 import com.liomix.mikomi.data.anime.processor.schedule.AnimeIdentityRegistry
@@ -32,13 +31,7 @@ import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import retrofit2.Retrofit
 
-@Module
-@InstallIn(SingletonComponent::class)
-object AnimeApiModule {
 
-    @Provides
-    fun provideAnimeApi(retrofit: Retrofit): AnimeApi = retrofit.create(AnimeApi::class.java)
-}
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -46,8 +39,9 @@ internal abstract class AnimeDataModule {
 
 
 
+
     @Binds
-    internal abstract fun bindAnimeRepository(impl: AnimeRepositoryImpl): AnimeRepository
+    internal abstract fun bindPlayerRepository(impl: PlayerRepositoryIpml): PlayerRepository
 
     @Binds
     internal abstract fun bindHotRepository(impl: HotRepositoryIpml): HotRepository

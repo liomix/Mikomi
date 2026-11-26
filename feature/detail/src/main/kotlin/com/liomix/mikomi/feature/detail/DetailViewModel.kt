@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.data.anime.repository.CommentRepository
 import com.liomix.mikomi.data.anime.repository.DetailRepository
-import com.liomix.mikomi.data.anime.AnimeRepository
 import com.liomix.mikomi.data.user.UserDataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -40,7 +39,6 @@ import kotlinx.coroutines.launch
  */
 @HiltViewModel
 class DetailViewModel @Inject constructor(
-    private val animeRepository: AnimeRepository,
     private val detailRepository: DetailRepository,
     private val commentRepository: CommentRepository,
     private val userDataRepository: UserDataRepository,
@@ -67,7 +65,7 @@ class DetailViewModel @Inject constructor(
                 flow {
                     emit(BoundContent(id, DetailContent.Loading))
                     emitAll(
-                        animeRepository.observeAnime(id).map { anime: Anime? ->
+                        detailRepository.observe(id).map { anime: Anime? ->
                             BoundContent(
                                 id = id,
                                 content = if (anime != null) {
@@ -170,7 +168,7 @@ class DetailViewModel @Inject constructor(
     private fun refreshDetail(animeId: String) {
         viewModelScope.launch {
             try {
-                animeRepository.refreshAnimeDetail(animeId)
+                detailRepository.refresh(animeId)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

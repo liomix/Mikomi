@@ -1,12 +1,18 @@
 package com.liomix.mikomi.data.anime.repository.Ipml
 
+import com.liomix.mikomi.core.database.dao.AnimeDao
+import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.anime.AnimeDetail
 import com.liomix.mikomi.core.model.anime.CreatorComment
 import com.liomix.mikomi.core.model.anime.CreatorDetail
 import com.liomix.mikomi.data.anime.remote.bangumi.BangumiSource
+import com.liomix.mikomi.data.anime.local.AnimeDetailWriter
+import com.liomix.mikomi.data.anime.mapper.toDomain
 import com.liomix.mikomi.data.anime.repository.DetailRepository
 import com.liomix.mikomi.data.anime.repository.toBangumiSubjectId
 import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 /**
  * 详情实现：**只做 id 解析**，其余全部委托数据源。
@@ -16,6 +22,8 @@ import javax.inject.Inject
  */
 internal class DetailRepositoryIpml @Inject constructor(
     private val source: BangumiSource,
+    private val animeDao: AnimeDao,
+    private val writer: AnimeDetailWriter,
 ) : DetailRepository {
 
     override suspend fun detail(animeId: String): AnimeDetail {
@@ -24,6 +32,15 @@ internal class DetailRepositoryIpml @Inject constructor(
         val bangumiId = animeId.toBangumiSubjectId()
             ?: return AnimeDetail(id = animeId, title = "")
         return source.detail(bangumiId)
+    }
+
+    override fun observe(animeId: String): Flow<Anime?> =
+        animeDao.observeAnime(animeId).map { it?.toDomain() }
+
+    override suspend fun refresh(animeId: String) {
+        // 非 Bangumi 条目没有可拉的详情：静默返回，页面继续显示本地那一份。
+        val bangumiId = animeId.toBangumiSubjectId() ?: return
+        writer.save(source.detail(bangumiId))
     }
 
     override suspend fun creatorDetail(creatorId: Int, isCharacter: Boolean): CreatorDetail =

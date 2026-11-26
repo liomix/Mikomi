@@ -1,8 +1,10 @@
 package com.liomix.mikomi.data.anime.repository
 
+import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.anime.AnimeDetail
 import com.liomix.mikomi.core.model.anime.CreatorComment
 import com.liomix.mikomi.core.model.anime.CreatorDetail
+import kotlinx.coroutines.flow.Flow
 
 /**
  * 详情页：番剧详情 + 主创 + **主创评论**。
@@ -22,6 +24,18 @@ interface DetailRepository {
      * @param animeId 领域 id（带前缀，如 `bangumi:123`）；非 Bangumi 条目返回空详情。
      */
     suspend fun detail(animeId: String): AnimeDetail
+
+    /**
+     * 本地已缓存的那一条：**先给字看**，再去 [refresh]。
+     *
+     * 返回 [Anime] 而不是 [AnimeDetail]：这条流喂的是页面头部（标题/封面/简介/评分），
+     * 角色、职员、收藏分布各有各的加载时机，混在一起会让「头部已显示、角色还在转圈」
+     * 变成一个需要额外判空的状态。需要完整详情时调 [detail]。
+     */
+    fun observe(animeId: String): Flow<Anime?>
+
+    /** 拉远程详情并落库；本地已有同一行时保留来源与首页位次（见 `AnimeDetailWriter`）。 */
+    suspend fun refresh(animeId: String)
 
     /** 主创详情：点角色或职员后展开的那一层。 */
     suspend fun creatorDetail(creatorId: Int, isCharacter: Boolean): CreatorDetail

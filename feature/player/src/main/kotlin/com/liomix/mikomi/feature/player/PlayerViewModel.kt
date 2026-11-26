@@ -12,7 +12,7 @@ import com.liomix.mikomi.core.media.MikomiPlayerFactory
 import com.liomix.mikomi.core.model.PlayerPlaybackSettings
 import com.liomix.mikomi.core.model.VdoPlgContent
 import com.liomix.mikomi.core.model.toPlayerPlaybackSettings
-import com.liomix.mikomi.data.anime.AnimeRepository
+import com.liomix.mikomi.data.anime.repository.PlayerRepository
 import com.liomix.mikomi.data.user.UserDataRepository
 import com.liomix.mikomi.data.video.VdoEpisode
 import com.liomix.mikomi.data.video.VdoEpisodeRoad
@@ -67,7 +67,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  */
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
-    private val animeRepository: AnimeRepository,
+    private val playerRepository: PlayerRepository,
     private val pluginRepository: VdoPlgRepository,
     private val engine: VdoPlgEngine,
     private val planner: VdoPlgStreamPlanner,
@@ -537,15 +537,10 @@ class PlayerViewModel @Inject constructor(
      * 优先读本地（详情页刚看过就一定有）；本地没有（深链直接进播放页、或 Room 被清过）
      * 才去拉一次详情——番名是搜索唯一的输入，为它多一次请求是值得的。
      */
-    private suspend fun resolveAnimeTitle(animeId: String): String? {
-        val cached = animeRepository.observeAnime(animeId).first()?.title?.trim()
-        if (!cached.isNullOrEmpty()) return cached
-        val refreshed = withTimeoutOrNull(DETAIL_TIMEOUT_MILLIS) {
-            runCatching { animeRepository.refreshAnimeDetail(animeId) }.isSuccess
-        } ?: false
-        if (!refreshed) return null
-        return animeRepository.observeAnime(animeId).first()?.title?.trim()
-    }
+    private suspend fun resolveAnimeTitle(animeId: String): String? =
+        // 「本地 → 远程 → 落库 → 再读本地」四步都在 Repository 里；这里只加超时保护：
+        // 取名失败不该拖住播放，超时就当没有，页面显示「未知番名」。
+        withTimeoutOrNull(DETAIL_TIMEOUT_MILLIS) { playerRepository.title(animeId) }
 
     private fun reload(keepCurrentEpisode: Boolean = false) {
         val animeId = boundAnimeId ?: return

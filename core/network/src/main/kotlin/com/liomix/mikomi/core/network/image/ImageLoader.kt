@@ -87,12 +87,12 @@ object ImageLoader {
      */
     fun install() {
         SingletonImageLoader.setSafe(object : SingletonImageLoader.Factory {
-            override fun newImageLoader(context: Context): CoilImageLoader = new(context)
+            override fun newImageLoader(context: Context): CoilImageLoader = create(context)
         })
     }
 
     /** 构造 ImageLoader。只在 `Application` 里调一次，交给 `SingletonImageLoader` 持有。 */
-    fun new(context: Context): CoilImageLoader = CoilImageLoader.Builder(context)
+    fun create(context: Context): CoilImageLoader = CoilImageLoader.Builder(context)
         .components {
             add(OkHttpNetworkFetcherFactory(callFactory = { client }))
         }
@@ -108,4 +108,18 @@ object ImageLoader {
                 .build()
         }
         .build()
+
+    /**
+     * 清空两级图片缓存。
+     *
+     * 设置页的「清除图片缓存」调它 —— 与「清除接口缓存」分开：用户只想清空榜单数据时，
+     * 不该把看了很久的封面一起清掉（下次打开全是灰块）。
+     *
+     * 内存与磁盘一起清：只清磁盘的话，本次会话里已解码的图还在，用户会觉得「点了没反应」。
+     */
+    suspend fun clearCaches(context: Context) {
+        val loader = SingletonImageLoader.get(context)
+        loader.memoryCache?.clear()
+        loader.diskCache?.clear()
+    }
 }

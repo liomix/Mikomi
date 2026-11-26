@@ -24,3 +24,21 @@ internal fun AnimeDetail.toEntity(): AnimeEntity = AnimeEntity(
     rank = rank,
     ratingCount = ratingCount,
 )
+
+/**
+ * 实体 → 详情模型（本地缓存的那一份）。
+ *
+ * 只填本地表里有的字段：角色、职员、收藏分布读不出来（它们不在 `anime` 表里），
+ * 留空 —— 页面拿到之后会再拉一次远程补全，这里的作用是「先有字可看」。
+ */
+internal fun AnimeEntity.toDetail(): AnimeDetail = AnimeDetail(
+    id = id,
+    title = title,
+    coverUrl = coverUrl,
+    synopsis = synopsis,
+    score = rating,
+    rank = rank,
+    ratingCount = ratingCount,
+    date = airDate.ifBlank { null },
+    genres = genres.split(GENRES_SEPARATOR).filter { it.isNotBlank() },
+)

@@ -1,6 +1,5 @@
 package com.liomix.mikomi.feature.home.rank
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,8 +24,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Spacing
-import com.liomix.mikomi.core.designsystem.Ranks
-import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.model.anime.RankEntry
 import com.liomix.mikomi.core.designsystem.TextStyles
 import com.liomix.mikomi.core.designsystem.AppTheme
@@ -44,7 +41,7 @@ import com.liomix.mikomi.core.ui.base.mikomiClickable
  * 28% 可见。所以裁切位置比比例更关键——把锚点抬到上部（[CoverCropAlignment]），
  * 保住人物头部而不是切到腰身。
  *
- * 卡片只由「封面 + 文字」构成，不铺底色、不叠任何遮罩：多铺一层兜底色，
+ * 卡片只由「封面 + 文字」构成，不铺底色、不描边、不叠任何遮罩：多铺一层兜底色，
  * 图片没就绪时会先闪出一块深灰，看起来像卡片坏了。加载态交给列表骨架屏
  * （`RankCardSkeletonList`），卡片本身保持空白等图。文字靠
  * [RankTitleShadow] 的深色描影压在画面上。
@@ -60,7 +57,6 @@ internal fun RankAnimeCard(
     modifier: Modifier = Modifier,
 ) {
     val anime = entry.anime
-    val isTopRank = rank <= Ranks.TopCount
     val coverUrl = anime.coverUrl
 
     if (coverUrl.isNullOrBlank()) {
@@ -79,12 +75,12 @@ internal fun RankAnimeCard(
         // 卡片本身不铺底色：有封面时是整张封面，无封面时留空交给页面骨架屏。
         color = Color.Transparent,
         contentColor = AppTheme.colors.media.content,
-        border = BorderStroke(
-            width = Stroke.Thin,
-            // 前三名用描边色勾一圈：压在封面上时金属色本身就够亮，描边只做收边。
-            color = rankAccent(rank).copy(alpha = 0.55f),
-        ),
-        shadowElevation = if (isTopRank) TopRankShadow else 0.dp,
+        // 不描边、不加阴影。卡片的边界由封面自己交代：圆角裁切 + 画面与页面的亮暗差。
+        //
+        // 依次去掉的这两样都是「与内容无关的线」：第 4 名起那圈是 `Ranks.other` 的灰，
+        // 前三名那圈是 4dp `shadowElevation` 在透明底上拖出的晕 —— 两者都在「骨架换成
+        // 卡片」那一刻突然出现，读起来就是「卡片四周冒出一圈灰」。名次本身已经是金属色，
+        // 不需要再靠外框提醒「这是前三」。
         modifier = modifier
             .fillMaxWidth()
             .height(RankCardHeight)
@@ -141,24 +137,19 @@ private fun CoverBackdrop(
         url = url,
         contentDescription = null,
         modifier = modifier,
-        // 榜单卡是静止的横条，淡入不会被滚动放大成每帧开销。
-        crossfade = true,
+        // **不能开淡入**。`AnimeCoverImage` 是在 `onSuccess` 那一刻撤掉扫光的，而 crossfade
+        // 会让图片从 alpha 0 开始——「扫光没了、图还没到」的那几帧露出的是静止的骨架底色，
+        // 也就是首屏卡片上那一下灰。关掉之后图片与撤扫光同帧落地，骨架的材质由封面直接接住。
+        //
+        // 这也和全站口径一致：懒列表里的图一律 `crossfade = false`。
+        crossfade = false,
         aspectRatio = null,
         cropAlignment = CoverCropAlignment,
+        // 与卡片同一个圆角（默认的 10dp 比卡片小 4dp）：差这一档时，亮色封面的四角
+        // 会从卡片裁剪里露出几条细边，看着像卡片没铺满。
+        cornerRadius = RankCardCorner,
     )
 }
-
-/**
- * 名次填色：前三名用该名次的金属色本身，第 4 名起用浅灰。
- *
- * 只有两个来源：`rank(rank).fill` 与 `rankOther`。名次色不再做「描边版 /
- * 文字版 / 压图版」之类的派生 —— 同一个第 1 名在排行榜和搜索页必须是同一种金，
- * 派生色越多，两处就越容易挑到不同的那一支。
- */
-@Composable
-private fun rankAccent(rank: Int): Color =
-    AppTheme.colors.rank(rank).fill
-
 
 /** 卡片高度：固定 112dp 的横条，一屏能看到约 5 张，不与封面比例挂钩。 */
 internal val RankCardHeight = 112.dp
@@ -186,9 +177,3 @@ private val NumberToTitleGap = Spacing.Compact
 /** 行左右内边距。 */
 private val RowStartPadding = Spacing.Md
 private val RowEndPadding = 18.dp // design-ok: 非梯队精确值，排名行右侧与封面视觉等距
-
-/** 前三名的高亮阴影。 */
-private val TopRankShadow = 4.dp
-
-/** 描边宽度：细到只勾轮廓，粗了会把金属色挤没。 */
-private val RankNumberOutlineWidth = 1.2.dp

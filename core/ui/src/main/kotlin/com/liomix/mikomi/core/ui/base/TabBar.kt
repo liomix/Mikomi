@@ -361,7 +361,8 @@ private val LocalTabBarVisuals = compositionLocalOf {
  * @param containerColor 栏底色；需要和内容同色（例如叠在卡片上）时传透明或卡片色。
  * @param fillWidth 标签行是否撑满栏宽。默认 `true`（`weight` 均分需要）；紧贴内容时传 `false`。
  * @param pagerState 与之联动的 pager。传了之后指示器**跟手移动**（拖动到一半就停在两格
- *   中间），而不是松手后才弹到新格；不传则用内部的一次性切换动画。
+ *   中间），而不是松手后才弹到新格；**跨格点击**时 pager 瞬时落位、指示器自己滑过去
+ *   （滚过中间那几页会把每一页都组合一遍 —— 那不是动效，那是卡顿）。不传则用内部的一次性切换动画。
 
  * @param colors 一组配色（指示器 / 选中 / 未选中 / 悬停）。**四个颜色是一组，所以做成一个参数**：
  *   个人页那种用自己的调色板的地方，一眼能看出这四项必须同源。
@@ -388,22 +389,21 @@ fun TabBar(
     val scope = rememberCoroutineScope()
     state.selectedIndex = selectedIndex
     state.onSelect = { index ->
-        // 有 pager 时**由这里统一滚动**：指示器的位置读的就是 pager 的偏移量，
-        // 两者的速度必须是同一条曲线，否则会「指示器到了、内容还在滑」。
+        // 有 pager 时由这里统一驱动切页。分两种情况，因为「相邻」与「跨格」的成本差一个量级：
         //
-        // 用 `animateScrollBy` 而不是 `animateScrollToPage`：后者的实现里有一段
-        // 「跨页超过一格时先瞬移到目标前一页，再动画最后一格」的优化 ——
-        // 从第 1 个点到第 5 个，画面上看到的是「从 4 滑到 5」，中间三格被跳过。
-        // 按整段距离一次滚动，指示器才会真的从头走到尾。
+        // - 相邻：真滚一段，指示器跟手；
+        // - 跨格：**瞬时落位**。滚过去意味着中途每一页都要组合 —— 一页往往是一整个列表
+        //   （时间表一屏六行、每行一张网络封面），三百毫秒里连续组合四五页，就是
+        //   「点一下、卡一下」。而用户要的是「到那一页」，不是「路过那几页」。
+        //
+        // 指示器不跟着瞬移：它由 [TabIndicator] 自己的弹性动画从旧格滑过去（那里的 `jumping`），
+        // 所以画面是「内容直接到」+「指示器一路滑过去」，而不是七页内容轮播一遍。
         pagerState?.let { pager ->
             scope.launch {
-                val pageSize = pager.layoutInfo.pageSize
-                if (pageSize <= 0) {
+                if (abs(index - pager.currentPage) <= 1) {
                     pager.animateScrollToPage(page = index, animationSpec = IndicatorSwapSpec)
                 } else {
-                    // 当前位置 = currentPage + offsetFraction，只算差值，不依赖中间页。
-                    val delta = (index - pager.currentPage - pager.currentPageOffsetFraction) * pageSize
-                    pager.animateScrollBy(value = delta, animationSpec = IndicatorSwapSpec)
+                    pager.scrollToPage(page = index)
                 }
             }
         }
@@ -528,22 +528,47 @@ private fun TabIndicator(
     var toIndex by remember { mutableIntStateOf(selected) }
     val fade = remember { Animatable(0f) }
 
+    /**
+     * 跨格跳转进行中。
+     *
+     * 此时 pager 已经**瞬时落位**到目标页，它的位置不再代表视觉意图 —— 指示器改读
+     * 内部动画（[progress] + [fromRect]），才会从旧格一路滑过去而不是跟着闪一下。
+     *
+     * 它只是一次动画期间的临时开关，不是第二个「选中位置」：选中态始终只有 [selected]
+     * 这一个真相。拖动时 pager 的位置仍然是唯一依据（此时 `jumping` 早已落回 false）。
+     */
+    var jumping by remember { mutableStateOf(false) }
+
     LaunchedEffect(selected, pagerState) {
-        if (selected == toIndex) return@LaunchedEffect
-        // 有 pager 时位置完全由它驱动（`currentRect` 读 `currentPageOffsetFraction`），
-        // 再跑一遍这个内部动画就是白跑：`progress` 每帧变化 → `graphicsLayer` 与 `layout`
-        // 跟着失效重算，结果却和上一帧一样 —— 点击时那一下卡顿就是它。
-        if (pagerState != null) return@LaunchedEffect
+        if (selected == toIndex) {
+            // 上一次动画被取消（又点了一次）时 `jumping` 可能还停在 true，
+            // 这里复位，免得指示器永远走内部动画、停在半路。
+            jumping = false
+            return@LaunchedEffect
+        }
+        // 有 pager 且只跨一格：pager 自己在连续滚，指示器读它的偏移就是跟手，
+        // 再跑一遍内部动画等于两套动画抢同一个矩形（`progress` 每帧失效重算，
+        // 结果和上一帧一样 —— 点击时那一下卡顿的来源之一）。
+        if (pagerState != null && abs(selected - toIndex) <= 1) {
+            jumping = false
+            fromIndex = toIndex
+            toIndex = selected
+            return@LaunchedEffect
+        }
+        // 跨格跳转：pager 已经瞬时落位，它此刻的位置不代表视觉意图，
+        // 指示器改由下面这段弹性动画驱动（见 `currentRect` 的 `jumping` 分支）。
         // 这里读 `progress.value` 不算组合期读取（协程里不受快照订阅影响），
         // 拿到的是上一帧画面上的真实位置（进度为 1 时就是旧标签的矩形）。
         fromRect = resolveRect(bounds, fromRect, fromIndex, toIndex, progress.value)
         fromIndex = toIndex
         toIndex = selected
+        jumping = pagerState != null
         progress.snapTo(0f)
         progress.animateTo(
             targetValue = 1f,
             animationSpec = IndicatorSwapSpec,
         )
+        jumping = false
     }
 
     // 首帧尚未量到边界时不闪一个 0×0 的圆点。只有「有没有边界」这一件事进组合。
@@ -568,11 +593,15 @@ private fun TabIndicator(
      *
      * 有 pager 时按它的 `currentPage + offsetFraction` 在两格之间插值 ——
      * 拖动多少就走多少（跟手），并且**两种形态共用**这一条路径：弹性插值算出来的是一个
-     * 会被拉伸的矩形，胶囊与下划线都直接用它的结果。没有 pager 时走内部动画（[resolveRect]）。
+     * 会被拉伸的矩形，胶囊与下划线都直接用它的结果。
+     *
+     * 两个例外都落到 [resolveRect]（内部动画）：
+     * - 没有 pager（纯受控标签栏）；
+     * - **跨格跳转**期间（[jumping]）：pager 已瞬移到目标，读它只会得到「瞬间到了」。
      */
     fun currentRect(): Rect? {
         val pager = pagerState
-        if (pager != null && bounds.size > 1) {
+        if (pager != null && bounds.size > 1 && !jumping) {
             val page = pager.currentPage.coerceIn(0, bounds.lastIndex)
             val fraction = pager.currentPageOffsetFraction
             val other = (page + if (fraction >= 0f) 1 else -1).coerceIn(0, bounds.lastIndex)

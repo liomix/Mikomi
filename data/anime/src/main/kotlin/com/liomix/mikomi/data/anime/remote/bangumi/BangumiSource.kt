@@ -13,6 +13,7 @@ import com.liomix.mikomi.core.model.anime.AnimeDetail
 import com.liomix.mikomi.core.model.anime.CreatorComment
 import com.liomix.mikomi.core.model.anime.CreatorDetail
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchDto
+import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchFilterDto
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
@@ -67,6 +68,38 @@ internal class BangumiSource @Inject constructor(
 
         val response = api.search(
             request = BangumiSearchDto(keyword = trimmed, sort = sort),
+            limit = limit,
+            offset = offset,
+        )
+        Search(
+            items = response.data.onlyAnime().map { it.toDomain() },
+            rawCount = response.data.size,
+        )
+    }
+
+    /**
+     * 分类浏览：**空关键词 + 过滤条件**。
+     *
+     * 与 [search] 分开，是因为两者的空词语义正好相反：搜索框空着不该发请求（用户只是
+     * 还没输入完），而分类浏览的条件全在 [BangumiSearchFilterDto] 里 —— `keyword` 传空串，
+     * 服务端按 `filter` 过滤后仍会返回条目。
+     *
+     * 返回 [Search] 而不是新类型：这里和搜索一样是「一页条目 + 这一页的原始条数」，
+     * 多包一层只会让上层多写一次拆包。
+     */
+    suspend fun browse(
+        sort: String,
+        tag: List<String>,
+        airDate: List<String>,
+        limit: Int,
+        offset: Int,
+    ): Search = withContext(ioDispatcher) {
+        val response = api.search(
+            request = BangumiSearchDto(
+                keyword = "",
+                sort = sort,
+                filter = BangumiSearchFilterDto(tag = tag, airDate = airDate),
+            ),
             limit = limit,
             offset = offset,
         )

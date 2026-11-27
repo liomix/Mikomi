@@ -78,6 +78,10 @@ data object ScheduleDestination : NavKey
 @Serializable
 data object RankDestination : NavKey
 
+/** 分类浏览二级页面（首页快捷入口跳转）。 */
+@Serializable
+data object CategoryDestination : NavKey
+
 /** 详情页路由。 */
 @Serializable
 data class DetailDestination(val animeId: String) : NavKey

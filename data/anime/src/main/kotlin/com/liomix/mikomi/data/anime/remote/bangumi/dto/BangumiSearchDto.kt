@@ -1,6 +1,7 @@
 package com.liomix.mikomi.data.anime.remote.bangumi.dto
 
 import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -30,6 +31,14 @@ data class BangumiSearchFilterDto(
     val type: List<Int> = listOf(2),
     /** 标签过滤（如产地标签「国产动画」「日本」）；空表示不过滤。 */
     val tag: List<String> = emptyList(),
+    /**
+     * 放送日期过滤（`yyyy-MM-dd`），支持比较表达式 ——
+     * `[">=2024-01-01", "<2025-01-01"]` 即「2024 年放送的」。空表示不过滤。
+     *
+     * 分类页的「年份」就是它：服务端没有「按日期排序」，只有按日期**筛**。
+     */
+    @SerialName("air_date")
+    val airDate: List<String> = emptyList(),
     /** 排名过滤表达式（如 `">0"` 表示只要站内有排名的）；空表示不过滤。 */
     val rank: List<String> = emptyList(),
 )

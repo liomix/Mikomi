@@ -1,7 +1,6 @@
 package com.liomix.mikomi.data.anime.processor.schedule
 
 import android.util.Log
-import com.liomix.mikomi.core.database.dao.AnimeDao
 import com.liomix.mikomi.core.model.anime.AirTime
 import com.liomix.mikomi.core.model.anime.AirTimePrecision
 import com.liomix.mikomi.data.anime.processor.schedule.TitleNormalizer
@@ -18,7 +17,7 @@ import kotlin.math.abs
  * 1. [fillFromDuplicate] —— 跨源 patch。合并判定为「同一条更新」时，用低优先级源的候选
  *    补 base 缺失的字段。候选条目在命中重复后就被丢弃了，所以它只在 merge 循环里可用，
  *    由 [ScheduleMerger] 调用（target 传合并行）。
- * 2. [completeFromLibrary] —— 本地番剧库兜底。合并完成后按归一化标题从 `anime` 表
+ * 2. （已下线）本地番剧库兜底 —— 离线库删除后不再按标题补简介。
  *    （首页 / 详情页缓存的 AniList 数据）补简介，批量、不联网、不记冲突。
  *
  * 补全原则始终是「只填空缺、不覆盖」：base 已有的值一律保留，取不到就保持为空。
@@ -33,7 +32,6 @@ import kotlin.math.abs
  */
 @Singleton
 internal class ScheduleFieldCompleter @Inject constructor(
-    private val animeDao: AnimeDao,
     private val config: ScheduleMergeConfig,
 ) {
 
@@ -128,52 +126,6 @@ internal class ScheduleFieldCompleter @Inject constructor(
      * - 只补空缺，已有简介的行原样返回；
      * - 先做归一化标题精确匹配，再做「互为前缀、长度接近、季数不冲突、候选唯一」的模糊匹配；
      * - 匹配不到就保持为空（UI 显示「暂无简介」），不发额外网络请求、不抛错。
-     */
-    suspend fun completeFromLibrary(rows: List<MergedScheduleRow>): List<MergedScheduleRow> {
-        if (rows.isEmpty()) return rows
-        if (rows.none { it.synopsis.isNullOrBlank() }) return rows
-
-        val library = animeDao.titlesWithSynopsis().mapNotNull { entry ->
-            val signature = TitleNormalizer.signature(entry.title)
-            if (signature.isBlank) {
-                null
-            } else {
-                LibrarySynopsis(
-                    key = signature.normalized,
-                    season = signature.season,
-                    synopsis = entry.synopsis,
-                )
-            }
-        }
-        if (library.isEmpty()) return rows
-
-        val byKey = library.groupBy { it.key }
-
-        var filled = 0
-        val result = rows.map { row ->
-            if (!row.synopsis.isNullOrBlank()) return@map row
-            val signature = TitleNormalizer.signature(row.title)
-            if (signature.isBlank) return@map row
-            val synopsis = byKey[signature.normalized]
-                ?.firstOrNull { seasonsCompatible(signature.season, it.season) }
-                ?.synopsis
-                ?: uniquePrefixMatch(signature, library)
-                ?: return@map row
-            filled++
-            row.copy(synopsis = synopsis)
-        }
-
-        if (filled > 0) {
-            Log.i(TAG, "简介补全：本地番剧库命中 $filled/${rows.size} 条")
-        }
-        return result
-    }
-
-    /**
-     * 前缀模糊匹配：只在候选唯一时采纳。
-     *
-     * 多个候选同时命中说明无法判断是哪一部（例如「死神」与「死神 千年血战篇」都在库里），
-     * 此时宁可留空也不写错简介。
      */
     private fun uniquePrefixMatch(
         signature: TitleNormalizer.Signature,

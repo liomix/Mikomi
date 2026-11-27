@@ -1,5 +1,6 @@
 package com.liomix.mikomi.data.anime.remote.bangumi
 
+import android.util.Log
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.anime.Search
@@ -14,6 +15,7 @@ import com.liomix.mikomi.core.model.anime.CreatorDetail
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchDto
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -91,10 +93,19 @@ internal class BangumiSource @Inject constructor(
                 api.fetchSubjectCharacters(id).mapNotNull { it.toDetailCharacter() }
             }
             val staffDeferred = async {
-                trendApi.fetchSubjectStaff(id).data
-                    // 报文没有 kind 字段，DTO 默认 Character —— 这里必须显式标成 Staff。
-                    .map { it.copy(kind = BangumiCreatorKind.Staff) }
-                    .mapNotNull { it.toDetailStaff() }
+                // 制作人员来自另一个域名（next.bgm.tv），它挂了不该让整页详情不可用 ——
+                // 详情与角色照常显示，只是「制作」那一栏空着。
+                try {
+                    trendApi.fetchSubjectStaff(id).data
+                        // 报文没有 kind 字段，DTO 默认 Character —— 这里必须显式标成 Staff。
+                        .map { it.copy(kind = BangumiCreatorKind.Staff) }
+                        .mapNotNull { it.toDetailStaff() }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "拉制作人员失败，详情页照常显示（staff 留空）", e)
+                    emptyList()
+                }
             }
             detailDeferred.await().copy(
                 characters = charactersDeferred.await(),
@@ -145,6 +156,8 @@ internal class BangumiSource @Inject constructor(
         }
 
     private companion object {
+        const val TAG = "BangumiSource"
+
         const val SORT_MATCH = "match"
 
         /** 条目类型：2 = 动画。趋势接口也要它，否则会混进书籍与游戏。 */

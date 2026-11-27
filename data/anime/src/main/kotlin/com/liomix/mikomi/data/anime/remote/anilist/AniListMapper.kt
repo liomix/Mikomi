@@ -2,6 +2,7 @@ package com.liomix.mikomi.data.anime.remote.anilist
 
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.AnimeStatus
+import com.liomix.mikomi.core.model.anime.AnimeSource
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListMediaDto
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListTitleDto
 
@@ -18,7 +19,7 @@ import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListTitleDto
  */
 internal fun AniListMediaDto.toDomain(): Anime = Anime(
     // 前缀隔离命名空间：AniList 的 id 与 Bangumi 的数字 id 会撞。
-    id = "$ANILIST_ID_PREFIX$id",
+    id = AnimeSource.ANILIST.prefix + id,
     title = title.displayTitle(),
     coverUrl = coverImage?.large ?: coverImage?.medium,
     // 简介是 HTML（含 `<br>`），不洗的话列表里会出现原始标签。
@@ -29,9 +30,6 @@ internal fun AniListMediaDto.toDomain(): Anime = Anime(
     genres = genres,
     popularity = popularity ?: 0,
 )
-
-/** 主键前缀，与 Bangumi 等数据源的 id 空间隔离，避免落同一张表时碰撞。 */
-internal const val ANILIST_ID_PREFIX = "anilist:"
 
 /** AniList 评分是 0~100，项目统一用 0~10。 */
 private const val ANILIST_SCORE_DIVISOR = 10.0

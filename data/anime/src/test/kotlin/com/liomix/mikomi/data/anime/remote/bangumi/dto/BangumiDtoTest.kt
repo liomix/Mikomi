@@ -30,7 +30,7 @@ class BangumiDtoTest {
             }
         """.trimIndent()
 
-        val response = json.decodeFromString<BangumiTrendResponse>(payload)
+        val response = json.decodeFromString<BangumiHomeBannerResponseDto>(payload)
 
         assertEquals(1, response.data.size)
         assertEquals(622288, response.data[0].subject.id)
@@ -50,7 +50,7 @@ class BangumiDtoTest {
             }
         """.trimIndent()
 
-        val response = json.decodeFromString<BangumiSearchResponse>(payload)
+        val response = json.decodeFromString<BangumiSearchResponseDto>(payload)
 
         assertEquals(1, response.data.size)
         assertEquals("火影忍者", response.data[0].displayName)

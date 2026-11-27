@@ -242,4 +242,23 @@ object Migrations {
             )
         }
     }
+
+    /**
+     * 11 → 12：删掉四张已经没有读者的表。
+     *
+     * - `anime` / `episode`：离线番剧库。详情与播放改读缓存（`detail:{id}`），
+     *   缓存没了重新拉；时间表也不再按标题从这里补简介。
+     * - `schedule`：时间表合并结果，改存缓存。
+     * - `rank_entry`：排行榜，改存缓存。
+     *
+     * 只 DROP 不建新表：这四张表的读者在 12 版里一个都不剩。
+     */
+    val MIGRATION_11_12 = object : Migration(11, 12) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DROP TABLE IF EXISTS anime")
+            db.execSQL("DROP TABLE IF EXISTS episode")
+            db.execSQL("DROP TABLE IF EXISTS schedule")
+            db.execSQL("DROP TABLE IF EXISTS rank_entry")
+        }
+    }
 }

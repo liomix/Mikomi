@@ -5,7 +5,6 @@ import androidx.room.withTransaction
 import com.liomix.mikomi.core.common.dispatcher.IoDispatcher
 import com.liomix.mikomi.core.database.MikomiDatabase
 import com.liomix.mikomi.core.database.dao.ScheduleConflictDao
-import com.liomix.mikomi.core.database.dao.ScheduleDao
 import com.liomix.mikomi.core.database.dao.ScheduleSourceDao
 import com.liomix.mikomi.core.database.entity.ScheduleConflictEntity
 import com.liomix.mikomi.core.database.entity.ScheduleSourceEntity
@@ -16,9 +15,9 @@ import com.liomix.mikomi.core.cache.CacheKey
 import com.liomix.mikomi.core.model.anime.ScheduleEntry
 import com.liomix.mikomi.core.model.anime.ScheduleProvenance
 import com.liomix.mikomi.data.anime.repository.ScheduleRepository
-import com.liomix.mikomi.data.anime.mapper.toCacheEntity
-import com.liomix.mikomi.data.anime.mapper.toFeedItem
-import com.liomix.mikomi.data.anime.mapper.toScheduleEntry
+import com.liomix.mikomi.data.anime.processor.schedule.toCacheEntity
+import com.liomix.mikomi.data.anime.processor.schedule.toFeedItem
+import com.liomix.mikomi.data.anime.processor.schedule.toScheduleEntry
 import com.liomix.mikomi.data.anime.processor.schedule.AnimeIdentityRegistry
 import com.liomix.mikomi.data.anime.processor.schedule.ScheduleConflict
 import com.liomix.mikomi.data.anime.processor.schedule.ScheduleContentFilter
@@ -69,7 +68,6 @@ internal class ScheduleRepositoryIpml @Inject constructor(
     private val identityRegistry: AnimeIdentityRegistry,
     private val merger: ScheduleMerger,
     private val fieldCompleter: ScheduleFieldCompleter,
-    private val scheduleDao: ScheduleDao,
     private val sourceDao: ScheduleSourceDao,
     private val conflictDao: ScheduleConflictDao,
     private val database: MikomiDatabase,
@@ -150,8 +148,8 @@ internal class ScheduleRepositoryIpml @Inject constructor(
         }
 
         val outcome = merger.merge(feeds)
-        // 第二阶段之后再用本地番剧库补一轮简介（base 源没有简介字段，取不到就留空）。
-        val rows = fieldCompleter.completeFromLibrary(outcome.rows)
+        // base 源没有简介字段时留空：离线番剧库已删除，不再按标题跨页面补全。
+        val rows = outcome.rows
         // 合并结果进缓存：页面只读缓存，这张表不再是页面数据的来源。
         // 分源版本与冲突队列留在 Room —— 它们要被查询、被逐条标记，不是可丢弃的快照。
         cacheStore.put(

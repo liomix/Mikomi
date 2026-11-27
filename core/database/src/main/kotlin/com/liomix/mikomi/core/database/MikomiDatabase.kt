@@ -1,50 +1,36 @@
 package com.liomix.mikomi.core.database
 
-import androidx.room.Database
-import androidx.room.RoomDatabase
-import com.liomix.mikomi.core.database.dao.AnimeDao
 import com.liomix.mikomi.core.database.dao.AnimeIdentityDao
-import com.liomix.mikomi.core.database.dao.EpisodeDao
 import com.liomix.mikomi.core.database.dao.FavoriteDao
 import com.liomix.mikomi.core.database.dao.HistoryDao
-import com.liomix.mikomi.core.database.dao.RankDao
 import com.liomix.mikomi.core.database.dao.ScheduleConflictDao
-import com.liomix.mikomi.core.database.dao.ScheduleDao
 import com.liomix.mikomi.core.database.dao.ScheduleSourceDao
-import com.liomix.mikomi.core.database.entity.AnimeEntity
 import com.liomix.mikomi.core.database.entity.AnimeIdentityEntity
-import com.liomix.mikomi.core.database.entity.EpisodeEntity
 import com.liomix.mikomi.core.database.entity.FavoriteEntity
 import com.liomix.mikomi.core.database.entity.HistoryEntity
-import com.liomix.mikomi.core.database.entity.RankEntity
 import com.liomix.mikomi.core.database.entity.ScheduleConflictEntity
-import com.liomix.mikomi.core.database.entity.ScheduleEntity
 import com.liomix.mikomi.core.database.entity.ScheduleSourceEntity
 import com.liomix.mikomi.core.database.entity.ScheduleSourceEntryEntity
+import androidx.room.Database
+import androidx.room.RoomDatabase
 
 @Database(
     entities = [
-        AnimeEntity::class,
-        EpisodeEntity::class,
         FavoriteEntity::class,
         HistoryEntity::class,
-        ScheduleEntity::class,
-        RankEntity::class,
         ScheduleSourceEntity::class,
         ScheduleSourceEntryEntity::class,
         AnimeIdentityEntity::class,
         ScheduleConflictEntity::class,
     ],
-    version = 11,
+    // 12：删掉 anime / episode / schedule / rank_entry 四张表 —— 它们的读者全部
+    // 迁到了缓存（见 MIGRATION_11_12 的说明）。
+    version = 12,
     exportSchema = true,
 )
 abstract class MikomiDatabase : RoomDatabase() {
-    abstract fun animeDao(): AnimeDao
-    abstract fun episodeDao(): EpisodeDao
     abstract fun favoriteDao(): FavoriteDao
     abstract fun historyDao(): HistoryDao
-    abstract fun scheduleDao(): ScheduleDao
-    abstract fun rankDao(): RankDao
     abstract fun scheduleSourceDao(): ScheduleSourceDao
     abstract fun animeIdentityDao(): AnimeIdentityDao
     abstract fun scheduleConflictDao(): ScheduleConflictDao

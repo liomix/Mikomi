@@ -1,9 +1,8 @@
 package com.liomix.mikomi.data.anime.repository.Ipml
 
-import com.liomix.mikomi.core.database.dao.AnimeDao
-import com.liomix.mikomi.data.anime.local.AnimeDetailWriter
+import com.liomix.mikomi.data.anime.local.AnimeDetailCache
 import com.liomix.mikomi.data.anime.processor.AnimeIdConverter
-import com.liomix.mikomi.data.anime.processor.AnimeSource
+import com.liomix.mikomi.core.model.anime.AnimeSource
 import com.liomix.mikomi.data.anime.remote.bangumi.BangumiSource
 import com.liomix.mikomi.data.anime.repository.PlayerRepository
 import javax.inject.Inject
@@ -15,20 +14,19 @@ import javax.inject.Inject
  * 两页各写一次迟早会不一致 —— 而那个不一致的表现是「点开过的番从首页消失」。
  */
 internal class PlayerRepositoryIpml @Inject constructor(
-    private val animeDao: AnimeDao,
+    private val detailCache: AnimeDetailCache,
     private val source: BangumiSource,
-    private val writer: AnimeDetailWriter,
     private val idConverter: AnimeIdConverter,
 ) : PlayerRepository {
 
     override suspend fun title(animeId: String): String? {
-        animeDao.findById(animeId)?.title?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
+        detailCache.get(animeId)?.title?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
 
         val bangumiId = resolveBangumiId(animeId) ?: return null
         // 失败就返回 null：播放页能继续播（只是番名显示「未知」），不该因为取名失败整页报错。
         return runCatching { source.detail(bangumiId) }
             .getOrNull()
-            ?.also { writer.save(it) }
+            ?.also { detailCache.save(it) }
             ?.title
             ?.trim()
             ?.takeIf { it.isNotEmpty() }

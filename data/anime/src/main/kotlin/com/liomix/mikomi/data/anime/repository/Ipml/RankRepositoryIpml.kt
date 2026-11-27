@@ -7,6 +7,7 @@ import com.liomix.mikomi.core.cache.disk.DiskCache
 import com.liomix.mikomi.core.cache.CacheTtl
 import com.liomix.mikomi.core.model.AniRpbHotItem
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.model.anime.AnimeSource
 import com.liomix.mikomi.core.model.anime.RankEntry
 import com.liomix.mikomi.core.model.anime.RankRegion
 import com.liomix.mikomi.data.anime.remote.anirpb.AniRpbSource
@@ -112,7 +113,7 @@ internal class RankRepositoryIpml @Inject constructor(
     /** AniRpb 视频 → 榜单条目。id 带前缀，与 Bangumi 的条目 id 隔开。 */
     private fun AniRpbHotItem.toRankEntry(region: RankRegion): RankEntry = RankEntry(
         anime = Anime(
-            id = "$ANIRPB_ID_PREFIX$id",
+            id = AnimeSource.ANIRPB.prefix + id,
             title = title,
             coverUrl = coverUrl,
             rating = score,
@@ -125,9 +126,6 @@ internal class RankRepositoryIpml @Inject constructor(
 
     private companion object {
         const val TAG = "RankRepository"
-
-        /** AniRpb 视频 id 的前缀：与 Bangumi / AniList 的条目 id 不在同一命名空间。 */
-        const val ANIRPB_ID_PREFIX = "anirpb:"
 
         const val FIRST_PAGE = 1
 

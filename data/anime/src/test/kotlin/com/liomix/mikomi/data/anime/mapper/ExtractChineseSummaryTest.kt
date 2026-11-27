@@ -1,5 +1,6 @@
 package com.liomix.mikomi.data.anime.mapper
 
+import com.liomix.mikomi.data.anime.remote.bangumi.extractChineseSummary
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

@@ -1,37 +1,11 @@
-package com.liomix.mikomi.data.anime.mapper
+package com.liomix.mikomi.data.anime.processor.schedule
 
-import com.liomix.mikomi.core.database.entity.ScheduleEntity
 import com.liomix.mikomi.core.database.entity.ScheduleSourceEntryEntity
 import com.liomix.mikomi.core.model.anime.ScheduleEntry
 import com.liomix.mikomi.core.model.anime.AirTime
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.anime.AirTimePrecision
-import com.liomix.mikomi.data.anime.processor.schedule.MergedScheduleRow
-import com.liomix.mikomi.data.anime.processor.schedule.ScheduleFeedItem
 
-/** 合并结果行 → 时间表实体（UI 观察的就是这张表）。 */
-internal fun MergedScheduleRow.toEntity(): ScheduleEntity = ScheduleEntity(
-    id = "$sourceId:$entryId",
-    animeId = "$sourceId:$canonicalKey",
-    title = title,
-    coverUrl = coverUrl,
-    synopsis = synopsis,
-    rating = null,
-    airingAtMillis = airingAtMillis,
-    episode = episode,
-    episodeText = episodeText,
-    updateText = updateText,
-    channelId = channelId,
-    canonicalKey = canonicalKey,
-    sourceId = sourceId,
-    airTimeDate = airTime.date.orEmpty(),
-    airTime = airTime.time.orEmpty(),
-    precision = airTime.precision.name,
-    inferred = airTime.inferred,
-    detailLink = detailLink,
-)
-
-/** 源条目 → 分源缓存行（带该批数据的版本号）。 */
 internal fun ScheduleFeedItem.toCacheEntity(
     sourceVersion: Int,
     fetchedAtMs: Long,

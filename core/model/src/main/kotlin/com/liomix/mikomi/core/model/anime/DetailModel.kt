@@ -1,5 +1,7 @@
 package com.liomix.mikomi.core.model.anime
 
+import kotlinx.serialization.Serializable
+
 /**
  * 详情页的模型。
  *
@@ -8,6 +10,7 @@ package com.liomix.mikomi.core.model.anime
  * 塞进同一个类，列表页会背着一堆永远用不上的字段，而且「这个 eps 是总集数还是已播」这种
  * 问题会永远存在。
  */
+@Serializable
 data class AnimeDetail(
     val id: String,
     val title: String,
@@ -40,6 +43,7 @@ data class AnimeDetail(
  * 五项是**不同状态的人数**，不是「总数的分解」—— 同一个人可以多次改状态，
  * 所以它们相加不等于收藏数。
  */
+@Serializable
 data class AnimeCollection(
     val wish: Int = 0,
     val collect: Int = 0,
@@ -49,6 +53,7 @@ data class AnimeCollection(
 )
 
 /** 详情页的角色。 */
+@Serializable
 data class DetailCharacter(
     val id: Int,
     val name: String,
@@ -59,6 +64,7 @@ data class DetailCharacter(
 )
 
 /** 配音演员。 */
+@Serializable
 data class DetailVoiceActor(
     val id: Int = 0,
     val name: String = "",
@@ -71,6 +77,7 @@ data class DetailVoiceActor(
  * [position] 是单个职位文案而不是列表：详情页那一行只放得下一个职位，多职位的情况
  * （「原作 / 导演」）在映射时就按顺序取第一个 —— 完整列表留给主创详情页。
  */
+@Serializable
 data class DetailStaff(
     val id: Int,
     val name: String,
@@ -89,6 +96,7 @@ data class DetailStaff(
  * 角色与人物共用一个模型：页面形态完全一样（头像 + 名字 + 中日文名 + 简介），
  * 区别只在数据来源，而那属于数据层的事。
  */
+@Serializable
 data class CreatorDetail(
     val id: Int,
     val name: String,

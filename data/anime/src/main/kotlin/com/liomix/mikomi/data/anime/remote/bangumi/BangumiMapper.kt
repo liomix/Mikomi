@@ -10,7 +10,7 @@ import com.liomix.mikomi.core.model.anime.CreatorDetail
 import com.liomix.mikomi.core.model.anime.DetailCharacter
 import com.liomix.mikomi.core.model.anime.DetailStaff
 import com.liomix.mikomi.core.model.anime.DetailVoiceActor
-import com.liomix.mikomi.data.anime.mapper.BANGUMI_ID_PREFIX
+import com.liomix.mikomi.core.model.anime.AnimeSource
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiAnimeCommentDto
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiCreatorCharacterDto
 import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiCreatorCommentDto
@@ -46,15 +46,17 @@ import com.liomix.mikomi.data.anime.remote.bangumi.dto.BangumiSearchResponseDto
  */
 internal fun BangumiDto.toDomain(): Anime = Anime(
     // 前缀把 Bangumi 的数字 id 和 AniRpb 的视频 id 隔开：两者都叫「id」，但不同命名空间。
-    id = "$BANGUMI_ID_PREFIX$id",
+    id = AnimeSource.BANGUMI.prefix + id,
     title = displayName,
     coverUrl = images.bestCover(),
-    synopsis = summary,
+    synopsis = summary?.let(::extractChineseSummary),
     rating = rating?.score,
     // 条目接口不给连载状态：v0 的 subject 没有这个字段，`date` 只能推首播时间。
     // 猜一个 ONGOING 会让已完结的番显示成「连载中」，所以宁可留 UNKNOWN。
     status = AnimeStatus.UNKNOWN,
     genres = metaTags,
+    // 评分人数当热度：Bangumi 没有真实的「热度」字段，而首页的排序需要一个可比的数。
+    popularity = rating?.total ?: 0,
     airDate = date,
     rank = rating?.rank ?: 0,
     ratingCount = rating?.total ?: 0,
@@ -106,7 +108,7 @@ internal fun BangumiHomeContentDto.toDomains(): List<Anime> = items.map { it.toD
  * 与基础映射的差别：`tags` 比 `meta_tags` 全（带计数、已按热度排序），更适合当类型标签。
  */
 internal fun BangumiDetailDto.toDomain(): Anime = Anime(
-    id = "$BANGUMI_ID_PREFIX$id",
+    id = AnimeSource.BANGUMI.prefix + id,
     title = displayName,
     coverUrl = images.bestCover(),
     synopsis = summary,
@@ -125,10 +127,10 @@ internal fun BangumiDetailDto.toDomain(): Anime = Anime(
  * 它们来自另外两个接口，要不要一起等由调用方决定。
  */
 internal fun BangumiDetailDto.toDetail(): AnimeDetail = AnimeDetail(
-    id = "$BANGUMI_ID_PREFIX$id",
+    id = AnimeSource.BANGUMI.prefix + id,
     title = displayName,
     coverUrl = images.bestCover(),
-    synopsis = summary,
+    synopsis = summary?.let(::extractChineseSummary),
     score = rating?.score,
     rank = rating?.rank ?: 0,
     ratingCount = rating?.total ?: 0,
@@ -246,3 +248,41 @@ internal fun BangumiCreatorCommentDto.toCreatorComment(): CreatorComment? {
         replies = replies.mapNotNull { it.toCreatorComment() },
     )
 }
+
+/**
+ * 从混合简介里取中文段落。
+ *
+ * Bangumi 的 `summary` 常见形态是「日文原文 + 空行 + `[简体中文]` 译文」。整段直接显示，
+ * 用户先看到一大段日文，要滑一会儿才到中文 —— 所以这里优先取标记之后的内容。
+ *
+ * 没有标记时按「有没有汉字」判断：
+ * - 有汉字（日文也含汉字）→ 原样返回。宁可能夹着日文，也不要显示空；
+ * - 纯假名 → 返回 `null`，让页面走「暂无简介」而不是显示一堆看不懂的音节。
+ */
+internal fun extractChineseSummary(text: String): String? {
+    val afterMarker = text.substringAfter(CHINESE_MARKER, "").trim()
+    if (afterMarker.isNotEmpty()) return stripLanguagePrefix(afterMarker)
+
+    // 只有「纯假名」才判为没有可读内容：日文含汉字要原样显示，纯英文简介也是有效内容。
+    val hasHan = text.any { it in HAN_RANGE }
+    val hasKana = text.any { it in KANA_RANGE }
+    if (!hasHan && hasKana) return null
+
+    return stripLanguagePrefix(text.trim()).takeIf { it.isNotEmpty() }
+}
+
+/** 去掉开头的「中文：」「简体中文:」这类语言前缀。 */
+private fun stripLanguagePrefix(text: String): String =
+    text.replace(LANGUAGE_PREFIX, "").trim()
+
+/** 译文标记：Bangumi 用方括号包住语言名。 */
+private const val CHINESE_MARKER = "[简体中文]"
+
+/** 摘要开头偶尔写着「中文：」，去掉更干净。 */
+private val LANGUAGE_PREFIX = Regex("^(简体中文|中文)\\s*[：:]\\s*")
+
+/** 平假名 + 片假名：用来识别「纯假名」这种没有可读内容的情况。 */
+private val KANA_RANGE = '\u3040'..'\u30ff'
+
+/** CJK 统一表意文字区间：用它判断「有没有汉字」，比正则快且够用。 */
+private val HAN_RANGE = '\u4e00'..'\u9fff'

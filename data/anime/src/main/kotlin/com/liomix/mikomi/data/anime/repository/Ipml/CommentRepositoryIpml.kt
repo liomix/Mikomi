@@ -3,7 +3,7 @@ package com.liomix.mikomi.data.anime.repository.Ipml
 import com.liomix.mikomi.data.anime.remote.bangumi.BangumiSource
 import com.liomix.mikomi.data.anime.repository.CommentPage
 import com.liomix.mikomi.data.anime.repository.CommentRepository
-import com.liomix.mikomi.data.anime.repository.toBangumiSubjectId
+import com.liomix.mikomi.data.anime.processor.toBangumiId
 import javax.inject.Inject
 
 /**
@@ -17,7 +17,7 @@ internal class CommentRepositoryIpml @Inject constructor(
 ) : CommentRepository {
 
     override suspend fun comments(animeId: String, limit: Int, offset: Int): CommentPage {
-        val bangumiId = animeId.toBangumiSubjectId()
+        val bangumiId = animeId.toBangumiId()
             ?: return CommentPage()
         val items = source.comments(bangumiId, limit = limit, offset = offset)
         return CommentPage(items = items, hasMore = items.size >= limit)

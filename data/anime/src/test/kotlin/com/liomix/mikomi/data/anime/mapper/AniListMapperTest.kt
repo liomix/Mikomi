@@ -1,5 +1,10 @@
 package com.liomix.mikomi.data.anime.mapper
 
+import com.liomix.mikomi.core.model.AnimeStatus
+import com.liomix.mikomi.data.anime.remote.anilist.displayTitle
+import com.liomix.mikomi.data.anime.remote.anilist.toDomain
+import com.liomix.mikomi.data.anime.remote.anilist.stripHtml
+import com.liomix.mikomi.data.anime.remote.anilist.toInternalStatus
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListCoverImageDto
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListMediaDto
 import com.liomix.mikomi.data.anime.remote.anilist.dto.AniListTitleDto
@@ -30,38 +35,38 @@ class AniListMapperTest {
             status = "RELEASING",
         )
 
-        val entity = dto.toEntity()
+        val anime = dto.toDomain()
 
-        assertEquals("anilist:15125", entity.id)
-        assertEquals("Native", entity.title)
-        assertEquals("large.jpg", entity.coverUrl)
-        assertEquals("desc", entity.synopsis)
-        assertEquals(8.5, entity.rating!!, 0.0001)
-        assertEquals("ongoing", entity.status)
-        assertEquals(12_345, entity.popularity)
+        assertEquals("anilist:15125", anime.id)
+        assertEquals("Native", anime.title)
+        assertEquals("large.jpg", anime.coverUrl)
+        assertEquals("desc", anime.synopsis)
+        assertEquals(8.5, anime.rating!!, 0.0001)
+        assertEquals(AnimeStatus.ONGOING, anime.status)
+        assertEquals(12_345, anime.popularity)
     }
 
     @Test
-    fun `toEntity falls back to english then romaji title`() {
+    fun `toDomain falls back to english then romaji title`() {
         val englishOnly = AniListMediaDto(
             id = 1,
             title = AniListTitleDto(romaji = "Romaji", english = "English", nativeTitle = null),
         )
-        assertEquals("English", englishOnly.toEntity().title)
+        assertEquals("English", englishOnly.toDomain().title)
 
         val romajiOnly = AniListMediaDto(
             id = 2,
             title = AniListTitleDto(romaji = "Romaji", english = null, nativeTitle = null),
         )
-        assertEquals("Romaji", romajiOnly.toEntity().title)
+        assertEquals("Romaji", romajiOnly.toDomain().title)
     }
 
     @Test
-    fun `toEntity falls back to medium cover when large missing`() {
+    fun `toDomain falls back to medium cover when large missing`() {
         val dto = AniListMediaDto(
             id = 3,
             coverImage = AniListCoverImageDto(large = null, medium = "medium.jpg"),
         )
-        assertEquals("medium.jpg", dto.toEntity().coverUrl)
+        assertEquals("medium.jpg", dto.toDomain().coverUrl)
     }
 }

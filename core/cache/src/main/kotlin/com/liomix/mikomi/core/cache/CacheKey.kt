@@ -21,6 +21,9 @@ object CacheKey {
     const val RANK = "rank"
     const val HOT = "hot"
     const val CATEGORY = "category"
+
+    /** 单条详情的前缀，后接领域 id（`detail:bangumi:123`）。 */
+    const val DETAIL = "detail:"
 }
 
 /**

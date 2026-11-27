@@ -1,12 +1,12 @@
 package com.liomix.mikomi.data.anime.repository.Ipml
 
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.model.AnimeStatus
 import com.liomix.mikomi.core.model.anime.AnimeDetail
 import com.liomix.mikomi.core.model.anime.CreatorComment
 import com.liomix.mikomi.core.model.anime.CreatorDetail
 import com.liomix.mikomi.data.anime.remote.bangumi.BangumiSource
 import com.liomix.mikomi.data.anime.local.AnimeDetailCache
-import com.liomix.mikomi.data.anime.mapper.toSummary
 import com.liomix.mikomi.data.anime.repository.DetailRepository
 import com.liomix.mikomi.data.anime.processor.AnimeIdConverter
 import com.liomix.mikomi.core.model.anime.AnimeSource
@@ -55,4 +55,25 @@ internal class DetailRepositoryIpml @Inject constructor(
 
     override suspend fun creatorComments(creatorId: Int, isCharacter: Boolean): List<CreatorComment> =
         source.creatorComments(creatorId, isCharacter)
+
 }
+
+/**
+ * 详情 → 头部摘要（[Anime]）。
+ *
+ * 只有这个类用，所以不单独抽 mapper 文件：多一个文件就要多一次「它归谁」的判断，
+ * 而这条映射的用途只有一句话 —— 把详情砍成页面头部要显示的那几个字段。
+ * 角色、职员、收藏分布留在 [AnimeDetail] 里，由各自的区域取。
+ */
+private fun AnimeDetail.toSummary(): Anime = Anime(
+    id = id,
+    title = title,
+    coverUrl = coverUrl,
+    synopsis = synopsis,
+    rating = score,
+    status = AnimeStatus.UNKNOWN,
+    genres = genres,
+    airDate = date,
+    rank = rank,
+    ratingCount = ratingCount,
+)

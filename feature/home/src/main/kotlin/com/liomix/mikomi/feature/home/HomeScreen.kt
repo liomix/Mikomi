@@ -3,7 +3,6 @@ package com.liomix.mikomi.feature.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,9 +17,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -29,12 +26,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Density
@@ -58,6 +52,8 @@ import com.liomix.mikomi.core.ui.window.rememberTopInset
 import com.liomix.mikomi.feature.home.components.BANNER_HEIGHT
 import com.liomix.mikomi.feature.home.components.HomeActionTabs
 import com.liomix.mikomi.feature.home.components.HomeBanner
+import com.liomix.mikomi.feature.home.components.HomePullToRefresh
+import com.liomix.mikomi.feature.home.components.pullStretch
 import com.liomix.mikomi.feature.home.components.HomeQuickAction
 import com.liomix.mikomi.feature.home.components.HomeTopBar
 import com.liomix.mikomi.feature.home.components.HomeTopBarHeight
@@ -182,39 +178,6 @@ private fun rememberHomeChrome(): HomeChrome {
 }
 
 /**
- * 主页下拉刷新容器。
- *
- * Material 默认指示器是固定的灰底（surfaceContainerHigh）+ primary 箭头，
- * 底圈不随主题配色变化。这里显式指定容器与内容色，让整个指示器都受主题色支配：
- * 圆底取 primaryContainer、箭头取 onPrimaryContainer，切换配色或日夜模式都会同步。
- */
-@Composable
-private fun HomePullToRefresh(
-    isRefreshing: Boolean,
-    onRefresh: () -> Unit,
-    state: PullToRefreshState,
-    modifier: Modifier = Modifier,
-    content: @Composable BoxScope.() -> Unit,
-) {
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
-        modifier = modifier,
-        state = state,
-        indicator = {
-            PullToRefreshDefaults.Indicator(
-                state = state,
-                isRefreshing = isRefreshing,
-                modifier = Modifier.align(Alignment.TopCenter),
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-        },
-        content = content,
-    )
-}
-
-/**
  * 首页：一个网格承载「顶栏 / 轮播 / 快捷入口 / 海报」四段。
  *
  * **骨架屏不是另一种布局，它就是同一个网格在空数据下的样子**：轮播为空 → 轮播骨架，
@@ -330,7 +293,7 @@ private fun HomeFeed(
     val chrome = rememberHomeChrome()
     val scrollChrome = rememberHomeScrollChrome(gridState, chrome)
 
-    // 下拉进度要同时喂给两处：指示器（容器自己用）和轮播图的拉伸。
+    // 下拉进度要同时喂给两处：指示器与内容列的拉伸。
     // 所以 state 在这里创建，不由容器内部各建一个。
     val pullState = rememberPullToRefreshState()
 
@@ -338,6 +301,7 @@ private fun HomeFeed(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
         state = pullState,
+        topInset = chrome.top,
         modifier = modifier.fillMaxSize(),
     ) {
         // 顶栏不在网格里：它固定贴着状态栏，网格从它底下滚过。
@@ -345,7 +309,13 @@ private fun HomeFeed(
         val grid: @Composable () -> Unit = {
             // 先量宽、再算列数：`GridCells.Adaptive` 的列数要到测量阶段才知道，
             // 而「最后一行差几格」是组合期就要回答的问题（见 columnsFor）。
-            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxSize()
+                    // 下拉时整列（头图 / 快捷栏 / 海报）一起被拽长。读值在绘制阶段，
+                    // 不重组 —— 见 [pullStretch]。
+                    .pullStretch { pullState.distanceFraction },
+            ) {
                 val columns = PosterGrid.columnsFor(maxWidth, HomeGridMinWidth, HomeGridSpacing)
                 LazyVerticalGrid(
                     state = gridState,
@@ -363,7 +333,6 @@ private fun HomeFeed(
                                 sliders = sliders,
                                 chrome = chrome,
                                 autoPlay = bannerVisible,
-                                pullFraction = pullState.distanceFraction,
                                 onAnimeClick = onAnimeClick,
                             )
                             val fold = scrollChrome.actionTabsFold.value
@@ -464,7 +433,6 @@ private fun HomeHero(
     sliders: List<SliderImage>,
     chrome: HomeChrome,
     autoPlay: Boolean,
-    pullFraction: Float,
     onAnimeClick: (String) -> Unit,
 ) {
     // 轮播不是封面飞行的起点（头图不是封面，内容区还很可能摆着同一部番的卡）：
@@ -475,16 +443,7 @@ private fun HomeHero(
         modifier = Modifier
             .bleedToEdge(start = chrome.start, end = chrome.end, top = Spacing.None)
             .fillMaxWidth()
-            .height(height)
-            // 下拉时把封面往上拉长一点：`scaleY` 只改绘制，不推挤下面的内容，
-            // 所以是「橡皮筋」而不是「整页跟着位移」。锚点在顶部 —— 底边被拉走，
-            // 顶边纹丝不动，手感才是「从上面拽住一块布」。
-            // 系数 0.06：拉到刷新阈值（`distanceFraction = 1`）时只长 6%，
-            // 是「拽了一下」而不是「图被撑开」。上限 1.5 只防极端，正常拉不到。
-            .graphicsLayer {
-                scaleY = 1f + pullFraction.coerceIn(0f, 1.5f) * 0.06f
-                transformOrigin = TransformOrigin(0.5f, 0f)
-            },
+            .height(height),
     ) {
         if (sliders.isEmpty()) {
             HomeBannerSkeleton()

@@ -50,7 +50,7 @@ import com.liomix.mikomi.core.ui.window.rememberBottomInset
 import com.liomix.mikomi.core.ui.window.rememberInsetsDp
 import com.liomix.mikomi.core.ui.window.rememberTopInset
 import com.liomix.mikomi.feature.home.components.BANNER_HEIGHT
-import com.liomix.mikomi.feature.home.components.HomeActionTabs
+import com.liomix.mikomi.feature.home.components.HomeChannelBar
 import com.liomix.mikomi.feature.home.components.HomeBanner
 import com.liomix.mikomi.feature.home.components.HomePullToRefresh
 import com.liomix.mikomi.feature.home.components.pullStretch
@@ -336,7 +336,7 @@ private fun HomeFeed(
                                 onAnimeClick = onAnimeClick,
                             )
                             val fold = scrollChrome.actionTabsFold.value
-                            HomeActionTabs(
+                            HomeChannelBar(
                                 onActionClick = onActionClick,
                                 // 压缩的**画面与占位都在组件内部**（它自己上报缩小后的高度），
                                 // 这里只把滚动进度交给它。

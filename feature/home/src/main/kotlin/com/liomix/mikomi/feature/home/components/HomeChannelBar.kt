@@ -95,7 +95,7 @@ private val HOME_ACTIONS = listOf(
  *   框只上报缩小后的高度并让圆角变圆，内容等比缩小。
  */
 @Composable
-fun HomeActionTabs(
+fun HomeChannelBar(
     onActionClick: (HomeQuickAction) -> Unit,
     modifier: Modifier = Modifier,
     collapse: Float = 0f,

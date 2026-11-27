@@ -21,11 +21,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.ui.base.AlertPop
 import com.liomix.mikomi.core.ui.base.AlertType
+import com.liomix.mikomi.core.ui.base.EmptyState
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.Tab
 import com.liomix.mikomi.core.ui.base.TabBar
@@ -113,6 +115,24 @@ fun TestScreen(
                         highlight = TabHighlight.Fill,
                         labels = CategoryLabels,
                     )
+                }
+            }
+
+            SettingsCard {
+                SettingsCardSection {
+                    SettingsCardHeader(stringResource(R.string.settings_test_group_state))
+                    // 空态本身是全屏组件（`fillMaxSize`）：给它一块固定高度的画布，
+                    // 才看得出「插图 + 文案」在真实页面里的落点与疏密。
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(EmptyPreviewHeight),
+                    ) {
+                        EmptyState(
+                            message = stringResource(R.string.settings_test_empty_message),
+                            subtitle = stringResource(R.string.settings_test_empty_subtitle),
+                        )
+                    }
                 }
             }
         }
@@ -221,3 +241,6 @@ private val WeekLabels = listOf("一", "二", "三", "四", "五", "六", "日")
 
 /** 三格：胶囊形态。 */
 private val CategoryLabels = listOf("日漫", "国漫", "完结")
+
+/** 空态预览的画布高度：约等于真实页面里「插图 + 两行文案 + 上下留白」的占比。 */
+private val EmptyPreviewHeight = 320.dp

@@ -213,7 +213,7 @@ data class LottieTint(
 
 /** [LottieIcon] 的默认值。 */
 object LottieIconDefaults {
-    /** 默认边长：与 `MikomiIcons` 的图标同档（24dp）—— 动画图标首先是「图标」。 */
+    /** 默认边长：与 `Icons` 的图标同档（24dp）—— 动画图标首先是「图标」。 */
     val Size: Dp = Sizes.IconMd
 
     /** 默认倍速，保持 json 作者设定的节奏。 */
@@ -223,7 +223,7 @@ object LottieIconDefaults {
 /**
  * 动画语义表：**动画资源只有这一张清单**。
  *
- * 与 `MikomiIcons` 同一个理由 —— 资源散在各模块时，同一个动作（收藏、加载）在不同页面
+ * 与 `Icons` 同一个理由 —— 资源散在各模块时，同一个动作（收藏、加载）在不同页面
  * 会各自挑一份 json，看起来不像一个产品。集中到 `core:ui` 之后：
  *
  * - 换素材只改这里与 `res/raw/`，调用点不动；

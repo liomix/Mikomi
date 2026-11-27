@@ -249,8 +249,11 @@ fun MikomiNavHost(
             immersionBridge.onNavBarTempChange(true)
         } else {
             // 从详情页返回时先起反向飞行（详情封面 → 列表卡封面），再出栈。
-            if (navigator.current is DetailDestination) {
-                heroController.beginReverse(key = null)
+            // key 必须是**当前详情页的 id**：从轮播进详情时头图不登记起点，
+            // 这里按 id 找不到起点，于是什么都不飞 —— 正是「直接跳回」。
+            val current = navigator.current
+            if (current is DetailDestination) {
+                heroController.beginReverse(key = current.animeId)
             }
             if (!navigator.goBack()) {
                 (view.context as? Activity)?.finish()

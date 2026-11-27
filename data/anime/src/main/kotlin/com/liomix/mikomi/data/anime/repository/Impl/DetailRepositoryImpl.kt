@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.repository.Ipml
+package com.liomix.mikomi.data.anime.repository.Impl
 
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.AnimeStatus
@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.map
  * 详情、角色、职员三块在 [BangumiSource.detail] 里已经并行取好，这一层不再拼装 ——
  * 拼装逻辑散在两处时，「为什么角色出不来」要同时看两个文件。
  */
-internal class DetailRepositoryIpml @Inject constructor(
+internal class DetailRepositoryImpl @Inject constructor(
     private val source: BangumiSource,
     private val detailCache: AnimeDetailCache,
     private val idConverter: AnimeIdConverter,

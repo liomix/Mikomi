@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.repository.Ipml
+package com.liomix.mikomi.data.anime.repository.Impl
 
 import com.liomix.mikomi.data.anime.local.AnimeDetailCache
 import com.liomix.mikomi.data.anime.processor.AnimeIdConverter
@@ -13,7 +13,7 @@ import javax.inject.Inject
  * 与详情页共用同一个 [AnimeDetailWriter]：落库规则（保留来源与首页位次）只有一份，
  * 两页各写一次迟早会不一致 —— 而那个不一致的表现是「点开过的番从首页消失」。
  */
-internal class PlayerRepositoryIpml @Inject constructor(
+internal class PlayerRepositoryImpl @Inject constructor(
     private val detailCache: AnimeDetailCache,
     private val source: BangumiSource,
     private val idConverter: AnimeIdConverter,

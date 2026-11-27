@@ -9,7 +9,7 @@ import com.liomix.mikomi.core.navigation.RankDestination
 import com.liomix.mikomi.core.navigation.ScheduleDestination
 import com.liomix.mikomi.core.navigation.SearchDestination
 import com.liomix.mikomi.core.navigation.SearchResultDestination
-import com.liomix.mikomi.feature.home.HomeQuickAction
+import com.liomix.mikomi.feature.home.components.HomeQuickAction
 import com.liomix.mikomi.feature.home.HomeRoute
 import com.liomix.mikomi.feature.home.rank.RankRoute
 import com.liomix.mikomi.feature.home.schedule.ScheduleRoute

@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.repository.Ipml
+package com.liomix.mikomi.data.anime.repository.Impl
 
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.anime.Search
@@ -14,7 +14,7 @@ import javax.inject.Inject
  *
  * 这就是把映射下沉到数据源换来的东西：Repository 里没有一行「对象转换」的噪音。
  */
-internal class SearchRepositoryIpml @Inject constructor(
+internal class SearchRepositoryImpl @Inject constructor(
     private val source: BangumiSource,
 ) : SearchRepository {
 

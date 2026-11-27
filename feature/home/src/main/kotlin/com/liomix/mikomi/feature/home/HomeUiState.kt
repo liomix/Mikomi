@@ -1,6 +1,7 @@
 package com.liomix.mikomi.feature.home
 
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.model.anime.SliderImage
 
 /**
  * 首页的**唯一**状态。
@@ -28,7 +29,9 @@ sealed interface HomeContent {
     data object Loading : HomeContent
 
     data class Success(
-        val banners: List<Anime>,
+        /** 轮播图：由 [com.liomix.mikomi.data.anime.repository.SliderImageRepository] 单独给出。 */
+        val sliders: List<SliderImage>,
+        /** 内容区：海报网格。 */
         val anime: List<Anime>,
         val isLoadingMore: Boolean = false,
         val hasMore: Boolean = true,

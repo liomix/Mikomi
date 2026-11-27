@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.repository.Ipml
+package com.liomix.mikomi.data.anime.repository.Impl
 
 import com.liomix.mikomi.core.cache.CacheJson
 import com.liomix.mikomi.core.cache.CacheKey
@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.map
  * 两榜**一起成功才写**：这里是「首页那个短榜」，只给十几条，少半边的观感比整块旧数据
  * 更差（用户会以为国漫区就是空的）。与排行榜不同 —— 那边每榜 100 条，缺一半仍可用。
  */
-internal class HotRepositoryIpml @Inject constructor(
+internal class HotRepositoryImpl @Inject constructor(
     private val source: AniRpbSource,
     private val cacheStore: DiskCache,
 ) : HotRepository {

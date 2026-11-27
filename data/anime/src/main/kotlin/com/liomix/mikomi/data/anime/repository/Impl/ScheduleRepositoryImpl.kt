@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.repository.Ipml
+package com.liomix.mikomi.data.anime.repository.Impl
 
 import android.util.Log
 import androidx.room.withTransaction
@@ -63,7 +63,7 @@ import kotlinx.coroutines.withContext
  *
  * 全部源失败时抛异常并保留旧数据；全部源返回空数据时清空本周（确实是空周）。
  */
-internal class ScheduleRepositoryIpml @Inject constructor(
+internal class ScheduleRepositoryImpl @Inject constructor(
     private val sources: Set<@JvmSuppressWildcards ScheduleSource>,
     private val identityRegistry: AnimeIdentityRegistry,
     private val merger: ScheduleMerger,

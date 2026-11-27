@@ -3,11 +3,14 @@ package com.liomix.mikomi.feature.home
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.liomix.mikomi.data.anime.repository.HomeRepository
+import com.liomix.mikomi.data.anime.repository.HomeContentRepository
+import com.liomix.mikomi.data.anime.repository.SliderImageRepository
+import com.liomix.mikomi.feature.home.components.RefreshState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +18,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -26,32 +30,36 @@ import kotlinx.coroutines.withTimeoutOrNull
  * 不是各写一遍的补丁：
  *
  * - 本地已有数据就展示（离线优先），刷新失败不把已看到的内容换成错误页；
- * - 刷新失败只写进 [RefreshState.failed]，数据源照旧可观察 —— 重试与「数据自己到了」
+ * - 刷新失败只写进 [com.liomix.mikomi.feature.home.components.RefreshState.failed]，数据源照旧可观察 —— 重试与「数据自己到了」
  *   都能把页面带回内容态。
  *
  * 上一版把异常挂在合成流的末尾（`.catch {}`）。`catch` 的语义是**终止**：它发出
  * 一个错误态之后整条流就结束了，`stateIn` 永远停在那个值上 —— 错误页的「重试」
  * 点了没有反应，恢复只能靠重新进页面。这是「一个功能有两种实现」的典型：
  * 失败态既由流驱动，又指望命令把流救回来。
+ *
+ * ## 两个源，各刷各的
+ *
+ * 轮播（[SliderImageRepository]）与内容区（[HomeContentRepository]）是两条独立链路：
+ * 各自的缓存、各自的 TTL、各自的请求。这里只做一件事 —— **并行**发起、**互不取消**
+ * （见 [refreshBoth]）。串行会让下拉刷新白等一个来回。
+ *
+ * 分页游标不在这里：它在数据层的缓存里，UI 侧再存一份就是两个真相，迟早对不上。
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val homeRepository: HomeRepository,
+    private val homeContentRepository: HomeContentRepository,
+    private val sliderImageRepository: SliderImageRepository,
 ) : ViewModel() {
 
-    // 两个数据源各留一份引用：除了喂给 combine，loadMore 还要拿 recommended
-    // 判断「本地是不是真的多出了条目」。
-    private val banners = homeRepository.observeBanners()
-    private val recommended = homeRepository.observeRecommend()
+    private val sliders = sliderImageRepository.observeSliderImages()
+    private val items = homeContentRepository.observeContent()
 
     private val refreshState = MutableStateFlow(RefreshState())
     private val paging = MutableStateFlow(PagingState())
 
     /** 在途刷新任务：同一时刻只允许一趟，连点不叠加请求。 */
     private var refreshJob: Job? = null
-
-    /** 下一页的起始偏移，由每次刷新返回的 `loadedCount` 推进。 */
-    private var offset = 0
 
     /**
      * 首页唯一状态：内容 + 下拉指示器。
@@ -60,18 +68,18 @@ class HomeViewModel @Inject constructor(
      * 塞进内容态就丢了。外层放**跨态**字段，内层 sealed 只表达「内容现在是什么」。
      */
     val uiState: StateFlow<HomeUiState> = combine(
-        banners,
-        recommended,
+        sliders,
+        items,
         refreshState,
         paging,
-    ) { banners, recommended, refresh, paging ->
+    ) { sliders, items, refresh, paging ->
         HomeUiState(
             // 只有用户主动发起的那一次才转指示器；自动首载由骨架屏表达加载。
             isRefreshing = refresh.showsIndicator,
             content = when {
-                banners.isNotEmpty() || recommended.isNotEmpty() -> HomeContent.Success(
-                    banners = banners,
-                    anime = recommended,
+                sliders.isNotEmpty() || items.isNotEmpty() -> HomeContent.Success(
+                    sliders = sliders,
+                    anime = items,
                     isLoadingMore = paging.isLoadingMore,
                     hasMore = paging.hasMore,
                 )
@@ -88,7 +96,7 @@ class HomeViewModel @Inject constructor(
     )
 
     init {
-        // 首页刚拉过就不发请求：轮播与推荐来自同一次刷新。
+        // 首页刚拉过就不发请求：两个源各自按自己的 TTL 判断。
         startRefresh(userInitiated = false)
     }
 
@@ -105,15 +113,8 @@ class HomeViewModel @Inject constructor(
             // 每次发起都重置 failed：这是一次新的尝试，页面不该带着上一次的结论进加载。
             refreshState.value = RefreshState(inFlight = true, userVisible = userInitiated)
             try {
-                // 非用户触发时交给数据层判断 TTL；它内部会决定要不要真的发请求，
-                // 所以这里不需要再读返回值（分页状态由 Room 的列表长度驱动）。
-                if (userInitiated) {
-                    val result = homeRepository.refresh()
-                    offset = result.loadedCount
-                    paging.value = PagingState(isLoadingMore = false, hasMore = result.hasMore)
-                } else {
-                    homeRepository.refreshIfStale()
-                }
+                // 非用户触发时交给数据层判断 TTL；它内部会决定要不要真的发请求。
+                if (userInitiated) refreshBoth() else refreshBothIfStale()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -126,9 +127,46 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
+     * 两个源并行刷新，且**互不取消**。
+     *
+     * `supervisorScope` 只保证「一个子协程失败不连坐兄弟」，还差一步：父协程若在第一个
+     * `await` 之后立刻抛异常，仍会取消还没跑完的那一个。所以这里**先把两个结果都收齐**，
+     * 再决定抛不抛 —— 轮播失败不该让内容区这次刷新作废，反之亦然。
+     *
+     * 分页状态只由内容区决定：轮播没有「下一页」。
+     */
+    private suspend fun refreshBoth() = supervisorScope {
+        val sliderResult = async { catching { sliderImageRepository.refresh() } }
+        val contentResult = async { catching { homeContentRepository.refresh() } }
+
+        val sliders = sliderResult.await()
+        val content = contentResult.await()
+
+        content.getOrNull()?.let { paging.value = PagingState(hasMore = it) }
+        sliders.exceptionOrNull()?.let { throw it }
+        content.exceptionOrNull()?.let { throw it }
+    }
+
+    /**
+     * 进页面时的刷新：两个源各自按 TTL 决定要不要发请求。
+     *
+     * 失败照样上抛 —— 首次进页面的失败就是错误页，不能被「互相独立」这个理由吞掉。
+     */
+    private suspend fun refreshBothIfStale() = supervisorScope {
+        val sliderResult = async { catching { sliderImageRepository.refreshIfStale() } }
+        val contentResult = async { catching { homeContentRepository.refreshIfStale() } }
+
+        val sliders = sliderResult.await()
+        val content = contentResult.await()
+
+        sliders.exceptionOrNull()?.let { throw it }
+        content.exceptionOrNull()?.let { throw it }
+    }
+
+    /**
      * 加载下一页。
      *
-     * 结束时机不是「请求返回」，而是「本地真的多了一条」：请求返回与 Room 送新列表
+     * 结束时机不是「请求返回」，而是「本地真的多了一条」：请求返回与缓存送新列表
      * 是两条独立路径，早一步撤掉底部骨架行，中间那一两帧就是「骨架没了、卡片还没到」。
      * 空页与失败时条数永远不变，所以最多等 [PAGING_GRACE_MILLIS] 就收。
      *
@@ -144,12 +182,11 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             paging.value = state.copy(isLoadingMore = true)
             try {
-                val result = homeRepository.loadMore()
-                offset += result.loadedCount
+                val hasMore = homeContentRepository.loadMore()
                 // 保持「正在补内容」，直到本地条数变化或宽限到期。
-                paging.value = PagingState(isLoadingMore = true, hasMore = result.hasMore)
+                paging.value = PagingState(isLoadingMore = true, hasMore = hasMore)
                 withTimeoutOrNull(PAGING_GRACE_MILLIS) {
-                    recommended.firstOrNull { it.size != shown }
+                    items.firstOrNull { it.size != shown }
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -166,10 +203,23 @@ class HomeViewModel @Inject constructor(
 
         /** 等本地落库的宽限：正常一两帧（~30ms）就到，这个时长只用来兜住空页与失败。 */
         const val PAGING_GRACE_MILLIS = 300L
+
+        /**
+         * `runCatching` 的取消安全版。
+         *
+         * `CancellationException` 必须继续往上抛 —— 页面被销毁时，那不是一个「刷新失败」。
+         */
+        suspend fun <T> catching(block: suspend () -> T): Result<T> = try {
+            Result.success(block())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }
 
-/** 分页游标：是否正在补内容、还有没有下一页。 */
+/** 分页事实：是否正在补内容、还有没有下一页。 */
 private data class PagingState(
     val isLoadingMore: Boolean = false,
     val hasMore: Boolean = true,

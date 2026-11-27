@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.repository.Ipml
+package com.liomix.mikomi.data.anime.repository.Impl
 
 import android.util.Log
 import com.liomix.mikomi.core.cache.CacheJson
@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.map
  * 两榜**分别**处理失败：单榜挂掉时那一榜保留旧数据，另一榜照常更新 —— 只有两榜全挂
  * 才向上抛，让页面显示「可重试」而不是把已经能看的那一榜也变成错误页。
  */
-internal class RankRepositoryIpml @Inject constructor(
+internal class RankRepositoryImpl @Inject constructor(
     private val source: AniRpbSource,
     private val cacheStore: DiskCache,
 ) : RankRepository {

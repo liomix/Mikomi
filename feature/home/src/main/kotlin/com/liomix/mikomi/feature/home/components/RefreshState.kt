@@ -1,4 +1,4 @@
-package com.liomix.mikomi.feature.home
+package com.liomix.mikomi.feature.home.components
 
 /**
  * 一次刷新的三个事实：**在途 / 用户看得见 / 上次失败**。

@@ -2,20 +2,22 @@ package com.liomix.mikomi.data.anime.di
 
 import com.liomix.mikomi.data.anime.repository.CommentRepository
 import com.liomix.mikomi.data.anime.repository.DetailRepository
-import com.liomix.mikomi.data.anime.repository.HomeRepository
+import com.liomix.mikomi.data.anime.repository.HomeContentRepository
 import com.liomix.mikomi.data.anime.repository.HotRepository
 import com.liomix.mikomi.data.anime.repository.PlayerRepository
 import com.liomix.mikomi.data.anime.repository.RankRepository
 import com.liomix.mikomi.data.anime.repository.SearchRepository
 import com.liomix.mikomi.data.anime.repository.ScheduleRepository
-import com.liomix.mikomi.data.anime.repository.Ipml.HotRepositoryIpml
-import com.liomix.mikomi.data.anime.repository.Ipml.PlayerRepositoryIpml
-import com.liomix.mikomi.data.anime.repository.Ipml.ScheduleRepositoryIpml
-import com.liomix.mikomi.data.anime.repository.Ipml.CommentRepositoryIpml
-import com.liomix.mikomi.data.anime.repository.Ipml.DetailRepositoryIpml
-import com.liomix.mikomi.data.anime.repository.Ipml.HomeRepositoryIpml
-import com.liomix.mikomi.data.anime.repository.Ipml.RankRepositoryIpml
-import com.liomix.mikomi.data.anime.repository.Ipml.SearchRepositoryIpml
+import com.liomix.mikomi.data.anime.repository.SliderImageRepository
+import com.liomix.mikomi.data.anime.repository.Impl.HotRepositoryImpl
+import com.liomix.mikomi.data.anime.repository.Impl.PlayerRepositoryImpl
+import com.liomix.mikomi.data.anime.repository.Impl.ScheduleRepositoryImpl
+import com.liomix.mikomi.data.anime.repository.Impl.CommentRepositoryImpl
+import com.liomix.mikomi.data.anime.repository.Impl.DetailRepositoryImpl
+import com.liomix.mikomi.data.anime.repository.Impl.HomeContentRepositoryImpl
+import com.liomix.mikomi.data.anime.repository.Impl.RankRepositoryImpl
+import com.liomix.mikomi.data.anime.repository.Impl.SearchRepositoryImpl
+import com.liomix.mikomi.data.anime.repository.Impl.SliderImageRepositoryImpl
 import com.liomix.mikomi.data.anime.remote.anicyk.AniCykScheduleSource
 import com.liomix.mikomi.data.anime.remote.anirpb.AniRpbScheduleSource
 import com.liomix.mikomi.data.anime.processor.schedule.AnimeIdentityRegistry
@@ -41,33 +43,40 @@ internal abstract class AnimeDataModule {
 
 
     @Binds
-    internal abstract fun bindPlayerRepository(impl: PlayerRepositoryIpml): PlayerRepository
+    internal abstract fun bindPlayerRepository(impl: PlayerRepositoryImpl): PlayerRepository
 
     @Binds
-    internal abstract fun bindHotRepository(impl: HotRepositoryIpml): HotRepository
-
-
-    @Binds
-    internal abstract fun bindScheduleRepository(impl: ScheduleRepositoryIpml): ScheduleRepository
+    internal abstract fun bindHotRepository(impl: HotRepositoryImpl): HotRepository
 
 
     @Binds
-    internal abstract fun bindRankRepository(impl: RankRepositoryIpml): RankRepository
+    internal abstract fun bindScheduleRepository(impl: ScheduleRepositoryImpl): ScheduleRepository
+
+
+    @Binds
+    internal abstract fun bindRankRepository(impl: RankRepositoryImpl): RankRepository
 
     @Binds
     internal abstract fun bindAnimeIdConverter(impl: AnimeIdConverterImpl): AnimeIdConverter
 
     @Binds
-    internal abstract fun bindHomeRepository(impl: HomeRepositoryIpml): HomeRepository
+    internal abstract fun bindHomeContentRepository(
+        impl: HomeContentRepositoryImpl,
+    ): HomeContentRepository
 
     @Binds
-    internal abstract fun bindDetailRepository(impl: DetailRepositoryIpml): DetailRepository
+    internal abstract fun bindSliderImageRepository(
+        impl: SliderImageRepositoryImpl,
+    ): SliderImageRepository
 
     @Binds
-    internal abstract fun bindCommentRepository(impl: CommentRepositoryIpml): CommentRepository
+    internal abstract fun bindDetailRepository(impl: DetailRepositoryImpl): DetailRepository
 
     @Binds
-    internal abstract fun bindSearchRepository(impl: SearchRepositoryIpml): SearchRepository
+    internal abstract fun bindCommentRepository(impl: CommentRepositoryImpl): CommentRepository
+
+    @Binds
+    internal abstract fun bindSearchRepository(impl: SearchRepositoryImpl): SearchRepository
 
 
     @Binds

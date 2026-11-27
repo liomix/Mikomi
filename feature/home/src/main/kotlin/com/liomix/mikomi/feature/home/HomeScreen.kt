@@ -42,10 +42,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.model.anime.SliderImage
 import com.liomix.mikomi.core.ui.base.ErrorState
 import com.liomix.mikomi.core.ui.base.SkeletonBox
 import com.liomix.mikomi.core.ui.base.SkeletonShimmer
 import com.liomix.mikomi.core.ui.business.AnimePosterCard
+import com.liomix.mikomi.core.ui.business.LocalHeroFlightController
 import com.liomix.mikomi.core.ui.business.PosterCardSkeleton
 import com.liomix.mikomi.core.ui.business.PosterGrid
 import com.liomix.mikomi.core.ui.layout.LocalBottomBarSpace
@@ -53,6 +55,12 @@ import com.liomix.mikomi.core.ui.layout.BlurredTopBar
 import com.liomix.mikomi.core.ui.window.rememberBottomInset
 import com.liomix.mikomi.core.ui.window.rememberInsetsDp
 import com.liomix.mikomi.core.ui.window.rememberTopInset
+import com.liomix.mikomi.feature.home.components.BANNER_HEIGHT
+import com.liomix.mikomi.feature.home.components.HomeActionTabs
+import com.liomix.mikomi.feature.home.components.HomeBanner
+import com.liomix.mikomi.feature.home.components.HomeQuickAction
+import com.liomix.mikomi.feature.home.components.HomeTopBar
+import com.liomix.mikomi.feature.home.components.HomeTopBarHeight
 
 /** 网格最小列宽：手机竖屏约 3 列，宽屏自动增加列数（Dart 版为固定 3 列）。 */
 private val HomeGridMinWidth = 100.dp
@@ -227,7 +235,7 @@ fun HomeScreen(
 ) {
     when (val content = uiState.content) {
         HomeContent.Loading -> HomeFeed(
-            banners = emptyList(),
+            sliders = emptyList(),
             anime = emptyList(),
             isRefreshing = uiState.isRefreshing,
             isLoadingMore = false,
@@ -248,7 +256,7 @@ fun HomeScreen(
         )
 
         is HomeContent.Success -> HomeFeed(
-            banners = content.banners,
+            sliders = content.sliders,
             anime = content.anime,
             isRefreshing = uiState.isRefreshing,
             isLoadingMore = content.isLoadingMore,
@@ -274,7 +282,7 @@ fun HomeScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeFeed(
-    banners: List<Anime>,
+    sliders: List<SliderImage>,
     anime: List<Anime>,
     isRefreshing: Boolean,
     isLoadingMore: Boolean,
@@ -352,7 +360,7 @@ private fun HomeFeed(
                     item(key = KEY_HEADER, span = { GridItemSpan(maxLineSpan) }) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             HomeHero(
-                                banners = banners,
+                                sliders = sliders,
                                 chrome = chrome,
                                 autoPlay = bannerVisible,
                                 pullFraction = pullState.distanceFraction,
@@ -453,12 +461,15 @@ private fun HomeFeed(
  */
 @Composable
 private fun HomeHero(
-    banners: List<Anime>,
+    sliders: List<SliderImage>,
     chrome: HomeChrome,
     autoPlay: Boolean,
     pullFraction: Float,
     onAnimeClick: (String) -> Unit,
 ) {
+    // 轮播不是封面飞行的起点（头图不是封面，内容区还很可能摆着同一部番的卡）：
+    // 点它进详情前先声明，返回时不会从详情飞向网格里那张与本次点击无关的卡。
+    val heroController = LocalHeroFlightController.current
     val height = BANNER_HEIGHT + chrome.top
     Box(
         modifier = Modifier
@@ -475,12 +486,15 @@ private fun HomeHero(
                 transformOrigin = TransformOrigin(0.5f, 0f)
             },
     ) {
-        if (banners.isEmpty()) {
+        if (sliders.isEmpty()) {
             HomeBannerSkeleton()
         } else {
             HomeBanner(
-                banners = banners,
-                onBannerClick = onAnimeClick,
+                sliders = sliders,
+                onSliderClick = { animeId ->
+                    heroController?.skipNextFlight()
+                    onAnimeClick(animeId)
+                },
                 autoPlay = autoPlay,
                 height = height,
             )
@@ -626,7 +640,7 @@ private fun Modifier.bleedToEdge(start: Dp, end: Dp, top: Dp): Modifier = layout
 
 /**
  * 轮播图骨架屏：与 [HomeBanner] 同高（共用 `BANNER_HEIGHT`），
- * 在 `banners` 为空时占位显示。尺寸写死在两处过：曾经这里用 12dp 圆角而真实卡片是 20dp，
+ * 在 `sliders` 为空时占位显示。尺寸写死在两处过：曾经这里用 12dp 圆角而真实卡片是 20dp，
  * 数据到货的瞬间四个角会明显弹一下。
  */
 @Composable

@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.liomix.mikomi.core.model.anime.RankEntry
 import com.liomix.mikomi.core.model.anime.RankRegion
 import com.liomix.mikomi.data.anime.repository.RankRepository
-import com.liomix.mikomi.feature.home.RefreshState
+import com.liomix.mikomi.feature.home.components.RefreshState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException

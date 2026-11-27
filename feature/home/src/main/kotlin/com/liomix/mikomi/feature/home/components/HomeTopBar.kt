@@ -1,4 +1,4 @@
-package com.liomix.mikomi.feature.home
+package com.liomix.mikomi.feature.home.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Row

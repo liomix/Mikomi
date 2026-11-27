@@ -1,4 +1,4 @@
-package com.liomix.mikomi.data.anime.repository.Ipml
+package com.liomix.mikomi.data.anime.repository.Impl
 
 import com.liomix.mikomi.data.anime.remote.bangumi.BangumiSource
 import com.liomix.mikomi.data.anime.repository.CommentPage
@@ -12,7 +12,7 @@ import javax.inject.Inject
  * `hasMore` 用「本页条数是否填满 limit」判断，不读服务端的 `total`：Bangumi 的 total
  * 与真正能翻到的条数并不总一致，用它会出现「点了加载更多，转一圈什么都没有」。
  */
-internal class CommentRepositoryIpml @Inject constructor(
+internal class CommentRepositoryImpl @Inject constructor(
     private val source: BangumiSource,
 ) : CommentRepository {
 

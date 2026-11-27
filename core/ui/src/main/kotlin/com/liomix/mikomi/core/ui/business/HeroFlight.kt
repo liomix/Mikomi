@@ -126,11 +126,17 @@ class HeroFlightController {
     /** 起飞请求：起点已定，等终点测量。 */
     private var pendingKey: Any? = null
 
+    /**
+     * 本次进入详情**由哪张列表卡发起**；`null` 表示不是从卡片进来的（例如轮播）。
+     *
+     * 反向飞行的判据必须是它，不能是「页面里有没有这部番的卡」：首页的轮播与内容区
+     * 经常摆着同一部番，从轮播点进去时网格里那张卡当然也在 —— 用 `sources` 判断，
+     * 就会出现「用户点的是头图，飞出来的却是网格里的卡片」。
+     */
+    private var entryKey: Any? = null
+
     /** 飞行序号：每次起飞自增，用于绑定动画进度。 */
     private var nextFlightId = 0L
-
-    /** 最近一次正向飞行完成的 key，供返回时反向飞。 */
-    private var lastFlewKey: Any? = null
 
     /** 列表卡（起点）上报自身位置。 */
     internal fun onSourceLaidOut(key: Any, endpoint: HeroEndpoint) {
@@ -165,15 +171,40 @@ class HeroFlightController {
         )
     }
 
-    /** 列表项点击时调用：记住起点，等详情页封面测量完成后起飞。 */
+    /** 列表项点击时调用：记住起点与「这一趟从卡片进入」，等详情页封面测量完成后起飞。 */
     fun begin(key: Any) {
         if (sources[key] == null) return
         pendingKey = key
+        entryKey = key
     }
 
-    /** 返回时反向飞：详情封面 → 列表卡；两端都没记录时什么都不做。 */
+    /**
+     * 声明「这次进入详情不参与封面飞行」。
+     *
+     * 轮播这类入口在导航前调用。两条理由：
+     *
+     * 1. 头图不是封面 —— 出血的横幅飞进 2:3 的小封面，中途必然被裁得不像话；
+     * 2. 内容区很可能同时摆着同一部番的卡片，而那张卡不是用户点的。不声明的话，
+     *    返回时会从详情飞向网格 —— 用户看到的是「我只点了轮播，内容区那张自己动了」。
+     */
+    fun skipNextFlight() {
+        pendingKey = null
+        entryKey = null
+    }
+
+    /**
+     * 返回时反向飞：详情封面 → 发起它的那张列表卡。
+     *
+     * [key] 是当前详情页的 id。只有「这一趟确实由这张卡点进来」才飞 ——
+     * 从轮播进入时 [entryKey] 是 null（或别的番），这里什么都不做：
+     * 页面直接切回，内容区里同番的卡片一根手指都不动。
+     */
     fun beginReverse(key: Any?) {
-        val resolved = key ?: lastFlewKey ?: return
+        val launchedFromCard = entryKey != null && entryKey == key
+        // 一次进入对应一次返回，无论飞不飞都清掉，避免下一次误判。
+        entryKey = null
+        val resolved = key ?: return
+        if (!launchedFromCard) return
         val target = targets[resolved] ?: return
         val source = sources[resolved] ?: return
         launch(
@@ -188,10 +219,9 @@ class HeroFlightController {
         )
     }
 
-    /** 飞行结束：解除两端的隐藏，并记住 key 供返回使用。 */
+    /** 飞行结束：解除两端的隐藏。 */
     fun finish(id: Long) {
         if (flightId != id) return
-        lastFlewKey = flight?.key
         flight = null
         flightId = null
     }

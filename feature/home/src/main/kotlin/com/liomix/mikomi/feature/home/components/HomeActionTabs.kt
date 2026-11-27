@@ -1,4 +1,4 @@
-package com.liomix.mikomi.feature.home
+package com.liomix.mikomi.feature.home.components
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +30,7 @@ import com.liomix.mikomi.core.designsystem.Radius
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.mikomiClickable
+import com.liomix.mikomi.feature.home.R
 import kotlin.math.roundToInt
 
 /** 首页快捷入口动作。 */

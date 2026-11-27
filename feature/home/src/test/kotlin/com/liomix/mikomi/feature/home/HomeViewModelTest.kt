@@ -1,9 +1,10 @@
 package com.liomix.mikomi.feature.home
 
 import com.liomix.mikomi.core.model.Anime
+import com.liomix.mikomi.core.model.anime.SliderImage
 import com.liomix.mikomi.core.testing.MainDispatcherRule
-import com.liomix.mikomi.data.anime.HomeRepository
-import com.liomix.mikomi.data.anime.LoadMoreResult
+import com.liomix.mikomi.data.anime.repository.HomeContentRepository
+import com.liomix.mikomi.data.anime.repository.SliderImageRepository
 import java.io.IOException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -37,51 +38,72 @@ class HomeViewModelTest {
     val mainDispatcherRule = MainDispatcherRule(UnconfinedTestDispatcher(scheduler))
 
     @Test
-    fun `success exposes banners and recommended separately`() = runTest(scheduler) {
-        val viewModel = HomeViewModel(FakeHomeRepository(banners = 5, recommended = 8))
+    fun `success exposes sliders and content separately`() = runTest(scheduler) {
+        val fixture = Fixture(sliders = 5, items = 8)
 
-        val content = viewModel.uiState.awaitContent<HomeContent.Success>()
+        val content = fixture.viewModel.uiState.awaitContent<HomeContent.Success>()
 
-        assertEquals(5, content.banners.size)
+        assertEquals(5, content.sliders.size)
         assertEquals(8, content.anime.size)
     }
 
     @Test
     fun `refresh failure is recoverable when data arrives`() = runTest(scheduler) {
-        val repository = FakeHomeRepository().apply { failRefresh = true }
-        val viewModel = HomeViewModel(repository)
+        val fixture = Fixture()
+        fixture.content.failRefresh = true
 
-        assertTrue(viewModel.uiState.first { it.content is HomeContent.Error }.content is HomeContent.Error)
+        fixture.viewModel.refresh()
+        assertTrue(
+            fixture.viewModel.uiState.first { it.content is HomeContent.Error }.content
+                is HomeContent.Error,
+        )
 
         // 数据自己到了（另一次刷新、或别的页面写库）：页面该回到内容态。
-        repository.pushRecommended(count = 3)
+        fixture.content.push(count = 3)
 
-        val content = viewModel.uiState.awaitContent<HomeContent.Success>()
+        val content = fixture.viewModel.uiState.awaitContent<HomeContent.Success>()
         assertEquals(3, content.anime.size)
     }
 
     @Test
     fun `retry after failure leaves the error state`() = runTest(scheduler) {
-        val repository = FakeHomeRepository().apply { failRefresh = true }
-        val viewModel = HomeViewModel(repository)
-        viewModel.uiState.first { it.content is HomeContent.Error }
+        val fixture = Fixture()
+        fixture.content.failRefresh = true
+        fixture.viewModel.refresh()
+        fixture.viewModel.uiState.first { it.content is HomeContent.Error }
 
-        repository.failRefresh = false
-        viewModel.refresh()
+        fixture.content.failRefresh = false
+        fixture.viewModel.refresh()
 
         // 数据仍为空，所以停在骨架屏而不是错误页 —— 关键是「重试有反应」。
-        assertTrue(viewModel.uiState.first { it.content is HomeContent.Loading }.content is HomeContent.Loading)
+        assertTrue(
+            fixture.viewModel.uiState.first { it.content is HomeContent.Loading }.content
+                is HomeContent.Loading,
+        )
+    }
+
+    @Test
+    fun `slider failure does not block content refresh`() = runTest(scheduler) {
+        val fixture = Fixture(items = 4)
+        fixture.sliderImages.failRefresh = true
+
+        fixture.viewModel.refresh()
+
+        // 两个源互不取消：轮播失败，内容区这次刷新照样落地。
+        val content = fixture.viewModel.uiState.awaitContent<HomeContent.Success>()
+        assertEquals(4, content.anime.size)
+        assertTrue(content.sliders.isEmpty())
     }
 
     @Test
     fun `loadMore stops at the last page`() = runTest(scheduler) {
-        val viewModel = HomeViewModel(FakeHomeRepository(recommended = 8))
-        viewModel.uiState.awaitContent<HomeContent.Success>()
+        val fixture = Fixture(items = 8)
+        fixture.viewModel.uiState.awaitContent<HomeContent.Success>()
 
-        viewModel.loadMore()
+        fixture.viewModel.loadMore()
 
         // 底部分页骨架一直挂到「本地条数真的变了」或宽限到期，所以这里等到它落下。
-        val content = viewModel.uiState.first {
+        val content = fixture.viewModel.uiState.first {
             (it.content as? HomeContent.Success)?.isLoadingMore == false
         }.content as HomeContent.Success
         assertEquals(false, content.hasMore)
@@ -91,36 +113,64 @@ class HomeViewModelTest {
     private suspend inline fun <reified T : HomeContent> StateFlow<HomeUiState>.awaitContent(): T =
         first { it.content is T }.content as T
 
-    private class FakeHomeRepository(
-        banners: Int = 0,
-        recommended: Int = 0,
-    ) : HomeRepository {
+    /**
+     * 两个源 + 一个 ViewModel 的组合。
+     *
+     * 两个替身**各自独立**（不互相派生）：接口的语义就是「两条独立链路」，
+     * 替身写成「一个喂另一个」会让「互不取消」这条行为永远测不出来。
+     */
+    private class Fixture(sliders: Int = 0, items: Int = 0) {
+        val sliderImages = FakeSliderImageRepository(sliders)
+        val content = FakeHomeContentRepository(items)
+        val viewModel = HomeViewModel(content, sliderImages)
+    }
 
-        private val bannerFlow = MutableStateFlow(animeList("banner", banners))
-        private val recommendedFlow = MutableStateFlow(animeList("rec", recommended))
+    private class FakeHomeContentRepository(items: Int = 0) : HomeContentRepository {
 
-        /** 为真时 `refreshHome` 抛异常，用来复现「刷新失败但本地可能有数据」的场景。 */
+        private val contentFlow = MutableStateFlow(animeList("rec", items))
+
+        /** 为真时 `refresh` 抛异常，用来复现「刷新失败但本地可能有数据」的场景。 */
         var failRefresh: Boolean = false
 
-        fun pushRecommended(count: Int) {
-            recommendedFlow.value = animeList("rec", count)
+        fun push(count: Int) {
+            contentFlow.value = animeList("rec", count)
         }
 
-        override fun observeBanners(): Flow<List<Anime>> = bannerFlow
+        override fun observeContent(): Flow<List<Anime>> = contentFlow
 
-        override fun observeRecommended(): Flow<List<Anime>> = recommendedFlow
+        override suspend fun refreshIfStale() = Unit
 
-        override suspend fun refreshHome(): LoadMoreResult {
+        override suspend fun refresh(): Boolean {
             if (failRefresh) throw IOException("boom")
-            return LoadMoreResult(hasMore = true, loadedCount = recommendedFlow.value.size)
+            return true
         }
 
-        override suspend fun loadMore(offset: Int): LoadMoreResult =
-            LoadMoreResult(hasMore = false, loadedCount = 0)
+        override suspend fun loadMore(): Boolean = false
+    }
+
+    private class FakeSliderImageRepository(count: Int = 0) : SliderImageRepository {
+
+        private val sliderFlow = MutableStateFlow(sliderList(count))
+
+        /** 为真时 `refresh` 抛异常，用来验证「轮播挂了不拖累内容区」。 */
+        var failRefresh: Boolean = false
+
+        override fun observeSliderImages(): Flow<List<SliderImage>> = sliderFlow
+
+        override suspend fun refreshIfStale() = Unit
+
+        override suspend fun refresh() {
+            if (failRefresh) throw IOException("slider boom")
+        }
     }
 
     private companion object {
         fun animeList(prefix: String, count: Int): List<Anime> =
             (1..count).map { Anime(id = "$prefix$it", title = "$prefix$it") }
+
+        fun sliderList(count: Int): List<SliderImage> =
+            (1..count).map {
+                SliderImage(animeId = "slider$it", title = "slider$it", coverUrl = null)
+            }
     }
 }

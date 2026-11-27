@@ -222,12 +222,12 @@ private fun FilterSheet(
     val gridHeight = CellHeight * rows + GridGap * (rows - 1)
     // 格子里只改两处，其余（40dp 高度、选中配色、字重、动画）全部沿用设计系统。
     //
-    // ① 横内边距 18dp → 8dp：18 是单独一颗时的呼吸，五列并排时手机上一格只有 60dp 宽，
-    //    左右各 18 就只剩 24dp 给字，三字标签会变成省略号。
+    // ① 横内边距收到 [Spacing.Lg]（16dp）：四列时一格有 77dp，两字标签正好铺到 60dp、
+    //    三字铺到 74dp —— 看上去是「横条」，而不是一颗颗立起来的胶囊。
     // ② 圆角取 [Radius.Xl]（16dp）：圆角梯度里次大的一档。再往上一档 [Radius.Xxl]（20dp）
     //    在 40dp 高的标签上正好是半高 —— 画出来和胶囊一模一样，等于没改。
     val cellStyle = TagStyle.selectable().copy(
-        contentPadding = PaddingValues(horizontal = Spacing.Sm),
+        contentPadding = PaddingValues(horizontal = Spacing.Lg),
         shape = RoundedCornerShape(Radius.Xl),
     )
 
@@ -395,9 +395,15 @@ private fun recentYears(): List<Int> {
 /** 年份下拉显示多少年。番剧的「可看性」集中在近十年，再往前找的人会用搜索而不是翻分类。 */
 private const val YEAR_SPAN = 12
 
-/** 候选网格的列数与行数：5 × 4 = 一屏 20 格，正好铺满一页再翻。 */
-private const val GridColumns = 5
-private const val GridRows = 4
+/**
+ * 候选网格的列数与行数：4 × 5 = 一屏 20 格，正好铺满一页再翻。
+ *
+ * 不是 5 列：五列时手机上一格只有 60dp 宽，而标签最小高度是 40dp —— 两字的标签
+ * 宽高比接近 1:1，一排看过去像五颗立着的药丸。四列把格子拉到 77dp，宽高比回到 1.5~1.9，
+ * 才读成「一排横条」。行数因此从 4 加到 5，一页还是 20 个。
+ */
+private const val GridColumns = 4
+private const val GridRows = 5
 
 /**
  * 网格格子的高度：与全站可选中的标签同高（[Sizes.ChipHeight]）。

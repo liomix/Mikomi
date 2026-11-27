@@ -30,9 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.liomix.mikomi.core.designsystem.GlassSpec
 import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.PillShape
+import com.liomix.mikomi.core.designsystem.SheetShape
 import com.liomix.mikomi.core.designsystem.Radius
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
@@ -237,8 +237,10 @@ private fun FilterSheet(
         // 默认那条灰色抓手删掉：它是一条「实体」，而这块面板是玻璃 —— 玻璃上不该钉一根把手。
         // 关闭手势不受影响：面板内容照样能下拉，点遮罩、返回键也都在。
         dragHandle = null,
-        // 半透明的底：蒙在遮罩之上，底下的页面隐约透出来 —— 这就是玻璃的全部（见 GlassSpec）。
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = GlassSpec.PanelAlpha),
+        // 上沿与全站其他底部面板同一个形状（`SheetShape`），材质只交出颜色这一件事：
+        // 半透明的底蒙在遮罩之上，底下的页面隐约透出来 —— 这就是玻璃的全部（见 `GlassSpec`）。
+        shape = SheetShape,
+        containerColor = GlassStyle.panel().fill,
     ) {
         Column(
             modifier = Modifier

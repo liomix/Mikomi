@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.lerp as colorLerp
 import com.liomix.mikomi.core.designsystem.AppTheme
+import com.liomix.mikomi.core.designsystem.GlassSpec
 import com.liomix.mikomi.core.designsystem.Stroke
 
 /**
@@ -48,21 +49,21 @@ data class GlassStyle(
         /** 控件层：浮在页面上的胶囊、小卡。 */
         @Composable
         fun raised(): GlassStyle = GlassStyle(
-            fill = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = RaisedAlpha),
-            edge = MaterialTheme.colorScheme.outlineVariant.copy(alpha = EdgeAlpha),
+            fill = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = GlassSpec.RaisedAlpha),
+            edge = MaterialTheme.colorScheme.outlineVariant.copy(alpha = GlassSpec.EdgeAlpha),
         )
 
         /** 凹槽层：压在另一层玻璃上的小件。 */
         @Composable
         fun inset(): GlassStyle = GlassStyle(
-            fill = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = InsetAlpha),
-            edge = MaterialTheme.colorScheme.outlineVariant.copy(alpha = EdgeAlpha),
+            fill = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = GlassSpec.InsetAlpha),
+            edge = MaterialTheme.colorScheme.outlineVariant.copy(alpha = GlassSpec.EdgeAlpha),
         )
 
         /** 面板层：底部弹窗、抽屉这类大面积容器。 */
         @Composable
         fun panel(): GlassStyle = GlassStyle(
-            fill = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = PanelAlpha),
+            fill = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = GlassSpec.PanelAlpha),
             edge = null,
         )
 
@@ -139,20 +140,3 @@ fun Modifier.glass(
             Modifier
         },
     )
-
-/** 控件层的浓度：够实，文字压得住。 */
-private const val RaisedAlpha = 0.85f
-
-/** 凹槽层的浓度：比 [RaisedAlpha] 透一档，才读成「嵌进去」。 */
-private const val InsetAlpha = 0.55f
-
-/**
- * 面板层的浓度：够透，能看见底下被遮罩压暗的页面；够实，一屏几十个格子压上去不花。
- *
- * 0.88 是「看得出有东西在后面」和「文字不跟着背景一起花」之间的那条线。再透下去，
- * 深色封面的形状会从网格缝里浮出来，读起来像没加载完。
- */
-private const val PanelAlpha = 0.88f
-
-/** 发丝边的浓度。压得太实会变成一条「卡片描边」，玻璃感就没了。 */
-private const val EdgeAlpha = 0.6f

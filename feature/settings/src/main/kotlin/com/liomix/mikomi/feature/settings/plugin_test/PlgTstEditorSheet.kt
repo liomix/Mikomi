@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.SheetShape
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.designsystem.TextStyles
@@ -63,6 +64,7 @@ fun PlgTstEditorSheet(
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        shape = SheetShape,
         containerColor = colors.surfaceContainerLow,
     ) {
         Column(

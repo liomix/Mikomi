@@ -43,6 +43,7 @@ import com.liomix.mikomi.core.common.util.formatRelativeTime
 import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.SheetShape
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.anime.CreatorComment
@@ -87,6 +88,8 @@ internal fun CreatorDetailSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        // 全站底部面板共用一种上沿（design-system 的 `SheetShape`）。
+        shape = SheetShape,
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
         var selectedTab by remember { mutableStateOf(0) }

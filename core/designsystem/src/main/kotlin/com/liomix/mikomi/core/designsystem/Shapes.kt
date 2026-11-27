@@ -14,6 +14,18 @@ import androidx.compose.ui.graphics.Shape
 val PillShape: Shape = RoundedCornerShape(percent = 50)
 
 /**
+ * 底部弹窗的形状：**只有上面两个角是圆的**，下面贴着屏幕边缘。
+ *
+ * 取 [Radius.Xxl]（20dp）而不是对话框那档 [Radius.Sheet]（28dp）：全宽的面板上一圈 28
+ * 会显得「鼓起来」，像一只被吹胀的盒子；收到 20 才回到「一张有厚度的纸从底下抽出来」。
+ * 两个自制抽屉也共用这一个形状 —— 全站的底部面板只该有一种上沿。
+ */
+val SheetShape: Shape = RoundedCornerShape(
+    topStart = Radius.Xxl,
+    topEnd = Radius.Xxl,
+)
+
+/**
  * 形状 token：把 [Radius] 接到 Material 的五个形状槽位上。
  *
  * 两者是同一套数值的两副面孔：

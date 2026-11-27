@@ -59,6 +59,7 @@ import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.Motion
 import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.SheetShape
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.designsystem.Stroke
@@ -176,6 +177,7 @@ internal fun PlaybackSourceSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         // 与页面底色同族：夜间 surface 是 #181818，弹窗比它亮一档才能看出层次。
+        shape = SheetShape,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         // 弹窗高度**固定**：换源时高度跟着线路数量跳，手指刚移过去目标就跑了。

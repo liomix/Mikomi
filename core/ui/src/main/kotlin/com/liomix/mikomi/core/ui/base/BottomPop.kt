@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -36,6 +35,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
+import com.liomix.mikomi.core.designsystem.SheetShape
 import com.liomix.mikomi.core.designsystem.SheetSpec
 import com.liomix.mikomi.core.designsystem.WindowSpec
 import com.liomix.mikomi.core.designsystem.Elevation
@@ -236,10 +236,8 @@ fun BottomPop(
                             )
                         }
                     },
-                shape = RoundedCornerShape(
-                    topStart = SheetSpec.CornerSize,
-                    topEnd = SheetSpec.CornerSize,
-                ),
+                // 全站底部面板共用一种上沿：形状归 design-system，组件不自己调圆角。
+                shape = SheetShape,
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                 tonalElevation = Elevation.Raised,
                 shadowElevation = Elevation.Sheet,

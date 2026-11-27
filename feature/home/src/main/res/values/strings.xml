@@ -5,6 +5,11 @@
     <string name="home_action_rank">排行榜</string>
     <string name="home_action_category">分类</string>
     <string name="category_filter_all">全部</string>
+    <!-- 四个维度的名字：底部面板的标题。胶囊上显示的是「当前值」，面板标题说清「在改哪个维度」。 -->
+    <string name="category_filter_region">动漫类型</string>
+    <string name="category_filter_tag">标签</string>
+    <string name="category_filter_year">年份</string>
+    <string name="category_filter_sort">排序</string>
     <string name="category_region_japan">日漫</string>
     <string name="category_region_china">国漫</string>
     <string name="category_sort_latest">最新</string>
@@ -12,6 +17,10 @@
     <string name="category_sort_score">评分</string>
     <string name="category_empty">这个分类下暂时没有内容</string>
     <string name="category_error">分类加载失败</string>
+    <!-- 条数分成首尾两段：中间那个数字要单独染色，整句就不能是一个 format 串。
+         两段都带引号包裹，否则 aapt 会把首尾的空格吃掉，"共24部动漫" 会挤在一起。 -->
+    <string name="category_count_head">"共 "</string>
+    <string name="category_count_tail">" 部动漫"</string>
     <string name="home_load_failed">加载失败</string>
 
     <string name="schedule_empty">今天暂无更新</string>

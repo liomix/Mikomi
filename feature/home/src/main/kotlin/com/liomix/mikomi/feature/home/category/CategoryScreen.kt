@@ -12,6 +12,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -19,6 +21,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.Anime
@@ -62,9 +68,14 @@ fun CategoryScreen(
         FilterBar(
             query = uiState.query,
             onQueryChange = onQueryChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.Md, vertical = Spacing.Sm),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        // 条数在状态分发**之前**读：它是四条分支共用的同一个数，写进 `Success` 就会在
+        // 加载/空/错误时消失，那一行时有时无，整块版面跟着跳。
+        CategoryResultCount(
+            total = (uiState.content as? CategoryContent.Success)?.anime?.size ?: 0,
+            modifier = Modifier.fillMaxWidth(),
         )
 
         // weight 而不是 fillMaxSize：筛选栏先占位，剩下的高度才给网格。
@@ -92,6 +103,47 @@ fun CategoryScreen(
             )
         }
     }
+}
+
+/**
+ * 结果条数：「共 24 部动漫」，数字取主题色。
+ *
+ * 三段拼在一个 [buildAnnotatedString] 里而不是三个 `Text`：三段各有字号、字重、颜色时，
+ * `Row` 里的基线与段间距都要自己调，而行内 `SpanStyle` 只有一条基线、也随系统字号一起缩放。
+ *
+ * [total] 是**已加载**的部数 —— 这个接口不返回总数（`BangumiSearchResponseDto.total`
+ * 一直是 0），所以数字随翻页增长。等服务端给了真总数，改的只是这一个入参的来源。
+ *
+ * 加载中显示 0 而不是隐藏：这一行在版面里占固定高度，藏起来会让下面的网格跳一下；
+ * 而骨架屏就在正下方，不会让人误读成「一条结果都没有」。
+ */
+@Composable
+private fun CategoryResultCount(
+    total: Int,
+    modifier: Modifier = Modifier,
+) {
+    val head = stringResource(R.string.category_count_head)
+    val tail = stringResource(R.string.category_count_tail)
+
+    Text(
+        text = buildAnnotatedString {
+            append(head)
+            withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)) {
+                append(total.toString())
+            }
+            append(tail)
+        },
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.padding(
+            start = Spacing.Md,
+            end = Spacing.Md,
+            // 上面只留一档：筛选栏已经带着自己的下边距，这里再多一段就成了一条空带；
+            // 下面留两档，把条数和第一行封面分开。
+            top = Spacing.Xs,
+            bottom = Spacing.Sm,
+        ),
+    )
 }
 
 @Composable

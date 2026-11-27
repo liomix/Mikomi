@@ -1,23 +1,24 @@
 package com.liomix.mikomi.core.ui.base
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.Sizes
@@ -40,11 +41,12 @@ import com.liomix.mikomi.core.designsystem.Spacing
  * 拉高的容器；两处搜索框高度不同会在切页面时读成「换了一个控件」。
  * 宽度由 `modifier` 决定：等分剩余空间（首页 `weight(1f)`）还是整行铺满都行。
  *
- * ## 颜色也由调用方给
+ * ## 材质也由调用方给
  *
- * 默认值是「页面上的一行控件」（容器色 + 次级文字）。压在封面上的半透明白、
- * 或者「完全透明、只剩图标和输入区」，都由业务侧决定 —— `core:ui` 不该知道
- * 某个页面把搜索框放在什么底上。
+ * 默认是「页面上的一行控件」（[GlassStyle.raised]）。压在封面上的玻璃、或者
+ * 「完全透明、只剩一条细线」，都由业务侧决定 —— `core:ui` 不该知道某个页面把
+ * 搜索框放在什么底上，所以这里只收一个 [GlassStyle]，不再拆成「底色 + 描边」两件事：
+ * 它们本来就是同一种材质的两个成分，分开传迟早会出现「底是玻璃、边是另一套」的组合。
  *
  * ## 文字也归组件
  *
@@ -56,9 +58,8 @@ import com.liomix.mikomi.core.designsystem.Spacing
  *
  * @param text 放大镜之后的提示文字；null 表示交给 [content]。
  * @param textColor 提示文字色；默认次级文字，压在图上时由调用方换成图上那一档。
- * @param containerColor 胶囊底色（可以是 [Color.Transparent]）。
+ * @param style 胶囊的材质：底色与描边一起来自 [GlassStyle]。
  * @param contentColor 放大镜与尾部动作的默认内容色。
- * @param border 描边；null 表示不描边。
  * @param trailing 尾部动作（清除按钮这类）。有它时右侧内缩自动收窄，
  *   否则按钮会顶到圆角上。
  * @param content 输入场景的内容位（一个可输入的输入框）。与 [text] 二选一。
@@ -75,57 +76,62 @@ fun SearchBox(
     modifier: Modifier = Modifier,
     text: String? = null,
     textColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    style: GlassStyle = GlassStyle.raised(),
     contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    border: BorderStroke? = null,
     trailing: (@Composable () -> Unit)? = null,
     content: (@Composable RowScope.() -> Unit)? = null,
 ) {
-    Surface(
-        shape = PillShape,
-        color = containerColor,
-        contentColor = contentColor,
-        border = border,
-        // 高度在这里定死；外部若显式再传 `height`，那层约束在外面、会覆盖这里。
-        modifier = modifier.height(Sizes.SearchFieldHeight),
+    CompositionLocalProvider(
+        // `Surface` 以前顺手带来的那件事：内容位（输入框、尾部按钮）默认取这个色。
+        // 换成玻璃之后要自己交代，否则光标、尾部图标会退回页面默认色。
+        LocalContentColor provides contentColor,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                // 与巡礼页的搜索条同一套内缩：三处并排看是同一个东西。
-                // 右侧要留给尾部动作时收到 Xs，否则图标与文字会贴着按钮。
-                .padding(
-                    start = Spacing.Gutter,
-                    end = if (trailing == null) Spacing.Gutter else Spacing.Xs,
-                ),
-            verticalAlignment = Alignment.CenterVertically,
+        Box(
+            // 高度在这里定死；外部若显式再传 `height`，那层约束在外面、会覆盖这里。
+            // `propagateMinConstraints`：里面的 `Row(fillMaxSize())` 要靠它拿到有界的高度。
+            modifier = modifier
+                .height(Sizes.SearchFieldHeight)
+                .glass(style, PillShape),
+            propagateMinConstraints = true,
         ) {
-            Icon(
-                icon = Icons.Search,
-                contentDescription = null,
-                tint = contentColor,
-                size = Sizes.IconMd,
-            )
-            Spacer(modifier = Modifier.width(Spacing.Sm))
             Row(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .fillMaxSize()
+                    // 与巡礼页的搜索条同一套内缩：三处并排看是同一个东西。
+                    // 右侧要留给尾部动作时收到 Xs，否则图标与文字会贴着按钮。
+                    .padding(
+                        start = Spacing.Gutter,
+                        end = if (trailing == null) Spacing.Gutter else Spacing.Xs,
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (text != null) {
-                    Text(
-                        text = text,
-                        style = SearchBoxTextStyle,
-                        color = textColor,
-                        // 必须有界宽度才能省略：否则长提示词会把图标顶出去。
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                } else {
-                    content?.invoke(this)
+                Icon(
+                    icon = Icons.Search,
+                    contentDescription = null,
+                    tint = contentColor,
+                    size = Sizes.IconMd,
+                )
+                Spacer(modifier = Modifier.width(Spacing.Sm))
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (text != null) {
+                        Text(
+                            text = text,
+                            style = SearchBoxTextStyle,
+                            color = textColor,
+                            // 必须有界宽度才能省略：否则长提示词会把图标顶出去。
+                            modifier = Modifier.fillMaxWidth(),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    } else {
+                        content?.invoke(this)
+                    }
                 }
+                trailing?.invoke()
             }
-            trailing?.invoke()
         }
     }
 }

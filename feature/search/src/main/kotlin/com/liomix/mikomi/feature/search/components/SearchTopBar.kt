@@ -27,11 +27,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import com.liomix.mikomi.core.designsystem.Icons
-import androidx.compose.foundation.BorderStroke
-import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.ui.base.Icon
+import com.liomix.mikomi.core.ui.base.GlassStyle
 import com.liomix.mikomi.core.ui.base.SearchBox
 import com.liomix.mikomi.core.ui.window.Insets
 import com.liomix.mikomi.feature.search.R
@@ -138,13 +137,14 @@ private fun TopBarSearchField(
     SearchBox(
         // 高度用组件的默认档（40dp），与首页搜索框同一高度；这里只决定宽度。
         modifier = modifier,
-        // 透明底：搜索页背景就是页面底色，再铺一层容器色会让顶栏看起来有一条
-        // 比页面「更亮/更暗」的带子。这里要的是「图标 + 可输入区」，不是一张卡片。
-        containerColor = Color.Transparent,
+        // 这一格不是玻璃，是「透明 + 一条细线」：搜索页背景就是页面底色，再铺一层容器色
+        // 会让顶栏看起来有一条比页面「更亮/更暗」的带子。这里要的是「图标 + 可输入区」，
+        // 不是一张卡片 —— 但边还是要有，否则输入区和栏底就是同一块。
+        style = GlassStyle(
+            fill = Color.Transparent,
+            edge = MaterialTheme.colorScheme.outlineVariant,
+        ),
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        // 顶栏自己有底色，透明输入框若再没有边，和栏底就是同一块：
-        // 加一圈 `outlineVariant` 细线交代「这里是可输入的区域」，与首页顶栏的玻璃边同款。
-        border = BorderStroke(Stroke.Thin, MaterialTheme.colorScheme.outlineVariant),
         trailing = if (query.isEmpty()) {
             null
         } else {

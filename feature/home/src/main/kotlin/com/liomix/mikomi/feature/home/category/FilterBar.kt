@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -42,8 +41,10 @@ import com.liomix.mikomi.core.model.anime.CategoryRegion
 import com.liomix.mikomi.core.model.anime.CategorySort
 import com.liomix.mikomi.core.model.anime.CategoryTags
 import com.liomix.mikomi.core.ui.base.Icon
+import com.liomix.mikomi.core.ui.base.GlassStyle
 import com.liomix.mikomi.core.ui.base.Tag
 import com.liomix.mikomi.core.ui.base.TagStyle
+import com.liomix.mikomi.core.ui.base.glass
 import com.liomix.mikomi.core.ui.base.mikomiClickable
 import com.liomix.mikomi.feature.home.R
 import java.util.Calendar
@@ -168,13 +169,10 @@ private fun FilterChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        shape = PillShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        // 点击范围要收在胶囊形状里：不 clip 的话四个圆角外也能点。
+    Box(
+        // 玻璃自己负责裁剪与描边，点按接在它后面就自然收进圆角里。
         modifier = modifier
-            .clip(PillShape)
+            .glass(GlassStyle.raised(), PillShape)
             .mikomiClickable(onClick = onClick),
     ) {
         Row(
@@ -192,6 +190,7 @@ private fun FilterChip(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             ChevronBadge()
         }
@@ -348,9 +347,10 @@ private fun PagerDots(
 @Composable
 private fun ChevronBadge(modifier: Modifier = Modifier) {
     Box(
+        // 凹槽层，但不描边：14dp 的小圆上再来一条细线，看着像掉了个脏点。
         modifier = modifier
             .size(ChevronBadgeSize)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape),
+            .glass(GlassStyle.inset().copy(edge = null), CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

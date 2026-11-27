@@ -1,10 +1,6 @@
 package com.liomix.mikomi.feature.home.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Row
-import androidx.compose.ui.draw.clip
-import com.liomix.mikomi.core.designsystem.PillShape
-import com.liomix.mikomi.core.ui.base.mikomiClickable
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,9 +14,11 @@ import androidx.compose.ui.graphics.lerp
 import com.liomix.mikomi.core.designsystem.AppTheme
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
-import com.liomix.mikomi.core.designsystem.Stroke
 import com.liomix.mikomi.core.ui.base.Avatar
+import com.liomix.mikomi.core.ui.base.GlassStyle
 import com.liomix.mikomi.core.ui.base.SearchBox
+import com.liomix.mikomi.core.ui.base.lerpTo
+import com.liomix.mikomi.core.ui.base.mikomiClickable
 
 /**
  * 顶栏高度：与巡礼页搜索条完全一致（`AniMapSearchBar` 的 `SearchBarHeight = 40.dp`）。
@@ -41,23 +39,23 @@ internal val HomeTopBarHeight = Sizes.SearchFieldHeight
  * 自适应：整栏随页面滚动，顶部安全区由 HomeScreen 的 contentPadding 承担；
  * 区域间垂直间距由主页网格的 spacedBy 统一提供，本组件不再自带垂直 padding。
  *
- * ## 材质：两套配色，按 [solid] 过渡
+ * ## 材质：玻璃的两端，按 [solid] 过渡
  *
- * 这一栏有两种处境，配色不能只有一套：
+ * 这一栏有两种处境，材质不能只有一套：
  *
- * - **浮在头图上**（`solid = 0`）：白字 + 半透明白底，取 `AppTheme.colors.media`。
- *   底用 `surfaceStrong`（62% 白）—— 14% 压在亮封面上读不出「有一个控件」，
- *   28% 在雪景、天空上仍会发虚；边是 `outline`（14% 白 + [Stroke.Thin]），
- *   玻璃感靠这一圈交代。
- * - **压在页面底色上**（`solid = 1`）：上滑之后顶栏底色就是页面底色，白字白底什么都
- *   看不见。此时换页面配色 —— 底 `surfaceContainerHigh`、字与图标 `onSurfaceVariant`、
- *   边 `outlineVariant`，靠「容器比底色深一档」划出边界。
+ * - **浮在头图上**（`solid = 0`）：[GlassStyle.overImage] —— 白 62% 底 + 白 14% 边，
+ *   取 `media` 层。14% 压在亮封面上读不出「有一个控件」，28% 在雪景、天空上仍会发虚。
+ * - **压在页面底色上**（`solid = 1`）：[GlassStyle.overPage] —— 容器色底 + 中性描边，
+ *   而且**不透明**：上滑之后它要彻底盖住底下那张图。
  *
- * 中间过程按 [solid] 线性插值：两套配色是同一条线的两端，不是到某一帧硬切。
+ * 中间过程按 [solid] 插值 —— 两端是同一条材质线的两个位置，不是到某一帧硬切。
+ *
+ * 材质怎么算归 `Glass.kt`，这里只决定「现在是哪一端、进度多少」；文字色另有自己的一条
+ * 插值（白 → 次级文字），因为「底有多实」和「压在什么上读得清」是两件事。
  *
  * 具体控件在 `core:ui` 的 [SearchBox] / [Avatar] 里，这里只负责三件事：
- * 算颜色（按 [solid] 插值）、给尺寸（40dp）、排版（头像 + 12dp + 搜索框）。
- * 换句话说，首页不该拥有一份「自己的搜索框」—— 它只是一处在用通用组件。
+ * 算材质与文字色、给尺寸（40dp）、排版（头像 + 12dp + 搜索框）。换句话说，首页不该
+ * 拥有一份「自己的搜索框」—— 它只是一处在用通用组件。
  */
 @Composable
 fun HomeTopBar(
@@ -70,13 +68,11 @@ fun HomeTopBar(
 ) {
     val media = AppTheme.colors.media
     val colors = MaterialTheme.colorScheme
-    // 三组颜色都按 [solid] 插值：底色从「半透明白」走到「页面容器色」，
-    // 文字从「纯白」走到「页面上次级文字」。中间不会出现某一帧看不清。
-    val container = lerp(media.surfaceStrong, colors.surfaceContainerHigh, solid)
+    // 一栏两个控件共用**同一份材质**：同底、同边、同厚度，看起来才是一个东西。
+    val glass = GlassStyle.overImage().lerpTo(GlassStyle.overPage(), solid)
+    // 文字另算：材质管「底有多实」，文字管「压在什么上读得清」。
     val content = lerp(media.content, colors.onSurfaceVariant, solid)
     val hint = lerp(media.contentSecondary, colors.onSurfaceVariant, solid)
-    // 一栏两个控件共用同一份材质：同底、同边、同厚度，看起来才是一个东西。
-    val glass = BorderStroke(Stroke.Thin, lerp(media.outline, colors.outlineVariant, solid))
 
     Row(
         modifier = modifier
@@ -87,9 +83,8 @@ fun HomeTopBar(
         Avatar(
             contentDescription = profileContentDescription,
             onClick = onProfileClick,
-            containerColor = container,
+            style = glass,
             contentColor = content,
-            border = glass,
             modifier = Modifier.size(HomeTopBarHeight),
         )
 
@@ -98,14 +93,12 @@ fun HomeTopBar(
         SearchBox(
             text = searchHint,
             textColor = hint,
-            containerColor = container,
+            style = glass,
             contentColor = content,
-            border = glass,
             // 交互留在页面这一层：组件只负责外观，点了之后去哪是首页自己的事。
-            // 高度由 SearchBox 自带（与整栏同档）；这里只管宽度与点击。
+            // 高度由 SearchBox 自带（与整栏同档），圆角由玻璃自己裁；这里只管宽度与点击。
             modifier = Modifier
                 .weight(1f)
-                .clip(PillShape)
                 .mikomiClickable(onClick = onSearchClick),
         )
     }

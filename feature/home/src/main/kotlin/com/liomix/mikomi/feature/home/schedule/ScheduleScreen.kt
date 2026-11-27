@@ -37,6 +37,7 @@ import com.liomix.mikomi.core.designsystem.PillShape
 import com.liomix.mikomi.core.designsystem.Spacing
 import com.liomix.mikomi.core.model.anime.AirTime
 import com.liomix.mikomi.core.model.anime.AirTimePrecision
+import com.liomix.mikomi.core.model.anime.ScheduleDay
 import com.liomix.mikomi.core.model.anime.ScheduleEntry
 import com.liomix.mikomi.core.ui.base.EmptyState
 import com.liomix.mikomi.core.ui.base.ErrorState
@@ -48,7 +49,6 @@ import com.liomix.mikomi.core.ui.base.TabItemStyle
 import com.liomix.mikomi.core.ui.business.AnimeCoverImage
 import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.home.R
-import java.util.Calendar
 import java.util.Locale
 import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.mikomiClickable
@@ -92,7 +92,8 @@ private val TAB_ROW_CORNER_RADIUS = 22.dp
  * - 放送时间按三态精度展示：精确时刻 / 约 HH:mm（低优先级源推断）/ 时间待定 / 待公布；
  * - 加载 / 数据 / 空态 / 错误由 [ScheduleContent] 驱动，错误态可通过
  *   [onRefresh] 重新拉取；
- * - 顶栏右侧常驻刷新按钮，刷新中换成进度环（组件见 [RefreshButton]）。
+ * - 顶栏右侧常驻刷新按钮，**用户点了**才换成进度环（组件见 [RefreshButton]）——
+ *   进页面那一趟由骨架屏表达，不让图标替自动刷新转圈。
  */
 @Composable
 fun ScheduleScreen(
@@ -136,9 +137,8 @@ fun ScheduleScreen(
                 modifier = Modifier.weight(1f),
             )
 
-            is ScheduleContent.Success -> ScheduleContentBody(
-                days = content.days,
-                dates = content.dates,
+            is ScheduleContent.Success -> ScheduleWeekBody(
+                week = content.week,
                 onAnimeTitleClick = onAnimeTitleClick,
                 modifier = Modifier.weight(1f),
             )
@@ -147,27 +147,23 @@ fun ScheduleScreen(
 }
 
 @Composable
-private fun ScheduleContentBody(
-    days: List<List<ScheduleEntry>>,
-    dates: List<String>,
+private fun ScheduleWeekBody(
+    week: List<ScheduleDay>,
     onAnimeTitleClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 默认定位到今天；Tab 高亮直接取 Pager 当前页，双向联动无需额外状态。
-    val todayIndex = remember { todayWeekdayIndex() }
+    // 默认定位到今天。`isToday` 来自数据层，与日期同一刻生成 —— 界面不再自己读时钟。
+    val todayIndex = remember(week) { week.indexOfFirst { it.isToday }.coerceAtLeast(0) }
     val pagerState = rememberPagerState(
         initialPage = todayIndex,
-        pageCount = { days.size },
+        pageCount = { week.size },
     )
 
     Column(modifier = modifier.fillMaxSize()) {
         DayTabBar(
-            dates = dates,
-            todayIndex = todayIndex,
+            week = week,
             // 与 pager 联动：拖动时高亮跟手在两格之间移动，松手落页。
             pagerState = pagerState,
-            // 切页由 TabBar 自己做：时长与指示器同源。
-            onSelect = {},
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.Md, vertical = Spacing.Sm),
@@ -181,8 +177,7 @@ private fun ScheduleContentBody(
                 .fillMaxWidth(),
         ) { page ->
             DayList(
-                entries = days[page],
-                isToday = page == todayIndex,
+                day = week[page],
                 onAnimeTitleClick = onAnimeTitleClick,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -198,17 +193,16 @@ private fun ScheduleContentBody(
  */
 @Composable
 private fun DayTabBar(
-    dates: List<String>,
-    todayIndex: Int,
+    week: List<ScheduleDay>,
     pagerState: PagerState,
-    onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     TabBar(
         // 选中项就是 pager 的当前页：两者本来就是一回事，再传一个 `selectedIndex`
         // 只会多出一个可能不一致的来源。
         selectedIndex = pagerState.currentPage,
-        onSelect = onSelect,
+        // 有 pager 时切页由 TabBar 自己完成（时长与指示器同源），这里不需要再通知谁。
+        onSelect = {},
         modifier = modifier,
         // 整行铺满的七等分卡片，胶囊容器在宽屏上会显得过于圆，改用大圆角矩形。
         shape = RoundedCornerShape(TAB_ROW_CORNER_RADIUS),
@@ -218,14 +212,13 @@ private fun DayTabBar(
         // 不传这一项就只能在松手后一次性弹到新格。
         pagerState = pagerState,
     ) {
-        dates.indices.forEach { index ->
-            val isToday = index == todayIndex
+        week.forEachIndexed { index, day ->
             Tab(
                 index = index,
                 text = stringResource(
-                    if (isToday) TODAY_LABEL else WEEKDAYS[index % WEEKDAYS.size],
+                    if (day.isToday) TODAY_LABEL else WEEKDAYS[index % WEEKDAYS.size],
                 ),
-                supportingText = dates[index].let(::monthDayLabel).takeIf { it.isNotBlank() },
+                supportingText = monthDayLabel(day.date).takeIf { it.isNotBlank() },
                 modifier = Modifier.weight(1f),
             )
         }
@@ -239,14 +232,14 @@ private fun monthDayLabel(date: String): String =
 /** 单日番剧列表：左封面 + 右标题/放送信息/简介。 */
 @Composable
 private fun DayList(
-    entries: List<ScheduleEntry>,
-    isToday: Boolean,
+    day: ScheduleDay,
     onAnimeTitleClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (entries.isEmpty()) {
+    if (day.entries.isEmpty()) {
         EmptyState(
-            message = if (isToday) {
+            // 今天没有番在放，和「这周还没数据」是两件事，文案不同。
+            message = if (day.isToday) {
                 stringResource(R.string.schedule_empty)
             } else {
                 stringResource(R.string.schedule_day_empty)
@@ -268,7 +261,7 @@ private fun DayList(
         verticalArrangement = Arrangement.spacedBy(Spacing.Compact),
     ) {
         items(
-            items = entries,
+            items = day.entries,
             key = { "${it.canonicalKey}:${it.airTime.date}:${it.episode}" },
             contentType = { "schedule_entry" },
         ) { entry ->
@@ -307,60 +300,60 @@ private fun ScheduleAnimeRow(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(Spacing.Tight),
         ) {
-                ScrollingText(
-                    text = anime.title,
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                if (episodeLabel.isNotBlank() || scheduleLabel.isNotBlank()) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.Sm),
-                    ) {
-                        if (episodeLabel.isNotBlank()) {
-                            Text(
-                                text = episodeLabel,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
+            ScrollingText(
+                text = anime.title,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (episodeLabel.isNotBlank() || scheduleLabel.isNotBlank()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.Sm),
+                ) {
+                    if (episodeLabel.isNotBlank()) {
+                        Text(
+                            text = episodeLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    if (scheduleLabel.isNotBlank()) {
+                        // 时钟 + 时间是一个整体：颜色由「是否精确时刻」决定，
+                        // 图标跟着文字走，不然会在主色文字旁留一颗灰图标。
+                        val timeColor = if (entry.airTime.hasExactTime) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
                         }
-                        if (scheduleLabel.isNotBlank()) {
-                            // 时钟 + 时间是一个整体：颜色由「是否精确时刻」决定，
-                            // 图标跟着文字走，不然会在主色文字旁留一颗灰图标。
-                            val timeColor = if (entry.airTime.hasExactTime) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            }
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.Xxs),
-                            ) {
-                                Icon(
-                                    icon = Icons.Clock,
-                                    contentDescription = null,
-                                    tint = timeColor,
-                                    // 夹在 12sp 行里的小图标：16dp，与文字基线视觉等重。
-                                    size = Sizes.IconXs,
-                                )
-                                Text(
-                                    text = scheduleLabel,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = timeColor,
-                                )
-                            }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.Xxs),
+                        ) {
+                            Icon(
+                                icon = Icons.Clock,
+                                contentDescription = null,
+                                tint = timeColor,
+                                // 夹在 12sp 行里的小图标：16dp，与文字基线视觉等重。
+                                size = Sizes.IconXs,
+                            )
+                            Text(
+                                text = scheduleLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = timeColor,
+                            )
                         }
                     }
                 }
-                Text(
-                    text = anime.synopsis ?: stringResource(R.string.schedule_no_synopsis),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    // 三行：一句简介通常两三行收住，再长就该去详情页看。
-                    maxLines = SynopsisMaxLines,
-                    overflow = TextOverflow.Ellipsis,
-                )
             }
+            Text(
+                text = anime.synopsis ?: stringResource(R.string.schedule_no_synopsis),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // 三行：一句简介通常两三行收住，再长就该去详情页看。
+                maxLines = SynopsisMaxLines,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
 
         // AniRpb 更新表没有评分字段；不要显示一个无意义的「—」圆点。
         // 评分圆点仍按封面垂直居中，避免顶到标题行。
@@ -430,16 +423,10 @@ private fun airTimeLabel(airTime: AirTime): String = when {
     else -> stringResource(R.string.schedule_time_tbd)
 }
 
-/** 今天是本周第几天（周一=0）。Calendar 的 DAY_OF_WEEK 周日=1。 */
-private fun todayWeekdayIndex(): Int {
-    val calendar = Calendar.getInstance()
-    return (calendar.get(Calendar.DAY_OF_WEEK) + 5) % 7
-}
-
-/** 右侧评分圆点：评分缺失时显示占位圆圈。 */
+/** 右侧评分圆点：评分缺失时由调用方跳过，不画占位圈。 */
 @Composable
 private fun RatingDot(
-    rating: Double?,
+    rating: Double,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -453,7 +440,7 @@ private fun RatingDot(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = rating?.let { String.format(Locale.ROOT, "%.1f", it) } ?: "—",
+                text = String.format(Locale.ROOT, "%.1f", rating),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,

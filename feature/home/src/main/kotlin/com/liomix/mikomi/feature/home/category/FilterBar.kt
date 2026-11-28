@@ -96,6 +96,10 @@ internal fun FilterBar(
     val years = remember { recentYears() }
     // 只记「哪一格展开了」，候选在展开时才拼：把现拼的列表存进状态会冻住选中态。
     var sheet by remember { mutableStateOf<SheetKind?>(null) }
+    // 标签面板里勾的是**草稿**：多选要能连着勾几个，每勾一下都打一次网络，面板背后的
+    // 列表就会一次次掉回骨架屏 —— 隔着这层半透明的底，看得一清二楚。
+    // 草稿只在关面板时落地一次；面板没有「取消」，所以「关掉」就等于「确认」。
+    var tagDraft by remember { mutableStateOf<Set<String>>(emptySet()) }
 
     Row(
         modifier = modifier
@@ -119,10 +123,20 @@ internal fun FilterBar(
                 onClick = { sheet = SheetKind.REGION },
             )
             FilterChip(
-                label = query.tag ?: allLabel,
-                active = query.tag != null,
-                onClick = { sheet = SheetKind.TAG },
-                onClear = { onQueryChange(query.copy(tag = null)) },
+                // 多选之后，胶囊上没有「选的是哪一个」可讲 —— 一句都放不下。
+                // 它能回答的只有「选了几个」，具体是什么由面板里的勾交代。
+                label = if (query.tags.isEmpty()) {
+                    allLabel
+                } else {
+                    stringResource(R.string.category_tag_selected, query.tags.size)
+                },
+                active = query.tags.isNotEmpty(),
+                onClick = {
+                    // 每次打开都从「已生效的值」起算，草稿不会带着上次的残留。
+                    tagDraft = query.tags
+                    sheet = SheetKind.TAG
+                },
+                onClear = { onQueryChange(query.copy(tags = emptySet())) },
             )
             FilterChip(
                 label = query.year?.toString() ?: allLabel,
@@ -159,9 +173,16 @@ internal fun FilterBar(
                     }
                 }
 
-                SheetKind.TAG -> (listOf<String?>(null) + CategoryTags.values).map { tag ->
-                    FilterOption(tag ?: allLabel, tag == query.tag) {
-                        onQueryChange(query.copy(tag = tag))
+                // 标签是多选：「全部」在这里不是第 25 个值，而是「一个都不勾」。
+                // 这一组读的是 `tagDraft`，勾选只改草稿，不发请求。
+                SheetKind.TAG -> buildList {
+                    add(FilterOption(allLabel, tagDraft.isEmpty()) { tagDraft = emptySet() })
+                    CategoryTags.values.forEach { tag ->
+                        add(
+                            FilterOption(tag, tag in tagDraft) {
+                                tagDraft = tagDraft.toggled(tag)
+                            },
+                        )
                     }
                 }
 
@@ -177,13 +198,29 @@ internal fun FilterBar(
                     }
                 }
             },
-            onDismiss = { sheet = null },
+            // 标签可以连续勾几个，面板不能选完一个就关掉；其余三类点完即走。
+            multiSelect = openSheet == SheetKind.TAG,
+            onDismiss = {
+                // 草稿在这里落地。值没变时 `copy` 出来的对象与旧值相等，StateFlow 不会重发，
+                // 所以「打开又原样关掉」不会白打一次请求。
+                if (openSheet == SheetKind.TAG) onQueryChange(query.copy(tags = tagDraft))
+                sheet = null
+            },
         )
     }
 }
 
 /** 哪一格展开了。四格共用一块面板，所以只需要记「是哪一格」。 */
 private enum class SheetKind { REGION, TAG, YEAR, SORT }
+
+/**
+ * 勾上 / 取消一个标签。
+ *
+ * 用不可变集合的加减，而不是 `MutableSet` 的 add/remove：筛选条件是随 `copy` 走的值，
+ * 改它等于换一份新的 —— 这样 `CategoryQuery` 才能安心地当 flow 的 key 与比较依据。
+ */
+private fun Set<String>.toggled(value: String): Set<String> =
+    if (value in this) this - value else this + value
 
 @Composable
 private fun SheetKind.title(): String = stringResource(
@@ -198,8 +235,11 @@ private fun SheetKind.title(): String = stringResource(
 /**
  * 一次选择：显示什么、是不是当前值、点了做什么。
  *
- * 四个维度共用这一种候选，于是面板不必知道自己在筛类型还是筛年份 —— 它只负责
+ * 四个维度共用这一种候选，于是面板不必知道自己在筛类型还是年份 —— 它只负责
  * 「把一格一格排出来，点中的交回去」。选中判定因此只有一处。
+ *
+ * 多选由 [FilterSheet] 的 `multiSelect` 决定行为（点完关不关面板），候选本身不分单/多选：
+ * 「点了做什么」永远是调用方给的，标签那边给的就是「勾上/取消这一个」。
  */
 private data class FilterOption(
     val label: String,
@@ -210,7 +250,7 @@ private data class FilterOption(
 /**
  * 筛选胶囊：文字 + 尾端记号（未生效是 ⌄，生效是 ×）。
  *
- * 生效时不再画展开箭头：一颗 40dp 的胶囊里塞两个记号，读起来是「两个按钮」；
+ * 生效时不再画展开箭头：一颗 32dp 的胶囊里塞两个记号，读起来是「两个按钮」；
  * × 自己就交代了「这一项可以动」，点文字本体照样能换值。
  *
  * 底座（`ChevronBadge` / `ClearMark`）比文字小一圈：它们是记号，不是按键 ——
@@ -236,10 +276,10 @@ private fun FilterChip(
     }
 
     Row(
-        // 高度**钉死**成标签档：胶囊里装的东西会变（⌄ ↔ ×，两者的包围盒不一样大），
-        // 高度一旦由内容决定，选中那一刻整颗胶囊就会跟着长高 2dp，一排跟着错位。
+        // 高度**钉死**成 [BarChipHeight]：胶囊里装的东西会变（⌄ ↔ ×，两者的包围盒不一样大），
+        // 高度一旦由内容决定，选中那一刻整颗胶囊就会跟着长高，一排跟着错位。
         modifier = modifier
-            .height(Sizes.ChipHeight)
+            .height(BarChipHeight)
             .glass(style, PillShape),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -285,8 +325,8 @@ private fun SortChip(
     Row(
         modifier = modifier
             .mikomiClickable(onClick = onClick)
-            // 纵向凑满 40（20 的字 + 两侧 10）：与筛选胶囊同高，点按范围也齐。
-            .padding(horizontal = Spacing.Xs, vertical = Spacing.Compact),
+            // 纵向凑满 32（20 的字 + 两侧 6）：与筛选胶囊同高，点按范围也齐。
+            .padding(horizontal = Spacing.Xs, vertical = Spacing.Tight),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.Xxs),
     ) {
@@ -340,6 +380,7 @@ private fun ClearMark(
 private fun FilterSheet(
     title: String,
     options: List<FilterOption>,
+    multiSelect: Boolean,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -418,7 +459,9 @@ private fun FilterSheet(
                                         maxLines = 1,
                                         onClick = {
                                             option.onClick()
-                                            onDismiss()
+                                            // 多选：点完**不关**，接着勾下一个；单选：选完即走。
+                                            // 这一行是「连续勾选」的唯一开关 —— 少了它就是「点一下关一次」。
+                                            if (!multiSelect) onDismiss()
                                         },
                                     )
                                 }
@@ -551,6 +594,15 @@ private val GridGap = Spacing.Sm
  * labelLarge 是 14sp / 行高 20dp —— 底座取 14，视觉上比整个文字块矮一截。
  */
 private val ChevronBadgeSize = 14.dp
+
+/**
+ * 筛选胶囊的高度：32dp。
+ *
+ * 不用 [Sizes.ChipHeight]（40）—— 那一档是「可选中标签」，给的是收藏区那种要一次点准的
+ * 列表；顶栏下面这排是**紧凑的入口**，M3 的 `FilterChip` 默认也是 32。
+ * 40 时一排四颗占掉 56dp 高，比顶栏标题还抢眼。
+ */
+private val BarChipHeight = 32.dp
 
 /** 箭头本身：再小一档，底座才包得住它（左右各留 2dp 的环）。 */
 private val ChevronIconSize = 10.dp

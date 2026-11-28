@@ -22,8 +22,9 @@ internal class CategoryRepositoryImpl @Inject constructor(
     override suspend fun browse(query: CategoryQuery, page: Int): CategoryPage {
         val result = source.browse(
             sort = query.sort.bangumiSort,
-            // 产地是 tag，不是独立字段：两个条件同时生效，所以拼在一起。
-            tag = query.region.bangumiTags + listOfNotNull(query.tag),
+            // 产地是 tag，不是独立字段：和用户勾的标签一起拼成同一个数组，服务端按交集筛。
+            // 空集天然什么都不加，不需要为「全部」写分支。
+            tag = query.region.bangumiTags + query.tags,
             airDate = query.year.toAirDateRange(),
             limit = CategoryRepository.PAGE_SIZE,
             offset = page * CategoryRepository.PAGE_SIZE,

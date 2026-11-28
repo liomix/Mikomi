@@ -8,13 +8,18 @@ import com.liomix.mikomi.core.model.Anime
  * 四个维度**正交**：换年份不该把已选的标签清掉，所以它们合成一个不可变值 ——
  * 任何一次筛选都是 `copy` 出一份新条件，界面不必自己维护「哪个还没选」。
  *
- * 每一项的 `null` 都表示「不限」，而不是一个空串：那让「全部」和「选了某个空值」
- * 在类型上就是两件事。
+ * 「不限」在类型上看得出来：可选维度用 `null`，标签那种可多选的用**空集** ——
+ * 都不是「有值的空串」，所以 `全部` 与「选了某个空值」永远是两件事。
  */
 data class CategoryQuery(
     val region: CategoryRegion = CategoryRegion.JAPAN,
-    /** 标签（「热血」「悬疑」…）；`null` = 全部。 */
-    val tag: String? = null,
+    /**
+     * 标签（「热血」「悬疑」…），**可多选**；空集 = 全部。
+     *
+     * 多选在服务端就是一个 `tag` 数组、彼此取交集（同时满足），不需要客户端做二次过滤 ——
+     * 所以这里存的是「用户勾了哪几个」，而不是「已经算好的结果集」。
+     */
+    val tags: Set<String> = emptySet(),
     /** 放送年份；`null` = 全部。 */
     val year: Int? = null,
     val sort: CategorySort = CategorySort.LATEST,

@@ -21,12 +21,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.TagSpec
 import com.liomix.mikomi.core.model.Anime
 import com.liomix.mikomi.core.model.anime.CategoryQuery
 import com.liomix.mikomi.core.ui.base.EmptyState
@@ -34,6 +31,9 @@ import com.liomix.mikomi.core.ui.base.ErrorState
 import com.liomix.mikomi.core.ui.business.AnimePosterCard
 import com.liomix.mikomi.core.ui.business.PosterCardSkeleton
 import com.liomix.mikomi.core.ui.business.PosterGrid
+import com.liomix.mikomi.core.ui.base.Tag
+import com.liomix.mikomi.core.ui.base.TagColors
+import com.liomix.mikomi.core.ui.base.TagStyle
 import com.liomix.mikomi.core.ui.layout.BaseScreenLayout
 import com.liomix.mikomi.feature.home.R
 
@@ -106,35 +106,30 @@ fun CategoryScreen(
 }
 
 /**
- * 结果条数：「共 24 部动漫」，数字取主题色。放在顶栏右侧的动作位里。
+ * 结果条数：「共 24 部」，做成一颗只读标签放在顶栏右侧。
  *
- * 三段拼在一个 [buildAnnotatedString] 里而不是三个 `Text`：三段各有字号、字重、颜色时，
- * `Row` 里的基线与段间距都要自己调，而行内 `SpanStyle` 只有一条基线、也随系统字号一起缩放。
+ * 用 [Tag] 而不是一个裸 `Text`：它本来就是这个页面上「一个数字」的身份 —— 24dp 的浅底胶囊
+ * （`TagStyle.content()`，与列表里的陈列标签同高同色）。放在顶栏的玻璃上才有边界，
+ * 否则一段灰字浮在标题旁边，会被读成标题的续行。
+ *
+ * 底色与文字都用主色：这一段是**结果反馈**，和筛选栏里「已生效」的胶囊是同一套强调。
+ * 代价是数字不再单独染色 —— `Tag` 只吃一个字符串，装不下行内 `SpanStyle`。
  *
  * [total] 是**已加载**的部数 —— 这个接口不返回总数（`BangumiSearchResponseDto.total`
  * 一直是 0），所以数字随翻页增长。等服务端给了真总数，改的只是这一个入参的来源。
- *
- * 加载中显示 0 而不是隐藏：这一行在版面里占固定高度，藏起来会让下面的网格跳一下；
- * 而骨架屏就在正下方，不会让人误读成「一条结果都没有」。
  */
 @Composable
 private fun CategoryResultCount(
     total: Int,
     modifier: Modifier = Modifier,
 ) {
-    val head = stringResource(R.string.category_count_head)
-    val tail = stringResource(R.string.category_count_tail)
-
-    Text(
-        text = buildAnnotatedString {
-            append(head)
-            withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)) {
-                append(total.toString())
-            }
-            append(tail)
-        },
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Tag(
+        text = stringResource(R.string.category_count, total),
+        style = TagStyle.content(),
+        colors = TagColors(
+            container = MaterialTheme.colorScheme.primary.copy(alpha = TagSpec.ContainerAlphaSelected),
+            content = MaterialTheme.colorScheme.primary,
+        ),
         // 顶栏把动作贴右摆放，这里自己让出页面水槽，才和下面的版心对齐。
         modifier = modifier.padding(end = Spacing.Gutter),
     )

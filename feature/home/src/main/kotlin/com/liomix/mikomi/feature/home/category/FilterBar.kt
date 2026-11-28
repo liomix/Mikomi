@@ -1,18 +1,22 @@
 package com.liomix.mikomi.feature.home.category
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,20 +32,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.liomix.mikomi.core.designsystem.Icons
 import com.liomix.mikomi.core.designsystem.PillShape
-import com.liomix.mikomi.core.designsystem.SheetShape
 import com.liomix.mikomi.core.designsystem.Radius
+import com.liomix.mikomi.core.designsystem.SheetShape
 import com.liomix.mikomi.core.designsystem.Sizes
 import com.liomix.mikomi.core.designsystem.Spacing
+import com.liomix.mikomi.core.designsystem.Stroke
+import com.liomix.mikomi.core.designsystem.TagSpec
 import com.liomix.mikomi.core.model.anime.CategoryQuery
 import com.liomix.mikomi.core.model.anime.CategoryRegion
 import com.liomix.mikomi.core.model.anime.CategorySort
 import com.liomix.mikomi.core.model.anime.CategoryTags
-import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.GlassStyle
+import com.liomix.mikomi.core.ui.base.Icon
 import com.liomix.mikomi.core.ui.base.Tag
 import com.liomix.mikomi.core.ui.base.TagStyle
 import com.liomix.mikomi.core.ui.base.glass
@@ -50,22 +57,34 @@ import com.liomix.mikomi.feature.home.R
 import java.util.Calendar
 
 /**
- * 分类筛选栏：四颗胶囊均匀铺满一行，从左到右是「类型 / 标签 / 年份 / 排序」。
+ * 分类筛选栏：左边三颗筛选胶囊，右边一格排序，中间一条竖线隔开。
  *
- * ## 四个维度共用同一条交互
+ * ## 为什么把「排序」单独摆出去
  *
- * 点任意一颗，都从底部升起同一块面板：标题是维度名，里面是候选网格。四个维度不再是
- * 「有的下拉、有的弹窗」—— 同一行里四颗长得一样、点下去也一样，用户不必先猜这一次会
- * 从哪里冒出来。候选只有两项的类型和排序，面板同样成立：它们只是格子少一些。
+ * 前三颗是**筛选** —— 选了就少一批条目；排序只改顺序，条目一个不少。两者做成同一种
+ * 胶囊，会让人以为换排序会把内容筛没。所以排序没有胶囊底、只有文字 + 箭头，一条竖线
+ * 与筛选组分开；筛选组可以横滚（标签名从两字到四字都有），排序固定在最右，不会被挤出去。
  *
- * ## 为什么不用锚定式下拉
+ * ## 生效的条件要看得出来
  *
- * 下拉贴着胶囊时，它会把「当前这一行」遮掉一半；而分类页的四个维度里，标签和年份有
- * 十来个候选，锚定面板装不下又很难滚。底部面板从屏幕边缘进来，尺寸只受候选数影响，
- * 不挤压筛选栏本身 —— 也就不会出现「弹层盖住了我要对照的那颗胶囊」。
+ * 每一颗都有默认值：类型默认日漫、标签与年份默认「全部」、排序默认最新。等于默认时是
+ * 中性的灰胶囊；**一旦偏离默认**（国漫、热血、2026、最热）就换成主色描边 + 主色文字，
+ * 尾巴的 ⌄ 让位给 ×：
  *
- * 一颗胶囊 = 一个维度 = 一次 `copy`，四个维度互相独立（换年份不清标签），所以不需要
- * 「重置」按钮 —— 每一格自己就能回到「全部」。
+ * - 点胶囊本体 = 换一个值（开面板）；
+ * - 点 × = 只清这一项，不打开面板。
+ *
+ * 只有标签和年份有 × —— 它们有「不限」这个值，× 就是回到它。类型和排序永远有值，
+ * 在它们身上画 × 只能读成「取消类型」，所以它们只变色、不带走号。
+ *
+ * 选中色的两个透明度直接借 [TagSpec]，与列表里的可选标签是同一套强调 ——
+ * 全站的「已选中」只该有一个样子。
+ *
+ * ## 四个维度共用同一条展开方式
+ *
+ * 点任意一颗都从底部升起同一块面板：标题是维度名，里面是候选网格。用户不必先猜这一次
+ * 会从哪里冒出来。不用锚定式下拉：它会把当前这一行遮掉一半，而标签和年份有十来个候选，
+ * 锚定面板装不下又很难滚。
  */
 @Composable
 internal fun FilterBar(
@@ -81,17 +100,51 @@ internal fun FilterBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.Md, vertical = Spacing.Xs),
-        // 四颗均匀分布：`SpaceBetween` 让间距自己均分，两端永远贴住版心。
-        // 不用 `weight(1f)` 平分：中文标签长度差得远（「日漫」vs「国产动画」），
-        // 等宽会把长的那格挤出省略号。
-        horizontalArrangement = Arrangement.SpaceBetween,
+            // 上下各一档：条数搬去顶栏之后，这里是顶栏与内容之间唯一的呼吸。
+            .padding(horizontal = Spacing.Md, vertical = Spacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.Sm),
     ) {
-        FilterChip(label = query.region.title(), onClick = { sheet = SheetKind.REGION })
-        FilterChip(label = query.tag ?: allLabel, onClick = { sheet = SheetKind.TAG })
-        FilterChip(label = query.year?.toString() ?: allLabel, onClick = { sheet = SheetKind.YEAR })
-        FilterChip(label = query.sort.title(), onClick = { sheet = SheetKind.SORT })
+        Row(
+            // 收窄时先牺牲筛选组，不牺牲排序：它是唯一固定宽度的东西。
+            modifier = Modifier
+                .weight(1f)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.Sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            FilterChip(
+                label = query.region.title(),
+                active = query.region != CategoryRegion.JAPAN,
+                onClick = { sheet = SheetKind.REGION },
+            )
+            FilterChip(
+                label = query.tag ?: allLabel,
+                active = query.tag != null,
+                onClick = { sheet = SheetKind.TAG },
+                onClear = { onQueryChange(query.copy(tag = null)) },
+            )
+            FilterChip(
+                label = query.year?.toString() ?: allLabel,
+                active = query.year != null,
+                onClick = { sheet = SheetKind.YEAR },
+                onClear = { onQueryChange(query.copy(year = null)) },
+            )
+        }
+
+        // 一条竖线：把「筛掉内容」和「只改顺序」分开，又不至于隔成两栏。
+        Box(
+            modifier = Modifier
+                .width(Stroke.Thin)
+                .height(Spacing.Md)
+                .background(MaterialTheme.colorScheme.outlineVariant),
+        )
+
+        SortChip(
+            label = query.sort.title(),
+            active = query.sort != CategorySort.LATEST,
+            onClick = { sheet = SheetKind.SORT },
+        )
     }
 
     val openSheet = sheet
@@ -155,45 +208,120 @@ private data class FilterOption(
 )
 
 /**
- * 筛选胶囊：文字 + 右端小圆底箭头，点了从底部升面板。
+ * 筛选胶囊：文字 + 尾端记号（未生效是 ⌄，生效是 ×）。
  *
- * 箭头比文字小一圈（14dp 底座 / 10dp 箭头）：它的身份是「这一格可以展开」的记号，
- * 不是一颗独立按键 —— 和 14sp 文字等高时，它会把「点这里」指向自己。
+ * 生效时不再画展开箭头：一颗 40dp 的胶囊里塞两个记号，读起来是「两个按钮」；
+ * × 自己就交代了「这一项可以动」，点文字本体照样能换值。
  *
- * 底座只比胶囊深一档（`surfaceContainerHighest` 压在 `surfaceContainerHigh` 上）：
- * 用页面底色（纯白）时那颗圆点会跳出来抢箭头，看起来像胶囊里嵌了颗按钮。
+ * 底座（`ChevronBadge` / `ClearMark`）比文字小一圈：它们是记号，不是按键 ——
+ * 和 14sp 文字等高时，会把「点这里」指向自己，而真正可点的其实是整颗胶囊。
  */
 @Composable
 private fun FilterChip(
     label: String,
+    active: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onClear: (() -> Unit)? = null,
 ) {
-    Box(
-        // 玻璃自己负责裁剪与描边，点按接在它后面就自然收进圆角里。
+    val colors = MaterialTheme.colorScheme
+    // 生效色借 Tag 的那一对透明度：全站「已选中」是同一个强调，不另立一套。
+    val style = if (active) {
+        GlassStyle(
+            fill = colors.primary.copy(alpha = TagSpec.ContainerAlphaSelected),
+            edge = colors.primary.copy(alpha = TagSpec.BorderAlphaSelected),
+        )
+    } else {
+        GlassStyle.raised()
+    }
+
+    Row(
+        // 高度**钉死**成标签档：胶囊里装的东西会变（⌄ ↔ ×，两者的包围盒不一样大），
+        // 高度一旦由内容决定，选中那一刻整颗胶囊就会跟着长高 2dp，一排跟着错位。
         modifier = modifier
-            .glass(GlassStyle.raised(), PillShape)
-            .mikomiClickable(onClick = onClick),
+            .height(Sizes.ChipHeight)
+            .glass(style, PillShape),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
-            modifier = Modifier.padding(
-                start = Spacing.Md,
-                // 右端只留一档：箭头底座自己带圆角，再多一圈空白会把它推离边缘，
-                // 看起来像「胶囊里还套着一个东西」。
-                end = Spacing.Xs,
-                top = Spacing.Sm,
-                bottom = Spacing.Sm,
-            ),
+            modifier = Modifier
+                .fillMaxHeight()
+                .mikomiClickable(onClick = onClick)
+                // 纵向不再给内边距：高度已经由外面定死，文字与记号自己居中。
+                .padding(start = Spacing.Md, end = Spacing.Xs),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.Xs),
         ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (active) colors.primary else colors.onSurface,
             )
-            ChevronBadge()
+            if (active && onClear != null) {
+                ClearMark(onClear = onClear, tint = colors.primary)
+            } else {
+                ChevronBadge()
+            }
         }
+    }
+}
+
+/**
+ * 排序格：没有胶囊底，只有文字 + 箭头。
+ *
+ * 它和筛选不是一类东西 —— 换排序不会少一条内容，长得像筛选就会让人以为会。
+ * 这里只给文字上色（偏离默认时），连描边都不加：一根竖线已经把它隔在另一边了。
+ */
+@Composable
+private fun SortChip(
+    label: String,
+    active: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = MaterialTheme.colorScheme
+    val content = if (active) colors.primary else colors.onSurface
+
+    Row(
+        modifier = modifier
+            .mikomiClickable(onClick = onClick)
+            // 纵向凑满 40（20 的字 + 两侧 10）：与筛选胶囊同高，点按范围也齐。
+            .padding(horizontal = Spacing.Xs, vertical = Spacing.Compact),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.Xxs),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = content,
+        )
+        Icon(
+            icon = Icons.ExpandMore,
+            contentDescription = null,
+            tint = if (active) content else colors.onSurfaceVariant,
+            size = ChevronIconSize,
+        )
+    }
+}
+
+/** 胶囊尾端的「清掉这一项」。点按范围是含内边距的 24dp，不是那个 10dp 的图形。 */
+@Composable
+private fun ClearMark(
+    onClear: () -> Unit,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .mikomiClickable(onClick = onClear)
+            .padding(Spacing.Tight),
+    ) {
+        Icon(
+            icon = Icons.Close,
+            contentDescription = stringResource(R.string.category_filter_clear),
+            tint = tint,
+            size = ClearIconSize,
+        )
     }
 }
 
@@ -426,6 +554,9 @@ private val ChevronBadgeSize = 14.dp
 
 /** 箭头本身：再小一档，底座才包得住它（左右各留 2dp 的环）。 */
 private val ChevronIconSize = 10.dp
+
+/** 「清掉这一项」的叉：与箭头同档，它们在同一位置轮换。 */
+private val ClearIconSize = 10.dp
 
 /**
  * 翻页点的直径。

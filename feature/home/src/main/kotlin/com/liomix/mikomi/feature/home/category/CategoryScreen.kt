@@ -59,6 +59,13 @@ fun CategoryScreen(
     BaseScreenLayout(
         title = stringResource(R.string.home_action_category),
         onBackClick = onBackClick,
+        // 条数是「这个分类有多少」的页面级信息，不是内容的第一行：放顶栏右侧，
+        // 内容区就少一整行（40dp），第一排海报能早点露出来。
+        actions = {
+            CategoryResultCount(
+                total = (uiState.content as? CategoryContent.Success)?.anime?.size ?: 0,
+            )
+        },
         // 网格自己滚：外层再套一层滚动会让「先滚谁」变成没人能回答的问题。
         scrollable = false,
         contentPadding = PaddingValues(Spacing.None),
@@ -68,13 +75,6 @@ fun CategoryScreen(
         FilterBar(
             query = uiState.query,
             onQueryChange = onQueryChange,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        // 条数在状态分发**之前**读：它是四条分支共用的同一个数，写进 `Success` 就会在
-        // 加载/空/错误时消失，那一行时有时无，整块版面跟着跳。
-        CategoryResultCount(
-            total = (uiState.content as? CategoryContent.Success)?.anime?.size ?: 0,
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -106,7 +106,7 @@ fun CategoryScreen(
 }
 
 /**
- * 结果条数：「共 24 部动漫」，数字取主题色。
+ * 结果条数：「共 24 部动漫」，数字取主题色。放在顶栏右侧的动作位里。
  *
  * 三段拼在一个 [buildAnnotatedString] 里而不是三个 `Text`：三段各有字号、字重、颜色时，
  * `Row` 里的基线与段间距都要自己调，而行内 `SpanStyle` 只有一条基线、也随系统字号一起缩放。
@@ -135,14 +135,8 @@ private fun CategoryResultCount(
         },
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.padding(
-            start = Spacing.Md,
-            end = Spacing.Md,
-            // 上面只留一档：筛选栏已经带着自己的下边距，这里再多一段就成了一条空带；
-            // 下面留两档，把条数和第一行封面分开。
-            top = Spacing.Xs,
-            bottom = Spacing.Sm,
-        ),
+        // 顶栏把动作贴右摆放，这里自己让出页面水槽，才和下面的版心对齐。
+        modifier = modifier.padding(end = Spacing.Gutter),
     )
 }
 

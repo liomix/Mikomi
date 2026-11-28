@@ -10,6 +10,7 @@
     <string name="category_filter_tag">标签</string>
     <string name="category_filter_year">年份</string>
     <string name="category_filter_sort">排序</string>
+    <string name="category_filter_clear">清除这项筛选</string>
     <string name="category_region_japan">日漫</string>
     <string name="category_region_china">国漫</string>
     <string name="category_sort_latest">最新</string>
